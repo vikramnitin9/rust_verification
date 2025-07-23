@@ -10,6 +10,7 @@ __CPROVER_requires(__CPROVER_r_ok(a) && __CPROVER_r_ok(b))
 __CPROVER_requires(__CPROVER_is_fresh(a, sizeof(*a)))
 __CPROVER_requires(__CPROVER_is_fresh(b, sizeof(*b)))
 __CPROVER_ensures(*a == __CPROVER_old(*b) && *b == __CPROVER_old(*a))
+__CPROVER_assigns(*a, *b)
 {
     int t = *a;
     *a = *b;
@@ -20,8 +21,9 @@ __CPROVER_ensures(*a == __CPROVER_old(*b) && *b == __CPROVER_old(*a))
 int partition (int arr[], int low, int high)
 __CPROVER_requires(arr != NULL)
 __CPROVER_requires(low >= 0 && high >= 0 && low <= high)
-__CPROVER_requires(__CPROVER_is_fresh(arr + low, sizeof(int) * (high - low + 1)))
+__CPROVER_requires(__CPROVER_is_fresh(arr, sizeof(int) * (high + 1)))
 __CPROVER_ensures(__CPROVER_return_value >= low && __CPROVER_return_value <= high)
+__CPROVER_assigns(__CPROVER_object_upto(arr, sizeof(int) * (high + 1)))
 {
     int pivot = arr[high]; // Choose the last element as the pivot
     int i = low - 1; // Temporary pivot index
