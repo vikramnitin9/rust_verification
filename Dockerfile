@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM ubuntu:24.10
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt -y update
@@ -41,10 +41,13 @@ RUN arch=$(uname -m) && \
     echo "Unsupported architecture: $arch"; \
     exit 1; \
     fi && \
-    wget $MINICONDA_URL -O miniconda.sh && \
+    cd /app && wget $MINICONDA_URL -O miniconda.sh && \
     mkdir -p /opt/miniconda3 && \
     bash miniconda.sh -b -u -p /opt/miniconda3 && \
     rm -f miniconda.sh
+
+RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 
 RUN conda install -y python=3.10 pip
 RUN mkdir -p /app
