@@ -2,7 +2,7 @@ FROM ubuntu:24.10
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt -y update
-RUN apt install -y build-essential wget git
+RUN apt install -y build-essential wget unzip git
 RUN apt install -y cbmc
 
 RUN apt-get clean && \
@@ -25,6 +25,23 @@ RUN mkdir -p /opt/miniconda3 && \
 # Set the non-root user as the owner of the /app directory
 RUN mkdir -p /app && \
     chown -R ${USER_ID}:${GROUP_ID} /app
+
+# Detect architecture and download the correct z3 binary
+RUN ARCH=$(dpkg --print-architecture) && \
+    if [ "$ARCH" = "arm64" ]; then \
+        Z3_URL="https://github.com/Z3Prover/z3/releases/download/z3-4.15.2/z3-4.15.2-arm64-glibc-2.34.zip"; \
+        Z3_FOLDER="z3-4.15.2-arm64-glibc-2.34"; \
+    elif [ "$ARCH" = "amd64" ]; then \
+        Z3_URL="https://github.com/Z3Prover/z3/releases/download/z3-4.15.2/z3-4.15.2-x64-glibc-2.39.zip"; \
+        Z3_FOLDER="z3-4.15.2-x64-glibc-2.39"; \
+    else \
+        echo "Unsupported architecture: $ARCH" && exit 1; \
+    fi && \
+    wget "$Z3_URL" -O z3.zip && \
+    unzip z3.zip -d /opt/z3 && \
+    rm z3.zip && \
+    chmod +x /opt/z3/$Z3_FOLDER/bin/z3 && \
+    ln -s /opt/z3/$Z3_FOLDER/bin/z3 /usr/local/bin/z3
 
 # Switch to the non-root user
 USER ${USER_ID}:${GROUP_ID}
@@ -50,5 +67,4 @@ RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkg
 RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 
 RUN conda install -y python=3.10 pip
-RUN mkdir -p /app
 WORKDIR /app
