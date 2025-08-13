@@ -2,6 +2,7 @@ CPROVER is a library to verify properties about C programs.
 Here is the documentation for how to write function contracts:
 
 <START OF DOCUMENTATION>
+
 # Requires and Ensures Clauses
 
 ## Table of Contents
@@ -164,8 +165,695 @@ int foo()
 - History Variables
 - Quantifiers
 
+# Assigns Clauses
+
+## Table of Contents
+
+- [Syntax](#syntax)
+  - [Lvalue targets](#lvalue-targets)
+  - [Object slice targets](#object-slice-targets)
+  - [Function parameters](#function-parameters)
+  - [Inductive data structures](#inductive-data-structures)
+- [Semantics](#semantics)
+  - [Contract Enforcement](#contract-enforcement)
+  - [Contract Replacement](#contract-replacement)
+- [Loop Assigns Inference](#loop-assigns-inference)
+  - [Limitation](#limitation)
+- [Additional Resources](#additional-resources)
+
+---
+
+## Syntax
+
+An *assigns* clause allows the user to specify a set of locations that may be assigned to by a function or the body of a loop:
+
+```c
+__CPROVER_assigns(targets)
+```
+
+Where `targets` has the following syntax:
+
+```text
+targets           ::= cond-target-group (';' cond-target-group)* ';'?
+cond-target-group ::= (condition ':')? target (',' target)*
+target            ::= lvalue-expr
+                    | __CPROVER_typed_target(lvalue-expr)
+                    | __CPROVER_object_whole(ptr-expr)
+                    | __CPROVER_object_from(ptr-expr)
+                    | __CPROVER_object_upto(ptr-expr, uint-expr)
+```
+
+The set of locations writable by a function is the union of the sets of locations specified by its assigns clauses, or the empty set if no *assigns* clause is specified.
+
+While, in general, an *assigns* clause could be interpreted with either *writes* or *modifies* semantics, this design is based on the former.
+
+### Lvalue targets
+
+Lvalue expressions designate memory locations directly and are included as targets.
+
+### Object slice targets
+
+Each target listed in an assigns clause defines a *conditionally assignable range* of bytes represented by the following triple:
+
+```c
+struct {
+  void *start_address;
+  size_t size;
+  bool is_writable;
+}
+```
+
+Where:
+
+- `start_address` is the start address of the range of bytes,
+- `size` is the size of the range in number of bytes,
+- `is_writable` is true iff the target's `condition` holds and `__CPROVER_w_ok(start_address, size)` holds at the program location where the clause is interpreted: right before function invocation for function contracts and at loop entry for loops.
+
+### Function parameters
+
+For a function contract, the memory locations storing function parameters are considered as being local to the function and are hence always assignable.
+
+For a loop contract, the parameters of the enclosing function are not considered local to the loop and must be explicitly added to the loop to become assignable.
+
+### Inductive data structures
+
+Inductive data structures are not supported yet in assigns clauses.
+
+---
+
+## Semantics
+
+### Contract Enforcement
+
+In order to determine whether a function (or loop) complies with the *assigns* clause of the contract, the body of the function (or loop) is instrumented with assertion statements before each statement which may write to memory (e.g., an assignment). These assertions check that the location about to be assigned to is among the targets specified by the *assigns* clauses.
+
+**Example**:
+
+```c
+int sum(const uint32_t a, const uint32_t b, uint32_t* out)
+/* Writable Set */
+__CPROVER_assigns(*out)
+{
+  const uint64_t result = ((uint64_t) a) + ((uint64_t) b);
+  *out = result;
+  return 0;
+}
+```
+
+### Contract Replacement
+
+Assuming the *assigns* clause of the contract correctly captures the set of locations assigned to by a function (checked during *contract enforcement*), CBMC will use the contract’s `requires` and `ensures` clauses and its *assigns clause* to generate a sound abstraction of the function behaviour from the contract.
+
+Given the contract:
+
+```c
+int f(params)
+__CPROVER_requires(R);
+__CPROVER_assigns(A);
+__CPROVER_ensures(E);
+{
+  ...
+}
+```
+
+Function calls `f(args)` get replaced with a sequence of instructions equivalent to:
+
+```c
+// check preconditions
+assert(R);
+
+// havoc the assigns targets
+havoc(A);
+
+// assume postconditions
+assume(E);
+```
+
+---
+
+## Loop Assigns Inference
+
+The inference algorithm consists of three stages:
+
+1. Function inlining,
+2. Collecting assigns targets with local-may-alias analysis,
+3. Assigns targets widening.
+
+We do the function inlining first so that we can infer those assigns targets hidden in the function call.
+
+**Example**:
+
+In the `test_loop_assigns_inference` example, there are five assignments in the loop:
+
+1. `n = &i` → assign target: `n` (loop local, excluded)
+2. `*n++` → assign target: `*n` → alias `&i` → `i` is included
+3. `k = i + 1` → target: `k` (loop local, excluded)
+4. `j = i` → target: `j` → included
+5. `b[j] = 1` → target: `b[j]` → included
+
+Finally, `b[j]` is widened to `__CPROVER_object_whole(b)` as its index `j` is non-constant.
+
+### Limitation
+
+The main limitation of the inference algorithm is that the local-may-alias analysis is field insensitive. For example:
+
+```c
+ptr = box.ptr;
+*ptr = 5;
+```
+
+We cannot determine that `ptr` aliases `box.ptr`, and will fail to infer the assigns target `__CPROVER_object_whole(box.ptr)`.
+
+However, this does not result in unsoundness. CBMC will report assignability-checks failure when the inferred assigns clauses are not accurate.
+
+---
+
+## Additional Resources
+
+- Function Contracts
+  - Requires and Ensures Clauses
+  - Assigns Clauses
+  - Frees Clauses
+- Loop Contracts
+  - Loop Invariant Clauses
+  - Decreases Clauses
+  - Assigns Clauses
+  - Frees Clauses
+- Memory Predicates
+- Function Pointer Predicates
+- History Variables
+- Quantifiers
+
+# Frees Clauses
+
+A *frees clause* allows the user to specify a set of pointers that may be freed by a function or by the function it calls, transitively. A function contract may have zero or more frees clauses. When no clause is provided the empty set is used as default. Contracts can also have an empty frees clause. When more than one frees clause is given, the sets of pointers they contain are unioned together to yield a single set of pointers.
+
+## Syntax
+
+The clause has the following syntax (square brackets denote optional expressions `[` `]`):
+
+```
+__CPROVER_frees([targets])
+```
+
+Where `targets` has the following syntax:
+
+```
+          targets ::= cond-target-group (';' cond-target-group)* ';'?
+cond-target-group ::= (condition ':' )? target (',' target)*
+           target ::= lvalue-expr
+                    | __CPROVER_freeable(lvalue-expr)
+```
+
+A frees clause target must be either:
+
+- an lvalue expression with a pointer type,
+- a call to the built-in function `__CPROVER_freeable`
+- a call to a user-defined side effect free and deterministic function returning the type `void` (itself containing direct or indirect calls to `__CPROVER_freeable` or to functions that call `__CPROVER_freeable`)
+
+### Example
+
+```c
+int foo(char *arr1, char *arr2, size_t size)
+__CPROVER_frees(
+    // `arr1` is freeable only if the condition `size > 0 && arr1` holds
+    size > 0 && arr1: arr1;
+
+    // `arr2` is always freeable
+    arr2;
+)
+{
+  if(size > 0 && arr1)
+    free(arr1);
+  free(arr2);
+  return 0;
+}
+```
+
+## Semantics
+
+The set of pointers specified by the frees clause of the contract is interpreted at the function call-site where the contract is being checked or used to abstract a function call.
+
+### For contract checking
+
+When checking a contract against a function, each pointer that the function attempts to free gets checked for membership in the set of pointers specified by the *frees clause*.
+
+### For replacement of function calls by contracts
+
+When replacing a function call by a contract, each pointer of the *frees clause* gets non-deterministically freed between the evaluation of preconditions and before the evaluation of post-conditions.
+
+## Specifying parametric sets of freeable pointers using C functions
+
+Users can define parametric sets of freeable pointers by writing functions that return the `void` type and call (directly or indirectly) the built-in function `__CPROVER_freeable`:
+
+```c
+void my_freeable_set(char **arr, size_t size)
+{
+  // The first 3 pointers are freeable
+  // if the array is at least of size 3.
+  if (arr && size > 3) {
+    __CPROVER_freeable(arr[0]);
+    __CPROVER_freeable(arr[1]);
+    __CPROVER_freeable(arr[2]);
+  }
+}
+```
+
+Calling the built-in function:
+
+```c
+void __CPROVER_freeable(void *ptr);
+```
+
+in the context of a frees clause specifies that `ptr` is freeable in that context.
+
+```c
+void my_function(char **arr, size_t size)
+__CPROVER_frees(
+  // arr is considered freeable in the context of this clause.
+  my_freeable_set(arr, size)
+)
+{
+  // body ...
+}
+```
+
+## Frees clause related predicates
+
+The predicate:
+
+```c
+__CPROVER_bool __CPROVER_is_freeable(void *ptr);
+```
+
+can only be used in pre and post conditions, in contract checking or replacement modes. It returns `true` if and only if the pointer satisfies the preconditions of the `free` function from `stdlib.h`, that is if and only if the pointer points to a valid dynamically allocated object and has offset zero.
+
+The predicate:
+
+```c
+__CPROVER_bool __CPROVER_was_freed(void *ptr);
+```
+
+can only be used in post conditions and returns `true` if and only if the pointer was freed during the execution of the function under analysis.
+
+# History Variables
+
+### Table of Contents
+
+* [In Function Contracts](#in-function-contracts)
+
+  * [Syntax](#syntax)
+  * [Parameters](#parameters)
+  * [Semantics](#semantics)
+* [In Loop Contracts](#in-loop-contracts)
+
+  * [Syntax](#syntax-1)
+  * [Parameters](#parameters-1)
+  * [Semantics](#semantics-1)
+  * [Example](#example)
+* [Additional Resources](#additional-resources)
+
+---
+
+*Back to Code Contracts User Documentation*
+
+## In Function Contracts
+
+### Syntax
+
+```c
+__CPROVER_old(*identifier*)
+```
+
+Refers to the value of a given object in the pre-state of a function within the *ensures* clause.
+
+**Important.** This function may be used only within the context of `__CPROVER_ensures`.
+
+### Parameters
+
+`__CPROVER_old` takes a single argument, which is the identifier corresponding to a parameter of the function. For now, only scalars, pointers, and struct members are supported.
+
+### Semantics
+
+To illustrate the behavior of `__CPROVER_old`, take a look at the example below. If the function returns a failure code, the value of `*out` should not have been modified.
+
+```c
+int sum(const uint32_t a, const uint32_t b, uint32_t* out)
+/* Postconditions */
+__CPROVER_ensures((__CPROVER_return_value == FAILURE) ==> (*out == __CPROVER_old(*out)))
+/* Writable Set */
+__CPROVER_assigns(*out)
+{
+  /* ... */
+}
+```
+
+# Quantifiers
+
+### Table of Contents
+
+* [Syntax](#syntax)
+* [Semantics](#semantics)
+* [Additional Resources](#additional-resources)
+
+*Back to Code Contracts User Documentation*
+
+---
+
+## Syntax
+
+```c
+__CPROVER_forall { *type* *identifier*; *boolean expression* }
+__CPROVER_exists { *type* *identifier*; *boolean expression* }
+```
+
+While quantified expressions with arbitrary Boolean expressions are supported with an SMT backend, the SAT backend only supports bounded quantification under *constant* lower & upper bounds. This is because the SAT backend currently expands a universal quantifier (`__CPROVER_forall`) to a conjunction and an existential quantifier (`__CPROVER_exists`) to a disjunction on each value within the specified bound.
+
+Concretely, with the SAT backend, the following syntax must be used for quantifiers:
+
+```c
+__CPROVER_forall { *id* *type*; *range* ==> *boolean expression* }
+__CPROVER_exists { *id* *type*; *range* && *boolean expression* }
+```
+
+Where `*range*` is an expression of the form:
+
+```c
+*lower bound* <= *id* && *id* < *upper bound*
+```
+
+Where `*lower bound*` and `*upper bound*` are constants. The bound predicates could be strict (e.g., `*lower bound* < *id*`), or non-strict (e.g., `*upper bound* <= *id*`), but both the bounds **must** be constants.
+
+---
+
+## Semantics
+
+For `__CPROVER_forall`, all `*type*` values for `*identifier*` must satisfy `*boolean expression*`.
+
+```c
+int foo(int *arr, int len)
+  /* ... */
+  __CPROVER_ensures(__CPROVER_forall {
+    int i;
+    (0 <= i && i < len) ==> arr[i] == 0
+  })
+{
+  /* every element in arr must be set to 0 */
+}
+```
+
+For `__CPROVER_exists`, some (at least one) `*type*` value for `*identifier*` must satisfy `*boolean expression*`.
+
+```c
+int bar(int *arr, int len)
+  __CPROVER_requires(__CPROVER_exists {
+    int i;
+    (0 <= i && i < len) && arr[i] == 1
+  })
+  /* ... */
+{
+  /* at least one element in arr must be set to 1 */
+}
+```
+
+The examples above only work with the SMT backend, since `len` is not constant. However, if a constant maximum upper bound, say `MAX_LEN`, is known, then the following workaround may be used with the SAT backend:
+
+```c
+int foo_sat(int *arr, int len)
+  /* ... */
+  __CPROVER_ensures(__CPROVER_forall {
+    int i;
+    (0 <= i && i < MAX_LEN) ==>
+      (i < len ==> arr[i] == 0)
+  })
+{
+  /* every element in arr must be set to 0 */
+}
+
+int bar_sat(int *arr, int len)
+  __CPROVER_requires(__CPROVER_exists {
+    int i;
+    (0 <= i && i < MAX_LEN) &&
+      (i < len && arr[i] == 1)
+  })
+  /* ... */
+{
+  /* at least one element in arr must be set to 1 */
+}
+```
+
+# Memory Predicates
+
+## Table of Contents
+
+* [The \_\_CPROVER\_pointer\_equals predicate](#the-__cprover_pointer_equals-predicate)
+* [The \_\_CPROVER\_is\_fresh predicate](#the-__cprover_is_fresh-predicate)
+* [The \_\_CPROVER\_pointer\_in\_range\_dfcc predicate](#the-__cprover_pointer_in_range_dfcc-predicate)
+
+  * [Syntax](#syntax)
+* [Using memory predicates in disjunctions](#using-memory-predicates-in-disjunctions)
+* [Writing your own memory predicates](#writing-your-own-memory-predicates)
+
+  * [Limitations](#limitations)
+
+---
+
+The built-in predicates discussed in this section are used to describe pointer properties in *requires clauses* and *ensures clauses*.
+
+At a basic level, the predicates allow you to specify:
+
+* Pointers to fresh objects (`__CPROVER_is_fresh(p, size)`),
+* Aliased pointers (`__CPROVER_pointer_equals(p, q)`),
+* Pointer ranges (`__CPROVER_pointer_in_range_dfcc(lb, p, ub)`).
+
+They must be used in `requires` or `ensures` clauses—using them outside results in a verification error.
+
+These predicates can be composed using conjunctions, implications, or disjunctions, but a `requires` or `ensures` clause must not assert multiple predicates on the same pointer simultaneously.
+
+You can also define custom predicates to describe structures like lists, buffers, etc.
+
+---
+
+## The `__CPROVER_pointer_equals` predicate
+
+This predicate checks for pointer validity and equality.
+
+```c
+bool __CPROVER_pointer_equals(void *p, void *q);
+```
+
+It returns:
+
+* `true` if and only if:
+
+  * `p` is either `NULL` or valid,
+  * `q` is either `NULL` or valid,
+  * `p == q`.
+
+### Contract checking behavior
+
+#### `--enforce-contract`
+
+* In a `requires` clause: checks `q` is valid or `NULL`, then assigns `p = q`.
+* In an `ensures` clause: checks `p` and `q` are valid or `NULL`, and `p == q`.
+
+#### `--replace-call-with-contract`
+
+* In a `requires` clause: checks both `p` and `q` are valid or `NULL`, and `p == q`.
+* In an `ensures` clause: checks `q` is valid or `NULL`, then assigns `p = q`.
+
+---
+
+## The `__CPROVER_is_fresh` predicate
+
+This checks pointer validity and separation.
+
+```c
+bool __CPROVER_is_fresh(void *p, size_t size);
+```
+
+Holds if:
+
+* `p` points to a valid object with at least `size` bytes,
+* The object is distinct from other objects referenced via `__CPROVER_is_fresh`.
+
+### Contract checking behavior
+
+#### `--enforce-contract`
+
+* In `requires`: acts like `p = malloc(size)` nondeterministically.
+* In `ensures`: checks validity and separation from all others.
+
+#### `--replace-call-with-contract`
+
+* In `requires`: checks pointer validity and separation.
+* In `ensures`: acts like `p = malloc(size)`.
+
+---
+
+## The `__CPROVER_pointer_in_range_dfcc` predicate
+
+### Syntax
+
+```c
+bool __CPROVER_pointer_in_range_dfcc(void *lb, void *p, void *ub);
+```
+
+Holds if:
+
+* `lb`, `p`, and `ub` are valid and in the same object,
+* `lb <= p && p <= ub`.
+
+### Contract checking behavior
+
+#### `--enforce-contract`
+
+* In `requires`: checks `lb`, `ub` valid and assigns `p` nondeterministically between them.
+* In `ensures`: checks validity and that `p` is within bounds.
+
+#### `--replace-call-with-contract`
+
+* In `requires`: checks validity and bounds.
+* In `ensures`: assigns `p` nondeterministically within bounds.
+
+---
+
+## Using memory predicates in disjunctions
+
+Predicates can describe conditional pointer validity using implications (`==>`):
+
+```c
+int foo(int *array, size_t len)
+  __CPROVER_requires(
+    (len < INT_MAX/sizeof(int) && len > 0)
+    ==> __CPROVER_is_fresh(array, len * sizeof(int)))
+{
+  ...
+}
+```
+
+Or alternatives:
+
+```c
+void foo(int *a, size_t len_a, int *b, size_t len_b, int **out)
+  __CPROVER_requires(__CPROVER_is_fresh(a, len_a * sizeof(int)))
+  __CPROVER_requires(__CPROVER_is_fresh(b, len_b * sizeof(int)))
+  __CPROVER_requires(__CPROVER_is_fresh(out, sizeof(int *)))
+  __CPROVER_assigns(*out)
+  __CPROVER_requires(len_a >= len_b ==> __CPROVER_pointer_equals(*out, a))
+  __CPROVER_requires(len_a < len_b ==> __CPROVER_pointer_equals(*out, b))
+{
+  ...
+}
+```
+
+Or nondeterministic pointer choices:
+
+```c
+void foo(int *a, int *b, int **out)
+  __CPROVER_requires(__CPROVER_is_fresh(a, 1))
+  __CPROVER_requires(__CPROVER_is_fresh(b, 1))
+  __CPROVER_requires(__CPROVER_is_fresh(out, sizeof(int *)))
+  __CPROVER_assigns(*out)
+  __CPROVER_requires(
+    __CPROVER_pointer_equals(*out, a) || __CPROVER_pointer_equals(*out, b))
+{
+  ...
+}
+```
+
+---
+
+## Writing your own memory predicates
+
+You can build higher-level predicates from the built-in ones:
+
+```c
+typedef struct buffer_t {
+  size_t size;
+  char *arr;
+  char *cursor;
+} buffer_t;
+
+typedef struct double_buffer_t {
+  buffer_t *first;
+  buffer_t *second;
+} double_buffer_t;
+
+bool is_sized_array(char *arr, size_t size) {
+  return __CPROVER_is_fresh(arr, size);
+}
+
+bool is_buffer(buffer_t *b) {
+  return __CPROVER_is_fresh(b, sizeof(*b)) &&
+         (0 < b->size && b->size <= 10) &&
+         is_sized_array(b->arr, b->size);
+}
+
+bool is_double_buffer(double_buffer_t *b) {
+  return __CPROVER_is_fresh(b, sizeof(*b)) &&
+         is_buffer(b->first) &&
+         is_buffer(b->second);
+}
+```
+
+### Inductive structure example
+
+```c
+typedef struct list_t {
+  int value;
+  struct list_t *next;
+} list_t;
+
+bool value_in_range(int lb, int value, int ub) {
+  return lb <= value && value <= ub;
+}
+
+bool is_list(list_t *l, size_t len) {
+  if(len == 0)
+    return __CPROVER_pointer_equals(l, NULL);
+  else if (__CPROVER_pointer_equals(l, NULL))
+    return true;
+  else
+    return __CPROVER_is_fresh(l, sizeof(*l)) &&
+           value_in_range(-10, l->value, 10) &&
+           is_list(l->next, len - 1);
+}
+```
+
+And in a function contract:
+
+```c
+int foo(list_t *l, double_buffer_t *b)
+  __CPROVER_requires(is_list(l, 3))
+  __CPROVER_requires(is_double_buffer(b))
+  __CPROVER_ensures(-28 <= __CPROVER_return_value && __CPROVER_return_value <= 50)
+{
+  return l->value + l->next->value + l->next->next->value +
+         b->first->size + b->second->size;
+}
+```
+
+Internally, CBMC turns user-defined predicates into:
+
+* Nondeterministic allocators (assumption contexts),
+* Validators for pointer validity and aliasing (assertion contexts).
+
+---
+
+### Limitations
+
+* User-defined predicates must **terminate**.
+
+  * Use a `len` bound to control recursion depth.
+  * E.g., `is_list`, `is_double_buffer`.
+* **Mutually-recursive** predicates are not currently supported.
+
 <END OF DOCUMENTATION>
 
-Could you write a "__CPROVER_requires" and "__CPROVER_ensures" contract for each function in the following C program?
-Add these contracts in the function headers, and don't modify the function bodies.
-Give me the entire program in one chunk.
+Now, could you write a "__CPROVER_requires" and "__CPROVER_ensures" contract for each function in the following C program?
+```c
+<<SOURCE>>
+```
+Remember to add the contracts ("__CPROVER_requires" and "__CPROVER_ensures") in the function headers, not the function bodies.
+Give me the entire program in one chunk, within the tags <PROGRAM> and </PROGRAM>.

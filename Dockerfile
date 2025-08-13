@@ -1,9 +1,23 @@
-FROM ubuntu:24.10
+FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt -y update
-RUN apt install -y build-essential wget unzip git
-RUN apt install -y cbmc
+RUN apt install -y build-essential wget unzip git bash-completion
+
+# Detect architecture and install the appropriate version of CBMC
+RUN ARCH=$(dpkg --print-architecture) && \
+    if [ "$ARCH" = "arm64" ]; then \
+        CBMC_URL="https://github.com/diffblue/cbmc/releases/download/cbmc-6.7.1/ubuntu-24.04-arm64-cbmc-6.7.1-Linux.deb"; \
+        CBMC_DEB="ubuntu-24.04-arm64-cbmc-6.7.1-Linux.deb"; \
+    elif [ "$ARCH" = "amd64" ]; then \
+        CBMC_URL="https://github.com/diffblue/cbmc/releases/download/cbmc-6.7.1/ubuntu-24.04-cbmc-6.7.1-Linux.deb"; \
+        CBMC_DEB="ubuntu-24.04-cbmc-6.7.1-Linux.deb"; \
+    else \
+        echo "Unsupported architecture: $ARCH" && exit 1; \
+    fi && \
+    wget "$CBMC_URL" && \
+    dpkg -i "$CBMC_DEB" && \
+    rm "$CBMC_DEB"
 
 RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -67,4 +81,6 @@ RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkg
 RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 
 RUN conda install -y python=3.10 pip
+COPY --chown=${USER_ID}:${GROUP_ID} requirements.txt /app/requirements.txt
+RUN pip install -r /app/requirements.txt
 WORKDIR /app

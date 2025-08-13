@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "cstdlib": "c",
-        "random": "c"
+        "random": "c",
+        "assert.h": "c"
     }
 }
