@@ -17,6 +17,9 @@ def get_model_from_name(name):
         if not vertex:
             model_str = model_str.replace('@', '-')
         return VertexGen(model=model_str, vertex=vertex)
+    elif name == "gpt-4o":
+        model_str = "gpt-4o"
+        return VertexGen(model=model_str, vertex=vertex)
     else:
         raise NotImplementedError("Unknown model name")
 

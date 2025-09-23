@@ -1,6 +1,5 @@
 import time
 import os
-import requests
 import litellm
 from litellm import completion
 import json
@@ -19,6 +18,13 @@ class VertexGen:
             self.vertex_credentials = None
             self.model = model
             self.api_key=os.environ['LLM_API_KEY']
+
+        if "claude" in model:
+            self.max_tokens = 64000
+        elif "gpt-4o" in model:
+            self.max_tokens = 16384
+        else:
+            raise Exception(f"Model {model} not supported")
     
     def gen(self, messages, temperature=0, top_k=1):
         '''
@@ -36,7 +42,7 @@ class VertexGen:
 
         if top_k != 1 and temperature == 0:
             raise ModelException("Top k sampling requires a non-zero temperature")
-        
+
         count = 0
         while True:
             try:
@@ -47,7 +53,7 @@ class VertexGen:
                     n=top_k,
                     api_key=self.api_key,
                     vertex_credentials=self.vertex_credentials,
-                    max_tokens=64000
+                    max_tokens=self.max_tokens
                 )
                 break
             except (litellm.BadRequestError, litellm.AuthenticationError,
