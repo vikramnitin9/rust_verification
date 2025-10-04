@@ -1,3 +1,9 @@
+'''
+Script to generate specifications for C functions using an LLM and verify them with CBMC.
+
+Currently 
+'''
+
 import sys
 from pathlib import Path
 import subprocess
@@ -7,6 +13,9 @@ import json
 import networkx as nx
 
 def get_llvm_analysis_result(file_path):
+    '''
+    Given a C file, run the 'parsec' tool to get LLVM analysis in JSON format
+    '''
     # Check if PARSEC_BUILD_DIR is set
     parsec_build_dir = os.environ.get('PARSEC_BUILD_DIR')
     if parsec_build_dir is None:
@@ -26,8 +35,10 @@ def get_llvm_analysis_result(file_path):
         analysis = json.load(f)
     return analysis
 
-
 def get_call_graph(llvm_analysis):
+    '''
+    From the JSON analysis, build a call graph using networkx
+    '''
     call_graph = nx.DiGraph()
     for func in llvm_analysis['functions']:
         func_name = func['name']
@@ -38,6 +49,11 @@ def get_call_graph(llvm_analysis):
 
 
 def generate_specs(model, conversation, func_name, llvm_analysis, out_file):
+    '''
+    Use the LLM to generate specifications for a given function and update the source file.
+    Also update the llvm analysis with new line/column info.
+    TODO - there is something wrong with the way line/col updates are done.
+    '''
     try:
         response = model.gen(conversation, top_k=1, temperature=0.0)[0]
         conversation += [{'role': 'assistant', 'content': response}]
@@ -69,12 +85,14 @@ def generate_specs(model, conversation, func_name, llvm_analysis, out_file):
     after = [lines[end_line-1][end_col:]] + lines[end_line:]
     new_contents = ''.join(before + [function_w_specs] + after)
 
+    # Update the line/col info for this function
     func_lines = len(function_w_specs.splitlines())
     new_end_line = start_line + func_lines - 1
     new_end_col = len(function_w_specs.splitlines()[-1]) + 1 if func_lines > 1 else start_col + len(function_w_specs)
     func_analysis['endLine'] = new_end_line
     func_analysis['endCol'] = new_end_col
 
+    # Update line/col info for other functions
     line_offset = func_lines - (end_line - start_line + 1)
     for f in llvm_analysis['functions']:
         if f['startLine'] > end_line:
@@ -90,7 +108,8 @@ def generate_specs(model, conversation, func_name, llvm_analysis, out_file):
 
     with open(out_file, 'w') as f:
         f.write(new_contents)
-    
+
+# Extract function source code from file given its analysis info    
 def extract_func(filename, func_analysis):
     start_line = func_analysis['startLine']
     start_col = func_analysis['startCol']
@@ -111,24 +130,27 @@ if __name__ == "__main__":
 
     inp_file = Path(sys.argv[1])
 
+    # Load the prompt from the template file
     prompt_file = Path('prompt.txt')
-
     with open(prompt_file, 'r') as f:
         prompt = f.read()
-    
-    with open(inp_file, 'r') as f:
-        inp = f.read()
     
     spec_folder = Path('specs')
     spec_folder.mkdir(exist_ok=True)
     out_file = spec_folder / inp_file.name
 
     # Copy input file to output file initially
+    # We iteratively update the output file with specs
+    with open(inp_file, 'r') as f:
+        inp = f.read()
     with open(out_file, 'w') as f:
         f.write(inp)
 
+    # Get LLVM analysis and call graph
     llvm_analysis = get_llvm_analysis_result(out_file)
     call_graph = get_call_graph(llvm_analysis)
+
+    # Get a list of functions in reverse topological order
     func_names = [n for n in call_graph.nodes if n != '']
     recursive_funcs = [n for n in func_names if call_graph.has_edge(n, n)]
     cg_without_self_loops = call_graph.copy()
@@ -142,6 +164,7 @@ if __name__ == "__main__":
     processed_funcs = []
 
     for func_name in func_ordering:
+        # Skip recursive functions for now
         if func_name in recursive_funcs:
             print(f"Skipping recursive function {func_name}")
             processed_funcs.append(func_name)
@@ -150,29 +173,38 @@ if __name__ == "__main__":
         print(f"Processing function {func_name}...")
 
         func_analysis = next((f for f in llvm_analysis['functions'] if f['name'] == func_name), None)
+        # This should not happen
         if func_analysis is None:
             print(f"Function {func_name} not found in LLVM analysis, skipping.")
             processed_funcs.append(func_name)
             continue
         
+        # Get the source code of the function
         inp = extract_func(out_file, func_analysis)
-
+        
+        # Fill in the prompt template
         prompt = prompt.replace("<<SOURCE>>", inp)
+
+        # Call the LLM to generate specs
         model = get_model_from_name('gpt-4o')
         conversation = [{'role': 'system', 'content': 'You are an intelligent coding assistant'},
                         {'role': 'user', 'content': prompt}]
         generate_specs(model, conversation, func_name, llvm_analysis, out_file)
-        import pdb; pdb.set_trace()
 
         success = False
         for _ in range(10):
+            
+            # Replace calls to already processed functions with their contracts
             replace_cmd = ''.join([f"--replace-call-with-contract {f} " for f in processed_funcs])
+
             command = (f"goto-cc -o {func_name}.goto {out_file.absolute()} --function {func_name} && "
             f"goto-instrument --partial-loops --unwind 5 {func_name}.goto {func_name}.goto && "
             f"goto-instrument {replace_cmd}"
             f"--enforce-contract {func_name} {func_name}.goto checking-{func_name}-contracts.goto && "
             f"cbmc checking-{func_name}-contracts.goto --function {func_name} --depth 100")
+
             print(f"Running command: {command}")
+            
             try:
                 result = subprocess.run(command, shell=True, capture_output=True, text=True)
                 if result.returncode == 0:
