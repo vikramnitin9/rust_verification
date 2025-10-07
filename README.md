@@ -1,5 +1,8 @@
 # Rust verification
 
+Ensure your system has [all requirements](./REQUIREMENTS.md) installed before
+  proceeding with the steps below.
+
 To build the Docker container:
 
 ```sh
