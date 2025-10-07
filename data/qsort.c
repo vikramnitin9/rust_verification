@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdlimits.h>
 
 void swap(int* a, int* b)
 {

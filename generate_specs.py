@@ -52,7 +52,6 @@ def generate_specs(model, conversation, func_name, llvm_analysis, out_file):
     '''
     Use the LLM to generate specifications for a given function and update the source file.
     Also update the llvm analysis with new line/column info.
-    TODO - there is something wrong with the way line/col updates are done.
     '''
     try:
         response = model.gen(conversation, top_k=1, temperature=0.0)[0]
@@ -72,6 +71,7 @@ def generate_specs(model, conversation, func_name, llvm_analysis, out_file):
         function_w_specs = function_w_specs[4:]
     if function_w_specs[-3:] == '```':
         function_w_specs = function_w_specs[:-3]
+    function_w_specs = function_w_specs.strip()
 
     start_line = func_analysis['startLine']
     start_col = func_analysis['startCol']
@@ -88,13 +88,15 @@ def generate_specs(model, conversation, func_name, llvm_analysis, out_file):
     # Update the line/col info for this function
     func_lines = len(function_w_specs.splitlines())
     new_end_line = start_line + func_lines - 1
-    new_end_col = len(function_w_specs.splitlines()[-1]) + 1 if func_lines > 1 else start_col + len(function_w_specs)
+    new_end_col = len(function_w_specs.splitlines()[-1]) if func_lines > 1 else start_col + len(function_w_specs)
     func_analysis['endLine'] = new_end_line
     func_analysis['endCol'] = new_end_col
 
     # Update line/col info for other functions
     line_offset = func_lines - (end_line - start_line + 1)
     for f in llvm_analysis['functions']:
+        if f['name'] == func_name:
+            continue
         if f['startLine'] > end_line:
             f['startLine'] += line_offset
             f['endLine'] += line_offset
@@ -105,7 +107,7 @@ def generate_specs(model, conversation, func_name, llvm_analysis, out_file):
             f['endLine'] += line_offset
         elif f['endLine'] == end_line and f['endCol'] >= end_col:
             f['endCol'] += (new_end_col - end_col)
-
+    
     with open(out_file, 'w') as f:
         f.write(new_contents)
 
@@ -133,7 +135,7 @@ if __name__ == "__main__":
     # Load the prompt from the template file
     prompt_file = Path('prompt.txt')
     with open(prompt_file, 'r') as f:
-        prompt = f.read()
+        prompt_template = f.read()
     
     spec_folder = Path('specs')
     spec_folder.mkdir(exist_ok=True)
@@ -182,13 +184,14 @@ if __name__ == "__main__":
         # Get the source code of the function
         inp = extract_func(out_file, func_analysis)
         
-        # Fill in the prompt template
-        prompt = prompt.replace("<<SOURCE>>", inp)
+        # Fill in the prompt_template template
+        prompt = prompt_template.replace("<<SOURCE>>", inp)
 
         # Call the LLM to generate specs
         model = get_model_from_name('gpt-4o')
         conversation = [{'role': 'system', 'content': 'You are an intelligent coding assistant'},
                         {'role': 'user', 'content': prompt}]
+        
         generate_specs(model, conversation, func_name, llvm_analysis, out_file)
 
         success = False
@@ -221,6 +224,7 @@ if __name__ == "__main__":
                     print(repair_msg)
                     import pdb; pdb.set_trace()
                     conversation += [{'role': 'user', 'content': repair_msg}]
+
                     generate_specs(model, conversation, func_name, llvm_analysis, out_file)
 
             except Exception as e:
