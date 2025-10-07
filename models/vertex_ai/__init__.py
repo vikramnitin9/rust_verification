@@ -1,3 +1,3 @@
-from .vertex_gen import VertexGen
+from .llm_gen import LLMGen
 
-__all__ = ["VertexGen"]
+__all__ = ["LLMGen"]

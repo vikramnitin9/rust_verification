@@ -4,7 +4,7 @@ import litellm
 from litellm import completion
 import json
 
-class VertexGen:
+class LLMGen:
 
     def __init__(self, model, vertex=True):
 
