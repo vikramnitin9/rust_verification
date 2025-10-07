@@ -3,7 +3,7 @@ FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt -y update && \
-    apt install -y build-essential wget unzip git bash-completion && \
+    apt install -y build-essential wget unzip curl git bash-completion && \
     rm -rf /var/lib/apt/lists/*
 
 RUN apt -y update && \
@@ -101,3 +101,10 @@ RUN cd /app/parsec && \
     cmake .. && \
     make -j 4
 ENV PARSEC_BUILD_DIR=/app/parsec/build
+
+ENV CARGO_HOME="/app/.cargo"
+ENV RUSTUP_HOME="/app/.rustup"
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/app/.cargo/bin:${PATH}"
+RUN rustup default 1.90.0
+RUN cargo install --locked kani-verifier && cargo kani setup

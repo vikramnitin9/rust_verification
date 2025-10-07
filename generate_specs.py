@@ -1,8 +1,7 @@
 '''
 Script to generate specifications for C functions using an LLM and verify them with CBMC.
-
-Currently 
 '''
+MODEL = 'gpt-4o'
 
 import sys
 from pathlib import Path
@@ -188,7 +187,7 @@ if __name__ == "__main__":
         prompt = prompt_template.replace("<<SOURCE>>", inp)
 
         # Call the LLM to generate specs
-        model = get_model_from_name('gpt-4o')
+        model = get_model_from_name(MODEL)
         conversation = [{'role': 'system', 'content': 'You are an intelligent coding assistant'},
                         {'role': 'user', 'content': prompt}]
         

@@ -9,6 +9,8 @@ To build the Docker container:
 bash build.sh
 ```
 
+## Step 1: Generating C Specifications
+
 To generate specs with an LLM, you first need to put your API key in a `.env` file.
 
 ```sh
@@ -22,3 +24,24 @@ bash run.sh
 # Inside the container:
 python generate_specs.py data/qsort.c
 ```
+
+## Step 2: Converting C (CProver) specifications to Rust (Kani)
+
+TODO
+
+## Step 3: Translating the C program to Rust
+
+Using any off-the-shelf translator.
+
+## Step 4: Verifying the Rust specifications
+
+Kani is installed in the Docker container. Here is an example of how to run it.
+
+```sh
+bash run.sh
+# Inside the container:
+cd data/rust_qsort
+cargo kani -Z function-contracts
+```
+
+The Kani specifications in `data/rust_qsort/main.rs` are incomplete and currently do not compile. This needs work.
