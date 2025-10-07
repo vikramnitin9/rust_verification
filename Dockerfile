@@ -64,10 +64,10 @@ RUN ARCH=$(dpkg --print-architecture) && \
     chmod +x /opt/z3/$Z3_FOLDER/bin/z3 && \
     ln -s /opt/z3/$Z3_FOLDER/bin/z3 /usr/local/bin/z3
 
+WORKDIR /app
+
 # Switch to the non-root user
 USER ${USER_ID}:${GROUP_ID}
-
-WORKDIR /app
 
 ENV PATH="/opt/miniconda3/bin:${PATH}"
 
