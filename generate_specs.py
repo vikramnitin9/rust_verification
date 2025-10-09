@@ -76,8 +76,6 @@ def generate_spec(model, conversation, func_name, llvm_analysis, out_file):
     Take the LLM's response, extract the function with specifications,
     replace the original function in `out_file` with this new function,
     and update the line/column information for all functions in `llvm_analysis`.
-
-    TODO: Allow the LLM to specify header files to include
     '''
 
     try:
@@ -223,6 +221,7 @@ if __name__ == "__main__":
 
     # Copy input file to output file initially
     # We iteratively update the output file with specs
+    # TODO: Include <stdlib.h> and <limits.h> in out_file if not present
     with open(inp_file, 'r') as f:
         inp = f.read()
     with open(out_file, 'w') as f:
