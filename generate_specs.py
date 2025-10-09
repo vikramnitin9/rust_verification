@@ -136,6 +136,17 @@ def generate_spec(model, conversation, func_name, llvm_analysis, out_file):
     with open(out_file, 'w') as f:
         f.write(new_contents)
 
+def get_callees(func_analysis, llvm_analysis):
+    callees = []
+    if callee_names := func_analysis["functions"]:
+        callee_names = set(callee["name"] for callee in callee_names)
+        callees = [
+            func
+            for func in llvm_analysis["functions"]
+            if func["name"] in callee_names
+        ]
+    return callees
+
 def recover_from_failure():
     '''
     Placeholder for recovery logic
