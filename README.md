@@ -22,6 +22,7 @@ Then run the Python script
 ```sh
 bash run.sh
 # Inside the container:
+PARSEC_BUILD_DIR=parsec/build
 python generate_specs.py data/qsort.c
 ```
 
