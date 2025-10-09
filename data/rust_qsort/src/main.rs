@@ -3,8 +3,8 @@ use kani::{requires, ensures, modifies};
 // __CPROVER_requires(a != NULL && b != NULL)
 // __CPROVER_ensures(*a == __CPROVER_old(*b) && *b == __CPROVER_old(*a))
 // __CPROVER_assigns(*a, *b)
-#[requires(a != NULL && b != NULL)]
-#[ensures(|| *a == kani::old(*b) && *b == kani::old(*a))]
+// #[requires(a != NULL && b != NULL)]
+#[ensures(|x: i32| *a == kani::old(*b) && *b == kani::old(*a))]
 #[modifies(a, b)]
 fn swap(a: &mut i32, b: &mut i32) {
     let t = *a;

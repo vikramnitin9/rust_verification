@@ -46,12 +46,36 @@ def get_call_graph(llvm_analysis):
             call_graph.add_edge(func_name, callee['name'])
     return call_graph
 
+# Extract function source code from file given its analysis info    
+def extract_func(filename, func_analysis):
+    start_line = func_analysis['startLine']
+    start_col = func_analysis['startCol']
+    end_col = func_analysis['endCol']
+    end_line = func_analysis['endLine']
 
-def generate_specs(model, conversation, func_name, llvm_analysis, out_file):
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+
+    func_lines = lines[start_line-1:end_line]
+    func_lines[0] = func_lines[0][start_col-1:]
+    func_lines[-1] = func_lines[-1][:end_col-1]
+
+    return ''.join(func_lines)
+
+def generate_spec(model, conversation, func_name, llvm_analysis, out_file):
     '''
     Use the LLM to generate specifications for a given function and update the source file.
-    Also update the llvm analysis with new line/column info.
+
+    The LLM is given the following information:
+    - The body of the function `func_name`, including all comments
+    - Extensive documentation of the CBMC API
+    - A history of the conversation so far, including any errors from verification attempts
+    TODO:
+    - Callee context: If the function calls other functions, provide their specifications
+
+    Finally, update the llvm analysis with new line/column info.
     '''
+
     try:
         response = model.gen(conversation, top_k=1, temperature=0.0)[0]
         conversation += [{'role': 'assistant', 'content': response}]
@@ -110,31 +134,84 @@ def generate_specs(model, conversation, func_name, llvm_analysis, out_file):
     with open(out_file, 'w') as f:
         f.write(new_contents)
 
-# Extract function source code from file given its analysis info    
-def extract_func(filename, func_analysis):
-    start_line = func_analysis['startLine']
-    start_col = func_analysis['startCol']
-    end_col = func_analysis['endCol']
-    end_line = func_analysis['endLine']
+def recover_from_failure():
+    '''
+    Placeholder for recovery logic
+    TODO
+    '''
+    raise NotImplementedError
 
-    with open(filename, 'r') as f:
-        lines = f.readlines()
-
-    func_lines = lines[start_line-1:end_line]
-    func_lines[0] = func_lines[0][start_col-1:]
-    func_lines[-1] = func_lines[-1][:end_col-1]
-
-    return ''.join(func_lines)
-
-
-if __name__ == "__main__":
-
-    inp_file = Path(sys.argv[1])
+def verify_one_function(func_name, llvm_analysis, out_file):
 
     # Load the prompt from the template file
     prompt_file = Path('prompt.txt')
     with open(prompt_file, 'r') as f:
         prompt_template = f.read()
+
+    func_analysis = next((f for f in llvm_analysis['functions'] if f['name'] == func_name), None)
+    # This should not happen
+    if func_analysis is None:
+        print(f"Function {func_name} not found in LLVM analysis, skipping.")
+        return None
+    
+    # Get the source code of the function
+    inp = extract_func(out_file, func_analysis)
+
+    # Fill in the prompt_template template
+    prompt = prompt_template.replace("<<SOURCE>>", inp)
+
+    # Call the LLM to generate specs
+    model = get_model_from_name(MODEL)
+    conversation = [{'role': 'system', 'content': 'You are an intelligent coding assistant'},
+                    {'role': 'user', 'content': prompt}]
+    
+    generate_spec(model, conversation, func_name, llvm_analysis, out_file)
+
+    success = False
+    for _ in range(10):
+        
+        # Replace calls to already processed functions with their contracts
+        replace_cmd = ''.join([f"--replace-call-with-contract {f} " for f in processed_funcs])
+
+        command = (f"goto-cc -o {func_name}.goto {out_file.absolute()} --function {func_name} && "
+        f"goto-instrument --partial-loops --unwind 5 {func_name}.goto {func_name}.goto && "
+        f"goto-instrument {replace_cmd}"
+        f"--enforce-contract {func_name} {func_name}.goto checking-{func_name}-contracts.goto && "
+        f"cbmc checking-{func_name}-contracts.goto --function {func_name} --depth 100")
+
+        print(f"Running command: {command}")
+        
+        try:
+            result = subprocess.run(command, shell=True, capture_output=True, text=True)
+            if result.returncode == 0:
+                print(f"Verification for function {func_name} succeeded.")
+                success = True
+                processed_funcs.append(func_name)
+                break
+            else:
+                filt_out = '\n'.join([line for line in result.stdout.splitlines() if "FAILURE" in line])
+                repair_msg = (f"Error while running verification for function {func_name}:\n"
+                                f"STDOUT: {filt_out}\n"
+                                f"STDERR: {result.stderr}\n"
+                                "Please fix the error and re-generate the function with specifications.")
+                print(repair_msg)
+                conversation += [{'role': 'user', 'content': repair_msg}]
+
+                generate_spec(model, conversation, func_name, llvm_analysis, out_file)
+
+        except Exception as e:
+            print(f"Error running command for function {func_name}: {e}")
+            break
+
+    if not success:
+        recover_from_failure()
+
+    return success
+
+
+if __name__ == "__main__":
+
+    inp_file = Path(sys.argv[1])
     
     spec_folder = Path('specs')
     spec_folder.mkdir(exist_ok=True)
@@ -173,62 +250,14 @@ if __name__ == "__main__":
 
         print(f"Processing function {func_name}...")
 
-        func_analysis = next((f for f in llvm_analysis['functions'] if f['name'] == func_name), None)
-        # This should not happen
-        if func_analysis is None:
-            print(f"Function {func_name} not found in LLVM analysis, skipping.")
+        success = verify_one_function(func_name, llvm_analysis, out_file)
+        
+        if success is None:
+            print(f"Skipping function {func_name} due to missing analysis.")
             processed_funcs.append(func_name)
             continue
         
-        # Get the source code of the function
-        inp = extract_func(out_file, func_analysis)
-        
-        # Fill in the prompt_template template
-        prompt = prompt_template.replace("<<SOURCE>>", inp)
-
-        # Call the LLM to generate specs
-        model = get_model_from_name(MODEL)
-        conversation = [{'role': 'system', 'content': 'You are an intelligent coding assistant'},
-                        {'role': 'user', 'content': prompt}]
-        
-        generate_specs(model, conversation, func_name, llvm_analysis, out_file)
-
-        success = False
-        for _ in range(10):
-            
-            # Replace calls to already processed functions with their contracts
-            replace_cmd = ''.join([f"--replace-call-with-contract {f} " for f in processed_funcs])
-
-            command = (f"goto-cc -o {func_name}.goto {out_file.absolute()} --function {func_name} && "
-            f"goto-instrument --partial-loops --unwind 5 {func_name}.goto {func_name}.goto && "
-            f"goto-instrument {replace_cmd}"
-            f"--enforce-contract {func_name} {func_name}.goto checking-{func_name}-contracts.goto && "
-            f"cbmc checking-{func_name}-contracts.goto --function {func_name} --depth 100")
-
-            print(f"Running command: {command}")
-            
-            try:
-                result = subprocess.run(command, shell=True, capture_output=True, text=True)
-                if result.returncode == 0:
-                    print(f"Verification for function {func_name} succeeded.")
-                    success = True
-                    processed_funcs.append(func_name)
-                    break
-                else:
-                    filt_out = '\n'.join([line for line in result.stdout.splitlines() if "FAILURE" in line])
-                    repair_msg = (f"Error while running verification for function {func_name}:\n"
-                                  f"STDOUT: {filt_out}\n"
-                                  f"STDERR: {result.stderr}\n"
-                                  "Please fix the error and re-generate the function with specifications.")
-                    print(repair_msg)
-                    import pdb; pdb.set_trace()
-                    conversation += [{'role': 'user', 'content': repair_msg}]
-
-                    generate_specs(model, conversation, func_name, llvm_analysis, out_file)
-
-            except Exception as e:
-                print(f"Error running command for function {func_name}: {e}")
-                break
         if not success:
             print(f"Verification for function {func_name} failed after multiple attempts.")
-            sys.exit(1)
+            processed_funcs.append(func_name)
+            continue
