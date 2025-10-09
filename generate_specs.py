@@ -56,7 +56,7 @@ def extract_func(filename, func_analysis):
     with open(filename, 'r') as f:
         lines = f.readlines()
 
-    func_lines = lines[start_line-1:end_line]
+    func_lines = lines[start_line-1:end_line+1]
     func_lines[0] = func_lines[0][start_col-1:]
     func_lines[-1] = func_lines[-1][:end_col-1]
 
