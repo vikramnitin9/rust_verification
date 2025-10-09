@@ -136,7 +136,16 @@ def generate_spec(model, conversation, func_name, llvm_analysis, out_file):
     with open(out_file, 'w') as f:
         f.write(new_contents)
 
-def get_callees(func_analysis, llvm_analysis):
+def _get_callees(func_analysis, llvm_analysis):
+    """Return the LLVM analysis objects for the callees of a given function.
+
+    Args:
+        func_analysis (JSON): The LLVM analysis for the caller function.
+        llvm_analysis (JSON): The top-level LLVM analysis, comprising the entire code graph.
+
+    Returns:
+        list[JSON]: The LLVM analyses of the callees of the given function, if they exist.
+    """
     callees = []
     if callee_names := func_analysis["functions"]:
         callee_names = set(callee["name"] for callee in callee_names)
