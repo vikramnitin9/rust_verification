@@ -179,6 +179,10 @@ def verify_one_function(func_name, llvm_analysis, out_file):
     # Get the source code of the function
     inp = extract_func(out_file, func_analysis)
 
+    # Get the specifications of any of the function's callees, if they exist
+    # TODO: this just gets the analysis objects, need to map it back to the file.
+    callees = _get_callees(func_analysis=func_analysis, llvm_analysis=llvm_analysis)
+
     # Fill in the prompt_template template
     prompt = prompt_template.replace("<<SOURCE>>", inp)
 
