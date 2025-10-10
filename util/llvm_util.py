@@ -1,4 +1,8 @@
-def extract_func(filename, func_analysis) -> str:
+from typing import Any
+from pathlib import Path
+
+
+def extract_func(filename: Path, func_analysis: Any) -> str:
     """Return the source code of a function given its analysis info.
 
     Args:

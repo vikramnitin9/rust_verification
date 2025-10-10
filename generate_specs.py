@@ -39,7 +39,7 @@ def get_llvm_analysis_result(file_path: Path) -> Dict[str, Any]:
     return analysis
 
 
-def get_call_graph(llvm_analysis: Dict[str, Any]) -> nx.DiGraph:
+def get_call_graph(llvm_analysis: Dict[str, Any]) -> nx.DiGraph:  # type: ignore[type-arg]
     """
     From the JSON analysis, build a call graph using networkx
     """
@@ -139,12 +139,15 @@ def generate_spec(
         f.write(new_contents)
 
 
-def _get_callees(func_analysis, llvm_analysis, outfile) -> list[FunctionMetadata]:
+def _get_callees(
+    func_analysis: Any, llvm_analysis: Any, outfile: Path
+) -> list[FunctionMetadata]:
     """Return the LLVM analysis objects for the callees of a given function.
 
     Args:
         func_analysis (JSON): The LLVM analysis for the caller function.
         llvm_analysis (JSON): The top-level LLVM analysis, comprising the entire code graph.
+        llvm_analysis (JSON): The path to the source code file.
 
     Returns:
         list[FunctionMetadata]: The function metadata for the callees of the given function.
