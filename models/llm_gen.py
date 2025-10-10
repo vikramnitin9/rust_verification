@@ -11,7 +11,7 @@ class LLMGen:
         if vertex:
             litellm.vertex_location = "us-east5"
             with open(os.environ["VERTEX_AI_JSON"], "r") as file:
-                self.vertex_credentials = json.dumps(json.load(file))
+                self.vertex_credentials: str | None = json.dumps(json.load(file))
             self.model = f"vertex_ai/{model}"
             self.api_key = None
         else:
@@ -26,7 +26,9 @@ class LLMGen:
         else:
             raise Exception(f"Model {model} not supported")
 
-    def gen(self, messages: List[Dict], temperature: float = 0, top_k: int = 1):
+    def gen(
+        self, messages: List[Dict[str, str]], temperature: float = 0, top_k: int = 1
+    ) -> List[str]:
         """
         messages: [{'role': 'system', 'content': 'You are an intelligent code assistant'},
                    {'role': 'user', 'content': 'Translate this program...'},

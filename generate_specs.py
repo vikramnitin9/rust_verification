@@ -9,12 +9,12 @@ from models import get_model_from_name, LLMGen
 import os
 import json
 import networkx as nx
-from typing import List, Dict
+from typing import List, Dict, Any
 
 MODEL = "gpt-4o"
 
 
-def get_llvm_analysis_result(file_path: Path):
+def get_llvm_analysis_result(file_path: Path) -> Dict[str, Any]:
     """
     Given a C file, run the 'parsec' tool to get LLVM analysis in JSON format
     """
@@ -34,15 +34,15 @@ def get_llvm_analysis_result(file_path: Path):
     if not analysis_file.exists():
         raise Exception("Error: analysis.json not found after running parsec.")
     with open(analysis_file, "r") as f:
-        analysis = json.load(f)
+        analysis: Dict[str, Any] = json.load(f)
     return analysis
 
 
-def get_call_graph(llvm_analysis: Dict) -> nx.DiGraph:
+def get_call_graph(llvm_analysis: Dict[str, Any]) -> nx.DiGraph[str]:
     """
     From the JSON analysis, build a call graph using networkx
     """
-    call_graph = nx.DiGraph()
+    call_graph: nx.DiGraph[str] = nx.DiGraph()
     for func in llvm_analysis["functions"]:
         func_name = func["name"]
         call_graph.add_node(func_name)
@@ -52,7 +52,7 @@ def get_call_graph(llvm_analysis: Dict) -> nx.DiGraph:
 
 
 # Extract function source code from file given its analysis info
-def extract_func(filename: str, func_analysis: Dict) -> str:
+def extract_func(filename: Path, func_analysis: Dict[str, Any]) -> str:
     start_line = func_analysis["startLine"]
     start_col = func_analysis["startCol"]
     end_col = func_analysis["endCol"]
@@ -70,18 +70,18 @@ def extract_func(filename: str, func_analysis: Dict) -> str:
 
 def generate_spec(
     model: LLMGen,
-    conversation: List[Dict],
+    conversation: List[Dict[str, str]],
     func_name: str,
-    llvm_analysis: Dict,
+    llvm_analysis: Dict[str, Any],
     out_file: Path,
-):
+) -> None:
     """
     Use the LLM to generate specifications for a given function and update the source file.
 
     The LLM is given the following information:
     - The body of the function `func_name`, including all comments
     - Extensive documentation of the CBMC API
-    - A history of the conversation so far, including any errors from verification attempts
+    - A history of the conversation so far, including Any errors from verification attempts
     TODO:
     - Callee context: If the function calls other functions, provide their specifications
 
@@ -155,7 +155,7 @@ def generate_spec(
         f.write(new_contents)
 
 
-def recover_from_failure():
+def recover_from_failure() -> None:
     """
     Placeholder for recovery logic
     TODO
@@ -163,7 +163,9 @@ def recover_from_failure():
     raise NotImplementedError
 
 
-def verify_one_function(func_name: str, llvm_analysis: Dict, out_file: Path):
+def verify_one_function(
+    func_name: str, llvm_analysis: Dict[str, Any], out_file: Path
+) -> bool | None:
     # Load the prompt from the template file
     prompt_file = Path("prompt.txt")
     with open(prompt_file, "r") as f:
