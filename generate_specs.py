@@ -5,16 +5,17 @@ Script to generate specifications for C functions using an LLM and verify them w
 import sys
 from pathlib import Path
 import subprocess
-from models import get_model_from_name
+from models import get_model_from_name, LLMGen
 from util import FunctionMetadata, extract_func
 import os
 import json
 import networkx as nx
+from typing import List, Dict, Any
 
 MODEL = "gpt-4o"
 
 
-def get_llvm_analysis_result(file_path):
+def get_llvm_analysis_result(file_path: Path) -> Dict[str, Any]:
     """
     Given a C file, run the 'parsec' tool to get LLVM analysis in JSON format
     """
@@ -34,15 +35,15 @@ def get_llvm_analysis_result(file_path):
     if not analysis_file.exists():
         raise Exception("Error: analysis.json not found after running parsec.")
     with open(analysis_file, "r") as f:
-        analysis = json.load(f)
+        analysis: Dict[str, Any] = json.load(f)
     return analysis
 
 
-def get_call_graph(llvm_analysis):
+def get_call_graph(llvm_analysis: Dict[str, Any]) -> nx.DiGraph:
     """
     From the JSON analysis, build a call graph using networkx
     """
-    call_graph = nx.DiGraph()
+    call_graph: nx.DiGraph[str] = nx.DiGraph()
     for func in llvm_analysis["functions"]:
         func_name = func["name"]
         call_graph.add_node(func_name)
@@ -50,15 +51,20 @@ def get_call_graph(llvm_analysis):
             call_graph.add_edge(func_name, callee["name"])
     return call_graph
 
-
-def generate_spec(model, conversation, func_name, llvm_analysis, out_file):
+def generate_spec(
+    model: LLMGen,
+    conversation: List[Dict[str, str]],
+    func_name: str,
+    llvm_analysis: Dict[str, Any],
+    out_file: Path,
+) -> None:
     """
     Use the LLM to generate specifications for a given function and update the source file.
 
     The LLM is given the following information:
     - The body of the function `func_name`, including all comments
     - Extensive documentation of the CBMC API
-    - A history of the conversation so far, including any errors from verification attempts
+    - A history of the conversation so far, including Any errors from verification attempts
     TODO:
     - Callee context: If the function calls other functions, provide their specifications
 
@@ -153,7 +159,7 @@ def _get_callees(func_analysis, llvm_analysis, outfile) -> list[FunctionMetadata
     return callees
 
 
-def recover_from_failure():
+def recover_from_failure() -> None:
     """
     Placeholder for recovery logic
     TODO
@@ -161,7 +167,9 @@ def recover_from_failure():
     raise NotImplementedError
 
 
-def verify_one_function(func_name, llvm_analysis, out_file):
+def verify_one_function(
+    func_name: str, llvm_analysis: Dict[str, Any], out_file: Path
+) -> bool | None:
     # Load the prompt from the template file
     prompt_file = Path("prompt.txt")
     with open(prompt_file, "r") as f:
@@ -196,6 +204,8 @@ def verify_one_function(func_name, llvm_analysis, out_file):
         )
     else:
         prompt = prompt.replace("<<CALLEE_SPECS>>", "")
+
+    print(prompt)
 
     # Call the LLM to generate specs
     model = get_model_from_name(MODEL)

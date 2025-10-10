@@ -1,5 +1,9 @@
 specs/
 
+# Caches for linting tools
+.mypy_cache
+.ruff_cache
+
 .vscode
 *.goto
 
