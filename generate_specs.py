@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 import subprocess
 from models import get_model_from_name
+from util.llvm_util import Function
 import os
 import json
 import networkx as nx
@@ -73,6 +74,7 @@ def _extract_specs(filename, func_analysis):
     func_lines = [line.strip() for line in func_src.split("\n")]
     # Extremely naive and not at all robust.
     return [line for line in func_lines if line.startswith("__CPROVER")]
+
 
 def generate_spec(model, conversation, func_name, llvm_analysis, out_file):
     """
@@ -154,7 +156,8 @@ def generate_spec(model, conversation, func_name, llvm_analysis, out_file):
     with open(out_file, "w") as f:
         f.write(new_contents)
 
-def _get_callees(func_analysis, llvm_analysis):
+
+def _get_callees(func_analysis, llvm_analysis, outfile) -> list[Function]:
     """Return the LLVM analysis objects for the callees of a given function.
 
     Args:
@@ -162,17 +165,18 @@ def _get_callees(func_analysis, llvm_analysis):
         llvm_analysis (JSON): The top-level LLVM analysis, comprising the entire code graph.
 
     Returns:
-        list[JSON]: The LLVM analyses of the callees of the given function, if they exist.
+        list[Function]: The LLVM analyses of the callees of the given function, if they exist.
     """
     callees = []
     if callee_names := func_analysis["functions"]:
         callee_names = set(callee["name"] for callee in callee_names)
         callees = [
-            func
+            Function.from_json_and_body(func, extract_func(outfile, func))
             for func in llvm_analysis["functions"]
             if func["name"] in callee_names
         ]
     return callees
+
 
 def recover_from_failure():
     """
@@ -198,13 +202,25 @@ def verify_one_function(func_name, llvm_analysis, out_file):
 
     # Get the source code of the function
     inp = extract_func(out_file, func_analysis)
-
-    # Get the specifications of any of the function's callees, if they exist
-    callees = _get_callees(func_analysis=func_analysis, llvm_analysis=llvm_analysis)
-    callee_name_to_specs = { callee["name"]: _extract_specs(out_file, callee) for callee in callees }
-
     # Fill in the prompt_template template
     prompt = prompt_template.replace("<<SOURCE>>", inp)
+
+    # Get the specifications of any of the function's callees, if they exist
+    callees = _get_callees(
+        func_analysis=func_analysis, llvm_analysis=llvm_analysis, outfile=out_file
+    )
+    callees_with_specs = [callee for callee in callees if callee.has_specifications()]
+    if callees_with_specs:
+        callee_specs = "\n".join(
+            callee_with_specs.get_prompt_str()
+            for callee_with_specs in callees_with_specs
+        )
+        callee_specs_prompt_component = f"Here are the callees of {func_name} and their specifications:\n\n{callee_specs}"
+        prompt = prompt_template.replace(
+            "<<CALLEE_SPECS>>", callee_specs_prompt_component
+        )
+    else:
+        prompt = prompt.replace("<<CALLEE_SPECS>>", "")
 
     # Call the LLM to generate specs
     model = get_model_from_name(MODEL)
