@@ -147,7 +147,7 @@ def _get_callees(
     Args:
         func_analysis (JSON): The LLVM analysis for the caller function.
         llvm_analysis (JSON): The top-level LLVM analysis, comprising the entire code graph.
-        llvm_analysis (JSON): The path to the source code file.
+        outfile (Path): The path to the source code file.
 
     Returns:
         list[FunctionMetadata]: The function metadata for the callees of the given function.
@@ -203,13 +203,9 @@ def verify_one_function(
             for callee_with_specs in callees_with_specs
         )
         callee_specs_prompt_component = f"Here are the callees of {func_name} and their specifications:\n\n{callee_specs}"
-        prompt = prompt_template.replace(
-            "<<CALLEE_SPECS>>", callee_specs_prompt_component
-        )
+        prompt = prompt.replace("<<CALLEE_SPECS>>", callee_specs_prompt_component)
     else:
         prompt = prompt.replace("<<CALLEE_SPECS>>", "")
-
-    print(prompt)
 
     # Call the LLM to generate specs
     model = get_model_from_name(MODEL)
