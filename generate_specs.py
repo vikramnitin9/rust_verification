@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 import subprocess
 from models import get_model_from_name
-from util.llvm_util import Function
+from util import FunctionMetadata, extract_func
 import os
 import json
 import networkx as nx
@@ -49,31 +49,6 @@ def get_call_graph(llvm_analysis):
         for callee in func.get("functions", []):
             call_graph.add_edge(func_name, callee["name"])
     return call_graph
-
-
-# Extract function source code from file given its analysis info
-def extract_func(filename, func_analysis):
-    start_line = func_analysis["startLine"]
-    start_col = func_analysis["startCol"]
-    end_col = func_analysis["endCol"]
-    end_line = func_analysis["endLine"]
-
-    with open(filename, "r") as f:
-        lines = f.readlines()
-
-    func_lines = lines[start_line - 1 : end_line]
-    func_lines[0] = func_lines[0][start_col - 1 :]
-    func_lines[-1] = func_lines[-1][: end_col - 1]
-
-    return "".join(func_lines)
-
-
-def _extract_specs(filename, func_analysis):
-    # TODO: Document me.
-    func_src = extract_func(filename, func_analysis)
-    func_lines = [line.strip() for line in func_src.split("\n")]
-    # Extremely naive and not at all robust.
-    return [line for line in func_lines if line.startswith("__CPROVER")]
 
 
 def generate_spec(model, conversation, func_name, llvm_analysis, out_file):
@@ -157,7 +132,7 @@ def generate_spec(model, conversation, func_name, llvm_analysis, out_file):
         f.write(new_contents)
 
 
-def _get_callees(func_analysis, llvm_analysis, outfile) -> list[Function]:
+def _get_callees(func_analysis, llvm_analysis, outfile) -> list[FunctionMetadata]:
     """Return the LLVM analysis objects for the callees of a given function.
 
     Args:
@@ -165,15 +140,15 @@ def _get_callees(func_analysis, llvm_analysis, outfile) -> list[Function]:
         llvm_analysis (JSON): The top-level LLVM analysis, comprising the entire code graph.
 
     Returns:
-        list[Function]: The LLVM analyses of the callees of the given function, if they exist.
+        list[FunctionMetadata]: The function metadata for the callees of the given function.
     """
     callees = []
     if callee_names := func_analysis["functions"]:
         callee_names = set(callee["name"] for callee in callee_names)
         callees = [
-            Function.from_json_and_body(func, extract_func(outfile, func))
-            for func in llvm_analysis["functions"]
-            if func["name"] in callee_names
+            FunctionMetadata.from_json_and_body(raw_func_json, outfile)
+            for raw_func_json in llvm_analysis["functions"]
+            if raw_func_json["name"] in callee_names
         ]
     return callees
 

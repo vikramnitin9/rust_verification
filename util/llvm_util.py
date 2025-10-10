@@ -1,48 +1,23 @@
-from dataclasses import dataclass, field
-from string import Template
+def extract_func(filename, func_analysis) -> str:
+    """Return the source code of a function given its analysis info.
 
-TEMPLATE_FOR_FUNCTION_CONTEXT_PROMPT = Template("""
-Function name: $name
-Function signature: $signature
-Preconditions: $preconditions
-Postconditions: $postconditions
-""")
+    Args:
+        filename (str): The name of the source code file.
+        func_analysis (JSON): The function analysis info from LLVM.
 
+    Returns:
+        str: The source code of a function given its analysis info.
+    """
+    start_line = func_analysis["startLine"]
+    start_col = func_analysis["startCol"]
+    end_col = func_analysis["endCol"]
+    end_line = func_analysis["endLine"]
 
-@dataclass
-class Function:
-    name: str
-    signature: str
-    preconditions: list[str] = field(default_factory=list)
-    postconditions: list[str] = field(default_factory=list)
+    with open(filename, "r") as f:
+        lines = f.readlines()
 
-    def get_prompt_str(self) -> str:
-        preconditions = ",".join(self.preconditions) if self.preconditions else "None"
-        postconditions = (
-            ",".join(self.postconditions) if self.postconditions else "None"
-        )
-        return TEMPLATE_FOR_FUNCTION_CONTEXT_PROMPT.safe_substitute(
-            name=self.name,
-            signature=self.signature,
-            preconditions=preconditions,
-            postconditions=postconditions,
-        )
+    func_lines = lines[start_line - 1 : end_line]
+    func_lines[0] = func_lines[0][start_col - 1 :]
+    func_lines[-1] = func_lines[-1][: end_col - 1]
 
-    def has_specifications(self) -> bool:
-        return len(self.preconditions) > 0 or len(self.postconditions) > 0
-
-    @staticmethod
-    def from_json_and_body(json, extracted_function: str) -> "Function":
-        preconditions = []
-        postconditions = []
-        for line in [line.strip() for line in extracted_function.split("\n")]:
-            if line.startswith("__CPROVER_requires"):
-                preconditions.append(line)
-            elif line.startswith("__CPROVER_ensures"):
-                postconditions.append(line)
-        return Function(
-            name=json["name"],
-            signature=json["signature"],
-            preconditions=preconditions,
-            postconditions=postconditions,
-        )
+    return "".join(func_lines)
