@@ -243,14 +243,8 @@ if __name__ == "__main__":
 
     # Copy input file to output file initially
     # We iteratively update the output file with specs
-<<<<<<< HEAD
-    with open(inp_file, "r") as f:
-||||||| 95a61a5
-    with open(inp_file, 'r') as f:
-=======
     # TODO: Include <stdlib.h> and <limits.h> in out_file if not present
-    with open(inp_file, 'r') as f:
->>>>>>> f732fc2cb6805f4950b4209a289b2fd3395af0f9
+    with open(inp_file, "r") as f:
         inp = f.read()
     with open(out_file, "w") as f:
         f.write(inp)
