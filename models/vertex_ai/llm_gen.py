@@ -4,20 +4,19 @@ import litellm
 from litellm import completion
 import json
 
+
 class LLMGen:
-
     def __init__(self, model, vertex=True):
-
         if vertex:
-            litellm.vertex_location = 'us-east5'
-            with open(os.environ['VERTEX_AI_JSON'], 'r') as file:
+            litellm.vertex_location = "us-east5"
+            with open(os.environ["VERTEX_AI_JSON"], "r") as file:
                 self.vertex_credentials = json.dumps(json.load(file))
             self.model = f"vertex_ai/{model}"
-            self.api_key=None
+            self.api_key = None
         else:
             self.vertex_credentials = None
             self.model = model
-            self.api_key=os.environ['LLM_API_KEY']
+            self.api_key = os.environ["LLM_API_KEY"]
 
         if "claude" in model:
             self.max_tokens = 64000
@@ -25,19 +24,19 @@ class LLMGen:
             self.max_tokens = 16384
         else:
             raise Exception(f"Model {model} not supported")
-    
+
     def gen(self, messages, temperature=0, top_k=1):
-        '''
+        """
         messages: [{'role': 'system', 'content': 'You are an intelligent code assistant'},
                    {'role': 'user', 'content': 'Translate this program...'},
                    {'role': 'assistant', 'content': 'Here is the translation...'},
                    {'role': 'user', 'content': 'Do something else...'}]
-                   
+
         <returned>: ['Sure, here is...',
                      'Okay, let me see...',
                      ...]
         len(<returned>) == top_k
-        '''
+        """
         from .. import ModelException
 
         if top_k != 1 and temperature == 0:
@@ -53,13 +52,21 @@ class LLMGen:
                     n=top_k,
                     api_key=self.api_key,
                     vertex_credentials=self.vertex_credentials,
-                    max_tokens=self.max_tokens
+                    max_tokens=self.max_tokens,
                 )
                 break
-            except (litellm.BadRequestError, litellm.AuthenticationError,
-                        litellm.NotFoundError, litellm.UnprocessableEntityError) as e:
-                    raise ModelException(f"Encountered an error with LLM call {e}")
-            except (litellm.RateLimitError, litellm.InternalServerError, litellm.APIConnectionError) as e:
+            except (
+                litellm.BadRequestError,
+                litellm.AuthenticationError,
+                litellm.NotFoundError,
+                litellm.UnprocessableEntityError,
+            ) as e:
+                raise ModelException(f"Encountered an error with LLM call {e}")
+            except (
+                litellm.RateLimitError,
+                litellm.InternalServerError,
+                litellm.APIConnectionError,
+            ) as e:
                 count += 1
                 if count >= 5:
                     raise ModelException("Vertex AI API: Too many retries")
@@ -67,5 +74,5 @@ class LLMGen:
                 time.sleep(10)
             except Exception as e:
                 raise ModelException(f"LLM Error: {e}")
-        
-        return [choice['message']['content'] for choice in response['choices']]
+
+        return [choice["message"]["content"] for choice in response["choices"]]
