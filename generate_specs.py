@@ -78,7 +78,9 @@ def generate_spec(model, conversation, func_name, llvm_analysis, out_file):
     TODO:
     - Callee context: If the function calls other functions, provide their specifications
 
-    Finally, update the llvm analysis with new line/column info.
+    Take the LLM's response, extract the function with specifications,
+    replace the original function in `out_file` with this new function,
+    and update the line/column information for all functions in `llvm_analysis`.
     """
 
     try:
@@ -241,7 +243,14 @@ if __name__ == "__main__":
 
     # Copy input file to output file initially
     # We iteratively update the output file with specs
+<<<<<<< HEAD
     with open(inp_file, "r") as f:
+||||||| 95a61a5
+    with open(inp_file, 'r') as f:
+=======
+    # TODO: Include <stdlib.h> and <limits.h> in out_file if not present
+    with open(inp_file, 'r') as f:
+>>>>>>> f732fc2cb6805f4950b4209a289b2fd3395af0f9
         inp = f.read()
     with open(out_file, "w") as f:
         f.write(inp)
