@@ -58,7 +58,7 @@ def extract_func(filename, func_analysis):
 
     func_lines = lines[start_line-1:end_line]
     func_lines[0] = func_lines[0][start_col-1:]
-    func_lines[-1] = func_lines[-1][:end_col-1]
+    func_lines[-1] = func_lines[-1][:end_col]
 
     return ''.join(func_lines)
 
