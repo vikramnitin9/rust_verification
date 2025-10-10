@@ -1,3 +1,4 @@
+.PHONY: style-fix style-check python-style-fix python-style-check python-typecheck showvars
 style-fix: python-style-fix
 style-check: python-style-check python-typecheck
 PYTHON_FILES:=$(shell find . \( -name ".git" -o -name ".venv" \) -prune -o -name '*.py' -print) $(shell grep -r -l --exclude-dir=.git --exclude-dir=.venv --exclude='*.py' --exclude='*~' --exclude='*.tar' --exclude=gradlew --exclude=lcb_runner '^\#! \?\(/bin/\|/usr/bin/env \)python')
