@@ -51,6 +51,7 @@ def get_call_graph(llvm_analysis: Dict[str, Any]) -> nx.DiGraph:
             call_graph.add_edge(func_name, callee["name"])
     return call_graph
 
+
 def generate_spec(
     model: LLMGen,
     conversation: List[Dict[str, str]],
