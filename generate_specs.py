@@ -68,7 +68,13 @@ def extract_func(filename: str, func_analysis: Dict) -> str:
     return "".join(func_lines)
 
 
-def generate_spec(model: LLMGen, conversation: List[Dict], func_name: str, llvm_analysis: Dict, out_file: Path):
+def generate_spec(
+    model: LLMGen,
+    conversation: List[Dict],
+    func_name: str,
+    llvm_analysis: Dict,
+    out_file: Path,
+):
     """
     Use the LLM to generate specifications for a given function and update the source file.
 
