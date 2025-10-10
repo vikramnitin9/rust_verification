@@ -3,10 +3,11 @@ import os
 import litellm
 from litellm import completion
 import json
+from typing import List, Dict
 
 
 class LLMGen:
-    def __init__(self, model, vertex=True):
+    def __init__(self, model: str, vertex: bool=True):
         if vertex:
             litellm.vertex_location = "us-east5"
             with open(os.environ["VERTEX_AI_JSON"], "r") as file:
@@ -25,7 +26,7 @@ class LLMGen:
         else:
             raise Exception(f"Model {model} not supported")
 
-    def gen(self, messages, temperature=0, top_k=1):
+    def gen(self, messages: List[Dict], temperature: float=0, top_k: int=1):
         """
         messages: [{'role': 'system', 'content': 'You are an intelligent code assistant'},
                    {'role': 'user', 'content': 'Translate this program...'},
@@ -37,7 +38,7 @@ class LLMGen:
                      ...]
         len(<returned>) == top_k
         """
-        from .. import ModelException
+        from . import ModelException
 
         if top_k != 1 and temperature == 0:
             raise ModelException("Top k sampling requires a non-zero temperature")

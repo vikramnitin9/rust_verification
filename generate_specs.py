@@ -5,15 +5,16 @@ Script to generate specifications for C functions using an LLM and verify them w
 import sys
 from pathlib import Path
 import subprocess
-from models import get_model_from_name
+from models import get_model_from_name, LLMGen
 import os
 import json
 import networkx as nx
+from typing import List, Dict
 
 MODEL = "gpt-4o"
 
 
-def get_llvm_analysis_result(file_path):
+def get_llvm_analysis_result(file_path: Path):
     """
     Given a C file, run the 'parsec' tool to get LLVM analysis in JSON format
     """
@@ -37,7 +38,7 @@ def get_llvm_analysis_result(file_path):
     return analysis
 
 
-def get_call_graph(llvm_analysis):
+def get_call_graph(llvm_analysis: Dict) -> nx.DiGraph:
     """
     From the JSON analysis, build a call graph using networkx
     """
@@ -51,7 +52,7 @@ def get_call_graph(llvm_analysis):
 
 
 # Extract function source code from file given its analysis info
-def extract_func(filename, func_analysis):
+def extract_func(filename: str, func_analysis: Dict) -> str:
     start_line = func_analysis["startLine"]
     start_col = func_analysis["startCol"]
     end_col = func_analysis["endCol"]
@@ -67,7 +68,7 @@ def extract_func(filename, func_analysis):
     return "".join(func_lines)
 
 
-def generate_spec(model, conversation, func_name, llvm_analysis, out_file):
+def generate_spec(model: LLMGen, conversation: List[Dict], func_name: str, llvm_analysis: Dict, out_file: Path):
     """
     Use the LLM to generate specifications for a given function and update the source file.
 
@@ -156,7 +157,7 @@ def recover_from_failure():
     raise NotImplementedError
 
 
-def verify_one_function(func_name, llvm_analysis, out_file):
+def verify_one_function(func_name: str, llvm_analysis: Dict, out_file: Path):
     # Load the prompt from the template file
     prompt_file = Path("prompt.txt")
     with open(prompt_file, "r") as f:

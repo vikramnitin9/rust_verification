@@ -1,4 +1,4 @@
-from .vertex_ai import LLMGen
+from .llm_gen import LLMGen
 from dotenv import load_dotenv
 import os
 
@@ -9,7 +9,7 @@ class ModelException(Exception):
     pass
 
 
-def get_model_from_name(name):
+def get_model_from_name(name: str) -> LLMGen:
     vertex = True if "VERTEX_AI_JSON" in os.environ else False
 
     if name == "claude37":
