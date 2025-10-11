@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 import subprocess
 from models import get_model_from_name, LLMGen
-from util import FunctionMetadata, extract_func
+from util import FunctionMetadata, extract_func, get_llvm_func_analysis
 import os
 import json
 import networkx as nx
@@ -66,26 +66,30 @@ def generate_spec(
     - The body of the function `func_name`, including all comments
     - Extensive documentation of the CBMC API
     - A history of the conversation so far, including Any errors from verification attempts
-    TODO:
-    - Callee context: If the function calls other functions, provide their specifications
 
     Take the LLM's response, extract the function with specifications,
     replace the original function in `out_file` with this new function,
     and update the line/column information for all functions in `llvm_analysis`.
     """
+    func_analysis = get_llvm_func_analysis(func_name, llvm_analysis)
+    if func_analysis is None:
+        sys.exit(1)
+
+    # Check if the function to generate specifications for has any callees.
+    callees = _get_callees(func_analysis, llvm_analysis, out_file)
+    callees_with_specs = [callee for callee in callees if callee.has_specifications()]
+    # If the function has callees, and they have specifications, include them in the conversation.
+    if callees_with_specs:
+        callee_context = "\n".join(
+            callee.get_prompt_str() for callee in callees_with_specs
+        )
+        conversation.append({"role": "user", "content": callee_context})
 
     try:
         response = model.gen(conversation, top_k=1, temperature=0.0)[0]
         conversation += [{"role": "assistant", "content": response}]
     except Exception as e:
         print(f"Error generating specs: {e}")
-        sys.exit(1)
-
-    func_analysis = next(
-        (f for f in llvm_analysis["functions"] if f["name"] == func_name), None
-    )
-    if func_analysis is None:
-        print(f"Function {func_name} not found in LLVM analysis.")
         sys.exit(1)
 
     # Get the part within <FUNC> and </FUNC> tags
@@ -152,13 +156,16 @@ def _get_callees(
     Returns:
         list[FunctionMetadata]: The function metadata for the callees of the given function.
     """
-    callees = []
-    if callee_names := func_analysis["functions"]:
+    callees: list[FunctionMetadata] = []
+    if callee_names := func_analysis.get("functions", None):
         callee_names = set(callee["name"] for callee in callee_names)
-        callees = [
-            FunctionMetadata.from_json_and_body(raw_func_json, outfile)
-            for raw_func_json in llvm_analysis["functions"]
-            if raw_func_json["name"] in callee_names
+        llvm_callee_analyses = [
+            get_llvm_func_analysis(callee_name, llvm_analysis)
+            for callee_name in callee_names
+        ]
+        return [
+            FunctionMetadata.from_json_and_body(func_analysis, outfile)
+            for func_analysis in llvm_callee_analyses
         ]
     return callees
 
@@ -179,9 +186,7 @@ def verify_one_function(
     with open(prompt_file, "r") as f:
         prompt_template = f.read()
 
-    func_analysis = next(
-        (f for f in llvm_analysis["functions"] if f["name"] == func_name), None
-    )
+    func_analysis = get_llvm_func_analysis(func_name, llvm_analysis)
     # This should not happen
     if func_analysis is None:
         print(f"Function {func_name} not found in LLVM analysis, skipping.")
@@ -191,21 +196,6 @@ def verify_one_function(
     inp = extract_func(out_file, func_analysis)
     # Fill in the prompt_template template
     prompt = prompt_template.replace("<<SOURCE>>", inp)
-
-    # Get the specifications of any of the function's callees, if they exist
-    callees = _get_callees(
-        func_analysis=func_analysis, llvm_analysis=llvm_analysis, outfile=out_file
-    )
-    callees_with_specs = [callee for callee in callees if callee.has_specifications()]
-    if callees_with_specs:
-        callee_specs = "\n".join(
-            callee_with_specs.get_prompt_str()
-            for callee_with_specs in callees_with_specs
-        )
-        callee_specs_prompt_component = f"Here are the callees of {func_name} and their specifications:\n\n{callee_specs}"
-        prompt = prompt.replace("<<CALLEE_SPECS>>", callee_specs_prompt_component)
-    else:
-        prompt = prompt.replace("<<CALLEE_SPECS>>", "")
 
     # Call the LLM to generate specs
     model = get_model_from_name(MODEL)

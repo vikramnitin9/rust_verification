@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Dict
 from pathlib import Path
 
 
@@ -25,3 +25,23 @@ def extract_func(filename: Path, func_analysis: Any) -> str:
     func_lines[-1] = func_lines[-1][: end_col - 1]
 
     return "".join(func_lines)
+
+
+def get_llvm_func_analysis(func_name: str, llvm_analysis: Dict[str, Any]) -> Any | None:
+    """Return an LLVM function analysis for a function with the given name.
+
+    Args:
+        func_name (str): The function for which to return an LLVM function analysis.
+        llvm_analysis (Dict[str, Any]): The LLVM analysis.
+
+    Returns:
+        Any | None: The LLVM function analysis for a function with the given name, otherwise None.
+    """
+    func_analysis = next(
+        (f for f in llvm_analysis["functions"] if f["name"] == func_name), None
+    )
+    # This should not happen
+    if func_analysis is None:
+        print(f"Function {func_name} not found in LLVM analysis, skipping.")
+        return None
+    return func_analysis
