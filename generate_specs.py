@@ -159,13 +159,17 @@ def _get_callees(
     callees: list[FunctionMetadata] = []
     if callee_names := func_analysis.get("functions", None):
         callee_names = set(callee["name"] for callee in callee_names)
-        llvm_callee_analyses = [
-            get_llvm_func_analysis(callee_name, llvm_analysis)
-            for callee_name in callee_names
-        ]
+        llvm_analysis_for_callees = []
+        for callee_name in callee_names:
+            if callee_analysis := get_llvm_func_analysis(callee_name, llvm_analysis):
+                llvm_analysis_for_callees.append(callee_analysis)
+            else:
+                print(
+                    f"LLVM analysis for callee: '{callee_name}' for caller: '{func_analysis['name']}' was missing"
+                )
         return [
             FunctionMetadata.from_json_and_body(func_analysis, outfile)
-            for func_analysis in llvm_callee_analyses
+            for func_analysis in llvm_analysis_for_callees
         ]
     return callees
 
