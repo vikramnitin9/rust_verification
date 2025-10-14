@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 import subprocess
 from models import get_model_from_name, LLMGen
+from util import FunctionMetadata, extract_func, get_llvm_func_analysis
 import os
 import json
 import networkx as nx
@@ -38,7 +39,7 @@ def get_llvm_analysis_result(file_path: Path) -> Dict[str, Any]:
     return analysis
 
 
-def get_call_graph(llvm_analysis: Dict[str, Any]) -> nx.DiGraph[str]:
+def get_call_graph(llvm_analysis: Dict[str, Any]) -> nx.DiGraph:  # type: ignore[type-arg]
     """
     From the JSON analysis, build a call graph using networkx
     """
@@ -49,23 +50,6 @@ def get_call_graph(llvm_analysis: Dict[str, Any]) -> nx.DiGraph[str]:
         for callee in func.get("functions", []):
             call_graph.add_edge(func_name, callee["name"])
     return call_graph
-
-
-# Extract function source code from file given its analysis info
-def extract_func(filename: Path, func_analysis: Dict[str, Any]) -> str:
-    start_line = func_analysis["startLine"]
-    start_col = func_analysis["startCol"]
-    end_col = func_analysis["endCol"]
-    end_line = func_analysis["endLine"]
-
-    with open(filename, "r") as f:
-        lines = f.readlines()
-
-    func_lines = lines[start_line - 1 : end_line]
-    func_lines[0] = func_lines[0][start_col - 1 :]
-    func_lines[-1] = func_lines[-1][: end_col - 1]
-
-    return "".join(func_lines)
 
 
 def generate_spec(
@@ -82,26 +66,30 @@ def generate_spec(
     - The body of the function `func_name`, including all comments
     - Extensive documentation of the CBMC API
     - A history of the conversation so far, including Any errors from verification attempts
-    TODO:
-    - Callee context: If the function calls other functions, provide their specifications
 
     Take the LLM's response, extract the function with specifications,
     replace the original function in `out_file` with this new function,
     and update the line/column information for all functions in `llvm_analysis`.
     """
+    func_analysis = get_llvm_func_analysis(func_name, llvm_analysis)
+    if func_analysis is None:
+        sys.exit(1)
+
+    # Check if the function to generate specifications for has any callees.
+    callees = _get_callees(func_analysis, llvm_analysis, out_file)
+    callees_with_specs = [callee for callee in callees if callee.has_specifications()]
+    # If the function has callees, and they have specifications, include them in the conversation.
+    if callees_with_specs:
+        callee_context = "\n".join(
+            callee.get_prompt_str() for callee in callees_with_specs
+        )
+        conversation.append({"role": "user", "content": callee_context})
 
     try:
         response = model.gen(conversation, top_k=1, temperature=0.0)[0]
         conversation += [{"role": "assistant", "content": response}]
     except Exception as e:
         print(f"Error generating specs: {e}")
-        sys.exit(1)
-
-    func_analysis = next(
-        (f for f in llvm_analysis["functions"] if f["name"] == func_name), None
-    )
-    if func_analysis is None:
-        print(f"Function {func_name} not found in LLVM analysis.")
         sys.exit(1)
 
     # Get the part within <FUNC> and </FUNC> tags
@@ -155,6 +143,37 @@ def generate_spec(
         f.write(new_contents)
 
 
+def _get_callees(
+    func_analysis: Any, llvm_analysis: Any, outfile: Path
+) -> list[FunctionMetadata]:
+    """Return the LLVM analysis objects for the callees of a given function.
+
+    Args:
+        func_analysis (JSON): The LLVM analysis for the caller function.
+        llvm_analysis (JSON): The top-level LLVM analysis, comprising the entire code graph.
+        outfile (Path): The path to the source code file.
+
+    Returns:
+        list[FunctionMetadata]: The function metadata for the callees of the given function.
+    """
+    callees: list[FunctionMetadata] = []
+    if callee_names := func_analysis.get("functions", None):
+        callee_names = set(callee["name"] for callee in callee_names)
+        llvm_analysis_for_callees = []
+        for callee_name in callee_names:
+            if callee_analysis := get_llvm_func_analysis(callee_name, llvm_analysis):
+                llvm_analysis_for_callees.append(callee_analysis)
+            else:
+                print(
+                    f"LLVM analysis for callee: '{callee_name}' for caller: '{func_analysis['name']}' was missing"
+                )
+        return [
+            FunctionMetadata.from_json_and_body(func_analysis, outfile)
+            for func_analysis in llvm_analysis_for_callees
+        ]
+    return callees
+
+
 def recover_from_failure() -> None:
     """
     Placeholder for recovery logic
@@ -171,9 +190,7 @@ def verify_one_function(
     with open(prompt_file, "r") as f:
         prompt_template = f.read()
 
-    func_analysis = next(
-        (f for f in llvm_analysis["functions"] if f["name"] == func_name), None
-    )
+    func_analysis = get_llvm_func_analysis(func_name, llvm_analysis)
     # This should not happen
     if func_analysis is None:
         print(f"Function {func_name} not found in LLVM analysis, skipping.")
@@ -181,7 +198,6 @@ def verify_one_function(
 
     # Get the source code of the function
     inp = extract_func(out_file, func_analysis)
-
     # Fill in the prompt_template template
     prompt = prompt_template.replace("<<SOURCE>>", inp)
 

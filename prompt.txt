@@ -855,6 +855,7 @@ Now, could you write a "__CPROVER_requires" and "__CPROVER_ensures" contract for
 ```c
 <<SOURCE>>
 ```
+
 Remember to add the contracts ("__CPROVER_requires" and "__CPROVER_ensures") in the function header, not the function body.
 Give me the entire function with specifications in one chunk, within the tags <FUNC> and </FUNC>.
 Do not redefine any other functions; assume they are already available elsewhere in the program.
