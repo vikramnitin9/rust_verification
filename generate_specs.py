@@ -6,16 +6,16 @@ import sys
 from pathlib import Path
 import subprocess
 from models import get_model_from_name, LLMGen
-from util import FunctionMetadata, extract_func, get_llvm_func_analysis
+from util import FunctionMetadata, LLVMAnalysis, Function
 import os
 import json
 import networkx as nx
-from typing import List, Dict, Any
+from typing import List, Dict
 
 MODEL = "gpt-4o"
 
 
-def get_llvm_analysis_result(file_path: Path) -> Dict[str, Any]:
+def get_llvm_analysis_result(file_path: Path) -> LLVMAnalysis:
     """
     Given a C file, run the 'parsec' tool to get LLVM analysis in JSON format
     """
@@ -35,20 +35,19 @@ def get_llvm_analysis_result(file_path: Path) -> Dict[str, Any]:
     if not analysis_file.exists():
         raise Exception("Error: analysis.json not found after running parsec.")
     with open(analysis_file, "r") as f:
-        analysis: Dict[str, Any] = json.load(f)
+        analysis = LLVMAnalysis.from_json(json.load(f))
     return analysis
 
 
-def get_call_graph(llvm_analysis: Dict[str, Any]) -> nx.DiGraph:  # type: ignore[type-arg]
+def get_call_graph(llvm_analysis: LLVMAnalysis) -> nx.DiGraph:  # type: ignore[type-arg]
     """
     From the JSON analysis, build a call graph using networkx
     """
     call_graph: nx.DiGraph[str] = nx.DiGraph()
-    for func in llvm_analysis["functions"]:
-        func_name = func["name"]
+    for func_name, func in llvm_analysis.functions.items():
         call_graph.add_node(func_name)
-        for callee in func.get("functions", []):
-            call_graph.add_edge(func_name, callee["name"])
+        for callee_name in func.callee_names:
+            call_graph.add_edge(func_name, callee_name)
     return call_graph
 
 
@@ -56,7 +55,7 @@ def generate_spec(
     model: LLMGen,
     conversation: List[Dict[str, str]],
     func_name: str,
-    llvm_analysis: Dict[str, Any],
+    llvm_analysis: LLVMAnalysis,
     out_file: Path,
 ) -> None:
     """
@@ -71,7 +70,7 @@ def generate_spec(
     replace the original function in `out_file` with this new function,
     and update the line/column information for all functions in `llvm_analysis`.
     """
-    func_analysis = get_llvm_func_analysis(func_name, llvm_analysis)
+    func_analysis = llvm_analysis.get_analysis_for_function(func_name)
     if func_analysis is None:
         sys.exit(1)
 
@@ -100,10 +99,10 @@ def generate_spec(
         function_w_specs = function_w_specs[:-3]
     function_w_specs = function_w_specs.strip()
 
-    start_line = func_analysis["startLine"]
-    start_col = func_analysis["startCol"]
-    end_line = func_analysis["endLine"]
-    end_col = func_analysis["endCol"]
+    start_line = func_analysis.start_line
+    start_col = func_analysis.start_col
+    end_line = func_analysis.end_line
+    end_col = func_analysis.end_col
 
     with open(out_file, "r") as f:
         lines = f.readlines()
@@ -120,58 +119,54 @@ def generate_spec(
         if func_lines > 1
         else start_col + len(function_w_specs)
     )
-    func_analysis["endLine"] = new_end_line
-    func_analysis["endCol"] = new_end_col
+    func_analysis.end_line = new_end_line
+    func_analysis.end_col = new_end_col
 
     # Update line/col info for other functions
     line_offset = func_lines - (end_line - start_line + 1)
-    for f in llvm_analysis["functions"]:
-        if f["name"] == func_name:
+    for _, f in llvm_analysis.functions.items():
+        if f.name == func_name:
             continue
-        if f["startLine"] > end_line:
-            f["startLine"] += line_offset
-            f["endLine"] += line_offset
-        elif f["startLine"] == end_line and f["startCol"] >= end_col:
-            f["startCol"] += new_end_col - end_col
-            f["endCol"] += new_end_col - end_col
-        elif f["endLine"] > end_line:
-            f["endLine"] += line_offset
-        elif f["endLine"] == end_line and f["endCol"] >= end_col:
-            f["endCol"] += new_end_col - end_col
+        if f.start_line > end_line:
+            f.start_line += line_offset
+            f.end_line += line_offset
+        elif f.start_line == end_line and f.start_col >= end_col:
+            f.start_col += new_end_col - end_col
+            f.end_col += new_end_col - end_col
+        elif f.end_line > end_line:
+            f.end_line += line_offset
+        elif f.end_line == end_line and f.end_col >= end_col:
+            f.end_col += new_end_col - end_col
 
     with open(out_file, "w") as f:
         f.write(new_contents)
 
 
 def _get_callees(
-    func_analysis: Any, llvm_analysis: Any, outfile: Path
+    func_analysis: Function, llvm_analysis: LLVMAnalysis, outfile: Path
 ) -> list[FunctionMetadata]:
     """Return the LLVM analysis objects for the callees of a given function.
 
     Args:
-        func_analysis (JSON): The LLVM analysis for the caller function.
-        llvm_analysis (JSON): The top-level LLVM analysis, comprising the entire code graph.
+        func_analysis (Function): The LLVM analysis for the caller function.
+        llvm_analysis (LLVMAnalysis): The top-level LLVM analysis, comprising the entire code graph.
         outfile (Path): The path to the source code file.
 
     Returns:
         list[FunctionMetadata]: The function metadata for the callees of the given function.
     """
-    callees: list[FunctionMetadata] = []
-    if callee_names := func_analysis.get("functions", None):
-        callee_names = set(callee["name"] for callee in callee_names)
-        llvm_analysis_for_callees = []
-        for callee_name in callee_names:
-            if callee_analysis := get_llvm_func_analysis(callee_name, llvm_analysis):
-                llvm_analysis_for_callees.append(callee_analysis)
-            else:
-                print(
-                    f"LLVM analysis for callee: '{callee_name}' for caller: '{func_analysis['name']}' was missing"
-                )
-        return [
-            FunctionMetadata.from_json_and_body(func_analysis, outfile)
-            for func_analysis in llvm_analysis_for_callees
-        ]
-    return callees
+    llvm_analysis_for_callees = []
+    for callee_name in func_analysis.callee_names:
+        if callee_analysis := llvm_analysis.get_analysis_for_function(callee_name):
+            llvm_analysis_for_callees.append(callee_analysis)
+        else:
+            print(
+                f"LLVM Analysis for callee: '{callee_name}' for caller: '{func_analysis.name}' was missing"
+            )
+    return [
+        FunctionMetadata.from_function_analysis(func_analysis, outfile)
+        for func_analysis in llvm_analysis_for_callees
+    ]
 
 
 def recover_from_failure() -> None:
@@ -183,21 +178,21 @@ def recover_from_failure() -> None:
 
 
 def verify_one_function(
-    func_name: str, llvm_analysis: Dict[str, Any], out_file: Path
+    func_name: str, llvm_analysis: LLVMAnalysis, out_file: Path
 ) -> bool | None:
     # Load the prompt from the template file
     prompt_file = Path("prompt.txt")
     with open(prompt_file, "r") as f:
         prompt_template = f.read()
 
-    func_analysis = get_llvm_func_analysis(func_name, llvm_analysis)
+    func_analysis = llvm_analysis.get_analysis_for_function(func_name)
     # This should not happen
     if func_analysis is None:
         print(f"Function {func_name} not found in LLVM analysis, skipping.")
         return None
 
     # Get the source code of the function
-    inp = extract_func(out_file, func_analysis)
+    inp = func_analysis.get_source_code(out_file)
     # Fill in the prompt_template template
     prompt = prompt_template.replace("<<SOURCE>>", inp)
 

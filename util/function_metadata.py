@@ -1,7 +1,6 @@
-from .llvm_util import extract_func
 from dataclasses import dataclass, field
 from string import Template
-from typing import Any
+from .llvm_analysis import Function
 
 from pathlib import Path
 
@@ -55,7 +54,9 @@ class FunctionMetadata:
         return len(self.preconditions) > 0 or len(self.postconditions) > 0
 
     @staticmethod
-    def from_json_and_body(json: Any, source_file_path: Path) -> "FunctionMetadata":
+    def from_function_analysis(
+        function: Function, source_file_path: Path
+    ) -> "FunctionMetadata":
         """Return a function metadata object parsed from an LLVM analysis JSON object.
 
         Args:
@@ -67,15 +68,15 @@ class FunctionMetadata:
         """
         preconditions = []
         postconditions = []
-        extracted_function = extract_func(source_file_path, json)
+        extracted_function = function.get_source_code(source_file_path)
         for line in [line.strip() for line in extracted_function.split("\n")]:
             if line.startswith("__CPROVER_requires"):
                 preconditions.append(line)
             elif line.startswith("__CPROVER_ensures"):
                 postconditions.append(line)
         return FunctionMetadata(
-            name=json["name"],
-            signature=json["signature"],
+            name=function.name,
+            signature=function.signature,
             preconditions=preconditions,
             postconditions=postconditions,
         )
