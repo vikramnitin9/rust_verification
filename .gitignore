@@ -4,7 +4,7 @@ specs/
 .mypy_cache
 .ruff_cache
 
-.vscode
+.vscode/
 *.goto
 
 *.pyc
