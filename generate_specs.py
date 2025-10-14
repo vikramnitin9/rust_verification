@@ -124,19 +124,19 @@ def generate_spec(
 
     # Update line/col info for other functions
     line_offset = func_lines - (end_line - start_line + 1)
-    for _, f in llvm_analysis.functions.items():
-        if f.name == func_name:
+    for _, other_func in llvm_analysis.functions.items():
+        if other_func.name == func_name:
             continue
-        if f.start_line > end_line:
-            f.start_line += line_offset
-            f.end_line += line_offset
-        elif f.start_line == end_line and f.start_col >= end_col:
-            f.start_col += new_end_col - end_col
-            f.end_col += new_end_col - end_col
-        elif f.end_line > end_line:
-            f.end_line += line_offset
-        elif f.end_line == end_line and f.end_col >= end_col:
-            f.end_col += new_end_col - end_col
+        if other_func.start_line > end_line:
+            other_func.start_line += line_offset
+            other_func.end_line += line_offset
+        elif other_func.start_line == end_line and other_func.start_col >= end_col:
+            other_func.start_col += new_end_col - end_col
+            other_func.end_col += new_end_col - end_col
+        elif other_func.end_line > end_line:
+            other_func.end_line += line_offset
+        elif other_func.end_line == end_line and other_func.end_col >= end_col:
+            other_func.end_col += new_end_col - end_col
 
     with open(out_file, "w") as f:
         f.write(new_contents)
