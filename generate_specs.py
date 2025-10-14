@@ -164,8 +164,8 @@ def _get_callees(
                 f"LLVM Analysis for callee: '{callee_name}' for caller: '{func_analysis.name}' was missing"
             )
     return [
-        FunctionMetadata.from_function_analysis(func_analysis, outfile)
-        for func_analysis in llvm_analysis_for_callees
+        FunctionMetadata.from_function_analysis(callee_analysis, outfile)
+        for callee_analysis in llvm_analysis_for_callees
     ]
 
 
