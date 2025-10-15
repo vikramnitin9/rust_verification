@@ -34,7 +34,7 @@ def get_llvm_analysis_result(file_path: Path) -> Dict[str, Any]:
     analysis_file = Path("analysis.json")
     if not analysis_file.exists():
         raise Exception("Error: analysis.json not found after running parsec.")
-    with open(analysis_file, "r") as f:
+    with open(analysis_file, mode="r", encoding="utf-8") as f:
         analysis: Dict[str, Any] = json.load(f)
     return analysis
 
@@ -105,7 +105,7 @@ def generate_spec(
     end_line = func_analysis["endLine"]
     end_col = func_analysis["endCol"]
 
-    with open(out_file, "r") as f:
+    with open(out_file, mode="r", encoding="utf-8") as f:
         lines = f.readlines()
 
     before = lines[: start_line - 1] + [lines[start_line - 1][: start_col - 1]]
@@ -139,7 +139,7 @@ def generate_spec(
         elif f["endLine"] == end_line and f["endCol"] >= end_col:
             f["endCol"] += new_end_col - end_col
 
-    with open(out_file, "w") as f:
+    with open(out_file, mode="w", encoding="utf-8") as f:
         f.write(new_contents)
 
 
@@ -187,7 +187,7 @@ def verify_one_function(
 ) -> bool | None:
     # Load the prompt from the template file
     prompt_file = Path("prompt.txt")
-    with open(prompt_file, "r") as f:
+    with open(prompt_file, "r", encoding="utf-8") as f:
         prompt_template = f.read()
 
     func_analysis = get_llvm_func_analysis(func_name, llvm_analysis)
@@ -269,9 +269,9 @@ if __name__ == "__main__":
     # Copy input file to output file initially
     # We iteratively update the output file with specs
     # TODO: Include <stdlib.h> and <limits.h> in out_file if not present
-    with open(inp_file, "r") as f:
+    with open(inp_file, mode="r", encoding="utf-8") as f:
         inp = f.read()
-    with open(out_file, "w") as f:
+    with open(out_file, mode="w", encoding="utf-8") as f:
         f.write(inp)
 
     # Get LLVM analysis and call graph
