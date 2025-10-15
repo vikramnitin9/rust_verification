@@ -68,16 +68,16 @@ class Function:
             start_line=raw_analysis["startLine"],
             end_col=raw_analysis["endCol"],
             end_line=raw_analysis["endLine"],
-            arg_names=raw_analysis["argNames"],
-            arg_types=raw_analysis["argTypes"],
-            enums=raw_analysis["enums"],
+            arg_names=raw_analysis.get("argNames", []),
+            arg_types=raw_analysis.get("argTypes", []),
+            enums=raw_analysis.get("enums", []),
             callee_names=[
                 func["name"]
                 for func in raw_analysis.get("functions", [])
                 if "name" in func
             ],
-            llvm_globals=raw_analysis["globals"],
-            structs=raw_analysis["structs"],
+            llvm_globals=raw_analysis.get("globals", []),
+            structs=raw_analysis.get("structs", []),
         )
 
     def get_source_code(self, filepath: Path) -> str:
