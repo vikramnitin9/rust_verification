@@ -13,7 +13,9 @@ class LLVMAnalysis:
 
     @staticmethod
     def from_json(raw_analysis: dict[str, Any]) -> "LLVMAnalysis":
-        function_analyses = [Function.from_json(f) for f in raw_analysis.get("functions", [])]
+        function_analyses = [
+            Function.from_json(f) for f in raw_analysis.get("functions", [])
+        ]
         return LLVMAnalysis(
             enums=raw_analysis["enums"],
             files=raw_analysis["files"],
