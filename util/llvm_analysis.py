@@ -69,7 +69,11 @@ class Function:
             arg_names=raw_analysis["argNames"],
             arg_types=raw_analysis["argTypes"],
             enums=raw_analysis["enums"],
-            callee_names=[func["name"] for func in raw_analysis["functions"]],
+            callee_names=[
+                func["name"]
+                for func in raw_analysis.get("functions", {})
+                if "name" in func
+            ],
             llvm_globals=raw_analysis["globals"],
             structs=raw_analysis["structs"],
         )
@@ -86,8 +90,13 @@ class Function:
         with open(filepath, "r") as f:
             lines = f.readlines()
 
+        # Handle 1-based columns; end_col is inclusive
+        if self.start_line == self.end_line:
+            line = lines[self.start_line - 1]
+            return line[self.start_col - 1 : self.end_col]
         func_lines = lines[self.start_line - 1 : self.end_line]
+        # First line: drop everything before start_col
         func_lines[0] = func_lines[0][self.start_col - 1 :]
-        func_lines[-1] = func_lines[-1][: self.end_col - 1]
-
+        # Last line: keep up to end_col (inclusive -> end-exclusive slice)
+        func_lines[-1] = func_lines[-1][: self.end_col]
         return "".join(func_lines)
