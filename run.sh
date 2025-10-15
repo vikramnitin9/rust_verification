@@ -5,6 +5,7 @@ if docker info -f "{{println .SecurityOptions}}" | grep -q rootless; then
     docker run --rm -u 0:0 -v $(pwd)/data:/app/data \
                            -v $(pwd)/docs:/app/docs \
                            -v $(pwd)/models:/app/models \
+                           -v $(pwd)/test:/app/test \
                            -v $(pwd)/util:/app/util \
                            -v $(pwd)/specs:/app/specs \
                            -v $(pwd)/prompt.txt:/app/prompt.txt \
@@ -14,6 +15,7 @@ else
     docker run --rm -v $(pwd)/data:/app/data \
                     -v $(pwd)/docs:/app/docs \
                     -v $(pwd)/models:/app/models \
+                    -v $(pwd)/test:/app/test \
                     -v $(pwd)/util:/app/util \
                     -v $(pwd)/specs:/app/specs \
                     -v $(pwd)/prompt.txt:/app/prompt.txt \
