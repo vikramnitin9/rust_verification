@@ -17,8 +17,8 @@ class LLVMAnalysis:
             Function.from_json(f) for f in raw_analysis.get("functions", [])
         ]
         return LLVMAnalysis(
-            enums=raw_analysis["enums"],
-            files=raw_analysis["files"],
+            enums=raw_analysis.get("enums", []),
+            files=raw_analysis.get("files", []),
             functions={analysis.name: analysis for analysis in function_analyses},
         )
 
@@ -91,6 +91,17 @@ class Function:
         """
         with open(filepath, "r") as f:
             lines = f.readlines()
+
+        if self.start_line < 1 or self.end_line > len(lines):
+            raise ValueError("Function line numbers are out of range of the file.")
+        if self.start_line > self.end_line:
+            raise ValueError("Function start line is after end line.")
+        if self.start_col < 1 or self.end_col < 1:
+            raise ValueError("Function column numbers must be 1 or greater.")
+        if self.start_line == self.end_line and self.start_col > self.end_col:
+            raise ValueError(
+                "Function start column is after end column on the same line."
+            )
 
         # Handle 1-based columns; end_col is inclusive
         if self.start_line == self.end_line:
