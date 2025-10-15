@@ -17,7 +17,7 @@ def extract_func(filename: Path, func_analysis: Any) -> str:
     end_col = func_analysis["endCol"]
     end_line = func_analysis["endLine"]
 
-    with open(filename, "r") as f:
+    with open(filename, mode="r", encoding="utf-8") as f:
         lines = f.readlines()
 
     if start_line < 1 or end_line > len(lines) or start_line > end_line:

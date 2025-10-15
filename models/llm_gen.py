@@ -10,7 +10,7 @@ class LLMGen:
     def __init__(self, model: str, vertex: bool = True):
         if vertex:
             litellm.vertex_location = "us-east5"
-            with open(os.environ["VERTEX_AI_JSON"], "r") as file:
+            with open(os.environ["VERTEX_AI_JSON"], mode="r", encoding="utf-8") as file:
                 self.vertex_credentials: str | None = json.dumps(json.load(file))
             self.model = f"vertex_ai/{model}"
             self.api_key = None
