@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from string import Template
-from .llvm_analysis import Function
+from .function import Function
 
 
 TEMPLATE_FOR_FUNCTION_CONTEXT_PROMPT = Template("""
