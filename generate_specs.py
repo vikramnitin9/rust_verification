@@ -164,7 +164,7 @@ def _get_callees(
                 f"LLVM Analysis for callee: '{callee_name}' for caller: '{func_analysis.name}' was missing"
             )
     return [
-        FunctionMetadata.from_function_analysis(callee_analysis, outfile)
+        FunctionMetadata.from_function_analysis(callee_analysis)
         for callee_analysis in llvm_analysis_for_callees
     ]
 
@@ -192,7 +192,7 @@ def verify_one_function(
         return None
 
     # Get the source code of the function
-    inp = func_analysis.get_source_code(out_file)
+    inp = func_analysis.get_source_code()
     # Fill in the prompt_template template
     prompt = prompt_template.replace("<<SOURCE>>", inp)
 

@@ -1,11 +1,9 @@
 from util.llvm_analysis import Function
-from pathlib import Path
 
 import pytest
 
 
 def test_extract_func() -> None:
-    filepath = Path("data/qsort.c")
     qsort = Function(
         name="swap",
         num_args=2,
@@ -17,7 +15,7 @@ def test_extract_func() -> None:
         start_col=1,
         end_col=25,
     )
-    extracted_func = qsort.get_source_code(filepath)
+    extracted_func = qsort.get_source_code()
     expected_extracted_func = (
         "void swap(int* a, int* b)\n{\n    int t = *a;\n    *a = *b;\n    *b = t;\n}\n"
     )
@@ -25,7 +23,6 @@ def test_extract_func() -> None:
 
 
 def test_extract_func_invalid_line_range() -> None:
-    filepath = Path("data/qsort.c")
     nonexistent_function = Function(
         name="swap",
         num_args=2,
@@ -38,11 +35,10 @@ def test_extract_func_invalid_line_range() -> None:
         end_col=25,
     )
     with pytest.raises(ValueError):
-        nonexistent_function.get_source_code(filepath)
+        nonexistent_function.get_source_code()
 
 
 def test_extract_func_on_one_line() -> None:
-    filepath = Path("test/data/extract_func/test.c")
     one_line_function = Function(
         name="single_line_main",
         num_args=0,
@@ -54,13 +50,12 @@ def test_extract_func_on_one_line() -> None:
         start_col=1,
         end_col=52,
     )
-    extracted_func = one_line_function.get_source_code(filepath)
+    extracted_func = one_line_function.get_source_code()
     expected_extracted_func = 'void single_line_main() { printf("Hello, world!"); }'
     assert extracted_func == expected_extracted_func
 
 
 def test_extract_func_at_end_of_file() -> None:
-    filepath = Path("test/data/extract_func/test.c")
     end_of_file_function = Function(
         name="fn_at_end",
         num_args=0,
@@ -72,6 +67,6 @@ def test_extract_func_at_end_of_file() -> None:
         start_col=1,
         end_col=37,
     )
-    extracted_func = end_of_file_function.get_source_code(filepath)
+    extracted_func = end_of_file_function.get_source_code()
     expected_extracted_func = 'void fn_at_end()\n{\n    printf("This");\n    printf("Function is at the end");\n}'
     assert extracted_func == expected_extracted_func

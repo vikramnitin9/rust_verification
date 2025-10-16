@@ -1,6 +1,5 @@
 from typing import Any
 from dataclasses import dataclass, field
-from pathlib import Path
 
 
 @dataclass
@@ -80,16 +79,13 @@ class Function:
             structs=raw_analysis.get("structs", []),
         )
 
-    def get_source_code(self, filepath: Path) -> str:
+    def get_source_code(self) -> str:
         """Returns the source code for this function.
-
-        Args:
-            filepath (Path): The path to the source code file in which this function is defined.
 
         Returns:
             str: The source code for this function.
         """
-        with open(filepath, mode="r", encoding="utf-8") as f:
+        with open(self.file_name, mode="r", encoding="utf-8") as f:
             lines = f.readlines()
 
         if self.start_line < 1 or self.end_line > len(lines):
