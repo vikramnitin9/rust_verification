@@ -15,8 +15,5 @@ jobs:
       - name: Build Docker container
         run: bash build.sh
 
-      - name: Run Docker container
-        run: bash run.sh
-
-      - name: Run pytest
-        run: pytest
+      - name: Run `pytest` within container
+        run: bash run.sh pytest
