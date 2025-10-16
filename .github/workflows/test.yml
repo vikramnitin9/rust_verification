@@ -1,0 +1,22 @@
+name: Test
+on: [push, pull_request]
+jobs:
+  style:
+    defaults:
+      run:
+        shell: bash -l {0}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+          show-progress: false
+
+      - name: Build Docker container
+        run: bash build.sh
+
+      - name: Run Docker container
+        run: bash run.sh
+
+      - name: Run pytest
+        run: pytest
