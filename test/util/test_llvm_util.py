@@ -37,7 +37,7 @@ def test_extract_func_on_one_line() -> None:
         "startLine": 3,
         "endLine": 3,
         "startCol": 1,
-        "endCol": 51,
+        "endCol": 52,
     }
     extracted_func = extract_func(filepath, partial_func_analysis)
     expected_extracted_func = 'void single_line_main() { printf("Hello, world!"); }'
