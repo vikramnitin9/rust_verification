@@ -89,7 +89,7 @@ class Function:
         Returns:
             str: The source code for this function.
         """
-        with open(filepath, "r") as f:
+        with open(filepath, mode="r", encoding="utf-8") as f:
             lines = f.readlines()
 
         if self.start_line < 1 or self.end_line > len(lines):
