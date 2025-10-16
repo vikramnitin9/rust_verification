@@ -3,3 +3,4 @@ google-cloud-aiplatform>=1.38
 vertexai
 dotenv
 networkx
+pytest>=8.4.2
