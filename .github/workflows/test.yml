@@ -1,7 +1,7 @@
 name: Test
 on: [push, pull_request]
 jobs:
-  style:
+  test:
     defaults:
       run:
         shell: bash -l {0}
