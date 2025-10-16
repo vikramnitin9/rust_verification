@@ -6,6 +6,11 @@ if [ -n "${CI:-}" ] || [ ! -t 0 ]; then
     INTERACTIVE=""
 fi
 
+CMD=(/bin/bash)
+if [ "$#" -gt 0 ]; then
+    CMD=("$@")
+fi
+
 # Check if Docker is rootless.
 # If so, run the container with root user to avoid permission issues with mounted volumes.
 if docker info -f "{{println .SecurityOptions}}" | grep -q rootless; then
@@ -18,7 +23,7 @@ if docker info -f "{{println .SecurityOptions}}" | grep -q rootless; then
                            -v $(pwd)/specs:/app/specs \
                            -v $(pwd)/prompt.txt:/app/prompt.txt \
                            -v $(pwd)/generate_specs.py:/app/generate_specs.py \
-                           cbmc:latest /bin/bash
+                           cbmc:latest "${CMD[@]}"
 else
     docker run --rm $INTERACTIVE -v $(pwd)/data:/app/data \
                     -v $(pwd)/docs:/app/docs \
@@ -28,5 +33,5 @@ else
                     -v $(pwd)/specs:/app/specs \
                     -v $(pwd)/prompt.txt:/app/prompt.txt \
                     -v $(pwd)/generate_specs.py:/app/generate_specs.py \
-                    cbmc:latest /bin/bash
+                    cbmc:latest "${CMD[@]}"
 fi
