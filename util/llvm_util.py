@@ -20,9 +20,12 @@ def extract_func(filename: Path, func_analysis: Any) -> str:
     with open(filename, mode="r", encoding="utf-8") as f:
         lines = f.readlines()
 
+    if start_line < 1 or end_line > len(lines) or start_line > end_line:
+        raise ValueError("Invalid line range in function analysis")
+
     func_lines = lines[start_line - 1 : end_line]
     func_lines[0] = func_lines[0][start_col - 1 :]
-    func_lines[-1] = func_lines[-1][: end_col - 1]
+    func_lines[-1] = func_lines[-1][:end_col]
 
     return "".join(func_lines)
 
