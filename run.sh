@@ -28,5 +28,5 @@ else
                     -v $(pwd)/specs:/app/specs \
                     -v $(pwd)/prompt.txt:/app/prompt.txt \
                     -v $(pwd)/generate_specs.py:/app/generate_specs.py \
-                    -it cbmc:latest /bin/bash
+                    cbmc:latest /bin/bash
 fi
