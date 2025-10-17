@@ -1,6 +1,13 @@
 from dataclasses import dataclass, field
 
 from typing import Any
+from string import Template
+
+
+TEMPLATE_FOR_FUNCTION_PROMPT = Template("""
+Function name: $name
+Function signature: $signature
+""")
 
 
 @dataclass
@@ -16,6 +23,8 @@ class Function:
     start_line: int
     end_col: int
     end_line: int
+    preconditions: list[str]
+    postconditions: list[str]
     arg_names: list[str] = field(default_factory=list)
     arg_types: list[str] = field(default_factory=list)
     enums: list[Any] = field(default_factory=list)
@@ -35,6 +44,8 @@ class Function:
         self.start_line = raw_analysis["startLine"]
         self.end_col = raw_analysis["endCol"]
         self.end_line = raw_analysis["endLine"]
+        self.preconditions = []
+        self.postconditions = []
         self.arg_names = raw_analysis.get("argNames", [])
         self.arg_types = raw_analysis.get("argTypes", [])
         self.enums = raw_analysis.get("enums", [])
@@ -74,3 +85,24 @@ class Function:
         # Last line: keep up to end_col (inclusive -> end-exclusive slice)
         func_lines[-1] = func_lines[-1][: self.end_col]
         return "".join(func_lines)
+
+    def is_specified(self) -> bool:
+        """Return True iff this function has pre- or post-conditions.
+
+        Returns:
+            bool: True iff this function has pre- or post-conditions.
+        """
+        return len(self.preconditions) > 0 or len(self.postconditions) > 0
+
+    def __str__(self) -> str:
+        function_for_prompt = TEMPLATE_FOR_FUNCTION_PROMPT.safe_substitute(
+            name=self.name,
+            signature=self.signature,
+        )
+        if self.preconditions:
+            preconds_in_prompt = ", ".join(self.preconditions)
+            function_for_prompt += f"\nPreconditions: {preconds_in_prompt}"
+        if self.postconditions:
+            postconds_in_prompt = ", ".join(self.postconditions)
+            function_for_prompt += f"\nPostconditions: {postconds_in_prompt}"
+        return function_for_prompt

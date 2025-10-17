@@ -51,6 +51,23 @@ class LLVMAnalysis:
         """
         return self.functions.get(function_name, None)
 
+    def get_callees(self, function: Function) -> list[Function]:
+        """Return the callees of the given function.
+
+        Args:
+            function (Function): The function for which to return the callees.
+
+        Returns:
+            list[Function]: The callees of the given function.
+        """
+        callees: list[Function] = []
+        for callee_name in function.callee_names:
+            if callee_analysis := self.get_analysis_for_function(callee_name):
+                callees.append(callee_analysis)
+            else:
+                print(f"LLVM Analysis for callee function {callee_name} not found")
+        return callees
+
     def get_call_graph(self) -> nx.DiGraph:  # type: ignore[type-arg]
         """Return the call graph for the LLVM analysis.
 

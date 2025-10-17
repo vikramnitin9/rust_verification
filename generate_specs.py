@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 import subprocess
 from models import get_model_from_name, LLMGen
-from util import FunctionMetadata, LLVMAnalysis, Function
+from util import LLVMAnalysis
 import networkx as nx
 from typing import List, Dict
 
@@ -37,13 +37,11 @@ def generate_spec(
         sys.exit(1)
 
     # Check if the function to generate specifications for has any callees.
-    callees = _get_callees(func_analysis, llvm_analysis, out_file)
-    callees_with_specs = [callee for callee in callees if callee.has_specifications()]
+    callees = llvm_analysis.get_callees(func_analysis)
+    callees_with_specs = [callee for callee in callees if callee.is_specified()]
     # If the function has callees, and they have specifications, include them in the conversation.
     if callees_with_specs:
-        callee_context = "\n".join(
-            callee.get_prompt_str() for callee in callees_with_specs
-        )
+        callee_context = "\n".join(str(callee) for callee in callees_with_specs)
         conversation.append({"role": "user", "content": callee_context})
 
     try:
@@ -102,33 +100,6 @@ def generate_spec(
 
     with open(out_file, mode="w", encoding="utf-8") as f:
         f.write(new_contents)
-
-
-def _get_callees(
-    func_analysis: Function, llvm_analysis: LLVMAnalysis, outfile: Path
-) -> list[FunctionMetadata]:
-    """Return the LLVM analysis objects for the callees of a given function.
-
-    Args:
-        func_analysis (Function): The LLVM analysis for the caller function.
-        llvm_analysis (LLVMAnalysis): The top-level LLVM analysis, comprising the entire code graph.
-        outfile (Path): The path to the source code file.
-
-    Returns:
-        list[FunctionMetadata]: The function metadata for the callees of the given function.
-    """
-    llvm_analysis_for_callees = []
-    for callee_name in func_analysis.callee_names:
-        if callee_analysis := llvm_analysis.get_analysis_for_function(callee_name):
-            llvm_analysis_for_callees.append(callee_analysis)
-        else:
-            print(
-                f"LLVM Analysis for callee: '{callee_name}' for caller: '{func_analysis.name}' was missing"
-            )
-    return [
-        FunctionMetadata.from_function_analysis(callee_analysis)
-        for callee_analysis in llvm_analysis_for_callees
-    ]
 
 
 def recover_from_failure() -> None:

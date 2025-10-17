@@ -57,7 +57,7 @@ class FunctionMetadata:
         """Return a function metadata object parsed from an LLVM analysis JSON object.
 
         Args:
-            json (Function): The LLVM analysis for the function.
+            function (Function): The LLVM analysis for the function.
 
         Returns:
             FunctionMetadata: The function metadata object parsed from an LLVM analysis object.
