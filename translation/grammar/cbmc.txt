@@ -1,0 +1,9 @@
+cbmc_clause : requires_clause | ensures_clause
+
+requires_clause : "__CPROVER_requires" "(" bool_expr ")"
+ensures_clause : "__CPROVER_ensures" "(" bool_expr ")"
+
+bool_expr : expr
+
+%import common.WS
+%ignore WS
