@@ -81,6 +81,7 @@ def generate_spec(
     )
     func_analysis.end_line = new_end_line
     func_analysis.end_col = new_end_col
+    # TODO: update the pre and post conditions in func_analysis
 
     # Update line/col info for other functions
     line_offset = func_lines - (end_line - start_line + 1)
