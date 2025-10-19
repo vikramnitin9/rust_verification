@@ -1,6 +1,7 @@
 from translation.parser import Parser
 from translation.ast.cbmc_ast import ToAst
 from translation.ast.cbmc_ast import (
+    CBMCAst,
     RequiresClause,
     EnsuresClause,
     GtOp,
@@ -13,7 +14,7 @@ from translation.ast.cbmc_ast import (
 
 import pytest
 
-parser = Parser(
+parser: Parser[CBMCAst] = Parser(
     path_to_grammar_defn="translation/grammar/cbmc.txt",
     start="cbmc_clause",
     transformer=ToAst(),

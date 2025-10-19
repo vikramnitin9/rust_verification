@@ -1,11 +1,14 @@
 from lark import Lark
-from lark.ast_utils import Ast as LarkAST
 from lark.visitors import Transformer
 
 from pathlib import Path
 
+from typing import TypeVar, Generic, cast
 
-class Parser:
+T = TypeVar("T")
+
+
+class Parser(Generic[T]):
     """Generic parsing utility using Lark.
 
     See Lark documentation for details: https://lark-parser.readthedocs.io/en/stable/
@@ -27,19 +30,17 @@ class Parser:
             transformer (Transformer): The Lark transformer to convert parse trees to ASTs.
         """
         grammar_defn = Path(path_to_grammar_defn).read_text()
-        # Create parser without transformer so parse() always returns a Tree,
-        # and we apply the transformer once below.
         self.parser = Lark(grammar_defn, start=start, parser="lalr")
         self.transformer = transformer
 
-    def parse(self, text: str) -> LarkAST:
+    def parse(self, text: str) -> T:
         """Return an AST parsed from the given text.
 
         Args:
             text (str): The text to parse.
 
         Returns:
-            LarkAST: The parsed AST.
+            T: The parsed AST.
         """
         tree = self.parser.parse(text)
-        return self.transformer.transform(tree)
+        return cast(T, self.transformer.transform(tree))
