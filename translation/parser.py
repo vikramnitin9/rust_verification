@@ -29,8 +29,8 @@ class Parser(Generic[T]):
             start (str): The start rule for the grammar.
             transformer (Transformer): The Lark transformer to convert parse trees to ASTs.
         """
-        grammar_defn = Path(path_to_grammar_defn).read_text()
-        self.parser = Lark(grammar_defn, start=start, parser="lalr")
+        grammar_defn = Path(path_to_grammar_defn).read_text(encoding="utf-8")
+        self.parser = Lark(grammar_defn, start=start, parser="lalr", lexer="contextual")
         self.transformer = transformer
 
     def parse(self, text: str) -> T:
