@@ -24,14 +24,14 @@ parser: Parser[CBMCAst] = Parser(
 def test_single_line_cbmc_precond() -> None:
     parsed_precond = parser.parse("__CPROVER_requires(1)")
     assert isinstance(parsed_precond, RequiresClause), (
-        f"Parsed precondition is of type {type(parsed_precond)}, expected RequiresClause"
+        f"Parsed specification is of type {type(parsed_precond)}, expected RequiresClause"
     )
 
 
 def test_single_line_cbmc_postcond() -> None:
     parsed_postcond = parser.parse("__CPROVER_ensures(1)")
     assert isinstance(parsed_postcond, EnsuresClause), (
-        f"Parsed precondition is of type {type(parsed_postcond)}, expected EnsuresClause"
+        f"Parsed specification is of type {type(parsed_postcond)}, expected EnsuresClause"
     )
 
 
