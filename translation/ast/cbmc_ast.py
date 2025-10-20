@@ -208,9 +208,6 @@ class _ToAst(Transformer):
     def BOOL(self, tok: Any) -> Bool:
         return Bool(value=(str(tok) == "1"))
 
-    def STRING(self, s: str) -> StringLit:
-        return StringLit(value=str(s)[1:-1])
-
     # Keep start inline
     @v_args(inline=True)
     def start(self, x):  # type: ignore[no-untyped-def]
