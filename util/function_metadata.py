@@ -64,15 +64,39 @@ class FunctionMetadata:
         """
         preconditions = []
         postconditions = []
-        extracted_function = function.get_source_code()
-        for line in [line.strip() for line in extracted_function.split("\n")]:
+        lines_of_function = [
+            line.strip() for line in function.get_source_code().split("\n")
+        ]
+        for i, line in enumerate(lines_of_function):
             if line.startswith("__CPROVER_requires"):
-                preconditions.append(line)
+                preconditions.append(
+                    FunctionMetadata._extract_specification(i, lines_of_function)
+                )
             elif line.startswith("__CPROVER_ensures"):
-                postconditions.append(line)
+                postconditions.append(
+                    FunctionMetadata._extract_specification(i, lines_of_function)
+                )
         return FunctionMetadata(
             name=function.name,
             signature=function.signature,
             preconditions=preconditions,
             postconditions=postconditions,
         )
+
+    @staticmethod
+    def _extract_specification(i: int, lines: list[str]) -> str:
+        """Extract specifications from preconditions and postconditions.
+
+        Returns:
+            list[str]: The extracted specifications.
+        """
+        curr_spec = ""
+        open_parens = 0
+        close_parens = 0
+        for line in lines[i:]:
+            open_parens += line.count("(")
+            close_parens += line.count(")")
+            curr_spec += line.strip()
+            if open_parens == close_parens and open_parens > 0:
+                break
+        return curr_spec
