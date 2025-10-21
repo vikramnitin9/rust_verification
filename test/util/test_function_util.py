@@ -8,6 +8,9 @@ def test_extract_specs_no_specs() -> None:
     assert specs.preconditions == [], (
         f"Expected an empty set of preconditions, got {specs.preconditions}"
     )
+    assert specs.postconditions == [], (
+        f"Expected an empty set of postconditions, got {specs.postconditions}"
+    )
 
 
 def test_extract_single_multi_line_spec() -> None:
