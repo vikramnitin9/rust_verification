@@ -87,8 +87,12 @@ class FunctionMetadata:
     def _extract_specification(i: int, lines: list[str]) -> str:
         """Extract specifications from preconditions and postconditions.
 
+        Args:
+            i (int): The starting index of the specification in lines.
+            lines (list[str]): The lines of the function source code.
+
         Returns:
-            list[str]: The extracted specifications.
+            str: The extracted specification.
         """
         curr_spec = ""
         open_parens = 0
