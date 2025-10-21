@@ -61,3 +61,26 @@ def test_parse_nested_condition_expr() -> None:
             pytest.fail(
                 f"Parsed spec is of type {type(parsed_spec)}, expected EnsuresClause"
             )
+
+
+def test_parse_multi_line_spec() -> None:
+    multi_line_spec = """
+    __CPROVER_requires(
+        *x > 10 ||
+        *y != 2
+    )
+    """
+    parsed_spec = parser.parse(multi_line_spec)
+    match parsed_spec:
+        case RequiresClause(
+            _,
+            OrOp(
+                GtOp(DerefOp(Name("x")), Number(10)),
+                NeqOp(DerefOp(Name("y")), Number(2)),
+            ),
+        ):
+            pass
+        case _:
+            pytest.fail(
+                f"Parsed spec is of type {type(parsed_spec)}, expected EnsuresClause"
+            )
