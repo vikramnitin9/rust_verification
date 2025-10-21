@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 
 from typing import Any
 from string import Template
+from .specifications import Specifications
 
 
 TEMPLATE_FOR_FUNCTION_PROMPT = Template("""
@@ -93,6 +94,9 @@ class Function:
             bool: True iff this function has pre- or post-conditions.
         """
         return len(self.preconditions) > 0 or len(self.postconditions) > 0
+
+    def set_specifications(self, specifications: Specifications) -> None:
+        self.preconditions, self.postconditions = specifications
 
     def __str__(self) -> str:
         function_for_prompt = TEMPLATE_FOR_FUNCTION_PROMPT.safe_substitute(
