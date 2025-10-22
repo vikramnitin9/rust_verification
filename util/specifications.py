@@ -15,4 +15,9 @@ class Specifications:
     postconditions: list[str]
 
     def __iter__(self) -> Iterator[list[str]]:
+        """Return an iterator comprising a tuple of this specification's pre and postconditions.
+
+        Returns:
+            Iterator[list[str]]: An interator comprising a tuple of this specification's pre and postconditions.
+        """
         return iter((self.preconditions, self.postconditions))
