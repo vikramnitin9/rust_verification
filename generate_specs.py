@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 import subprocess
 from models import get_model_from_name, LLMGen
-from util import LLVMAnalysis
+from util import LLVMAnalysis, extract_specifications
 import networkx as nx
 from typing import List, Dict
 
@@ -72,19 +72,21 @@ def generate_spec(
     new_contents = "".join(before + [function_w_specs] + after)
 
     # Update the line/col info for this function
-    func_lines = len(function_w_specs.splitlines())
-    new_end_line = start_line + func_lines - 1
+    function_len = len(function_w_specs.splitlines())
+    new_end_line = start_line + function_len - 1
     new_end_col = (
         len(function_w_specs.splitlines()[-1])
-        if func_lines > 1
+        if function_len > 1
         else start_col + len(function_w_specs)
     )
     func_analysis.end_line = new_end_line
     func_analysis.end_col = new_end_col
-    # TODO: update the pre and post conditions in func_analysis
+    func_analysis.set_specifications(
+        extract_specifications(function_w_specs.splitlines())
+    )
 
     # Update line/col info for other functions
-    line_offset = func_lines - (end_line - start_line + 1)
+    line_offset = function_len - (end_line - start_line + 1)
     for _, other_func in llvm_analysis.functions.items():
         if other_func.name == func_name:
             continue
