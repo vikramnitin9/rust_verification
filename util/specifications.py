@@ -10,6 +10,7 @@ class Specifications:
         preconditions (list[str]): The preconditions of the function.
         postconditions (list[str]): The postconditions of the function.
     """
+
     preconditions: list[str]
     postconditions: list[str]
 
