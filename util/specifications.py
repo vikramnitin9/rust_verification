@@ -18,6 +18,6 @@ class Specifications:
         """Return an iterator comprising a tuple of this specification's pre and postconditions.
 
         Returns:
-            Iterator[list[str]]: An interator comprising a tuple of this specification's pre and postconditions.
+            Iterator[list[str]]: An iterator comprising a tuple of this specification's pre and postconditions.
         """
         return iter((self.preconditions, self.postconditions))
