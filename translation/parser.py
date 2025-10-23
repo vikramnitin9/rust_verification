@@ -1,11 +1,16 @@
-from lark import Lark
-from lark.visitors import Transformer
+from lark import Lark, Tree
 
 from pathlib import Path
 
-from typing import TypeVar, Generic, cast
+from typing import TypeVar, Generic, Protocol
 
-T = TypeVar("T")
+T = TypeVar("T", covariant=True)
+
+
+class TransformerT(Protocol[T]):
+    """Represents a protocol requiring implementers to have a `transform` function."""
+
+    def transform(self, tree: Tree) -> T: ...
 
 
 class Parser(Generic[T]):
@@ -19,9 +24,11 @@ class Parser(Generic[T]):
     """
 
     parser: Lark
-    transformer: Transformer
+    transformer: TransformerT[T]
 
-    def __init__(self, path_to_grammar_defn: str, start: str, transformer: Transformer):
+    def __init__(
+        self, path_to_grammar_defn: str, start: str, transformer: TransformerT[T]
+    ):
         """Create an instance of this Parser.
 
         Args:
@@ -43,4 +50,4 @@ class Parser(Generic[T]):
             T: The parsed AST.
         """
         tree = self.parser.parse(text)
-        return cast(T, self.transformer.transform(tree))
+        return self.transformer.transform(tree)

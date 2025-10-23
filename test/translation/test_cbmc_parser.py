@@ -1,5 +1,4 @@
 from translation.parser import Parser
-from translation.ast.cbmc_ast import ToAst
 from translation.ast.cbmc_ast import (
     CBMCAst,
     RequiresClause,
@@ -10,6 +9,7 @@ from translation.ast.cbmc_ast import (
     Number,
     OrOp,
     NeqOp,
+    ToAst,
 )
 
 import pytest
