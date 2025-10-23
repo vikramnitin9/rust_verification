@@ -6,8 +6,8 @@ import sys
 from pathlib import Path
 import subprocess
 from models import get_model_from_name, LLMGen
-from util import LLVMAnalysis
-import networkx as nx
+from util import LLVMAnalysis, extract_specifications
+from analysis import CodeGraph
 from typing import List, Dict
 
 MODEL = "gpt-4o"
@@ -72,19 +72,21 @@ def generate_spec(
     new_contents = "".join(before + [function_w_specs] + after)
 
     # Update the line/col info for this function
-    func_lines = len(function_w_specs.splitlines())
-    new_end_line = start_line + func_lines - 1
+    function_len = len(function_w_specs.splitlines())
+    new_end_line = start_line + function_len - 1
     new_end_col = (
         len(function_w_specs.splitlines()[-1])
-        if func_lines > 1
+        if function_len > 1
         else start_col + len(function_w_specs)
     )
     func_analysis.end_line = new_end_line
     func_analysis.end_col = new_end_col
-    # TODO: update the pre and post conditions in func_analysis
+    func_analysis.set_specifications(
+        extract_specifications(function_w_specs.splitlines())
+    )
 
     # Update line/col info for other functions
-    line_offset = func_lines - (end_line - start_line + 1)
+    line_offset = function_len - (end_line - start_line + 1)
     for _, other_func in llvm_analysis.functions.items():
         if other_func.name == func_name:
             continue
@@ -203,27 +205,17 @@ if __name__ == "__main__":
     with open(out_file, mode="w", encoding="utf-8") as f:
         f.write(inp)
 
-    # Get LLVM analysis and call graph
-    llvm_analysis = LLVMAnalysis(out_file)
-    call_graph = llvm_analysis.get_call_graph()
-
     # Get a list of functions in reverse topological order
-    func_names = [n for n in call_graph.nodes if n != ""]
-    recursive_funcs = [n for n in func_names if call_graph.has_edge(n, n)]
-    cg_without_self_loops = call_graph.copy()
-    cg_without_self_loops.remove_edges_from(nx.selfloop_edges(cg_without_self_loops))
-    try:
-        func_ordering = list(reversed(list(nx.topological_sort(cg_without_self_loops))))
-    except nx.NetworkXUnfeasible:
-        print(
-            "Warning: Call graph has cycles, using DFS postorder for function ordering."
+    code_graph = CodeGraph(out_file)
+    recursive_funcs = code_graph.get_names_of_recursive_functions()
+    code_graph_no_recursive_loops = code_graph.remove_recursive_loops()
+    func_ordering = (
+        code_graph_no_recursive_loops.get_function_names_in_topological_order(
+            reverse_order=True
         )
-        func_ordering = list(
-            nx.dfs_postorder_nodes(cg_without_self_loops, source=func_names[0])
-        )
+    )
 
     processed_funcs = []
-
     for func_name in func_ordering:
         # Skip recursive functions for now
         if func_name in recursive_funcs:
@@ -233,14 +225,16 @@ if __name__ == "__main__":
 
         print(f"Processing function {func_name}...")
 
-        success = verify_one_function(func_name, llvm_analysis, out_file)
+        is_verification_successful = verify_one_function(
+            func_name, code_graph.llvm_analysis, out_file
+        )
 
-        if success is None:
+        if is_verification_successful is None:
             print(f"Skipping function {func_name} due to missing analysis.")
             processed_funcs.append(func_name)
             continue
 
-        if not success:
+        if not is_verification_successful:
             print(
                 f"Verification for function {func_name} failed after multiple attempts."
             )

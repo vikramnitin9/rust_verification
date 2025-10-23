@@ -16,6 +16,7 @@ fi
 if docker info -f "{{println .SecurityOptions}}" | grep -q rootless; then
     echo "Docker running in rootless mode"
     docker run --rm $INTERACTIVE -u 0:0 -v "$(pwd)/data:/app/data" \
+                           -v "$(pwd)/analysis:/app/analysis" \
                            -v "$(pwd)/docs:/app/docs" \
                            -v "$(pwd)/models:/app/models" \
                            -v "$(pwd)/test:/app/test" \
@@ -27,6 +28,7 @@ if docker info -f "{{println .SecurityOptions}}" | grep -q rootless; then
                            cbmc:latest "${CMD[@]}"
 else
     docker run --rm $INTERACTIVE -v "$(pwd)/data:/app/data" \
+                    -v "$(pwd)/analysis:/app/analysis" \
                     -v "$(pwd)/docs:/app/docs" \
                     -v "$(pwd)/models:/app/models" \
                     -v "$(pwd)/test:/app/test" \
