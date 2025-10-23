@@ -1,11 +1,16 @@
-from lark import Lark
-from lark.visitors import Transformer
+from lark import Lark, Tree
 
 from pathlib import Path
 
-from typing import TypeVar, Generic, cast
+from typing import TypeVar, Generic, Protocol
 
-T = TypeVar("T")
+T = TypeVar("T", covariant=True)
+
+
+class TransformerT(Protocol[T]):
+    """Represents a protocol requiring implementers to have a `transform` function."""
+
+    def transform(self, tree: Tree) -> T: ...
 
 
 class Parser(Generic[T]):
@@ -15,22 +20,31 @@ class Parser(Generic[T]):
 
     Attributes:
         parser (Lark): The Lark parser instance.
-        transformer (Transformer): The Lark transformer to convert parse trees to ASTs.
+        transformer (TransformerT[T]): The transformer to convert parse trees to ASTs.
     """
 
     parser: Lark
-    transformer: Transformer
+    transformer: TransformerT[T]
 
-    def __init__(self, path_to_grammar_defn: str, start: str, transformer: Transformer):
+    def __init__(
+        self, path_to_grammar_defn: str, start: str, transformer: TransformerT[T]
+    ):
         """Create an instance of this Parser.
 
         Args:
             path_to_grammar_defn (str): The path to the grammar definition file, in Lark EBNF.
             start (str): The start rule for the grammar.
-            transformer (Transformer): The Lark transformer to convert parse trees to ASTs.
+            transformer (TransformerT[T]): The transformer to convert parse trees to ASTs.
         """
         grammar_defn = Path(path_to_grammar_defn).read_text(encoding="utf-8")
-        self.parser = Lark(grammar_defn, start=start, parser="lalr", lexer="contextual")
+        self.parser = Lark(
+            grammar_defn,
+            start=start,
+            parser="lalr",
+            lexer="contextual",
+            cache=True,
+            propagate_positions=True,
+        )
         self.transformer = transformer
 
     def parse(self, text: str) -> T:
@@ -43,4 +57,4 @@ class Parser(Generic[T]):
             T: The parsed AST.
         """
         tree = self.parser.parse(text)
-        return cast(T, self.transformer.transform(tree))
+        return self.transformer.transform(tree)

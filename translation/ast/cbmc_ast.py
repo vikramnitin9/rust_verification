@@ -214,13 +214,6 @@ class _ToAst(Transformer):
         return x
 
 
-# Create a ready-to-use transformer that maps grammar rule names to the
-# AST dataclasses defined in this module. Tests and callers expect to be
-# able to call `ToAst()` to get a transformer instance, so we expose a
-# zero-argument factory named `ToAst` that returns the created transformer.
-_TRANSFORMER = ast_utils.create_transformer(sys.modules[__name__], _ToAst())
-
-
 def ToAst() -> Transformer:
     """Return a Lark Transformer instance which converts parse trees
     into instances of the AST dataclasses defined above.
@@ -228,4 +221,4 @@ def ToAst() -> Transformer:
     Callers use `ToAst()` (no args) so this function returns the configured
     transformer instance.
     """
-    return _TRANSFORMER
+    return ast_utils.create_transformer(sys.modules[__name__], _ToAst())
