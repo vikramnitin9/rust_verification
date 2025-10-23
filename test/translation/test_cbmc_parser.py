@@ -82,5 +82,5 @@ def test_parse_multi_line_spec() -> None:
             pass
         case _:
             pytest.fail(
-                f"Parsed spec is of type {type(parsed_spec)}, expected EnsuresClause"
+                f"Parsed spec is of type {type(parsed_spec)}, expected RequiresClause"
             )
