@@ -70,4 +70,11 @@ class CodeGraph:
             func_names = [f for f in self.call_graph.nodes if f != ""]
             if not func_names:
                 return []
-            return list(nx.dfs_postorder_nodes(self.call_graph, source=func_names[0]))
+            visited: set[str] = set()
+            ordering: list[str] = []
+            for f in func_names:
+                if f not in visited:
+                    current_ordering = nx.dfs_postorder_nodes(self.call_graph, source=f)
+                    ordering.extend(current_ordering)
+                    visited.update(current_ordering)
+            return ordering
