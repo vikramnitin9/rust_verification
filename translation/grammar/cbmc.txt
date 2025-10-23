@@ -1,0 +1,71 @@
+?cbmc_clause : requires_clause | ensures_clause
+
+requires_clause : "__CPROVER_requires" "(" bool_expr ")"
+ensures_clause : "__CPROVER_ensures" "(" bool_expr ")"
+
+?bool_expr : expr
+
+// ---------- Logical precedence ----------
+?expr: logical_or
+
+?logical_or: logical_and
+           | logical_or "||" logical_and   -> or_op
+
+?logical_and: equality
+             | logical_and "&&" equality   -> and_op
+
+// ---------- Equality and relational ops ----------
+?equality: relational
+         | equality "==" relational        -> eq_op
+         | equality "!=" relational        -> neq_op
+
+?relational: additive
+            | relational "<" additive      -> lt_op
+            | relational "<=" additive     -> le_op
+            | relational ">" additive      -> gt_op
+            | relational ">=" additive     -> ge_op
+
+// ---------- Arithmetic ----------
+?additive: multiplicative
+          | additive "+" multiplicative    -> add_op
+          | additive "-" multiplicative    -> sub_op
+
+?multiplicative: unary
+                | multiplicative "*" unary -> mul_op
+                | multiplicative "/" unary -> div_op
+                | multiplicative "%" unary -> mod_op
+
+// ---------- Unary (prefix ops) ----------
+?unary: postfix
+      | "!" unary                          -> not_op
+      | "&" unary                          -> addr_op
+      | "*" unary                          -> deref_op
+      | "-" unary                          -> neg_op
+      | "+" unary                          -> pos_op
+
+// ---------- Postfix (member, call, index) ----------
+?postfix: primary
+        | postfix "." NAME                 -> member_op
+        | postfix "->" NAME                -> ptr_member_op
+        | postfix "[" expr "]"             -> index_op
+        | postfix "(" [arg_list] ")"       -> call_op
+
+?arg_list: expr ("," expr)*
+
+// ---------- Primary values ----------
+?primary: NAME
+        | NUMBER
+        | BOOL
+        | "(" expr ")"
+
+// ---------- Tokens ----------
+BOOL: "1" | "0"
+
+NAME: /[A-Za-z_][A-Za-z0-9_]*/
+
+NUMBER: /[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?/
+
+%import common.WS_INLINE
+%import common.WS
+%ignore WS_INLINE
+%ignore WS
