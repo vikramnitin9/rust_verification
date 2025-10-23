@@ -65,18 +65,31 @@ class CodeGraph:
             return names_in_topological_order
         except nx.NetworkXUnfeasible:
             print(
-                "Cycles detected in call graph. Using DFS postorder traversal for function ordering"
+                "Cycles detected in call graph: Using postorder DFS traversal for function ordering"
             )
-            func_names = [f for f in self.call_graph.nodes if f != ""]
-            if not func_names:
-                return []
-            visited: set[str] = set()
-            ordering: list[str] = []
-            for f in func_names:
-                if f not in visited:
-                    current_ordering = list(
-                        nx.dfs_postorder_nodes(self.call_graph, source=f)
-                    )
-                    ordering.extend(current_ordering)
-                    visited.update(current_ordering)
-            return ordering
+            return self._get_function_names_in_postorder_dfs(
+                reverse_order=reverse_order
+            )
+
+    def _get_function_names_in_postorder_dfs(self, reverse_order: bool) -> list[str]:
+        """Return the function names in this code graph collected via a DFS traversal.
+
+        Args:
+            reverse_order (bool): True iff the result of the DFS traversal should be reversed.
+
+        Returns:
+            list[str]: The function names in this code graph collected via a DFS traversal.
+        """
+        func_names = [f for f in self.call_graph.nodes if f != ""]
+        visited: set[str] = set()
+        result: list[str] = []
+        for f in func_names:
+            if f not in visited:
+                current_ordering = list(
+                    nx.dfs_postorder_nodes(self.call_graph, source=f)
+                )
+                visited.update(current_ordering)
+                result.extend(current_ordering)
+        if reverse_order:
+            result.reverse()
+        return result
