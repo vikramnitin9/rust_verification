@@ -74,7 +74,9 @@ class CodeGraph:
             ordering: list[str] = []
             for f in func_names:
                 if f not in visited:
-                    current_ordering = nx.dfs_postorder_nodes(self.call_graph, source=f)
+                    current_ordering = list(
+                        nx.dfs_postorder_nodes(self.call_graph, source=f)
+                    )
                     ordering.extend(current_ordering)
                     visited.update(current_ordering)
             return ordering
