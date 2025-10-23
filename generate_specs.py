@@ -216,7 +216,6 @@ if __name__ == "__main__":
     )
 
     processed_funcs = []
-    llvm_analysis = LLVMAnalysis(out_file)
     for func_name in func_ordering:
         # Skip recursive functions for now
         if func_name in recursive_funcs:
@@ -226,14 +225,16 @@ if __name__ == "__main__":
 
         print(f"Processing function {func_name}...")
 
-        success = verify_one_function(func_name, llvm_analysis, out_file)
+        is_verification_successful = verify_one_function(
+            func_name, code_graph.llvm_analysis, out_file
+        )
 
-        if success is None:
+        if is_verification_successful is None:
             print(f"Skipping function {func_name} due to missing analysis.")
             processed_funcs.append(func_name)
             continue
 
-        if not success:
+        if not is_verification_successful:
             print(
                 f"Verification for function {func_name} failed after multiple attempts."
             )

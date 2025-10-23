@@ -2,6 +2,7 @@
 
 int a(int x)
 {
+    return 42;
 }
 
 int main()
