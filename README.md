@@ -45,3 +45,21 @@ cargo kani -Z function-contracts
 ```
 
 The Kani specifications in `data/rust_qsort/main.rs` are incomplete and currently do not compile. This needs work.
+
+## Tests
+
+To run unit tests,
+  execute the following commands in your shell:
+
+```sh
+bash run.sh
+# Inside the container, from the root (i.e., app/):
+pytest
+```
+
+If you are debugging tests and want to enable console logging output,
+  run
+
+```sh
+pytest -rP
+```
