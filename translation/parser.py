@@ -37,7 +37,14 @@ class Parser(Generic[T]):
             transformer (Transformer): The Lark transformer to convert parse trees to ASTs.
         """
         grammar_defn = Path(path_to_grammar_defn).read_text(encoding="utf-8")
-        self.parser = Lark(grammar_defn, start=start, parser="lalr", lexer="contextual")
+        self.parser = Lark(
+            grammar_defn,
+            start=start,
+            parser="lalr",
+            lexer="contextual",
+            cache=True,
+            propagate_positions=True,
+        )
         self.transformer = transformer
 
     def parse(self, text: str) -> T:
