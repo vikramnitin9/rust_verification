@@ -1,7 +1,8 @@
-.PHONY: style-fix style-check python-style-fix python-style-check python-typecheck showvars
+.PHONY: style-fix style-check python-style-fix python-style-check python-typecheck test checks showvars
 style-fix: python-style-fix
 style-check: python-style-check python-typecheck
-all: style-fix style-check
+test: python-test
+checks: style-fix style-check
 PYTHON_FILES:=$(shell find . \( -name ".git" -o -name ".venv" \) -prune -o -name '*.py' -print) $(shell grep -r -l --exclude-dir=.git --exclude-dir=.venv --exclude='*.py' --exclude='*~' --exclude='*.tar' --exclude=gradlew --exclude=lcb_runner '^\#! \?\(/bin/\|/usr/bin/env \)python')
 python-style-fix:
 ifneq (${PYTHON_FILES},)
@@ -21,5 +22,7 @@ ifneq (${PYTHON_FILES},)
 	@mypy --strict --install-types --non-interactive ${PYTHON_FILES} > /dev/null 2>&1 || true
 	mypy --strict --ignore-missing-imports ${PYTHON_FILES}
 endif
+python-test:
+	bash run.sh pytest
 showvars:
 	@echo "PYTHON_FILES=${PYTHON_FILES}"
