@@ -30,7 +30,7 @@ class CodeGraph:
             CodeGraph: A copy of this code graph, with self-edges removed.
         """
         codegraph_copy = copy.deepcopy(self)
-        self_loops = list(nx.selfloop_edges(self.call_graph))
+        self_loops = list(nx.selfloop_edges(codegraph_copy.call_graph))
         codegraph_copy.call_graph.remove_edges_from(self_loops)
         return codegraph_copy
 
@@ -56,16 +56,18 @@ class CodeGraph:
         Returns:
             list[str]: The function names in this code graph in topological order.
         """
+        if not self.call_graph.nodes():
+            return []
         try:
             names_in_topological_order = list(nx.topological_sort(self.call_graph))
-            return (
-                list(reversed(names_in_topological_order))
-                if reverse_order
-                else names_in_topological_order
-            )
+            if reverse_order:
+                names_in_topological_order.reverse()
+            return names_in_topological_order
         except nx.NetworkXUnfeasible:
             print(
                 "Cycles detected in call graph. Using DFS postorder traversal for function ordering"
             )
             func_names = [f for f in self.call_graph.nodes if f != ""]
+            if not func_names:
+                return []
             return list(nx.dfs_postorder_nodes(self.call_graph, source=func_names[0]))
