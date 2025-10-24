@@ -46,81 +46,129 @@ class StringLit(CBMCAst):
 
 
 @dataclass
-class OrOp(CBMCAst):
+class BinOp(CBMCAst):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        raise NotImplementedError("A subtype must implement this method")
 
 
 @dataclass
-class AndOp(CBMCAst):
+class OrOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return "||"
 
 
 @dataclass
-class EqOp(CBMCAst):
+class AndOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return "&&"
 
 
 @dataclass
-class NeqOp(CBMCAst):
+class EqOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return "=="
 
 
 @dataclass
-class LtOp(CBMCAst):
+class NeqOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return "!="
 
 
 @dataclass
-class LeOp(CBMCAst):
+class LtOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return "<"
 
 
 @dataclass
-class GtOp(CBMCAst):
+class LeOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return "<="
 
 
 @dataclass
-class GeOp(CBMCAst):
+class GtOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return ">"
 
 
 @dataclass
-class AddOp(CBMCAst):
+class GeOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return ">="
 
 
 @dataclass
-class SubOp(CBMCAst):
+class AddOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return "+"
 
 
 @dataclass
-class MulOp(CBMCAst):
+class SubOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return "-"
 
 
 @dataclass
-class DivOp(CBMCAst):
+class MulOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return "*"
 
 
 @dataclass
-class ModOp(CBMCAst):
+class DivOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return "/"
+
+
+@dataclass
+class ModOp(BinOp):
+    left: Any
+    right: Any
+
+    def operator(self) -> str:
+        return "%"
 
 
 @dataclass
@@ -195,8 +243,16 @@ class ReturnValue(CBMCAst):
 
 
 class _ToAst(Transformer):
-    def NAME(self, tok: Any) -> Name:
-        return Name(name=str(tok))
+    def NAME(self, tok: Any) -> Name | Bool:
+        txt = str(tok)
+        # CBMC sometimes emits boolean literals as the names 'true'/'false'.
+        # Prefer producing Bool AST nodes for these tokens instead of Name.
+        low = txt.lower()
+        if low == "true":
+            return Bool(value=True)
+        if low == "false":
+            return Bool(value=False)
+        return Name(name=txt)
 
     def NUMBER(self, tok: Any) -> Number:
         txt = str(tok)

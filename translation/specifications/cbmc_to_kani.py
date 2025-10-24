@@ -1,4 +1,4 @@
-from translation import Parser, CBMCAst
+from translation import Parser, CBMCAst, cbmc_ast
 from lark.exceptions import UnexpectedToken
 
 
@@ -59,4 +59,21 @@ class CBMCToKani:
         Returns:
             str: The Kani specification.
         """
-        raise NotImplementedError()
+        match spec:
+            case cbmc_ast.RequiresClause(_, expr):
+                return f"kani::requires({self._to_kani_str(expr)})"
+            case cbmc_ast.EnsuresClause(_, expr):
+                return f"kani::ensures({self._to_kani_str(expr)})"
+            case cbmc_ast.Bool(v):
+                return "true" if v else "false"
+            case cbmc_ast.Name(v):
+                # TODO: check if the variable is a Rust keyword.
+                return str(v)
+            case cbmc_ast.BinOp(left, right):
+                return f"{self._to_kani_str(left)} {spec.operator()} {self._to_kani_str(right)}"
+            case cbmc_ast.Number(v):
+                return str(v)
+            case unsupported_spec:
+                raise TranslationError(
+                    f"Failed to translate CBMC spec: {unsupported_spec}"
+                )
