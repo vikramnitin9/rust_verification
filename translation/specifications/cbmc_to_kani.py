@@ -67,9 +67,15 @@ class CBMCToKani:
         """
         match spec:
             case cbmc_ast.RequiresClause(_, expr):
-                return f"kani::requires({self._to_kani_str(expr)})"
+                condition = self._to_kani_str(expr)
+                if "__CPROVER_result" in condition:
+                    condition = self._update_cprover_result_expr(condition)
+                return f"kani::requires({condition})"
             case cbmc_ast.EnsuresClause(_, expr):
-                return f"kani::ensures({self._to_kani_str(expr)})"
+                condition = self._to_kani_str(expr)
+                if "__CPROVER_result" in condition:
+                    condition = self._update_cprover_result_expr(condition)
+                return f"kani::ensures({condition})"
             case cbmc_ast.Bool(v):
                 return "true" if v else "false"
             case cbmc_ast.Name(v):
@@ -86,3 +92,7 @@ class CBMCToKani:
                 raise TranslationError(
                     f"Failed to translate CBMC spec: {unsupported_spec}"
                 )
+
+    def _update_cprover_result_expr(self, cprover_result_expr: str) -> str:
+        kani_expr = cprover_result_expr.replace("__CPROVER_result", "result")
+        return f"|result| {kani_expr}"

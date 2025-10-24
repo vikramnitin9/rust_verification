@@ -29,3 +29,15 @@ def test_nested_boolean_exprs() -> None:
     cbmc_specs = ["__CPROVER_ensures(true || x > 0 && false)"]
     kani_specs = ["kani::ensures(true || x > 0 && false)"]
     assert translator.translate(cbmc_specs) == kani_specs
+
+
+def test_ensures_result_simple() -> None:
+    cbmc_specs = ["__CPROVER_ensures(__CPROVER_result > x)"]
+    kani_specs = ["kani::ensures(|result| result > x)"]
+    assert translator.translate(cbmc_specs) == kani_specs
+
+
+def test_ensures_result_nested() -> None:
+    cbmc_specs = ["__CPROVER_ensures(x >= 0 && __CPROVER_result > x)"]
+    kani_specs = ["kani::ensures(|result| x >= 0 && result > x)"]
+    assert translator.translate(cbmc_specs) == kani_specs
