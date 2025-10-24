@@ -12,7 +12,7 @@ class CodeGraph:
     """Represents a code graph, used to determine the order in which specifications are generated.
 
     Attributes:
-        path_to_input_file (str): The path to the input source code file for which this code graph
+        path_to_input_file (Path): The path to the input source code file for which this code graph
             is constructed.
         llvm_analysis (LLVMAnalysis): The result of running an LLVM code graph analysis on the input
             file.
@@ -86,9 +86,10 @@ class CodeGraph:
         result: list[str] = []
         for f in func_names:
             if f not in visited:
-                current_ordering = list(nx.dfs_postorder_nodes(self.call_graph, source=f))
-                visited.update(current_ordering)
-                result.extend(current_ordering)
+                for node in nx.dfs_postorder_nodes(self.call_graph, source=f):
+                    if node not in visited:
+                        visited.add(node)
+                        result.append(node)
         if reverse_order:
             result.reverse()
         return result

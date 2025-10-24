@@ -56,7 +56,7 @@ def test_parse_nested_condition_expr() -> None:
         ):
             pass
         case _:
-            pytest.fail(f"Parsed spec is of type {type(parsed_spec)}, expected EnsuresClause")
+            pytest.fail(f"Parsed spec is of type {type(parsed_spec)}, expected RequiresClause")
 
 
 def test_parse_multi_line_spec() -> None:

@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 from analysis import CodeGraph
-from models import LLMGen, get_model_from_name
+from models import LLMGen, get_llm_generation_with_model
 from util import LLVMAnalysis, extract_specifications
 
 MODEL = "gpt-4o"
@@ -134,7 +134,7 @@ def verify_one_function(func_name: str, llvm_analysis: LLVMAnalysis, out_file: P
     prompt = prompt_template.replace("<<SOURCE>>", inp)
 
     # Call the LLM to generate specs
-    model = get_model_from_name(MODEL)
+    model = get_llm_generation_with_model(MODEL)
     conversation = [
         {"role": "system", "content": "You are an intelligent coding assistant"},
         {"role": "user", "content": prompt},

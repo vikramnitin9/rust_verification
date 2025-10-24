@@ -48,10 +48,10 @@ class LLMGen:
                      ...]
         len(<returned>) == top_k
         """
-        from . import ModelException
+        from . import ModelError
 
         if top_k != 1 and temperature == 0:
-            raise ModelException("Top k sampling requires a non-zero temperature")
+            raise ModelError("Top k sampling requires a non-zero temperature")
 
         count = 0
         while True:
@@ -72,7 +72,7 @@ class LLMGen:
                 litellm.NotFoundError,
                 litellm.UnprocessableEntityError,
             ) as e:
-                raise ModelException(f"Encountered an error with LLM call {e}")
+                raise ModelError(f"Encountered an error with LLM call {e}")
             except (
                 litellm.RateLimitError,
                 litellm.InternalServerError,
@@ -80,10 +80,10 @@ class LLMGen:
             ) as e:
                 count += 1
                 if count >= 5:
-                    raise ModelException("Vertex AI API: Too many retries")
+                    raise ModelError("Vertex AI API: Too many retries")
                 print(f"LLM Error {e}. Waiting 10 seconds and retrying")
                 time.sleep(10)
             except Exception as e:
-                raise ModelException(f"LLM Error: {e}")
+                raise ModelError(f"LLM Error: {e}")
 
         return [choice["message"]["content"] for choice in response["choices"]]
