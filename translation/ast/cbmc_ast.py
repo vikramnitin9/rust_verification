@@ -48,6 +48,9 @@ class StringLit(CBMCAst):
 
 @dataclass
 class BinOp(ABC, CBMCAst):
+    left: Any
+    right: Any
+
     @abstractmethod
     def operator(self) -> str:
         raise NotImplementedError("Subclasses must implement this method")
