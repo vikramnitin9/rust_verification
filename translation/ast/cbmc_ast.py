@@ -3,6 +3,7 @@
 
 from typing import List, Any
 from dataclasses import dataclass
+from abc import ABC, abstractmethod
 
 import sys
 from lark import ast_utils, Transformer, v_args
@@ -46,81 +47,127 @@ class StringLit(CBMCAst):
 
 
 @dataclass
-class OrOp(CBMCAst):
-    left: Any
-    right: Any
+class BinOp(ABC, CBMCAst):
+    @abstractmethod
+    def operator(self) -> str:
+        raise NotImplementedError("Subclasses must implement this method")
 
 
 @dataclass
-class AndOp(CBMCAst):
+class OrOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return "||"
 
 
 @dataclass
-class EqOp(CBMCAst):
+class AndOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return "&&"
 
 
 @dataclass
-class NeqOp(CBMCAst):
+class EqOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return "=="
 
 
 @dataclass
-class LtOp(CBMCAst):
+class NeqOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return "!="
 
 
 @dataclass
-class LeOp(CBMCAst):
+class LtOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return "<"
 
 
 @dataclass
-class GtOp(CBMCAst):
+class LeOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return "<="
 
 
 @dataclass
-class GeOp(CBMCAst):
+class GtOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return ">"
 
 
 @dataclass
-class AddOp(CBMCAst):
+class GeOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return ">="
 
 
 @dataclass
-class SubOp(CBMCAst):
+class AddOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return "+"
 
 
 @dataclass
-class MulOp(CBMCAst):
+class SubOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return "-"
 
 
 @dataclass
-class DivOp(CBMCAst):
+class MulOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return "*"
 
 
 @dataclass
-class ModOp(CBMCAst):
+class DivOp(BinOp):
     left: Any
     right: Any
+
+    def operator(self) -> str:
+        return "/"
+
+
+@dataclass
+class ModOp(BinOp):
+    left: Any
+    right: Any
+
+    def operator(self) -> str:
+        return "%"
 
 
 @dataclass
