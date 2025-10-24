@@ -1,6 +1,6 @@
-.PHONY: style-fix style-check python-style-fix python-style-check python-typecheck test checks showvars
+.PHONY: docker-build test style-fix style-check python-style-fix python-style-check python-typecheck showvars
 
-### Build container.
+# Build container.
 docker-build:
 	docker build --build-arg USER_ID=$(id -u) \
              --build-arg GROUP_ID=$(id -g) \
@@ -10,6 +10,7 @@ docker-build:
 test:
 	bash run.sh pytest
 
+# Code style.
 style-fix: python-style-fix
 style-check: python-style-check python-typecheck
 PYTHON_FILES:=$(shell find . \( -name ".git" -o -name ".venv" \) -prune -o -name '*.py' -print) $(shell grep -r -l --exclude-dir=.git --exclude-dir=.venv --exclude='*.py' --exclude='*~' --exclude='*.tar' --exclude=gradlew --exclude=lcb_runner '^\#! \?\(/bin/\|/usr/bin/env \)python')
