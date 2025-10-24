@@ -3,6 +3,7 @@
 
 from typing import List, Any
 from dataclasses import dataclass
+from abc import ABC, abstractmethod
 
 import sys
 from lark import ast_utils, Transformer, v_args
@@ -46,12 +47,13 @@ class StringLit(CBMCAst):
 
 
 @dataclass
-class BinOp(CBMCAst):
+class BinOp(ABC, CBMCAst):
     left: Any
     right: Any
 
+    @abstractmethod
     def operator(self) -> str:
-        raise NotImplementedError("A subtype must implement this method")
+        raise NotImplementedError("Subclasses must implement this method")
 
 
 @dataclass
