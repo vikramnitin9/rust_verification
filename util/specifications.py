@@ -1,5 +1,7 @@
+"""Class representing the pre and postconditions of a function."""
+
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Iterator
 
 
 @dataclass
@@ -18,6 +20,6 @@ class Specifications:
         """Return an iterator comprising a tuple of this specification's pre and postconditions.
 
         Returns:
-            Iterator[list[str]]: An iterator comprising a tuple of this specification's pre and postconditions.
+            Iterator[list[str]]: An iterator comprising a tuple of pre and postconditions.
         """
         return iter((self.preconditions, self.postconditions))

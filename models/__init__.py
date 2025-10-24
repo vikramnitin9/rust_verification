@@ -1,6 +1,8 @@
-from .llm_gen import LLMGen
-from dotenv import load_dotenv
 import os
+
+from dotenv import load_dotenv
+
+from .llm_gen import LLMGen
 
 load_dotenv()
 
@@ -17,11 +19,10 @@ def get_model_from_name(name: str) -> LLMGen:
         if not vertex:
             model_str = model_str.replace("@", "-")
         return LLMGen(model=model_str, vertex=vertex)
-    elif name == "gpt-4o":
+    if name == "gpt-4o":
         model_str = "gpt-4o"
         return LLMGen(model=model_str, vertex=vertex)
-    else:
-        raise NotImplementedError("Unknown model name")
+    raise NotImplementedError("Unknown model name")
 
 
 __all__ = [

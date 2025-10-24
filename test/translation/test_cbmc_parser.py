@@ -1,18 +1,18 @@
-from translation.parser import Parser
+import pytest
+
 from translation.ast.cbmc_ast import (
     CBMCAst,
-    RequiresClause,
+    DerefOp,
     EnsuresClause,
     GtOp,
-    DerefOp,
     Name,
+    NeqOp,
     Number,
     OrOp,
-    NeqOp,
+    RequiresClause,
     ToAst,
 )
-
-import pytest
+from translation.parser import Parser
 
 parser: Parser[CBMCAst] = Parser(
     path_to_grammar_defn="translation/grammar/cbmc.txt",
@@ -41,9 +41,7 @@ def test_parse_condition_expr() -> None:
         case EnsuresClause(_, GtOp(DerefOp(Name("x")), Number(10))):
             pass
         case _:
-            pytest.fail(
-                f"Parsed spec is of type {type(parsed_spec)}, expected EnsuresClause"
-            )
+            pytest.fail(f"Parsed spec is of type {type(parsed_spec)}, expected EnsuresClause")
 
 
 def test_parse_nested_condition_expr() -> None:
@@ -58,9 +56,7 @@ def test_parse_nested_condition_expr() -> None:
         ):
             pass
         case _:
-            pytest.fail(
-                f"Parsed spec is of type {type(parsed_spec)}, expected EnsuresClause"
-            )
+            pytest.fail(f"Parsed spec is of type {type(parsed_spec)}, expected EnsuresClause")
 
 
 def test_parse_multi_line_spec() -> None:
@@ -81,6 +77,4 @@ def test_parse_multi_line_spec() -> None:
         ):
             pass
         case _:
-            pytest.fail(
-                f"Parsed spec is of type {type(parsed_spec)}, expected RequiresClause"
-            )
+            pytest.fail(f"Parsed spec is of type {type(parsed_spec)}, expected RequiresClause")

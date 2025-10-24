@@ -1,27 +1,24 @@
-"""
-Script to generate specifications for C functions using an LLM and verify them with CBMC.
-"""
+"""Script to generate specifications for C functions using an LLM and verify them with CBMC."""
 
+import subprocess
 import sys
 from pathlib import Path
-import subprocess
-from models import get_model_from_name, LLMGen
-from util import LLVMAnalysis, extract_specifications
+
 from analysis import CodeGraph
-from typing import List, Dict
+from models import LLMGen, get_model_from_name
+from util import LLVMAnalysis, extract_specifications
 
 MODEL = "gpt-4o"
 
 
 def generate_spec(
     model: LLMGen,
-    conversation: List[Dict[str, str]],
+    conversation: list[dict[str, str]],
     func_name: str,
     llvm_analysis: LLVMAnalysis,
     out_file: Path,
 ) -> None:
-    """
-    Use the LLM to generate specifications for a given function and update the source file.
+    """Use the LLM to generate specifications for a given function and update the source file.
 
     The LLM is given the following information:
     - The body of the function `func_name`, including all comments
@@ -64,12 +61,12 @@ def generate_spec(
     end_line = func_analysis.end_line
     end_col = func_analysis.end_col
 
-    with open(out_file, mode="r", encoding="utf-8") as f:
+    with Path(out_file).open(encoding="utf-8") as f:
         lines = f.readlines()
 
-    before = lines[: start_line - 1] + [lines[start_line - 1][: start_col - 1]]
-    after = [lines[end_line - 1][end_col:]] + lines[end_line:]
-    new_contents = "".join(before + [function_w_specs] + after)
+    before = [*lines[: start_line - 1], *[lines[start_line - 1][: start_col - 1]]]
+    after = [*lines[end_line - 1][end_col:], *lines[end_line:]]
+    new_contents = "".join([*before, function_w_specs, *after])
 
     # Update the line/col info for this function
     function_len = len(function_w_specs.splitlines())
@@ -81,13 +78,11 @@ def generate_spec(
     )
     func_analysis.end_line = new_end_line
     func_analysis.end_col = new_end_col
-    func_analysis.set_specifications(
-        extract_specifications(function_w_specs.splitlines())
-    )
+    func_analysis.set_specifications(extract_specifications(function_w_specs.splitlines()))
 
     # Update line/col info for other functions
     line_offset = function_len - (end_line - start_line + 1)
-    for _, other_func in llvm_analysis.functions.items():
+    for other_func in llvm_analysis.functions.values():
         if other_func.name == func_name:
             continue
         if other_func.start_line > end_line:
@@ -101,24 +96,30 @@ def generate_spec(
         elif other_func.end_line == end_line and other_func.end_col >= end_col:
             other_func.end_col += new_end_col - end_col
 
-    with open(out_file, mode="w", encoding="utf-8") as f:
+    with Path(out_file).open(mode="w", encoding="utf-8") as f:
         f.write(new_contents)
 
 
 def recover_from_failure() -> None:
-    """
-    Placeholder for recovery logic
-    TODO
-    """
-    raise NotImplementedError
+    """Implement recovery logic."""
+    raise NotImplementedError("TODO: Implement me")
 
 
-def verify_one_function(
-    func_name: str, llvm_analysis: LLVMAnalysis, out_file: Path
-) -> bool | None:
+def verify_one_function(func_name: str, llvm_analysis: LLVMAnalysis, out_file: Path) -> bool | None:
+    """Return the result of running CBMC on the specifications generated for a single function.
+
+    Args:
+        func_name (str): The name of the function to verify.
+        llvm_analysis (LLVMAnalysis): The top-level LLVM analysis.
+        out_file (Path): The path to the updated file where the function is defined (with specs).
+
+    Returns:
+        bool | None: True iff verification succeeds, False if it fails. None if the function is
+            not able to found in the top-level LLVM analysis.
+    """
     # Load the prompt from the template file
     prompt_file = Path("prompt.txt")
-    with open(prompt_file, "r", encoding="utf-8") as f:
+    with Path(prompt_file).open(encoding="utf-8") as f:
         prompt_template = f.read()
 
     func_analysis = llvm_analysis.get_analysis_for_function(func_name)
@@ -144,15 +145,14 @@ def verify_one_function(
     success = False
     for _ in range(10):
         # Replace calls to already processed functions with their contracts
-        replace_cmd = "".join(
-            [f"--replace-call-with-contract {f} " for f in processed_funcs]
-        )
+        replace_cmd = "".join([f"--replace-call-with-contract {f} " for f in processed_funcs])
 
         command = (
             f"goto-cc -o {func_name}.goto {out_file.absolute()} --function {func_name} && "
             f"goto-instrument --partial-loops --unwind 5 {func_name}.goto {func_name}.goto && "
             f"goto-instrument {replace_cmd}"
-            f"--enforce-contract {func_name} {func_name}.goto checking-{func_name}-contracts.goto && "
+            f"--enforce-contract {func_name} "
+            f"{func_name}.goto checking-{func_name}-contracts.goto && "
             f"cbmc checking-{func_name}-contracts.goto --function {func_name} --depth 100"
         )
 
@@ -165,20 +165,17 @@ def verify_one_function(
                 success = True
                 processed_funcs.append(func_name)
                 break
-            else:
-                filt_out = "\n".join(
-                    [line for line in result.stdout.splitlines() if "FAILURE" in line]
-                )
-                repair_msg = (
-                    f"Error while running verification for function {func_name}:\n"
-                    f"STDOUT: {filt_out}\n"
-                    f"STDERR: {result.stderr}\n"
-                    "Please fix the error and re-generate the function with specifications."
-                )
-                print(repair_msg)
-                conversation += [{"role": "user", "content": repair_msg}]
+            filt_out = "\n".join([line for line in result.stdout.splitlines() if "FAILURE" in line])
+            repair_msg = (
+                f"Error while running verification for function {func_name}:\n"
+                f"STDOUT: {filt_out}\n"
+                f"STDERR: {result.stderr}\n"
+                "Please fix the error and re-generate the function with specifications."
+            )
+            print(repair_msg)
+            conversation += [{"role": "user", "content": repair_msg}]
 
-                generate_spec(model, conversation, func_name, llvm_analysis, out_file)
+            generate_spec(model, conversation, func_name, llvm_analysis, out_file)
 
         except Exception as e:
             print(f"Error running command for function {func_name}: {e}")
@@ -200,19 +197,17 @@ if __name__ == "__main__":
     # Copy input file to output file initially
     # We iteratively update the output file with specs
     # TODO: Include <stdlib.h> and <limits.h> in out_file if not present
-    with open(inp_file, mode="r", encoding="utf-8") as f:
+    with Path(inp_file).open(encoding="utf-8") as f:
         inp = f.read()
-    with open(out_file, mode="w", encoding="utf-8") as f:
+    with Path(out_file).open(mode="w", encoding="utf-8") as f:
         f.write(inp)
 
     # Get a list of functions in reverse topological order
     code_graph = CodeGraph(out_file)
     recursive_funcs = code_graph.get_names_of_recursive_functions()
     code_graph_no_recursive_loops = code_graph.remove_recursive_loops()
-    func_ordering = (
-        code_graph_no_recursive_loops.get_function_names_in_topological_order(
-            reverse_order=True
-        )
+    func_ordering = code_graph_no_recursive_loops.get_function_names_in_topological_order(
+        reverse_order=True
     )
 
     processed_funcs = []
@@ -235,8 +230,6 @@ if __name__ == "__main__":
             continue
 
         if not is_verification_successful:
-            print(
-                f"Verification for function {func_name} failed after multiple attempts."
-            )
+            print(f"Verification for function {func_name} failed after multiple attempts.")
             processed_funcs.append(func_name)
             continue

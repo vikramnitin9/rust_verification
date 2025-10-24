@@ -1,16 +1,24 @@
-import time
+"""Module for LLM-based generation."""
+
+# ruff: noqa
+# Vikram would be best suited to document this class
+
+import json
 import os
+import pathlib
+import time
+
 import litellm
 from litellm import completion
-import json
-from typing import List, Dict
 
 
 class LLMGen:
+    """Encapsulate LLM-based generation logic."""
+
     def __init__(self, model: str, vertex: bool = True):
         if vertex:
             litellm.vertex_location = "us-east5"
-            with open(os.environ["VERTEX_AI_JSON"], mode="r", encoding="utf-8") as file:
+            with pathlib.Path(os.environ["VERTEX_AI_JSON"]).open(encoding="utf-8") as file:
                 self.vertex_credentials: str | None = json.dumps(json.load(file))
             self.model = f"vertex_ai/{model}"
             self.api_key = None
@@ -24,13 +32,13 @@ class LLMGen:
         elif "gpt-4o" in model:
             self.max_tokens = 16384
         else:
-            raise Exception(f"Model {model} not supported")
+            msg = f"Model {model} not supported"
+            raise Exception(msg)
 
     def gen(
-        self, messages: List[Dict[str, str]], temperature: float = 0, top_k: int = 1
-    ) -> List[str]:
-        """
-        messages: [{'role': 'system', 'content': 'You are an intelligent code assistant'},
+        self, messages: list[dict[str, str]], temperature: float = 0, top_k: int = 1
+    ) -> list[str]:
+        """messages: [{'role': 'system', 'content': 'You are an intelligent code assistant'},
                    {'role': 'user', 'content': 'Translate this program...'},
                    {'role': 'assistant', 'content': 'Here is the translation...'},
                    {'role': 'user', 'content': 'Do something else...'}]
