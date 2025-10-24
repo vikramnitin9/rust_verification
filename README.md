@@ -6,7 +6,7 @@ Ensure your system has [all requirements](./REQUIREMENTS.md) installed before
 To build the Docker container:
 
 ```sh
-bash build.sh
+make docker-build
 ```
 
 ## Step 1: Generating C Specifications
@@ -48,4 +48,6 @@ The Kani specifications in `data/rust_qsort/main.rs` are incomplete and currentl
 
 ## Tests
 
-Run `make test`.
+```sh
+make test
+```
