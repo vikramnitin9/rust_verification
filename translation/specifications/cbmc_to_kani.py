@@ -1,6 +1,12 @@
 from translation import Parser, CBMCAst, cbmc_ast
 from lark.exceptions import UnexpectedToken
 
+RUST_KEYWORDS = set(
+    open("translation/specifications/rust_keywords.txt", mode="r", encoding="utf-8")
+    .read()
+    .splitlines()
+)
+
 
 class TranslationError(Exception):
     """Represents an error in translating CBMC to Kani specifications."""
@@ -67,7 +73,10 @@ class CBMCToKani:
             case cbmc_ast.Bool(v):
                 return "true" if v else "false"
             case cbmc_ast.Name(v):
-                # TODO: check if the variable is a Rust keyword.
+                if v in RUST_KEYWORDS:
+                    raise TranslationError(
+                        f"Specification '{spec}' contains a Rust keyword: '{v}'"
+                    )
                 return str(v)
             case cbmc_ast.BinOp(left, right):
                 return f"{self._to_kani_str(left)} {spec.operator()} {self._to_kani_str(right)}"
