@@ -1,8 +1,12 @@
+"""Module to convert CProver specifications to Kani specifications."""
+
+
 def cprover_to_kani(specs: list[str]) -> list[str]:
-    """
-    Convert CProver specifications to Kani specifications.
+    """Convert CProver specifications to Kani specifications.
+
     Args:
         specs (list[str]): List of CProver specifications.
+
     Returns:
         list[str]: List of Kani specifications.
     """

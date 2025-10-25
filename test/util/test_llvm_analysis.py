@@ -1,6 +1,6 @@
-from util.function import Function
-
 import pytest
+
+from util.function import Function
 
 
 def test_get_source_code() -> None:
@@ -76,5 +76,7 @@ def test_get_source_code_at_end_of_file() -> None:
         }
     )
     extracted_func = end_of_file_function.get_source_code()
-    expected_extracted_func = 'void fn_at_end()\n{\n    printf("This");\n    printf("Function is at the end");\n}'
+    expected_extracted_func = (
+        'void fn_at_end()\n{\n    printf("This");\n    printf("Function is at the end");\n}'
+    )
     assert extracted_func == expected_extracted_func

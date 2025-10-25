@@ -1,5 +1,6 @@
-from analysis import CodeGraph
 from pathlib import Path
+
+from analysis import CodeGraph
 
 
 def test_simple_file_no_recursion() -> None:
@@ -17,15 +18,11 @@ def test_graph_with_direct_recursion() -> None:
 def test_remove_recursive_functions() -> None:
     path_to_file = Path("test/data/codegraph/direct_recursion.c")
     unmodified_codegraph = CodeGraph(path_to_file)
-    assert unmodified_codegraph.get_names_of_recursive_functions() == [
-        "recursive_function"
-    ]
+    assert unmodified_codegraph.get_names_of_recursive_functions() == ["recursive_function"]
 
     codegraph_no_loops = unmodified_codegraph.remove_recursive_loops()
     assert codegraph_no_loops.get_names_of_recursive_functions() == []
-    assert unmodified_codegraph.get_names_of_recursive_functions() == [
-        "recursive_function"
-    ]
+    assert unmodified_codegraph.get_names_of_recursive_functions() == ["recursive_function"]
 
 
 def test_get_functions_reverse_topological_ordering() -> None:
