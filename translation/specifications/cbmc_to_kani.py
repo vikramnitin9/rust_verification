@@ -94,5 +94,16 @@ class CBMCToKani:
                 raise TranslationError(msg)
 
     def _update_cprover_result_expr(self, cprover_result_expr: str) -> str:
+        """Convert a CProver expression containing a __CPROVER_result variable to Kani.
+
+        A __CPROVER_result variable in an expression enables specifications that reason about the
+        return value of a function. The same construct appears in Kani, but is called 'result'.
+
+        Args:
+            cprover_result_expr (str): A CProver expression containing a __CPROVER_result variable.
+
+        Returns:
+            str: A Kani expression that equivalently reasons about the result of a function.
+        """
         kani_expr = cprover_result_expr.replace("__CPROVER_result", "result")
         return f"|result| {kani_expr}"
