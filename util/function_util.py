@@ -1,3 +1,5 @@
+"""Utility methods for working with CBMC specifications."""
+
 from .specifications import Specifications
 
 PRECONDITION_PREFIX = "__CPROVER_requires"
@@ -5,6 +7,14 @@ POSTCONDITION_PREFIX = "__CPROVER_ensures"
 
 
 def extract_specifications(function_lines: list[str]) -> Specifications:
+    """Extract the lines of a function that map to a CBMC specification.
+
+    Args:
+        function_lines (list[str]): The lines of a function that map to a CBMC specification.
+
+    Returns:
+        Specifications: The specifications parsed from the lines of a C function.
+    """
     stripped_lines = [line.strip() for line in function_lines]
     preconditions = []
     postconditions = []

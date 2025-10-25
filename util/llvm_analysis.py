@@ -1,12 +1,15 @@
-from typing import Any
-from dataclasses import dataclass, field
-from util.function import Function
-from pathlib import Path
+"""Class to represent an LLVM analysis over source code."""
 
+import json
 import os
 import subprocess
-import json
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
 import networkx as nx
+
+from util.function import Function
 
 
 @dataclass
@@ -26,14 +29,15 @@ class LLVMAnalysis:
             cmd = f"{parsec_build_dir}/parsec --rename-main=false --add-instr=false {file_path}"
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
             if result.returncode != 0:
-                raise Exception(f"Error running parsec: {result.stderr}")
-        except subprocess.CalledProcessError:
-            raise Exception("Error running parsec.")
+                msg = f"Error running parsec: {result.stderr}"
+                raise Exception(msg)
+        except subprocess.CalledProcessError as e:
+            raise Exception("Error running parsec.") from e
 
         analysis_file = Path("analysis.json")
         if not analysis_file.exists():
             raise Exception("Error: analysis.json not found after running parsec.")
-        with open(analysis_file, mode="r", encoding="utf-8") as f:
+        with Path(analysis_file).open(encoding="utf-8") as f:
             raw_analysis = json.load(f)
             function_analyses = [Function(f) for f in raw_analysis.get("functions", [])]
             self.enums = raw_analysis.get("enums", [])
