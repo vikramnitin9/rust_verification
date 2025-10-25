@@ -1,16 +1,21 @@
+"""Module for working with LLVM code graphs."""
+
+import copy
 from pathlib import Path
-from util import LLVMAnalysis
 
 import networkx as nx
-import copy
+
+from util import LLVMAnalysis
 
 
 class CodeGraph:
     """Represents a code graph, used to determine the order in which specifications are generated.
 
     Attributes:
-        path_to_input_file (str): The path to the input source code file for which this code graph is constructed.
-        llvm_analysis (LLVMAnalysis): The result of running an LLVM code graph analysis on the input file.
+        path_to_input_file (Path): The path to the input source code file for which this code graph
+            is constructed.
+        llvm_analysis (LLVMAnalysis): The result of running an LLVM code graph analysis on the input
+            file.
         call_graph (nx.DiGraph): The call graph, derived from the LLVM analysis via networkx.
     """
 
@@ -44,9 +49,7 @@ class CodeGraph:
         """
         return [f for f in self.call_graph if self.call_graph.has_edge(f, f)]
 
-    def get_function_names_in_topological_order(
-        self, reverse_order: bool = False
-    ) -> list[str]:
+    def get_function_names_in_topological_order(self, reverse_order: bool = False) -> list[str]:
         """Return the function names in this code graph in topological order.
 
         Args:
@@ -67,9 +70,7 @@ class CodeGraph:
             print(
                 "Cycles detected in call graph: Using postorder DFS traversal for function ordering"
             )
-            return self._get_function_names_in_postorder_dfs(
-                reverse_order=reverse_order
-            )
+            return self._get_function_names_in_postorder_dfs(reverse_order=reverse_order)
 
     def _get_function_names_in_postorder_dfs(self, reverse_order: bool) -> list[str]:
         """Return the function names in this code graph collected via a DFS traversal.
@@ -85,11 +86,10 @@ class CodeGraph:
         result: list[str] = []
         for f in func_names:
             if f not in visited:
-                current_ordering = list(
-                    nx.dfs_postorder_nodes(self.call_graph, source=f)
-                )
-                visited.update(current_ordering)
-                result.extend(current_ordering)
+                for node in nx.dfs_postorder_nodes(self.call_graph, source=f):
+                    if node not in visited:
+                        visited.add(node)
+                        result.append(node)
         if reverse_order:
             result.reverse()
         return result

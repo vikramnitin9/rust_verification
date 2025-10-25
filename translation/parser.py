@@ -1,19 +1,26 @@
-from lark import Lark, Tree
+"""Generic parsing utility class."""
 
 from pathlib import Path
+from typing import Generic, Protocol, TypeVar
 
-from typing import TypeVar, Generic, Protocol
+from lark import Lark, Tree
 
-T = TypeVar("T", covariant=True)
+T_co = TypeVar("T_co", covariant=True)
 
 
-class TransformerT(Protocol[T]):
+class TransformerT(Protocol[T_co]):
     """Represents a protocol requiring implementers to have a `transform` function."""
 
-    def transform(self, tree: Tree) -> T: ...
+    def transform(self, tree: Tree) -> T_co:
+        """Transform a Lark parse tree to an instance of `T_co` (usually an AST).
+
+        Returns:
+            T_co: An AST.
+        """
+        ...
 
 
-class Parser(Generic[T]):
+class Parser(Generic[T_co]):
     """Generic parsing utility using Lark.
 
     See Lark documentation for details: https://lark-parser.readthedocs.io/en/stable/
@@ -24,11 +31,9 @@ class Parser(Generic[T]):
     """
 
     parser: Lark
-    transformer: TransformerT[T]
+    transformer: TransformerT[T_co]
 
-    def __init__(
-        self, path_to_grammar_defn: str, start: str, transformer: TransformerT[T]
-    ):
+    def __init__(self, path_to_grammar_defn: str, start: str, transformer: TransformerT[T_co]):
         """Create an instance of this Parser.
 
         Args:
@@ -47,7 +52,7 @@ class Parser(Generic[T]):
         )
         self.transformer = transformer
 
-    def parse(self, text: str) -> T:
+    def parse(self, text: str) -> T_co:
         """Return an AST parsed from the given text.
 
         Args:

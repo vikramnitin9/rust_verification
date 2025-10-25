@@ -13,7 +13,7 @@ test:
 # Code style.
 style-fix: python-style-fix
 style-check: python-style-check python-typecheck
-PYTHON_FILES:=$(shell find . \( -name ".git" -o -name ".venv" \) -prune -o -name '*.py' -print) $(shell grep -r -l --exclude-dir=.git --exclude-dir=.venv --exclude='*.py' --exclude='*~' --exclude='*.tar' --exclude=gradlew --exclude=lcb_runner '^\#! \?\(/bin/\|/usr/bin/env \)python')
+PYTHON_FILES:=$(shell find . \( -name ".git" -o -name ".venv" -o -name "test" \) -prune -o -name '*.py' -not -name '__init__.py' -print) $(shell grep -r -l --exclude-dir=.git --exclude-dir=.venv --exclude='*.py' --exclude='*~' --exclude='*.tar' --exclude-dir=test --exclude=gradlew --exclude=lcb_runner '^\#! \?\(/bin/\|/usr/bin/env \)python')
 python-style-fix:
 ifneq (${PYTHON_FILES},)
 	@ruff --version

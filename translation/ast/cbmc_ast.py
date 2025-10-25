@@ -1,12 +1,13 @@
 # mypy: ignore-errors
 # Ideally we'd like to type check this file, but Lark does not yet support type annotations.
-
-from typing import List, Any
-from dataclasses import dataclass
-from abc import ABC, abstractmethod
+# ruff: noqa
 
 import sys
-from lark import ast_utils, Transformer, v_args
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Any
+
+from lark import Transformer, ast_utils, v_args
 from lark.tree import Meta
 
 
@@ -219,18 +220,18 @@ class IndexOp(CBMCAst):
 @dataclass
 class CallOp(CBMCAst):
     func: Any
-    args: List[Any]
+    args: list[Any]
 
 
 @dataclass
 class ArgList(CBMCAst, ast_utils.AsList):
-    items: List[Any]
+    items: list[Any]
 
 
 @dataclass
 class Quantifier(CBMCAst):
     kind: str
-    decls: List[Any]
+    decls: list[Any]
     expr: Any
 
 

@@ -1,9 +1,11 @@
+"""Class to represent the LLVM analysis for a function."""
+
+import pathlib
 from dataclasses import dataclass, field
-
-from typing import Any
 from string import Template
-from .specifications import Specifications
+from typing import Any
 
+from .specifications import Specifications
 
 TEMPLATE_FOR_FUNCTION_PROMPT = Template("""
 Function name: $name
@@ -57,12 +59,12 @@ class Function:
         self.structs = raw_analysis.get("structs", [])
 
     def get_source_code(self) -> str:
-        """Returns the source code for this function.
+        """Return the source code for this function.
 
         Returns:
             str: The source code for this function.
         """
-        with open(self.file_name, mode="r", encoding="utf-8") as f:
+        with pathlib.Path(self.file_name).open(encoding="utf-8") as f:
             lines = f.readlines()
 
         if self.start_line < 1 or self.end_line > len(lines):
@@ -72,9 +74,7 @@ class Function:
         if self.start_col < 1 or self.end_col < 1:
             raise ValueError("Function column numbers must be 1 or greater.")
         if self.start_line == self.end_line and self.start_col > self.end_col:
-            raise ValueError(
-                "Function start column is after end column on the same line."
-            )
+            raise ValueError("Function start column is after end column on the same line.")
 
         # Handle 1-based columns; end_col is inclusive
         if self.start_line == self.end_line:
@@ -96,9 +96,21 @@ class Function:
         return len(self.preconditions) > 0 or len(self.postconditions) > 0
 
     def set_specifications(self, specifications: Specifications) -> None:
+        """Set the specifications for this function.
+
+        Args:
+            specifications (Specifications): The specifications for this function.
+        """
         self.preconditions, self.postconditions = specifications
 
     def __str__(self) -> str:
+        """Return the string representation of this function.
+
+        This method is meant to be used to embed this function into a prompt for an LLM.
+
+        Returns:
+            str: The string representation of this function.
+        """
         function_for_prompt = TEMPLATE_FOR_FUNCTION_PROMPT.safe_substitute(
             name=self.name,
             signature=self.signature,
