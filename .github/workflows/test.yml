@@ -13,7 +13,7 @@ jobs:
           show-progress: false
 
       - name: Build Docker container
-        run: bash build.sh
+        run: make docker-build
 
-      - name: Run `pytest` within container
-        run: bash run.sh pytest
+      - name: Run tests
+        run: make test
