@@ -246,8 +246,16 @@ class ReturnValue(CBMCAst):
 
 
 class _ToAst(Transformer):
-    def NAME(self, tok: Any) -> Name:
-        return Name(name=str(tok))
+    def NAME(self, tok: Any) -> Name | Bool:
+        txt = str(tok)
+        # CBMC sometimes emits boolean literals as the names 'true'/'false'.
+        # Prefer producing Bool AST nodes for these tokens instead of Name.
+        low = txt.lower()
+        if low == "true":
+            return Bool(value=True)
+        if low == "false":
+            return Bool(value=False)
+        return Name(name=txt)
 
     def NUMBER(self, tok: Any) -> Number:
         txt = str(tok)
