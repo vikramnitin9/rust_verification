@@ -1,17 +1,18 @@
-from translation import Parser, CBMCAst, cbmc_ast
+"""Deterministic compiler from CBMC to Kani specifications."""
+
+import pathlib
+
 from lark.exceptions import UnexpectedToken
 
-RUST_KEYWORDS = set(
-    open("translation/specifications/rust_keywords.txt", mode="r", encoding="utf-8")
-    .read()
-    .splitlines()
-)
+from translation import CBMCAst, Parser, cbmc_ast
+
+RUST_KEYWORDS: set[str] = set()
+with pathlib.Path("translation/specifications/rust_keywords.txt").open(encoding="utf-8") as f:
+    RUST_KEYWORDS = set(f.readlines())
 
 
 class TranslationError(Exception):
     """Represents an error in translating CBMC to Kani specifications."""
-
-    pass
 
 
 class CBMCToKani:
@@ -42,12 +43,13 @@ class CBMCToKani:
             try:
                 cbmc_ast = self.parser.parse(spec)
                 kani_specs.append(self._to_kani_str(cbmc_ast))
-            except UnexpectedToken as ut:
+            except UnexpectedToken as ut:  # noqa: PERF203
                 print(f"Failed to parse: '{spec}' with error: '{ut}'")
                 continue
             except TranslationError as te:
                 print(
-                    f"Successfully parsed '{spec}', but failed to convert it to a Kani specification: '{te}'"
+                    f"Successfully parsed '{spec}', but failed to convert it to a Kani "
+                    f"specification: '{te}'"
                 )
                 continue
 
@@ -80,18 +82,16 @@ class CBMCToKani:
                 return "true" if v else "false"
             case cbmc_ast.Name(v):
                 if v in RUST_KEYWORDS:
-                    raise TranslationError(
-                        f"Specification '{spec}' contains a Rust keyword: '{v}'"
-                    )
+                    msg = f"Specification '{spec}' contains a Rust keyword: '{v}'"
+                    raise TranslationError(msg)
                 return str(v)
             case cbmc_ast.BinOp(left, right):
                 return f"{self._to_kani_str(left)} {spec.operator()} {self._to_kani_str(right)}"
             case cbmc_ast.Number(v):
                 return str(v)
             case unsupported_spec:
-                raise TranslationError(
-                    f"Failed to translate CBMC spec: {unsupported_spec}"
-                )
+                msg = f"Failed to translate CBMC spec: {unsupported_spec}"
+                raise TranslationError(msg)
 
     def _update_cprover_result_expr(self, cprover_result_expr: str) -> str:
         kani_expr = cprover_result_expr.replace("__CPROVER_result", "result")
