@@ -2,13 +2,13 @@ FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt -y update && \
+RUN apt -yqq update && \
     apt install -y build-essential wget unzip curl git bash-completion && \
     rm -rf /var/lib/apt/lists/*
 
-RUN apt -y update && \
-    apt install -y cmake && \
-    apt install -y llvm-14 llvm-14-dev llvm-14-tools clang-14 libclang-14-dev && \
+RUN apt -yqq update && \
+    apt install -yqq cmake && \
+    apt install -yqq llvm-14 llvm-14-dev llvm-14-tools clang-14 libclang-14-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Detect architecture and install the appropriate version of CBMC
