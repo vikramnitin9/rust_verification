@@ -41,3 +41,11 @@ def test_ensures_result_nested() -> None:
     cbmc_specs = ["__CPROVER_ensures(x >= 0 && __CPROVER_result > x)"]
     kani_specs = ["kani::ensures(|result| x >= 0 && result > x)"]
     assert translator.translate(cbmc_specs) == kani_specs
+
+def test_array_condition() -> None:
+    cbmc_specs = ["__CPROVER_requires(x > 0 && arr[x] > 0)", "__CPROVER_ensures(arr[__CPROVER_result] > 0)"]
+    kani_specs = [
+        "kani::requires(x > 0 && arr[x] > 0)",
+        "kani::ensures(|result| arr[result] > 0)",
+    ]
+    assert translator.translate(cbmc_specs) == kani_specs

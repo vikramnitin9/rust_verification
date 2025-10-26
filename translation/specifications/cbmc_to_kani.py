@@ -10,6 +10,9 @@ RUST_KEYWORDS: set[str] = set()
 with pathlib.Path("translation/specifications/rust_keywords.txt").open(encoding="utf-8") as f:
     RUST_KEYWORDS = set(f.readlines())
 
+CPROVER_RESULT = "__CPROVER_result"
+KANI_RESULT = "result"
+
 
 class TranslationError(Exception):
     """Represents an error in translating CBMC to Kani specifications."""
@@ -69,15 +72,19 @@ class CBMCToKani:
         """
         match spec:
             case cbmc_ast.RequiresClause(_, expr):
-                condition = self._to_kani_str(expr)
-                if "__CPROVER_result" in condition:
-                    condition = self._update_cprover_result_expr(condition)
-                return f"kani::requires({condition})"
+                kani_condition = self._to_kani_str(expr)
+                if "__CPROVER_result" in kani_condition:
+                    kani_condition = self._update_cprover_result_expr(kani_condition)
+                return f"kani::requires({kani_condition})"
             case cbmc_ast.EnsuresClause(_, expr):
-                condition = self._to_kani_str(expr)
-                if "__CPROVER_result" in condition:
-                    condition = self._update_cprover_result_expr(condition)
-                return f"kani::ensures({condition})"
+                kani_condition = self._to_kani_str(expr)
+                if "__CPROVER_result" in kani_condition:
+                    kani_condition = self._update_cprover_result_expr(kani_condition)
+                return f"kani::ensures({kani_condition})"
+            case cbmc_ast.IndexOp(value, index):
+                kani_value = self._to_kani_str(value)
+                kani_index = self._to_kani_str(index)
+                return f"{kani_value}[{kani_index}]"
             case cbmc_ast.Bool(v):
                 return "true" if v else "false"
             case cbmc_ast.Name(v):
