@@ -1,4 +1,4 @@
-.PHONY: docker-build run test style-fix style-check python-style-fix python-style-check python-typecheck showvars
+.PHONY: docker-build run test checks style-fix style-check python-style-fix python-style-check python-typecheck showvars
 
 # Build container.
 docker-build:
@@ -13,6 +13,9 @@ run:
 # Run `pytest` within container.
 test:
 	bash run.sh pytest
+
+# Run all code style checks.
+checks: style-fix style-check
 
 # Code style.
 style-fix: python-style-fix
