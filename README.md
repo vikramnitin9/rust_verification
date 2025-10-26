@@ -20,7 +20,7 @@ echo "LLM_API_KEY=<your key here>" > models/.env
 Then run the Python script
 
 ```sh
-bash run.sh
+make run
 # Inside the container:
 python generate_specs.py data/qsort.c
 ```
@@ -38,7 +38,7 @@ Using any off-the-shelf translator.
 Kani is installed in the Docker container. Here is an example of how to run it.
 
 ```sh
-bash run.sh
+make run
 # Inside the container:
 cd data/rust_qsort
 cargo kani -Z function-contracts
