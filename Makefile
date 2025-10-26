@@ -1,10 +1,14 @@
-.PHONY: docker-build test style-fix style-check python-style-fix python-style-check python-typecheck showvars
+.PHONY: docker-build run test style-fix style-check python-style-fix python-style-check python-typecheck showvars
 
 # Build container.
 docker-build:
 	docker build --build-arg USER_ID=$(id -u) \
              --build-arg GROUP_ID=$(id -g) \
              -t cbmc:latest .
+
+# Run the container.
+run:
+	@bash run.sh
 
 # Run `pytest` within container.
 test:
