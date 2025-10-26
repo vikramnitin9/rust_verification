@@ -2,27 +2,25 @@ FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt -y update && \
+RUN apt -yqq update && \
     apt install -y build-essential wget unzip curl git bash-completion && \
     rm -rf /var/lib/apt/lists/*
 
-RUN apt -y update && \
-    apt install -y cmake && \
-    apt install -y llvm-14 llvm-14-dev llvm-14-tools clang-14 libclang-14-dev && \
+RUN apt -yqq update && \
+    apt install -yqq cmake && \
+    apt install -yqq llvm-14 llvm-14-dev llvm-14-tools clang-14 libclang-14-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Detect architecture and install the appropriate version of CBMC
 RUN ARCH=$(dpkg --print-architecture) && \
     if [ "$ARCH" = "arm64" ]; then \
-        CBMC_URL="https://github.com/diffblue/cbmc/releases/download/cbmc-6.7.1/ubuntu-24.04-arm64-cbmc-6.7.1-Linux.deb"; \
         CBMC_DEB="ubuntu-24.04-arm64-cbmc-6.7.1-Linux.deb"; \
     elif [ "$ARCH" = "amd64" ]; then \
-        CBMC_URL="https://github.com/diffblue/cbmc/releases/download/cbmc-6.7.1/ubuntu-24.04-cbmc-6.7.1-Linux.deb"; \
         CBMC_DEB="ubuntu-24.04-cbmc-6.7.1-Linux.deb"; \
     else \
         echo "Unsupported architecture: $ARCH" && exit 1; \
     fi && \
-    wget "$CBMC_URL" && \
+    wget "https://github.com/diffblue/cbmc/releases/download/cbmc-6.7.1/$CBMC_DEB" && \
     dpkg -i "$CBMC_DEB" && \
     rm "$CBMC_DEB"
 
@@ -50,15 +48,13 @@ RUN mkdir -p /app && \
 # Detect architecture and download the correct z3 binary
 RUN ARCH=$(dpkg --print-architecture) && \
     if [ "$ARCH" = "arm64" ]; then \
-        Z3_URL="https://github.com/Z3Prover/z3/releases/download/z3-4.15.2/z3-4.15.2-arm64-glibc-2.34.zip"; \
         Z3_FOLDER="z3-4.15.2-arm64-glibc-2.34"; \
     elif [ "$ARCH" = "amd64" ]; then \
-        Z3_URL="https://github.com/Z3Prover/z3/releases/download/z3-4.15.2/z3-4.15.2-x64-glibc-2.39.zip"; \
         Z3_FOLDER="z3-4.15.2-x64-glibc-2.39"; \
     else \
         echo "Unsupported architecture: $ARCH" && exit 1; \
     fi && \
-    wget "$Z3_URL" -O z3.zip && \
+    wget "https://github.com/Z3Prover/z3/releases/download/z3-4.15.2/${Z3_FOLDER}.zip" -O z3.zip && \
     unzip z3.zip -d /opt/z3 && \
     rm z3.zip && \
     chmod +x /opt/z3/$Z3_FOLDER/bin/z3 && \
@@ -73,15 +69,7 @@ ENV PATH="/opt/miniconda3/bin:${PATH}"
 
 # Install Miniconda on x86 or ARM platforms
 RUN arch=$(uname -m) && \
-    if [ "$arch" = "x86_64" ]; then \
-    MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"; \
-    elif [ "$arch" = "aarch64" ]; then \
-    MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh"; \
-    else \
-    echo "Unsupported architecture: $arch"; \
-    exit 1; \
-    fi && \
-    cd /app && wget $MINICONDA_URL -O miniconda.sh && \
+    cd /app && wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-$arch.sh -O miniconda.sh && \
     mkdir -p /opt/miniconda3 && \
     bash miniconda.sh -b -u -p /opt/miniconda3 && \
     rm -f miniconda.sh

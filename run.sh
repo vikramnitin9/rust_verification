@@ -1,14 +1,14 @@
-# Unset this value if running on CI.
-INTERACTIVE="-it"
-
 if [ -n "${CI:-}" ] || [ ! -t 0 ]; then
     echo "Running in a non-interactive environment"
     INTERACTIVE=""
+else
+    INTERACTIVE="-it"
 fi
 
-CMD=(/bin/bash)
 if [ "$#" -gt 0 ]; then
     CMD=("$@")
+else
+    CMD=(/bin/bash)
 fi
 
 # Check if Docker is rootless.
