@@ -18,7 +18,7 @@ class Specifications:
 
     # TODO: What is the point of this?
     def __iter__(self) -> Iterator[list[str]]:
-        """Return a singleton iterator comprising a tuple of this specification's pre and postconditions.
+        """Return a singleton iterator that yields a list this specification's clauses.
 
         Returns:
             Iterator[list[str]]: An iterator comprising a tuple of pre and postconditions.

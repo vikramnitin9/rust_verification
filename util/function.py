@@ -14,7 +14,8 @@ Function signature: $signature
 
 
 @dataclass
-# TODO: "Function" is a poor name for an analysis.  Unless this is a complete LLVM representation of a function, in which case it can be OK, though LlvmFunction would be more descriptive.
+# TODO: "Function" is a poor name for an analysis.  Unless this is a complete LLVM representation
+# of a function, in which case it can be OK, though LlvmFunction would be more descriptive.
 class Function:
     """Represents the LLVM analysis for a C function."""
 
@@ -55,7 +56,9 @@ class Function:
         self.enums = raw_analysis.get("enums", [])
         self.callee_names = [
             # When would `if "name" in func` not be true?  Shouldn't that raise an exception?
-            func["name"] for func in raw_analysis.get("functions", []) if "name" in func
+            func["name"]
+            for func in raw_analysis.get("functions", [])
+            if "name" in func
         ]
         self.llvm_globals = raw_analysis.get("globals", [])
         self.structs = raw_analysis.get("structs", [])

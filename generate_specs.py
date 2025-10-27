@@ -1,5 +1,7 @@
 """Script to generate specifications for C functions using an LLM and verify them with CBMC."""
 
+from __future__ import annotations
+
 import subprocess
 import sys
 from pathlib import Path
@@ -29,7 +31,6 @@ def generate_spec(
     replace the original function in `out_file` with this new function,
     and update the line/column information for all functions in `llvm_analysis`.
     """
-
     # TODO: Document what `func_analysis` is.  How is it related to `response`?
     func_analysis = llvm_analysis.get_analysis_for_function(func_name)
     if func_analysis is None:

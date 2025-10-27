@@ -1,6 +1,8 @@
 """Represents an LLVM analysis over source code."""
 # TODO: What is an "LLVM analysis"?  How is that related to an analysis result?
 
+from __future__ import annotations
+
 import json
 import os
 import subprocess
@@ -25,7 +27,8 @@ class LLVMAnalysis:
         parsec_build_dir = os.environ.get("PARSEC_BUILD_DIR")
         if parsec_build_dir is None:
             raise Exception("Error: $PARSEC_BUILD_DIR not set.")
-        # TODO: Abstract out this running of an external command with error checking, into a separate function.
+        # TODO: Abstract out this running of an external command with error checking,
+        # into a separate function.
         try:
             cmd = f"{parsec_build_dir}/parsec --rename-main=false --add-instr=false {file_path}"
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -47,7 +50,8 @@ class LLVMAnalysis:
             self.functions = {analysis.name: analysis for analysis in function_analyses}
 
     def get_analysis_for_function(self, function_name: str) -> Function | None:
-        # TODO: Does this return an analysis or an analysis result?  (Or a representation of a function, which might include analysis results?)
+        # TODO: Does this return an analysis or an analysis result?
+        # (Or a representation of a function, which might include analysis results?)
         # TODO: Why return None rather than raising an exception?
         """Return the LLVM analysis for a function with the given name.
 
@@ -60,7 +64,8 @@ class LLVMAnalysis:
         return self.functions.get(function_name, None)
 
     def get_callees(self, function: Function) -> list[Function]:
-        # TODO: Here `function` is described as a "function" rather than a "function analysis".  Be consistent.
+        # TODO: Here `function` is described as a "function" rather than a "function analysis".
+        # Be consistent.
         """Return the callees of the given function.
 
         Args:
