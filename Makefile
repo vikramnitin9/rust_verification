@@ -1,5 +1,7 @@
 .PHONY: docker-build run test checks style-fix style-check python-style-fix python-style-check python-typecheck showvars
 
+default: test
+
 # Build container.
 docker-build:
 	docker build --build-arg USER_ID=$(id -u) \
