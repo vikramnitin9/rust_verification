@@ -2,6 +2,9 @@
 # Ideally we'd like to type check this file, but Lark does not yet support type annotations.
 # ruff: noqa
 
+# TODO: Is this a Lark "grammar definition file"?  Or is it generated from one?
+# Add a comment, either here or in a README file if this is a generated file.
+
 import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass

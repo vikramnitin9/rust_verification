@@ -12,6 +12,8 @@ def cprover_to_kani(specs: list[str]) -> list[str]:
     """
     kani_specs = []
 
+    ## TODO: This example doesn't include "#[...]".  Should it?
+
     # Here is an example of a CProver spec:
     # __CPROVER_requires(x > 0)
     # We will convert it to a Kani spec:
@@ -31,6 +33,7 @@ def cprover_to_kani(specs: list[str]) -> list[str]:
             condition = spec[len("__CPROVER_assigns(") : -1]
             kani_spec = f"#[kani::modifies({condition})]"
 
+        # TODO: This seems overly broad.
         if "NULL" in condition:
             continue
 

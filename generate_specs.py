@@ -29,14 +29,18 @@ def generate_spec(
     replace the original function in `out_file` with this new function,
     and update the line/column information for all functions in `llvm_analysis`.
     """
+
+    # TODO: Document what `func_analysis` is.  How is it related to `response`?
     func_analysis = llvm_analysis.get_analysis_for_function(func_name)
     if func_analysis is None:
+        # TODO: Print an error message.
         sys.exit(1)
 
     # Check if the function to generate specifications for has any callees.
     callees = llvm_analysis.get_callees(func_analysis)
     callees_with_specs = [callee for callee in callees if callee.is_specified()]
     # If the function has callees, and they have specifications, include them in the conversation.
+    # TODO: There is no introductory text to say what these are?
     if callees_with_specs:
         callee_context = "\n".join(str(callee) for callee in callees_with_specs)
         conversation.append({"role": "user", "content": callee_context})
@@ -106,6 +110,8 @@ def recover_from_failure() -> None:
 
 
 def verify_one_function(func_name: str, llvm_analysis: LLVMAnalysis, out_file: Path) -> bool | None:
+    # TODO: What does "updated" mean here?
+    # TODO: Why return None?  I would raise an exception.
     """Return the result of running CBMC on the specifications generated for a single function.
 
     Args:
@@ -164,6 +170,7 @@ def verify_one_function(func_name: str, llvm_analysis: LLVMAnalysis, out_file: P
                 print(f"Verification for function {func_name} succeeded.")
                 success = True
                 processed_funcs.append(func_name)
+                # TODO: Should this just be "return True"?
                 break
             filt_out = "\n".join([line for line in result.stdout.splitlines() if "FAILURE" in line])
             repair_msg = (
@@ -187,6 +194,8 @@ def verify_one_function(func_name: str, llvm_analysis: LLVMAnalysis, out_file: P
     return success
 
 
+# TODO: As a matter of style, put a `main()` routine at the beginning of the file, and
+# at the end of a file put a call to main inside the `if __name__`.
 if __name__ == "__main__":
     inp_file = Path(sys.argv[1])
 
@@ -212,7 +221,8 @@ if __name__ == "__main__":
 
     processed_funcs = []
     for func_name in func_ordering:
-        # Skip recursive functions for now
+        # TODO: These were removed above, so one of the two seems redundant.
+        # Skip recursive functions for now.
         if func_name in recursive_funcs:
             print(f"Skipping recursive function {func_name}")
             processed_funcs.append(func_name)
