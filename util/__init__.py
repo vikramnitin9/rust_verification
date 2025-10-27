@@ -1,11 +1,11 @@
 from .function import Function
-from .function_util import extract_specifications
+from .function_util import extract_specification
 from .llvm_analysis import LLVMAnalysis
-from .specifications import Specifications
+from .specifications import FunctionSpecification
 
 __all__ = [
     "Function",
     "LLVMAnalysis",
-    "Specifications",
-    "extract_specifications",
+    "FunctionSpecification",
+    "extract_specification",
 ]

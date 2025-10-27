@@ -1,50 +1,50 @@
-"""Module to convert CProver specifications to Kani specifications."""
+"""Module to convert a CProver specification to a Kani specification."""
 
 
-def cprover_to_kani(specs: list[str]) -> list[str]:
-    """Convert CProver specifications to Kani specifications.
+def cprover_to_kani(spec: list[str]) -> list[str]:
+    """Convert a CProver specification to a Kani specification.
 
     Args:
-        specs (list[str]): List of CProver specifications.
+        spec (list[str]): A CProver specification: a list of clauses.
 
     Returns:
-        list[str]: List of Kani specifications.
+        list[str]: A Kani specification: a list of clauses.
     """
-    kani_specs = []
+    kani_spec = []
 
-    # Here is an example of a CProver spec:
+    # Here is a CProver clause:
     # __CPROVER_requires(x > 0)
-    # We will convert it to a Kani spec:
+    # The corresponding a Kani clause:
     # kani::requires(x > 0)
 
-    for spec in specs:
-        spec = spec.strip()
-        if spec.startswith("__CPROVER_requires"):
-            condition = spec[len("__CPROVER_requires(") : -1]
-            kani_spec = f"#[kani::requires({condition})]"
+    for clause in spec:
+        clause = clause.strip()
+        if clause.startswith("__CPROVER_requires"):
+            condition = clause[len("__CPROVER_requires(") : -1]
+            kani_clause = f"#[kani::requires({condition})]"
 
-        elif spec.startswith("__CPROVER_ensures"):
-            condition = spec[len("__CPROVER_ensures(") : -1]
-            kani_spec = f"#[kani::ensures({condition})]"
+        elif clause.startswith("__CPROVER_ensures"):
+            condition = clause[len("__CPROVER_ensures(") : -1]
+            kani_clause = f"#[kani::ensures({condition})]"
 
-        elif spec.startswith("__CPROVER_assigns"):
-            condition = spec[len("__CPROVER_assigns(") : -1]
-            kani_spec = f"#[kani::modifies({condition})]"
+        elif clause.startswith("__CPROVER_assigns"):
+            condition = clause[len("__CPROVER_assigns(") : -1]
+            kani_clause = f"#[kani::modifies({condition})]"
 
         if "NULL" in condition:
             continue
 
-        kani_specs.append(kani_spec)
-    return kani_specs
+        kani_spec.append(kani_clause)
+    return kani_spec
 
 
 if __name__ == "__main__":
-    specs = [
+    spec = [
         "__CPROVER_requires(x > 0)",
         "__CPROVER_ensures(result >= 0)",
         "__CPROVER_assigns(x, y)",
         "__CPROVER_requires(ptr != NULL)",  # This should be filtered out
     ]
-    kani_specs = cprover_to_kani(specs)
-    for spec in kani_specs:
-        print(spec)
+    kani_spec = cprover_to_kani(spec)
+    for clause in kani_spec:
+        print(clause)

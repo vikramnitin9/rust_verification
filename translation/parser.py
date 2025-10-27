@@ -59,7 +59,7 @@ class Parser(Generic[T_co]):
             text (str): The text to parse.
 
         Returns:
-            T: The parsed AST.
+            T_co: The parsed AST.
         """
         tree = self.parser.parse(text)
         return self.transformer.transform(tree)

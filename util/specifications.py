@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class Specifications:
+class FunctionSpecification:
     """Represents the pre and postconditions of a function, if present.
 
     Attributes:

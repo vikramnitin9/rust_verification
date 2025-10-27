@@ -1,11 +1,11 @@
-"""Class to represent the LLVM analysis for a function."""
+"""Represents the LLVM analysis for a function."""
 
 import pathlib
 from dataclasses import dataclass, field
 from string import Template
 from typing import Any
 
-from .specifications import Specifications
+from .specifications import FunctionSpecification
 
 TEMPLATE_FOR_FUNCTION_PROMPT = Template("""
 Function name: $name
@@ -14,18 +14,18 @@ Function signature: $signature
 
 
 @dataclass
-class Function:
-    """Represents the LLVM analysis for a C function."""
+class LlvmFunction:
+    """Represents a C function as analyzed by LLVM."""
 
     name: str
     num_args: int
     return_type: str
     signature: str
     file_name: str
-    start_col: int
     start_line: int
-    end_col: int
+    start_col: int
     end_line: int
+    end_col: int
     preconditions: list[str]
     postconditions: list[str]
     arg_names: list[str] = field(default_factory=list)
@@ -43,10 +43,10 @@ class Function:
         self.return_type = raw_analysis["returnType"]
         self.signature = raw_analysis["signature"]
         self.file_name = raw_analysis["filename"]
-        self.start_col = raw_analysis["startCol"]
         self.start_line = raw_analysis["startLine"]
-        self.end_col = raw_analysis["endCol"]
+        self.start_col = raw_analysis["startCol"]
         self.end_line = raw_analysis["endLine"]
+        self.end_col = raw_analysis["endCol"]
         self.preconditions = []
         self.postconditions = []
         self.arg_names = raw_analysis.get("argNames", [])
@@ -95,11 +95,11 @@ class Function:
         """
         return len(self.preconditions) > 0 or len(self.postconditions) > 0
 
-    def set_specifications(self, specifications: Specifications) -> None:
+    def set_specifications(self, specifications: FunctionSpecification) -> None:
         """Set the specifications for this function.
 
         Args:
-            specifications (Specifications): The specifications for this function.
+            specifications (FunctionSpecification): The specifications for this function.
         """
         self.preconditions, self.postconditions = specifications
 

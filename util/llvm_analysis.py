@@ -1,4 +1,4 @@
-"""Class to represent an LLVM analysis over source code."""
+"""Represents an LLVM analysis over source code."""
 
 import json
 import os
