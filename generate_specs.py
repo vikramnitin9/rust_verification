@@ -9,6 +9,7 @@ from models import LLMGen, get_llm_generation_with_model
 from util import LLVMAnalysis, extract_specifications
 
 MODEL = "gpt-4o"
+HEADERS_TO_INCLUDE_IN_OUTPUT = ["stdlib.h", "limits.h"]
 
 
 def generate_spec(
@@ -190,9 +191,8 @@ def verify_one_function(func_name: str, llvm_analysis: LLVMAnalysis, out_file: P
 def _prepare_output_location(input_file_path: Path) -> Path:
     """Return the path to the output location of the C program with generated specs.
 
-    The generated specifications sometimes make use of definitions from header files like stdlib.h
-    and limits.h. The LLM (or any other generation mechanism) likely does not include these header
-    file definitions, so we add them manually.
+    Note: The output file is (initially) identical to the input file, with the addition of the
+    headers in `HEADERS_TO_INCLUDE_IN_OUTPUT` if they are not already in the file.
 
     Note: The LLVM analysis should ideally expose the imports in a file, mitigating the need for the
     brittle string matching that is currently done.
@@ -207,19 +207,16 @@ def _prepare_output_location(input_file_path: Path) -> Path:
     output_folder.mkdir(exist_ok=True)
     output_file_path = output_folder / input_file_path.name
 
-    with (
-        input_file_path.open(encoding="utf-8") as input_program,
-        output_file_path.open(mode="w", encoding="utf-8") as output_program,
-    ):
-        input_program_content = input_program.read()
-        input_program_lines = [line.strip() for line in input_program_content.splitlines()]
-        initial_output_program = input_program_content
-        if "#include <stdio.h>" not in input_program_lines:
-            initial_output_program = "#include <stdio.h>\n" + initial_output_program
-        if "#include <limits.h>" not in input_program_lines:
-            initial_output_program = "#include <limits.h>\n" + initial_output_program
-        output_program.write(initial_output_program)
-        return output_file_path
+    input_program_content = input_file_path.open(encoding="utf-8").read()
+    input_program_lines = [line.strip() for line in input_program_content.splitlines()]
+    initial_output_program = input_program_content
+    for header in HEADERS_TO_INCLUDE_IN_OUTPUT:
+        header_line = f"#include <{header}>"
+        if header_line not in input_program_lines:
+            initial_output_program = f"{header_line}\n" + initial_output_program
+
+    output_file_path.open(mode="w", encoding="utf-8").write(initial_output_program)
+    return output_file_path
 
 
 if __name__ == "__main__":
