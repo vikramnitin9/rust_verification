@@ -6,7 +6,7 @@ from pathlib import Path
 
 import networkx as nx
 
-from util import LLVMAnalysis
+from util import LlvmAnalysis
 
 
 class CodeGraph:
@@ -14,20 +14,20 @@ class CodeGraph:
     """Represents a code graph, used to determine the order in which specifications are generated.
 
     Attributes:
-        path_to_input_file (Path): The path to the input source code file for which this code graph
+        input_file (Path): The path to the input source code file for which this code graph
             is constructed.
-        llvm_analysis (LLVMAnalysis): The result of running an LLVM code graph analysis on the input
+        llvm_analysis (LlvmAnalysis): The result of running an LLVM code graph analysis on the input
             file.
         call_graph (nx.DiGraph): The call graph, derived from the LLVM analysis via networkx.
     """
 
-    path_to_input_file: Path
-    llvm_analysis: LLVMAnalysis
+    input_file: Path
+    llvm_analysis: LlvmAnalysis
     call_graph: nx.DiGraph  # type: ignore[type-arg]
 
-    def __init__(self, path_to_input_file: Path):
-        self.path_to_input_file = path_to_input_file
-        self.llvm_analysis = LLVMAnalysis(path_to_input_file)
+    def __init__(self, input_file: Path):
+        self.input_file = input_file
+        self.llvm_analysis = LlvmAnalysis(input_file)
         self.call_graph = self.llvm_analysis.get_call_graph()
 
     # TODO: "recursive loops" suggests to me that that mutual recursion is also handled.
@@ -45,7 +45,7 @@ class CodeGraph:
     def get_names_of_recursive_functions(self) -> list[str]:
         """Return the names of directly-recursive functions in this code graph.
 
-        Note: I do not think this detects mutually-recursive functions.
+        Note: This does not detect mutually-recursive functions.
 
         Returns:
             list[str]: The names of directly-recursive functions in this code graph.

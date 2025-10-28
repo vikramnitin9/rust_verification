@@ -5,8 +5,8 @@ from dataclasses import dataclass
 
 
 @dataclass
-class Specifications:
-    """Represents the pre and postconditions of a function.
+class FunctionSpecification:
+    """Represents the pre and postconditions of a function, if present.
 
     Attributes:
         preconditions (list[str]): The preconditions of the function.
