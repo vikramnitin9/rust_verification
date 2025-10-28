@@ -1,7 +1,0 @@
-/app/parsec/build/CMakeFiles/intrinsics_gen.dir
-/app/parsec/build/CMakeFiles/omp_gen.dir
-/app/parsec/build/CMakeFiles/acc_gen.dir
-/app/parsec/build/CMakeFiles/clang-tablegen-targets.dir
-/app/parsec/build/CMakeFiles/parsec.dir
-/app/parsec/build/CMakeFiles/edit_cache.dir
-/app/parsec/build/CMakeFiles/rebuild_cache.dir
