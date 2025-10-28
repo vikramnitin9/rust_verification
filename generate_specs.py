@@ -207,7 +207,7 @@ def _prepare_output_location(input_file_path: Path) -> Path:
     output_folder.mkdir(exist_ok=True)
     output_file_path = output_folder / input_file_path.name
 
-    input_program_content = input_file_path.open(encoding="utf-8").read()
+    input_program_content = input_file_path.read_text(encoding="utf-8")
     input_program_lines = [line.strip() for line in input_program_content.splitlines()]
     initial_output_program = input_program_content
     for header in HEADERS_TO_INCLUDE_IN_OUTPUT:
@@ -215,7 +215,7 @@ def _prepare_output_location(input_file_path: Path) -> Path:
         if header_line not in input_program_lines:
             initial_output_program = f"{header_line}\n" + initial_output_program
 
-    output_file_path.open(mode="w", encoding="utf-8").write(initial_output_program)
+    output_file_path.write_text(initial_output_program, encoding="utf-8")
     return output_file_path
 
 
