@@ -12,6 +12,8 @@ def cprover_to_kani(spec: list[str]) -> list[str]:
     """
     kani_spec = []
 
+    ## TODO: This example doesn't include "#[...]".  Should it?
+
     # Here is a CProver clause:
     # __CPROVER_requires(x > 0)
     # The corresponding Kani clause:
@@ -35,6 +37,7 @@ def cprover_to_kani(spec: list[str]) -> list[str]:
             # Skip unknown clause types.
             continue
 
+        # TODO: This seems overly broad.
         if "NULL" in condition:
             continue
 

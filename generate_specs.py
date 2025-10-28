@@ -12,6 +12,7 @@ from models import LLMGen, get_llm_generation_with_model
 from util import LlvmAnalysis, extract_specification
 
 MODEL = "gpt-4o"
+HEADERS_TO_INCLUDE_IN_OUTPUT = ["stdlib.h", "limits.h"]
 
 
 def write_new_spec_to_file(
@@ -32,13 +33,17 @@ def write_new_spec_to_file(
     replace the original function in `out_file` with this new function,
     and update the line/column information for all functions in `llvm_analysis`.
     """
+    # TODO: Document what `func_analysis` is.  How is it related to `response`?
     func_analysis = llvm_analysis.get_analysis_for_function(func_name)
     if func_analysis is None:
+        # TODO: Print an error message.
         sys.exit(1)
 
     # If the function has any callees, get their specifications.
     callees = llvm_analysis.get_callees(func_analysis)
     callees_with_specs = [callee for callee in callees if callee.is_specified()]
+    # If the function has callees, and they have specifications, include them in the conversation.
+    # TODO: There is no introductory text to say what these are?
     if callees_with_specs:
         callee_context = "\n".join(str(callee) for callee in callees_with_specs)
         conversation.append({"role": "user", "content": callee_context})
@@ -175,6 +180,7 @@ def verify_one_function(func_name: str, llvm_analysis: LlvmAnalysis, out_file: P
                 print(f"Verification for function {func_name} succeeded.")
                 success = True
                 processed_funcs.append(func_name)
+                # TODO: Should this just be "return True"?
                 break
             failure_lines = "\n".join(
                 [line for line in result.stdout.splitlines() if "FAILURE" in line]
@@ -200,18 +206,49 @@ def verify_one_function(func_name: str, llvm_analysis: LlvmAnalysis, out_file: P
     return success
 
 
+def _prepare_output_location(input_file_path: Path) -> Path:
+    """Return the path to the output location of the C program with generated specs.
+
+    Note: The output file is (initially) identical to the input file, with the addition of the
+    headers in `HEADERS_TO_INCLUDE_IN_OUTPUT` if they are not already in the file.
+
+    Note: The LLVM analysis should ideally expose the imports in a file, mitigating the need for the
+    brittle string matching that is currently done.
+
+    Args:
+        input_file_path (Path): The path to the initial C program for which to generate specs.
+
+    Returns:
+        Path: The path to the output location of the C program with generated specs.
+    """
+    output_folder = Path("specs")
+    output_folder.mkdir(exist_ok=True)
+    output_file_path = output_folder / input_file_path.name
+
+    input_program_content = input_file_path.read_text(encoding="utf-8")
+    input_program_lines = [line.strip() for line in input_program_content.splitlines()]
+    initial_output_program = input_program_content
+    for header in HEADERS_TO_INCLUDE_IN_OUTPUT:
+        header_line = f"#include <{header}>"
+        if header_line not in input_program_lines:
+            initial_output_program = f"{header_line}\n" + initial_output_program
+
+    output_file_path.write_text(initial_output_program, encoding="utf-8")
+    return output_file_path
+
+
+# TODO: As a matter of style, put a `main()` routine at the beginning of the file, and
+# at the end of a file put a call to main inside the `if __name__`.
 if __name__ == "__main__":
-    inp_file = Path(sys.argv[1])
+    input_file_path = Path(sys.argv[1])
+    output_file_path = _prepare_output_location(input_file_path)
+
+    # Get a list of functions in reverse topological order
+    code_graph = CodeGraph(output_file_path)
 
     spec_folder = Path("specs")
     spec_folder.mkdir(exist_ok=True)
-    out_file = spec_folder / inp_file.name
-
-    # Copy input file to output file initially.
-    # We iteratively update the output file with specs.
-    # TODO: Include <stdlib.h> and <limits.h> in out_file if not present.
-    inp = Path(inp_file).read_text()
-    Path(out_file).write_text(inp)
+    out_file = spec_folder / input_file_path.name
 
     # Get a list of functions in reverse topological order.
     code_graph = CodeGraph(out_file)
@@ -224,7 +261,8 @@ if __name__ == "__main__":
 
     processed_funcs = []
     for func_name in func_ordering:
-        # Skip recursive functions for now
+        # TODO: These were removed above, so one of the two seems redundant.
+        # Skip recursive functions for now.
         if func_name in recursive_funcs:
             print(f"Skipping recursive function {func_name}")
             processed_funcs.append(func_name)
@@ -233,7 +271,7 @@ if __name__ == "__main__":
         print(f"Processing function {func_name}...")
 
         is_verification_successful = verify_one_function(
-            func_name, code_graph.llvm_analysis, out_file
+            func_name, code_graph.llvm_analysis, output_file_path
         )
 
         if is_verification_successful is None:

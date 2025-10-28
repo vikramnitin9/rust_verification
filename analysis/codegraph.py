@@ -1,4 +1,5 @@
 """Module for working with LLVM code graphs."""
+# TODO: should that be "call graphs"?
 
 import copy
 from pathlib import Path
@@ -9,6 +10,7 @@ from util import LlvmAnalysis
 
 
 class CodeGraph:
+    # TODO: "call graph" rather than "code graph"?
     """Represents a code graph, used to determine the order in which specifications are generated.
 
     Attributes:
@@ -28,6 +30,7 @@ class CodeGraph:
         self.llvm_analysis = LlvmAnalysis(input_file)
         self.call_graph = self.llvm_analysis.get_call_graph()
 
+    # TODO: "recursive loops" suggests to me that that mutual recursion is also handled.
     def remove_recursive_loops(self) -> "CodeGraph":
         """Return a copy of this code graph, with self-edges (i.e., recursive calls) removed.
 

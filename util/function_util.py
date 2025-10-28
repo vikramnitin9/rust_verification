@@ -19,6 +19,7 @@ def extract_specification(function_lines: list[str]) -> FunctionSpecification:
     preconditions = []
     postconditions = []
     for i, line in enumerate(stripped_lines):
+        # TODO: I think just cascaded `if` would be clearer here.
         match line:
             case _ if line.startswith(PRECONDITION_PREFIX):
                 preconditions.append(_get_spec_lines(i, stripped_lines))

@@ -14,6 +14,8 @@ Function signature: $signature
 
 
 @dataclass
+# TODO: "Function" is a poor name for an analysis.  Unless this is a complete LLVM representation
+# of a function, in which case it can be OK, though LlvmFunction would be more descriptive.
 class LlvmFunction:
     """Represents a C function as analyzed by LLVM."""
 
@@ -53,7 +55,10 @@ class LlvmFunction:
         self.arg_types = raw_analysis.get("argTypes", [])
         self.enums = raw_analysis.get("enums", [])
         self.callee_names = [
-            func["name"] for func in raw_analysis.get("functions", []) if "name" in func
+            # When would `if "name" in func` not be true?  Shouldn't that raise an exception?
+            func["name"]
+            for func in raw_analysis.get("functions", [])
+            if "name" in func
         ]
         self.llvm_globals = raw_analysis.get("globals", [])
         self.structs = raw_analysis.get("structs", [])
@@ -77,10 +82,12 @@ class LlvmFunction:
             raise ValueError("Function start column is after end column on the same line.")
 
         # Handle 1-based columns; end_col is inclusive
+        # TODO: I don't think any special case is needed for start_line == end_line.  Simplify.
         if self.start_line == self.end_line:
             line = lines[self.start_line - 1]
             return line[self.start_col - 1 : self.end_col]
         func_lines = lines[self.start_line - 1 : self.end_line]
+        # TODO: for correctness, handle the last line before the first, in case they are the same.
         # First line: drop everything before start_col
         func_lines[0] = func_lines[0][self.start_col - 1 :]
         # Last line: keep up to end_col (inclusive -> end-exclusive slice)

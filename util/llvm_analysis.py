@@ -1,4 +1,5 @@
 """Represents an LLVM analysis over source code."""
+# TODO: What is an "LLVM analysis"?  How is that related to an analysis result?
 
 from __future__ import annotations
 
@@ -23,10 +24,11 @@ class LlvmAnalysis:
     functions: dict[str, LlvmFunction] = field(default_factory=dict)
 
     def __init__(self, file_path: Path):
-        # Check if PARSEC_BUILD_DIR is set
         parsec_build_dir = os.environ.get("PARSEC_BUILD_DIR")
         if parsec_build_dir is None:
             raise Exception("Error: $PARSEC_BUILD_DIR not set.")
+        # TODO: Abstract out this running of an external command with error checking,
+        # into a separate function.
         try:
             cmd = f"{parsec_build_dir}/parsec --rename-main=false --add-instr=false {file_path}"
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -40,6 +42,7 @@ class LlvmAnalysis:
         if not analysis_file.exists():
             raise Exception("Error: analysis.json not found after running parsec.")
         with Path(analysis_file).open(encoding="utf-8") as f:
+            # TODO: What is "raw" about the analysis?
             raw_analysis = json.load(f)
             function_analyses = [LlvmFunction(f) for f in raw_analysis.get("functions", [])]
             self.enums = raw_analysis.get("enums", [])

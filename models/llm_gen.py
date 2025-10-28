@@ -1,7 +1,8 @@
 """Module for LLM-based generation."""
 
 # ruff: noqa
-# Vikram would be best suited to document this class
+# TODO: Vikram, please document.
+# Vikram would be best suited to document this class.
 
 import json
 import os
