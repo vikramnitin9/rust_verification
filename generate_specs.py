@@ -9,7 +9,7 @@ from pathlib import Path
 
 from analysis import CodeGraph
 from models import LLMGen, get_llm_generation_with_model
-from util import LLVMAnalysis, extract_specification
+from util import LlvmAnalysis, extract_specification
 
 MODEL = "gpt-4o"
 
@@ -18,7 +18,7 @@ def write_new_spec_to_file(
     model: LLMGen,
     conversation: list[dict[str, str]],
     func_name: str,
-    llvm_analysis: LLVMAnalysis,
+    llvm_analysis: LlvmAnalysis,
     out_file: Path,
 ) -> None:
     """Use the given LLM to generate specifications for a given function and update the source file.
@@ -118,12 +118,12 @@ def recover_from_failure() -> None:
     raise NotImplementedError("TODO: Implement me")
 
 
-def verify_one_function(func_name: str, llvm_analysis: LLVMAnalysis, out_file: Path) -> bool | None:
+def verify_one_function(func_name: str, llvm_analysis: LlvmAnalysis, out_file: Path) -> bool | None:
     """Return the result of running CBMC on the specifications generated for a single function.
 
     Args:
         func_name (str): The name of the function to verify.
-        llvm_analysis (LLVMAnalysis): The top-level LLVM analysis.
+        llvm_analysis (LlvmAnalysis): The top-level LLVM analysis.
         out_file (Path): The path to the updated file where the function is defined (with a spec).
 
     Returns:

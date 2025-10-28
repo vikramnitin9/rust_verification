@@ -15,7 +15,7 @@ from util.function import LlvmFunction
 
 
 @dataclass
-class LLVMAnalysis:
+class LlvmAnalysis:
     """Represents the top-level LLVM analysis obtained by running parsec on a C file."""
 
     enums: list[Any] = field(default_factory=list)

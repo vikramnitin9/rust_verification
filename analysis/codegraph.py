@@ -5,7 +5,7 @@ from pathlib import Path
 
 import networkx as nx
 
-from util import LLVMAnalysis
+from util import LlvmAnalysis
 
 
 class CodeGraph:
@@ -14,18 +14,18 @@ class CodeGraph:
     Attributes:
         input_file (Path): The path to the input source code file for which this code graph
             is constructed.
-        llvm_analysis (LLVMAnalysis): The result of running an LLVM code graph analysis on the input
+        llvm_analysis (LlvmAnalysis): The result of running an LLVM code graph analysis on the input
             file.
         call_graph (nx.DiGraph): The call graph, derived from the LLVM analysis via networkx.
     """
 
     input_file: Path
-    llvm_analysis: LLVMAnalysis
+    llvm_analysis: LlvmAnalysis
     call_graph: nx.DiGraph  # type: ignore[type-arg]
 
     def __init__(self, input_file: Path):
         self.input_file = input_file
-        self.llvm_analysis = LLVMAnalysis(input_file)
+        self.llvm_analysis = LlvmAnalysis(input_file)
         self.call_graph = self.llvm_analysis.get_call_graph()
 
     def remove_recursive_loops(self) -> "CodeGraph":
