@@ -1,6 +1,6 @@
 import pytest
 
-from util.function import Function
+from util.function import LlvmFunction
 
 
 def test_get_source_code() -> None:
