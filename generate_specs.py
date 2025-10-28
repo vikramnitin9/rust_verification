@@ -213,7 +213,6 @@ def _prepare_output_location(input_file_path: Path) -> Path:
     ):
         input_program_content = input_program.read()
         input_program_lines = [line.strip() for line in input_program_content.splitlines()]
-        print(input_program_lines)
         initial_output_program = input_program_content
         if "#include <stdio.h>" not in input_program_lines:
             initial_output_program = "#include <stdio.h>\n" + initial_output_program
