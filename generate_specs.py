@@ -66,7 +66,7 @@ def write_new_spec_to_file(
         # Nothing to do
         pass
     elif len(fences) == 2:
-        match = re.search(r"```c?(.*)```", function_w_spec, re.DOTALL)
+        match = re.search(r"```[cC]?(.*)```", function_w_spec, re.DOTALL)
         if match is None:
             raise RuntimeError("Existing fences not found: " + function_w_spec)
         function_w_spec = match.group(1)
