@@ -1,5 +1,7 @@
 """Represents an LLVM analysis over source code."""
 
+from __future__ import annotations
+
 import json
 import os
 import subprocess
@@ -9,16 +11,16 @@ from typing import Any
 
 import networkx as nx
 
-from util.function import Function
+from util.function import LlvmFunction
 
 
 @dataclass
-class LLVMAnalysis:
+class LlvmAnalysis:
     """Represents the top-level LLVM analysis obtained by running parsec on a C file."""
 
     enums: list[Any] = field(default_factory=list)
     files: list[str] = field(default_factory=list)
-    functions: dict[str, Function] = field(default_factory=dict)
+    functions: dict[str, LlvmFunction] = field(default_factory=dict)
 
     def __init__(self, file_path: Path):
         # Check if PARSEC_BUILD_DIR is set
@@ -39,32 +41,32 @@ class LLVMAnalysis:
             raise Exception("Error: analysis.json not found after running parsec.")
         with Path(analysis_file).open(encoding="utf-8") as f:
             raw_analysis = json.load(f)
-            function_analyses = [Function(f) for f in raw_analysis.get("functions", [])]
+            function_analyses = [LlvmFunction(f) for f in raw_analysis.get("functions", [])]
             self.enums = raw_analysis.get("enums", [])
             self.files = raw_analysis.get("files", [])
             self.functions = {analysis.name: analysis for analysis in function_analyses}
 
-    def get_analysis_for_function(self, function_name: str) -> Function | None:
+    def get_analysis_for_function(self, function_name: str) -> LlvmFunction | None:
         """Return the LLVM analysis for a function with the given name.
 
         Args:
             function_name (str): The name of the function for which to return the LLVM analysis.
 
         Returns:
-            Function | None: The LLVM analysis for the function, otherwise None.
+            LlvmFunction | None: The LLVM analysis for the function, otherwise None.
         """
         return self.functions.get(function_name, None)
 
-    def get_callees(self, function: Function) -> list[Function]:
+    def get_callees(self, function: LlvmFunction) -> list[LlvmFunction]:
         """Return the callees of the given function.
 
         Args:
-            function (Function): The function for which to return the callees.
+            function (LlvmFunction): The function for which to return the callees.
 
         Returns:
-            list[Function]: The callees of the given function.
+            list[LlvmFunction]: The callees of the given function.
         """
-        callees: list[Function] = []
+        callees: list[LlvmFunction] = []
         for callee_name in function.callee_names:
             if callee_analysis := self.get_analysis_for_function(callee_name):
                 callees.append(callee_analysis)

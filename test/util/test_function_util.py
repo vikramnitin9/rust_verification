@@ -30,7 +30,7 @@ def test_extract_single_multi_line_spec() -> None:
     )
 
 
-def test_extract_specs_multiple_single_line_specs() -> None:
+def test_extract_spec_multiple_single_line_specs() -> None:
     func_lines = _get_function_lines("test/data/function_util/multiple_single_line_specs.c")
     spec = function_util.extract_specification(func_lines)
     assert spec.preconditions == [
@@ -43,7 +43,7 @@ def test_extract_specs_multiple_single_line_specs() -> None:
     ], f"Unexpected postconditions: {spec.postconditions}"
 
 
-def test_extract_specs_multiple_multi_line_specs() -> None:
+def test_extract_spec_multiple_multi_line_specs() -> None:
     func_lines = _get_function_lines("test/data/function_util/multiple_multi_line_spec.c")
     spec = function_util.extract_specification(func_lines)
     assert spec.preconditions == [

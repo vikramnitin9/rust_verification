@@ -14,7 +14,7 @@ def cprover_to_kani(spec: list[str]) -> list[str]:
 
     # Here is a CProver clause:
     # __CPROVER_requires(x > 0)
-    # The corresponding a Kani clause:
+    # The corresponding Kani clause:
     # kani::requires(x > 0)
 
     for clause in spec:
@@ -30,6 +30,10 @@ def cprover_to_kani(spec: list[str]) -> list[str]:
         elif clause.startswith("__CPROVER_assigns"):
             condition = clause[len("__CPROVER_assigns(") : -1]
             kani_clause = f"#[kani::modifies({condition})]"
+
+        else:
+            # Skip unknown clause types.
+            continue
 
         if "NULL" in condition:
             continue

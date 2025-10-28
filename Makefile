@@ -1,4 +1,6 @@
-.PHONY: docker-build run test checks style-fix style-check python-style-fix python-style-check python-typecheck showvars
+.PHONY: default docker-build run test checks style-fix style-check python-style-fix python-style-check python-typecheck showvars
+
+default: test
 
 # Build container.
 docker-build:

@@ -1,12 +1,15 @@
 """Script to generate specifications for C functions using an LLM and verify them with CBMC."""
 
+from __future__ import annotations
+
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 from analysis import CodeGraph
 from models import LLMGen, get_llm_generation_with_model
-from util import LLVMAnalysis, extract_specification
+from util import LlvmAnalysis, extract_specification
 
 MODEL = "gpt-4o"
 
@@ -15,7 +18,7 @@ def write_new_spec_to_file(
     model: LLMGen,
     conversation: list[dict[str, str]],
     func_name: str,
-    llvm_analysis: LLVMAnalysis,
+    llvm_analysis: LlvmAnalysis,
     out_file: Path,
 ) -> None:
     """Use the given LLM to generate specifications for a given function and update the source file.
@@ -48,17 +51,23 @@ def write_new_spec_to_file(
         sys.exit(1)
 
     # Get the part within <FUNC> and </FUNC> tags.
-    functions = re.findall("<FUNC>(.*?)</FUNC>")
+    functions = re.findall(r"<FUNC>(.*?)</FUNC>", response, re.DOTALL)
     if len(functions) != 1:
-        raise Error(f"Wrong number of functions {len(functions)}: {functions}")
+        msg = f"Wrong number of functions {len(functions)}: {functions}"
+        raise RuntimeError(msg)
     function_w_spec = functions[0]
-    fences = re.findall("```", function_w_spec)
+    fences = re.findall(r"```", function_w_spec)
     if len(fences) == 0:
         # Nothing to do
-    elif len(fences) = 2:
-        function_w_spec = re.search("```c?(.*)```").group(1)
+        pass
+    elif len(fences) == 2:
+        match = re.search(r"```c?(.*)```", function_w_spec, re.DOTALL)
+        if match is None:
+            raise RuntimeError("Existing fences not found: " + function_w_spec)
+        function_w_spec = match.group(1)
     else:
-        raise Error(f"Wrong number of code fences {len(fences)}: {function_w_spec}")
+        msg = f"Wrong number of code fences {len(fences)}: {function_w_spec}"
+        raise RuntimeError(msg)
     function_w_spec = function_w_spec.strip()
 
     start_line = func_analysis.start_line
@@ -73,7 +82,7 @@ def write_new_spec_to_file(
     after = [*lines[end_line - 1][end_col:], *lines[end_line:]]
     new_contents = "".join([*before, function_w_spec, *after])
 
-    # Update the line/col info for this function
+    # Update the line/col info for this function.
     function_len = len(function_w_spec.splitlines())
     new_end_line = start_line + function_len - 1
     new_end_col = (
@@ -109,12 +118,12 @@ def recover_from_failure() -> None:
     raise NotImplementedError("TODO: Implement me")
 
 
-def verify_one_function(func_name: str, llvm_analysis: LLVMAnalysis, out_file: Path) -> bool | None:
+def verify_one_function(func_name: str, llvm_analysis: LlvmAnalysis, out_file: Path) -> bool | None:
     """Return the result of running CBMC on the specifications generated for a single function.
 
     Args:
         func_name (str): The name of the function to verify.
-        llvm_analysis (LLVMAnalysis): The top-level LLVM analysis.
+        llvm_analysis (LlvmAnalysis): The top-level LLVM analysis.
         out_file (Path): The path to the updated file where the function is defined (with a spec).
 
     Returns:
@@ -127,7 +136,8 @@ def verify_one_function(func_name: str, llvm_analysis: LLVMAnalysis, out_file: P
     func_analysis = llvm_analysis.get_analysis_for_function(func_name)
     # This should not happen.
     if func_analysis is None:
-        raise Error(f"Function {func_name} not found in LLVM analysis, skipping.")
+        msg = f"Function {func_name} not found in LLVM analysis"
+        raise RuntimeError(msg)
 
     # Get the source code of the function.
     source_code = func_analysis.get_source_code()
@@ -166,7 +176,9 @@ def verify_one_function(func_name: str, llvm_analysis: LLVMAnalysis, out_file: P
                 success = True
                 processed_funcs.append(func_name)
                 break
-            failure_lines = "\n".join([line for line in result.stdout.splitlines() if "FAILURE" in line])
+            failure_lines = "\n".join(
+                [line for line in result.stdout.splitlines() if "FAILURE" in line]
+            )
             repair_msg = (
                 f"Error while running verification for function {func_name}:\n"
                 f"STDOUT: {failure_lines}\n"
