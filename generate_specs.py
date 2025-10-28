@@ -218,7 +218,7 @@ def _prepare_output_location(input_file_path: Path) -> Path:
             initial_output_program = "#include <stdio.h>\n" + initial_output_program
         if "#include <limits.h>" not in input_program_lines:
             initial_output_program = "#include <limits.h>\n" + initial_output_program
-        output_program.write("".join(initial_output_program))
+        output_program.write(initial_output_program)
         return output_file_path
 
 
