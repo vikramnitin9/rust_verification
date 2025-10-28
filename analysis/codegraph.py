@@ -18,12 +18,12 @@ class CodeGraph:
             is constructed.
         llvm_analysis (LlvmAnalysis): The result of running an LLVM code graph analysis on the input
             file.
-        call_graph (nx.DiGraph): The call graph, derived from the LLVM analysis via networkx.
+        call_graph (nx.DiGraph[str]): The call graph, derived from the LLVM analysis via networkx.
     """
 
     input_file: Path
     llvm_analysis: LlvmAnalysis
-    call_graph: nx.DiGraph  # type: ignore[type-arg]
+    call_graph: nx.DiGraph[str]
 
     def __init__(self, input_file: Path):
         self.input_file = input_file

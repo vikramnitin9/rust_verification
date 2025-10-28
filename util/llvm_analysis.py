@@ -77,11 +77,11 @@ class LlvmAnalysis:
                 print(f"LLVM Analysis for callee function {callee_name} not found")
         return callees
 
-    def get_call_graph(self) -> nx.DiGraph:  # type: ignore[type-arg]
+    def get_call_graph(self) -> nx.DiGraph[str]:
         """Return the call graph for the LLVM analysis.
 
         Returns:
-            nx.DiGraph: The call graph for the LLVM analysis.
+            nx.DiGraph[str]: The call graph for the LLVM analysis.
         """
         call_graph: nx.DiGraph[str] = nx.DiGraph()
         for func_name, func in self.functions.items():
