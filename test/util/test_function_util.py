@@ -3,6 +3,7 @@ import pathlib
 from util import function_util
 
 
+# TODO: This seems to get a whole file, not just one function.
 def _get_function_lines(path_to_file: str) -> list[str]:
     return pathlib.Path(path_to_file).read_text(encoding="utf-8").splitlines(True)
 

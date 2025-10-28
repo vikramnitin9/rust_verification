@@ -21,6 +21,8 @@ class TransformerT(Protocol[T_co]):
 
 
 class Parser(Generic[T_co]):
+    # TODO: "Generic" and "utility" add nothing.
+    # TODO: What is the difference between a "parse tree" and an "AST"?
     """Generic parsing utility using Lark.
 
     See Lark documentation for details: https://lark-parser.readthedocs.io/en/stable/
