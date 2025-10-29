@@ -1,33 +1,33 @@
 from pathlib import Path
 
-from analysis import CodeGraph
+from analysis import CallGraph
 
 
 def test_simple_file_no_recursion() -> None:
     simple_c_file = Path("test/data/codegraph/simple.c")
-    codegraph = CodeGraph(simple_c_file)
+    codegraph = CallGraph(simple_c_file)
     assert codegraph.get_names_of_recursive_functions() == []
 
 
 def test_graph_with_direct_recursion() -> None:
     path_to_file = Path("test/data/codegraph/direct_recursion.c")
-    codegraph = CodeGraph(path_to_file)
+    codegraph = CallGraph(path_to_file)
     assert codegraph.get_names_of_recursive_functions() == ["recursive_function"]
 
 
 def test_remove_recursive_functions() -> None:
     path_to_file = Path("test/data/codegraph/direct_recursion.c")
-    unmodified_codegraph = CodeGraph(path_to_file)
+    unmodified_codegraph = CallGraph(path_to_file)
     assert unmodified_codegraph.get_names_of_recursive_functions() == ["recursive_function"]
 
-    codegraph_no_loops = unmodified_codegraph.remove_recursive_loops()
+    codegraph_no_loops = unmodified_codegraph.prune_self_loops()
     assert codegraph_no_loops.get_names_of_recursive_functions() == []
     assert unmodified_codegraph.get_names_of_recursive_functions() == ["recursive_function"]
 
 
 def test_get_functions_reverse_topological_ordering() -> None:
     path_to_file = Path("test/data/codegraph/ordering.c")
-    codegraph = CodeGraph(path_to_file)
+    codegraph = CallGraph(path_to_file)
     reverse_topological_ordering = codegraph.get_function_names_in_topological_order(
         reverse_order=True
     )

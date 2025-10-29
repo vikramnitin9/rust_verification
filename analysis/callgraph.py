@@ -1,5 +1,4 @@
-"""Module for working with LLVM code graphs."""
-# TODO: should that be "call graphs"?
+"""Module for working with LLVM call graphs."""
 
 import copy
 from pathlib import Path
@@ -9,14 +8,14 @@ import networkx as nx
 from util import LlvmAnalysis
 
 
-class CodeGraph:
+class CallGraph:
     # TODO: "call graph" rather than "code graph"?
-    """Represents a code graph, used to determine the order in which specifications are generated.
+    """Represents a call graph, used to determine the order in which specifications are generated.
 
     Attributes:
-        input_file (Path): The path to the input source code file for which this code graph
+        input_file (Path): The path to the input source code file for which this call graph
             is constructed.
-        llvm_analysis (LlvmAnalysis): The result of running an LLVM code graph analysis on the input
+        llvm_analysis (LlvmAnalysis): The result of running an LLVM call graph analysis on the input
             file.
         call_graph (nx.DiGraph): The call graph, derived from the LLVM analysis via networkx.
     """
@@ -30,12 +29,11 @@ class CodeGraph:
         self.llvm_analysis = LlvmAnalysis(input_file)
         self.call_graph = self.llvm_analysis.get_call_graph()
 
-    # TODO: "recursive loops" suggests to me that that mutual recursion is also handled.
-    def remove_recursive_loops(self) -> "CodeGraph":
-        """Return a copy of this code graph, with self-edges (i.e., recursive calls) removed.
+    def prune_self_loops(self) -> "CallGraph":
+        """Return a copy of this call graph, with self-loops (i.e., direct recursive calls) removed.
 
         Returns:
-            CodeGraph: A copy of this code graph, with self-edges removed.
+            CodeGraph: A copy of this call graph, with self-loops removed.
         """
         codegraph_copy = copy.deepcopy(self)
         self_loops = list(nx.selfloop_edges(codegraph_copy.call_graph))

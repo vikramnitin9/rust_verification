@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from analysis import CodeGraph
+from analysis import CallGraph
 from models import LLMGen, get_llm_generation_with_model
 from util import LlvmAnalysis, extract_specification
 
@@ -244,17 +244,17 @@ if __name__ == "__main__":
     output_file_path = _prepare_output_location(input_file_path)
 
     # Get a list of functions in reverse topological order
-    code_graph = CodeGraph(output_file_path)
+    code_graph = CallGraph(output_file_path)
 
     spec_folder = Path("specs")
     spec_folder.mkdir(exist_ok=True)
     out_file = spec_folder / input_file_path.name
 
     # Get a list of functions in reverse topological order.
-    code_graph = CodeGraph(out_file)
+    code_graph = CallGraph(out_file)
     recursive_funcs = code_graph.get_names_of_recursive_functions()
     # TODO: Process recursive loops rather than removing them.
-    code_graph_no_recursive_loops = code_graph.remove_recursive_loops()
+    code_graph_no_recursive_loops = code_graph.prune_self_loops()
     func_ordering = code_graph_no_recursive_loops.get_function_names_in_topological_order(
         reverse_order=True
     )
