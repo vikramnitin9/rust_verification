@@ -13,6 +13,7 @@ from util import ParsecResult, extract_specification
 
 MODEL = "gpt-4o"
 HEADERS_TO_INCLUDE_IN_OUTPUT = ["stdlib.h", "limits.h"]
+DEFAULT_NUM_VERIFICATION_ATTEMPTS = 10
 
 
 def write_new_spec_to_file(
@@ -159,7 +160,7 @@ def verify_one_function(func_name: str, llvm_analysis: ParsecResult, out_file: P
     write_new_spec_to_file(model, conversation, func_name, llvm_analysis, out_file)
 
     success = False
-    for _ in range(10):
+    for _ in range(DEFAULT_NUM_VERIFICATION_ATTEMPTS):
         # Replace calls to already-processed functions with their contracts
         replace_args = "".join([f"--replace-call-with-contract {f} " for f in processed_funcs])
 
