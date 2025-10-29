@@ -20,7 +20,7 @@ def write_new_spec_to_file(
     model: LLMGen,
     conversation: list[dict[str, str]],
     func_name: str,
-    llvm_analysis: ParsecResult,
+    parsec_result: ParsecResult,
     out_file: Path,
 ) -> None:
     """Use the given LLM to generate specifications for a given function and update the source file.
@@ -32,16 +32,16 @@ def write_new_spec_to_file(
 
     Take the LLM's response, extract the function with specifications,
     replace the original function in `out_file` with this new function,
-    and update the line/column information for all functions in `llvm_analysis`.
+    and update the line/column information for all functions in `parsec_result`.
     """
     # TODO: Document what `func_analysis` is.  How is it related to `response`?
-    func_analysis = llvm_analysis.get_analysis_for_function(func_name)
+    func_analysis = parsec_result.get_analysis_for_function(func_name)
     if func_analysis is None:
         # TODO: Print an error message.
         sys.exit(1)
 
     # If the function has any callees, get their specifications.
-    callees = llvm_analysis.get_callees(func_analysis)
+    callees = parsec_result.get_callees(func_analysis)
     callees_with_specs = [callee for callee in callees if callee.is_specified()]
     # If the function has callees, and they have specifications, include them in the conversation.
     # TODO: There is no introductory text to say what these are?
@@ -102,7 +102,7 @@ def write_new_spec_to_file(
 
     # Update line/col info for other functions.
     line_offset = function_len - (end_line - start_line + 1)
-    for other_func in llvm_analysis.functions.values():
+    for other_func in parsec_result.functions.values():
         if other_func.name == func_name:
             continue
         if other_func.start_line > end_line:
@@ -124,25 +124,25 @@ def recover_from_failure() -> None:
     raise NotImplementedError("TODO: Implement me")
 
 
-def verify_one_function(func_name: str, llvm_analysis: ParsecResult, out_file: Path) -> bool | None:
+def verify_one_function(func_name: str, parsec_result: ParsecResult, out_file: Path) -> bool | None:
     """Return the result of running CBMC on the specifications generated for a single function.
 
     Args:
         func_name (str): The name of the function to verify.
-        llvm_analysis (LlvmAnalysis): The top-level LLVM analysis.
+        parsec_result (ParsecResult): The result of running `parsec` on the initial code.
         out_file (Path): The path to the updated file where the function is defined (with a spec).
 
     Returns:
         bool | None: True iff verification succeeds, False if it fails. None if the function is
-            not in the top-level LLVM analysis.
+            not in the result of running `parsec` on the initial code.
     """
     # Load the prompt from the template file.
     prompt_template = Path("prompt.txt").read_text()
 
-    func_analysis = llvm_analysis.get_analysis_for_function(func_name)
+    func_analysis = parsec_result.get_analysis_for_function(func_name)
     # This should not happen.
     if func_analysis is None:
-        msg = f"Function {func_name} not found in LLVM analysis"
+        msg = f"Function {func_name} not found in ParseC result"
         raise RuntimeError(msg)
 
     # Get the source code of the function.
@@ -157,7 +157,7 @@ def verify_one_function(func_name: str, llvm_analysis: ParsecResult, out_file: P
         {"role": "user", "content": prompt},
     ]
 
-    write_new_spec_to_file(model, conversation, func_name, llvm_analysis, out_file)
+    write_new_spec_to_file(model, conversation, func_name, parsec_result, out_file)
 
     success = False
     for _ in range(DEFAULT_NUM_VERIFICATION_ATTEMPTS):
@@ -195,7 +195,7 @@ def verify_one_function(func_name: str, llvm_analysis: ParsecResult, out_file: P
             print(repair_msg)
             conversation += [{"role": "user", "content": repair_msg}]
 
-            write_new_spec_to_file(model, conversation, func_name, llvm_analysis, out_file)
+            write_new_spec_to_file(model, conversation, func_name, parsec_result, out_file)
 
         except Exception as e:
             print(f"Error running command for function {func_name}: {e}")
@@ -213,7 +213,7 @@ def _prepare_output_location(input_file_path: Path) -> Path:
     Note: The output file is (initially) identical to the input file, with the addition of the
     headers in `HEADERS_TO_INCLUDE_IN_OUTPUT` if they are not already in the file.
 
-    Note: The LLVM analysis should ideally expose the imports in a file, mitigating the need for the
+    Note: The ParseC result should ideally expose the imports in a file, mitigating the need for the
     brittle string matching that is currently done.
 
     Args:
