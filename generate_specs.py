@@ -80,7 +80,9 @@ def write_new_spec_to_file(
     end_line = parsec_function.end_line
     end_col = parsec_function.end_col
 
-    lines = Path(out_file).read_text(encoding="utf-8").splitlines()
+    # Use `with` and `readlines()` here to enable line-by-line file reading.
+    with Path(out_file).open(encoding="utf-8") as f:
+        lines = f.readlines()
 
     before = [*lines[: start_line - 1], *[lines[start_line - 1][: start_col - 1]]]
     after = [*lines[end_line - 1][end_col:], *lines[end_line:]]
