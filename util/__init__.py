@@ -1,11 +1,11 @@
-from .function import LlvmFunction
+from .parsec_function import ParsecFunction
 from .function_util import extract_specification
-from .llvm_analysis import LlvmAnalysis
+from .parsec_result import ParsecResult
 from .specifications import FunctionSpecification
 
 __all__ = [
-    "LlvmFunction",
-    "LlvmAnalysis",
+    "ParsecFunction",
+    "ParsecResult",
     "FunctionSpecification",
     "extract_specification",
 ]

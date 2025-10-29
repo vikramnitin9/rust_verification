@@ -1,4 +1,4 @@
-"""Represents the LLVM analysis for a function."""
+"""Represents the ParseC representation for a C function."""
 
 import pathlib
 from dataclasses import dataclass, field
@@ -14,10 +14,8 @@ Function signature: $signature
 
 
 @dataclass
-# TODO: "Function" is a poor name for an analysis.  Unless this is a complete LLVM representation
-# of a function, in which case it can be OK, though LlvmFunction would be more descriptive.
-class LlvmFunction:
-    """Represents a C function as analyzed by LLVM."""
+class ParsecFunction:
+    """Represents a C function as parsed by ParseC."""
 
     name: str
     num_args: int

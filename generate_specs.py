@@ -9,7 +9,7 @@ from pathlib import Path
 
 from analysis import CallGraph
 from models import LLMGen, get_llm_generation_with_model
-from util import LlvmAnalysis, extract_specification
+from util import ParsecResult, extract_specification
 
 MODEL = "gpt-4o"
 HEADERS_TO_INCLUDE_IN_OUTPUT = ["stdlib.h", "limits.h"]
@@ -19,7 +19,7 @@ def write_new_spec_to_file(
     model: LLMGen,
     conversation: list[dict[str, str]],
     func_name: str,
-    llvm_analysis: LlvmAnalysis,
+    llvm_analysis: ParsecResult,
     out_file: Path,
 ) -> None:
     """Use the given LLM to generate specifications for a given function and update the source file.
@@ -123,7 +123,7 @@ def recover_from_failure() -> None:
     raise NotImplementedError("TODO: Implement me")
 
 
-def verify_one_function(func_name: str, llvm_analysis: LlvmAnalysis, out_file: Path) -> bool | None:
+def verify_one_function(func_name: str, llvm_analysis: ParsecResult, out_file: Path) -> bool | None:
     """Return the result of running CBMC on the specifications generated for a single function.
 
     Args:
@@ -271,7 +271,7 @@ if __name__ == "__main__":
         print(f"Processing function {func_name}...")
 
         is_verification_successful = verify_one_function(
-            func_name, code_graph.llvm_analysis, output_file_path
+            func_name, code_graph.parsec_result, output_file_path
         )
 
         if is_verification_successful is None:
