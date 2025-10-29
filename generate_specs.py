@@ -16,6 +16,52 @@ HEADERS_TO_INCLUDE_IN_OUTPUT = ["stdlib.h", "limits.h"]
 DEFAULT_NUM_VERIFICATION_ATTEMPTS = 10
 
 
+def main() -> None:
+    """Entry point to generate_specs.py."""
+    input_file_path = Path(sys.argv[1])
+    output_file_path = _prepare_output_location(input_file_path)
+
+    # Get a list of functions in reverse topological order
+    call_graph = CallGraph(output_file_path)
+
+    # Get a list of functions in reverse topological order.
+    call_graph = CallGraph(output_file_path)
+    recursive_funcs = call_graph.get_names_of_recursive_functions()
+    # TODO: Process recursive loops rather than removing them.
+    code_graph_no_recursive_loops = call_graph.prune_self_loops()
+    func_ordering = code_graph_no_recursive_loops.get_function_names_in_topological_order(
+        reverse_order=True
+    )
+
+    processed_funcs = []
+    for func_name in func_ordering:
+        # TODO: These were removed above, so one of the two seems redundant.
+        # Skip recursive functions for now.
+        if func_name in recursive_funcs:
+            print(f"Skipping recursive function {func_name}")
+            processed_funcs.append(func_name)
+            continue
+
+        print(f"Processing function {func_name}...")
+
+        is_verification_successful = verify_one_function(
+            func_name, call_graph.parsec_result, processed_funcs, output_file_path
+        )
+
+        if is_verification_successful is None:
+            print(f"Skipping function {func_name} due to missing analysis.")
+            processed_funcs.append(func_name)
+            continue
+
+        if not is_verification_successful:
+            print(
+                f"Verification for function {func_name} failed after "
+                f"{DEFAULT_NUM_VERIFICATION_ATTEMPTS} attempts."
+            )
+            processed_funcs.append(func_name)
+            continue
+
+
 def write_new_spec_to_file(
     model: LLMGen,
     conversation: list[dict[str, str]],
@@ -124,12 +170,15 @@ def recover_from_failure() -> None:
     raise NotImplementedError("TODO: Implement me")
 
 
-def verify_one_function(func_name: str, parsec_result: ParsecResult, out_file: Path) -> bool | None:
+def verify_one_function(
+    func_name: str, parsec_result: ParsecResult, processed_funcs: list[str], out_file: Path
+) -> bool | None:
     """Return the result of running CBMC on the specifications generated for a single function.
 
     Args:
         func_name (str): The name of the function to verify.
         parsec_result (ParsecResult): The result of running `parsec` on the initial code.
+        processed_funcs (list[str]): The names of previously-processed functions.
         out_file (Path): The path to the updated file where the function is defined (with a spec).
 
     Returns:
@@ -159,7 +208,6 @@ def verify_one_function(func_name: str, parsec_result: ParsecResult, out_file: P
 
     write_new_spec_to_file(model, conversation, func_name, parsec_result, out_file)
 
-    success = False
     for _ in range(DEFAULT_NUM_VERIFICATION_ATTEMPTS):
         # Replace calls to already-processed functions with their contracts
         replace_args = "".join([f"--replace-call-with-contract {f} " for f in processed_funcs])
@@ -179,10 +227,8 @@ def verify_one_function(func_name: str, parsec_result: ParsecResult, out_file: P
             result = subprocess.run(command, shell=True, capture_output=True, text=True)
             if result.returncode == 0:
                 print(f"Verification for function {func_name} succeeded.")
-                success = True
                 processed_funcs.append(func_name)
-                # TODO: Should this just be "return True"?
-                break
+                return True
             failure_lines = "\n".join(
                 [line for line in result.stdout.splitlines() if "FAILURE" in line]
             )
@@ -201,10 +247,8 @@ def verify_one_function(func_name: str, parsec_result: ParsecResult, out_file: P
             print(f"Error running command for function {func_name}: {e}")
             break
 
-    if not success:
-        recover_from_failure()
-
-    return success
+    recover_from_failure()
+    return False
 
 
 def _prepare_output_location(input_file_path: Path) -> Path:
@@ -238,49 +282,5 @@ def _prepare_output_location(input_file_path: Path) -> Path:
     return output_file_path
 
 
-# TODO: As a matter of style, put a `main()` routine at the beginning of the file, and
-# at the end of a file put a call to main inside the `if __name__`.
 if __name__ == "__main__":
-    input_file_path = Path(sys.argv[1])
-    output_file_path = _prepare_output_location(input_file_path)
-
-    # Get a list of functions in reverse topological order
-    code_graph = CallGraph(output_file_path)
-
-    spec_folder = Path("specs")
-    spec_folder.mkdir(exist_ok=True)
-    out_file = spec_folder / input_file_path.name
-
-    # Get a list of functions in reverse topological order.
-    code_graph = CallGraph(out_file)
-    recursive_funcs = code_graph.get_names_of_recursive_functions()
-    # TODO: Process recursive loops rather than removing them.
-    code_graph_no_recursive_loops = code_graph.prune_self_loops()
-    func_ordering = code_graph_no_recursive_loops.get_function_names_in_topological_order(
-        reverse_order=True
-    )
-
-    processed_funcs = []
-    for func_name in func_ordering:
-        # TODO: These were removed above, so one of the two seems redundant.
-        # Skip recursive functions for now.
-        if func_name in recursive_funcs:
-            print(f"Skipping recursive function {func_name}")
-            processed_funcs.append(func_name)
-            continue
-
-        print(f"Processing function {func_name}...")
-
-        is_verification_successful = verify_one_function(
-            func_name, code_graph.parsec_result, output_file_path
-        )
-
-        if is_verification_successful is None:
-            print(f"Skipping function {func_name} due to missing analysis.")
-            processed_funcs.append(func_name)
-            continue
-
-        if not is_verification_successful:
-            print(f"Verification for function {func_name} failed after multiple attempts.")
-            processed_funcs.append(func_name)
-            continue
+    main()
