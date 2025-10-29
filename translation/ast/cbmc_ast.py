@@ -230,9 +230,19 @@ class ArgList(CBMCAst, ast_utils.AsList):
 
 @dataclass
 class Quantifier(CBMCAst):
-    kind: str
-    decls: list[Any]
+    decl: Any
     expr: Any
+    kind: str
+
+
+@dataclass
+class Forall(Quantifier):
+    kind: str = "forall"
+
+
+@dataclass
+class Exist(Quantifier):
+    kind: str = "Exists"
 
 
 @dataclass
