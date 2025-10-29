@@ -35,7 +35,7 @@ class ParsecResult:
             self.files = parsec_analysis.get("files", [])
             self.functions = {analysis.name: analysis for analysis in function_analyses}
 
-    def get_analysis_for_function(self, function_name: str) -> ParsecFunction | None:
+    def get_function(self, function_name: str) -> ParsecFunction | None:
         """Return the ParsecFunction representation for a function with the given name.
 
         Args:
@@ -57,7 +57,7 @@ class ParsecResult:
         """
         callees: list[ParsecFunction] = []
         for callee_name in function.callee_names:
-            if callee_analysis := self.get_analysis_for_function(callee_name):
+            if callee_analysis := self.get_function(callee_name):
                 callees.append(callee_analysis)
             else:
                 print(f"LLVM Analysis for callee function {callee_name} not found")

@@ -34,14 +34,13 @@ def write_new_spec_to_file(
     replace the original function in `out_file` with this new function,
     and update the line/column information for all functions in `parsec_result`.
     """
-    # TODO: Document what `func_analysis` is.  How is it related to `response`?
-    func_analysis = parsec_result.get_analysis_for_function(func_name)
-    if func_analysis is None:
-        # TODO: Print an error message.
+    parsec_function = parsec_result.get_function(func_name)
+    if parsec_function is None:
+        print(f"ParseC failed to find a function for '{func_name}'")
         sys.exit(1)
 
     # If the function has any callees, get their specifications.
-    callees = parsec_result.get_callees(func_analysis)
+    callees = parsec_result.get_callees(parsec_function)
     callees_with_specs = [callee for callee in callees if callee.is_specified()]
     # If the function has callees, and they have specifications, include them in the conversation.
     # TODO: There is no introductory text to say what these are?
@@ -76,13 +75,12 @@ def write_new_spec_to_file(
         raise RuntimeError(msg)
     function_w_spec = function_w_spec.strip()
 
-    start_line = func_analysis.start_line
-    start_col = func_analysis.start_col
-    end_line = func_analysis.end_line
-    end_col = func_analysis.end_col
+    start_line = parsec_function.start_line
+    start_col = parsec_function.start_col
+    end_line = parsec_function.end_line
+    end_col = parsec_function.end_col
 
-    with Path(out_file).open(encoding="utf-8") as f:
-        lines = f.readlines()
+    lines = Path(out_file).read_text(encoding="utf-8").splitlines()
 
     before = [*lines[: start_line - 1], *[lines[start_line - 1][: start_col - 1]]]
     after = [*lines[end_line - 1][end_col:], *lines[end_line:]]
@@ -96,9 +94,9 @@ def write_new_spec_to_file(
         if function_len > 1
         else start_col + len(function_w_spec)
     )
-    func_analysis.end_line = new_end_line
-    func_analysis.end_col = new_end_col
-    func_analysis.set_specifications(extract_specification(function_w_spec.splitlines()))
+    parsec_function.end_line = new_end_line
+    parsec_function.end_col = new_end_col
+    parsec_function.set_specifications(extract_specification(function_w_spec.splitlines()))
 
     # Update line/col info for other functions.
     line_offset = function_len - (end_line - start_line + 1)
@@ -139,14 +137,14 @@ def verify_one_function(func_name: str, parsec_result: ParsecResult, out_file: P
     # Load the prompt from the template file.
     prompt_template = Path("prompt.txt").read_text()
 
-    func_analysis = parsec_result.get_analysis_for_function(func_name)
+    parsec_function = parsec_result.get_function(func_name)
     # This should not happen.
-    if func_analysis is None:
+    if parsec_function is None:
         msg = f"Function {func_name} not found in ParseC result"
         raise RuntimeError(msg)
 
     # Get the source code of the function.
-    source_code = func_analysis.get_source_code()
+    source_code = parsec_function.get_source_code()
     # Fill in the prompt_template template
     prompt = prompt_template.replace("<<SOURCE>>", source_code)
 
