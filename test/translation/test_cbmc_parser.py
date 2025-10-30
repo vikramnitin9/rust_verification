@@ -4,6 +4,7 @@ from translation.ast.cbmc_ast import (
     CBMCAst,
     DerefOp,
     EnsuresClause,
+    ForallExpr,
     GtOp,
     Name,
     NeqOp,
@@ -13,6 +14,7 @@ from translation.ast.cbmc_ast import (
     ToAst,
 )
 from translation.parser import Parser
+from typing import cast
 
 parser: Parser[CBMCAst] = Parser(
     path_to_grammar_defn="translation/grammar/cbmc.txt",
@@ -57,6 +59,18 @@ def test_parse_nested_condition_expr() -> None:
             pass
         case _:
             pytest.fail(f"Parsed spec is of type {type(parsed_spec)}, expected RequiresClause")
+
+def test_parse_basic_forall_expr() -> None:
+    parsed_spec = parser.parse("__CPROVER_ensures(__CPROVER_forall { int i; (i > 0 && i <= 10) ==> arr[i] == 0 })")
+    match parsed_spec:
+        case EnsuresClause(_, expr):
+            if isinstance(expr, ForallExpr):
+                # TODO: add assertions
+                pass
+            else:
+                pytest.fail(f"Expected inner expression in EnsuresClause to be an instance of ForallExpr, but was {type(expr)}")
+        case _:
+            pytest.fail(f"Parsed spec is of type {type(parsed_spec)}, expected EnsuresClause")
 
 
 def test_parse_multi_line_spec() -> None:

@@ -61,20 +61,17 @@ ensures_clause : "__CPROVER_ensures" "(" bool_expr ")"
 
 // ---------- Quantifiers ------------
 ?quantifier_expr : forall_expr | exists_expr
-forall_expr : "__CPROVER_forall" "{" quantifier_decl ";" bool_expr "}" 
-exists_expr : "__CPROVER_exists" "{" quantifier_decl ";" bool_expr "}"
+forall_expr : "__CPROVER_forall" "{" quantifier_decl ";" bool_expr "==>" bool_expr "}"
+exists_expr : "__CPROVER_exists" "{" quantifier_decl ";" bool_expr "&&" bool_expr "}"
 
-quantifier_decl : type NAME
+quantifier_decl : typ NAME
 
 // ---------- Types ----------
-?type : "int"
-      | "unsigned"
-      | "signed"
-      | "bool"
-      | "char"
-      | "float"
-      | "double"
-      | NAME      // allow typedefs
+// Token for builtin type keywords (prevents them being lexed as NAME)
+TYPE_KW: "int" | "unsigned" | "signed" | "bool" | "char" | "float" | "double"
+
+// A type is either a builtin keyword or a typedef NAME
+typ: TYPE_KW | NAME
 
 // ---------- Tokens ----------
 BOOL: "1" | "0"
@@ -82,7 +79,6 @@ BOOL: "1" | "0"
 NAME: /[A-Za-z_][A-Za-z0-9_]*/
 
 NUMBER: /[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?/
-
 %import common.WS_INLINE
 %import common.WS
 %ignore WS_INLINE

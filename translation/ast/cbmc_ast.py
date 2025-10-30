@@ -228,21 +228,43 @@ class ArgList(CBMCAst, ast_utils.AsList):
     items: list[Any]
 
 
+class TypeNode(CBMCAst):
+    pass
+
+
+@dataclass
+class BuiltinType(TypeNode):
+    # e.g., "int", "unsigned", "signed", "bool", "char", "float", "double"
+    name: str
+
+
+@dataclass
+class NamedType(TypeNode):
+    # typedef or user-defined type
+    name: Name
+
+
+@dataclass
+class QuantifierDecl(CBMCAst):
+    typenode: TypeNode
+    name: Name
+
+
 @dataclass
 class Quantifier(CBMCAst):
-    decl: Any
+    decl: QuantifierDecl
+    range_expr: Any
     expr: Any
-    kind: str
 
 
 @dataclass
-class Forall(Quantifier):
-    kind: str = "forall"
+class ForallExpr(Quantifier):
+    pass
 
 
 @dataclass
-class Exist(Quantifier):
-    kind: str = "Exists"
+class ExistsExpr(Quantifier):
+    pass
 
 
 @dataclass
@@ -276,6 +298,26 @@ class _ToAst(Transformer):
 
     def BOOL(self, tok: Any) -> Bool:
         return Bool(value=(str(tok) == "1"))
+
+    def TYPE_KW(self, tok: Any) -> BuiltinType:  # builtin type keyword
+        return BuiltinType(name=str(tok))
+
+    # Build TypeNode: keyword already mapped to BuiltinType; NAME -> NamedType
+    @v_args(inline=True)
+    def typ(self, t):  # type: ignore[no-untyped-def]
+        if isinstance(t, Name):
+            return NamedType(name=t)
+        # t is a BuiltinType from TYPE_KW
+        return t
+
+    @v_args(inline=True)
+    def quantifier_decl(self, a, b):  # type: ignore[no-untyped-def]
+        # Grammar: quantifier_decl : typ NAME
+        if isinstance(a, TypeNode) and isinstance(b, Name):
+            return QuantifierDecl(typenode=a, name=b)
+        if isinstance(a, Name) and isinstance(b, TypeNode):  # tolerate reversed order
+            return QuantifierDecl(typenode=b, name=a)
+        raise ValueError(f"Unexpected quantifier_decl children: {type(a)} {type(b)}")
 
     # Keep start inline
     @v_args(inline=True)
