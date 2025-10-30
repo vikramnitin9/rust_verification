@@ -61,8 +61,8 @@ ensures_clause : "__CPROVER_ensures" "(" bool_expr ")"
 
 // ---------- Quantifiers ------------
 ?quantifier_expr : forall_expr | exists_expr
-forall_expr : "__CPROVER_forall" "{" quantifier_decl ";" bool_expr "==>" bool_expr "}"
-exists_expr : "__CPROVER_exists" "{" quantifier_decl ";" bool_expr "&&" bool_expr "}"
+forall_expr : "__CPROVER_forall" "{" quantifier_decl ";" "(" bool_expr ")" "==>" bool_expr "}"
+exists_expr : "__CPROVER_exists" "{" quantifier_decl ";" "(" bool_expr ")" "&&" bool_expr "}"
 
 quantifier_decl : typ NAME
 
