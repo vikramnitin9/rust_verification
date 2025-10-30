@@ -1,4 +1,4 @@
-## ParseC
+# ParseC
 
 ParseC is a LLVM/Clang-based tool to parse a C program (hence the name). It extracts functions, structures, etc. along with their inter-dependencies.
 
