@@ -9,6 +9,7 @@ from models import LLMGen, get_llm_generation_with_model
 from util import LLVMAnalysis, extract_specifications
 
 MODEL = "gpt-4o"
+HEADERS_TO_INCLUDE_IN_OUTPUT = ["stdlib.h", "limits.h"]
 
 
 def generate_spec(
@@ -187,23 +188,43 @@ def verify_one_function(func_name: str, llvm_analysis: LLVMAnalysis, out_file: P
     return success
 
 
+def _prepare_output_location(input_file_path: Path) -> Path:
+    """Return the path to the output location of the C program with generated specs.
+
+    Note: The output file is (initially) identical to the input file, with the addition of the
+    headers in `HEADERS_TO_INCLUDE_IN_OUTPUT` if they are not already in the file.
+
+    Note: The LLVM analysis should ideally expose the imports in a file, mitigating the need for the
+    brittle string matching that is currently done.
+
+    Args:
+        input_file_path (Path): The path to the initial C program for which to generate specs.
+
+    Returns:
+        Path: The path to the output location of the C program with generated specs.
+    """
+    output_folder = Path("specs")
+    output_folder.mkdir(exist_ok=True)
+    output_file_path = output_folder / input_file_path.name
+
+    input_program_content = input_file_path.read_text(encoding="utf-8")
+    input_program_lines = [line.strip() for line in input_program_content.splitlines()]
+    initial_output_program = input_program_content
+    for header in HEADERS_TO_INCLUDE_IN_OUTPUT:
+        header_line = f"#include <{header}>"
+        if header_line not in input_program_lines:
+            initial_output_program = f"{header_line}\n" + initial_output_program
+
+    output_file_path.write_text(initial_output_program, encoding="utf-8")
+    return output_file_path
+
+
 if __name__ == "__main__":
-    inp_file = Path(sys.argv[1])
-
-    spec_folder = Path("specs")
-    spec_folder.mkdir(exist_ok=True)
-    out_file = spec_folder / inp_file.name
-
-    # Copy input file to output file initially
-    # We iteratively update the output file with specs
-    # TODO: Include <stdlib.h> and <limits.h> in out_file if not present
-    with Path(inp_file).open(encoding="utf-8") as f:
-        inp = f.read()
-    with Path(out_file).open(mode="w", encoding="utf-8") as f:
-        f.write(inp)
+    input_file_path = Path(sys.argv[1])
+    output_file_path = _prepare_output_location(input_file_path)
 
     # Get a list of functions in reverse topological order
-    code_graph = CodeGraph(out_file)
+    code_graph = CodeGraph(output_file_path)
     recursive_funcs = code_graph.get_names_of_recursive_functions()
     code_graph_no_recursive_loops = code_graph.remove_recursive_loops()
     func_ordering = code_graph_no_recursive_loops.get_function_names_in_topological_order(
@@ -221,7 +242,7 @@ if __name__ == "__main__":
         print(f"Processing function {func_name}...")
 
         is_verification_successful = verify_one_function(
-            func_name, code_graph.llvm_analysis, out_file
+            func_name, code_graph.llvm_analysis, output_file_path
         )
 
         if is_verification_successful is None:
