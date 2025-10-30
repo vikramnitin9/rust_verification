@@ -122,8 +122,8 @@ class ParsecFunction:
         )
         if self.preconditions:
             preconds_in_prompt = ", ".join(self.preconditions)
-            function_for_prompt += f"\nPreconditions: {preconds_in_prompt}"
+            function_for_prompt += f"Preconditions: {preconds_in_prompt}\n"
         if self.postconditions:
             postconds_in_prompt = ", ".join(self.postconditions)
-            function_for_prompt += f"\nPostconditions: {postconds_in_prompt}"
+            function_for_prompt += f"Postconditions: {postconds_in_prompt}\n"
         return function_for_prompt

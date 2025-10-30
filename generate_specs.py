@@ -9,7 +9,7 @@ from pathlib import Path
 
 from analysis import CallGraph
 from models import LLMGen, get_llm_generation_with_model
-from util import ParsecResult, extract_specification
+from util import ParsecResult, PromptBuilder, extract_specification
 
 MODEL = "gpt-4o"
 HEADERS_TO_INCLUDE_IN_OUTPUT = ["stdlib.h", "limits.h"]
@@ -21,22 +21,20 @@ def main() -> None:
     input_file_path = Path(sys.argv[1])
     output_file_path = _prepare_output_location(input_file_path)
 
-    # Get a list of functions in reverse topological order
-    call_graph = CallGraph(output_file_path)
-
-    # Get a list of functions in reverse topological order.
     call_graph = CallGraph(output_file_path)
     recursive_funcs = call_graph.get_names_of_recursive_functions()
     # TODO: Process recursive loops rather than removing them.
-    code_graph_no_recursive_loops = call_graph.prune_self_loops()
-    func_ordering = code_graph_no_recursive_loops.get_function_names_in_topological_order(
+
+    # Note: No recursive functions are actually removed from the graph; only self-edges.
+    call_graph_without_self_edges = call_graph.remove_self_edges()
+
+    # Get a list of functions in reverse topological order.
+    func_ordering = call_graph_without_self_edges.get_function_names_in_topological_order(
         reverse_order=True
     )
 
     processed_funcs = []
     for func_name in func_ordering:
-        # TODO: These were removed above, so one of the two seems redundant.
-        # Skip recursive functions for now.
         if func_name in recursive_funcs:
             print(f"Skipping recursive function {func_name}")
             processed_funcs.append(func_name)
@@ -45,7 +43,7 @@ def main() -> None:
         print(f"Processing function {func_name}...")
 
         is_verification_successful = verify_one_function(
-            func_name, call_graph.parsec_result, processed_funcs, output_file_path
+            PromptBuilder(), func_name, call_graph.parsec_result, processed_funcs, output_file_path
         )
 
         if is_verification_successful is None:
@@ -84,15 +82,6 @@ def write_new_spec_to_file(
     if parsec_function is None:
         print(f"ParseC failed to find a function for '{func_name}'")
         sys.exit(1)
-
-    # If the function has any callees, get their specifications.
-    callees = parsec_result.get_callees(parsec_function)
-    callees_with_specs = [callee for callee in callees if callee.is_specified()]
-    # If the function has callees, and they have specifications, include them in the conversation.
-    # TODO: There is no introductory text to say what these are?
-    if callees_with_specs:
-        callee_context = "\n".join(str(callee) for callee in callees_with_specs)
-        conversation.append({"role": "user", "content": callee_context})
 
     try:
         response = model.gen(conversation, top_k=1, temperature=0.0)[0]
@@ -171,11 +160,16 @@ def recover_from_failure() -> None:
 
 
 def verify_one_function(
-    func_name: str, parsec_result: ParsecResult, processed_funcs: list[str], out_file: Path
+    prompt_builder: PromptBuilder,
+    func_name: str,
+    parsec_result: ParsecResult,
+    processed_funcs: list[str],
+    out_file: Path,
 ) -> bool | None:
     """Return the result of running CBMC on the specifications generated for a single function.
 
     Args:
+        prompt_builder (PromptBuilder): The prompt builder to construct prompts for the LLM.
         func_name (str): The name of the function to verify.
         parsec_result (ParsecResult): The result of running `parsec` on the initial code.
         processed_funcs (list[str]): The names of previously-processed functions.
@@ -185,25 +179,21 @@ def verify_one_function(
         bool | None: True iff verification succeeds, False if it fails. None if the function is
             not in the result of running `parsec` on the initial code.
     """
-    # Load the prompt from the template file.
-    prompt_template = Path("prompt.txt").read_text()
-
     parsec_function = parsec_result.get_function(func_name)
     # This should not happen.
     if parsec_function is None:
         msg = f"Function {func_name} not found in ParseC result"
         raise RuntimeError(msg)
 
-    # Get the source code of the function.
-    source_code = parsec_function.get_source_code()
-    # Fill in the prompt_template template
-    prompt = prompt_template.replace("<<SOURCE>>", source_code)
+    initial_spec_generation_prompt = prompt_builder.build_initial_specification_generation_prompt(
+        parsec_function, parsec_result
+    )
 
     # Call the LLM to generate a spec.
     model = get_llm_generation_with_model(MODEL)
     conversation = [
         {"role": "system", "content": "You are an intelligent coding assistant"},
-        {"role": "user", "content": prompt},
+        {"role": "user", "content": initial_spec_generation_prompt},
     ]
 
     write_new_spec_to_file(model, conversation, func_name, parsec_result, out_file)
@@ -229,15 +219,7 @@ def verify_one_function(
                 print(f"Verification for function {func_name} succeeded.")
                 processed_funcs.append(func_name)
                 return True
-            failure_lines = "\n".join(
-                [line for line in result.stdout.splitlines() if "FAILURE" in line]
-            )
-            repair_msg = (
-                f"Error while running verification for function {func_name}:\n"
-                f"STDOUT: {failure_lines}\n"
-                f"STDERR: {result.stderr}\n"
-                "Please fix the error and re-generate the function with specifications."
-            )
+            repair_msg = prompt_builder.build_repair_specification_prompt(parsec_function, result)
             print(repair_msg)
             conversation += [{"role": "user", "content": repair_msg}]
 

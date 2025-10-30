@@ -27,11 +27,13 @@ class CallGraph:
         self.parsec_result = ParsecResult(input_file)
         self.call_graph = self.parsec_result.get_call_graph()
 
-    def prune_self_loops(self) -> "CallGraph":
-        """Return a copy of this call graph, with self-loops (i.e., direct recursive calls) removed.
+    def remove_self_edges(self) -> "CallGraph":
+        """Return a copy of this call graph, with self-edges (i.e., direct recursive calls) removed.
+
+        Note: This operation does not remove any nodes from the call graph.
 
         Returns:
-            CodeGraph: A copy of this call graph, with self-loops removed.
+            CodeGraph: A copy of this call graph, with self-edges removed.
         """
         codegraph_copy = copy.deepcopy(self)
         self_loops = list(nx.selfloop_edges(codegraph_copy.call_graph))
