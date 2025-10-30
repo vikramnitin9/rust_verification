@@ -21,15 +21,14 @@ class TransformerT(Protocol[T_co]):
 
 
 class Parser(Generic[T_co]):
-    # TODO: "Generic" and "utility" add nothing.
-    # TODO: What is the difference between a "parse tree" and an "AST"?
-    """Generic parsing utility using Lark.
+    """Lark-based parser for grammars.
 
     See Lark documentation for details: https://lark-parser.readthedocs.io/en/stable/
 
     Attributes:
         parser (Lark): The Lark parser instance.
-        transformer (TransformerT[T]): The transformer to convert parse trees to ASTs.
+        transformer (TransformerT[T]): The transformer to convert raw Lark `Tree` values to
+            user-defined ASTs (e.g., see `cbmc_ast.py`).
     """
 
     parser: Lark
@@ -41,7 +40,8 @@ class Parser(Generic[T_co]):
         Args:
             path_to_grammar_defn (str): The path to the grammar definition file, in Lark EBNF.
             start (str): The start rule for the grammar.
-            transformer (TransformerT[T]): The transformer to convert parse trees to ASTs.
+            transformer (TransformerT[T]): The transformer to convert Lark `Tree` values to
+                user-defined ASTs (e.g., see `cbmc_ast.py`).
         """
         grammar_defn = Path(path_to_grammar_defn).read_text(encoding="utf-8")
         self.parser = Lark(
@@ -55,13 +55,13 @@ class Parser(Generic[T_co]):
         self.transformer = transformer
 
     def parse(self, text: str) -> T_co:
-        """Return an AST parsed from the given text.
+        """Return a user defined AST (T_co) parsed from the given text.
 
         Args:
             text (str): The text to parse.
 
         Returns:
-            T: The parsed AST.
+            T_co: The parsed AST.
         """
         tree = self.parser.parse(text)
         return self.transformer.transform(tree)
