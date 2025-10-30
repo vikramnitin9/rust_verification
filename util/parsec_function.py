@@ -80,16 +80,9 @@ class ParsecFunction:
             raise ValueError("Function start column is after end column on the same line.")
 
         # Handle 1-based columns; end_col is inclusive
-        # TODO: I don't think any special case is needed for start_line == end_line.  Simplify.
-        if self.start_line == self.end_line:
-            line = lines[self.start_line - 1]
-            return line[self.start_col - 1 : self.end_col]
         func_lines = lines[self.start_line - 1 : self.end_line]
-        # TODO: for correctness, handle the last line before the first, in case they are the same.
-        # First line: drop everything before start_col
-        func_lines[0] = func_lines[0][self.start_col - 1 :]
-        # Last line: keep up to end_col (inclusive -> end-exclusive slice)
         func_lines[-1] = func_lines[-1][: self.end_col]
+        func_lines[0] = func_lines[0][self.start_col - 1 :]
         return "".join(func_lines)
 
     def is_specified(self) -> bool:
