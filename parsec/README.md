@@ -52,78 +52,70 @@ The output of `parsec` is a single JSON file, `analysis.json`, created in the cu
   "files": [],
   "functions": [
     {
-      "name": str,
-      "signature": str,
-      "num_args": int,
-      "argTypes": [str],
-      "argNames": [str],
-      "returnType": [str],
-      "filename": str,
-      "startLine": int,
-      "endLine": int,
-      "startCol": int,
-      "endCol": int,
+      "name": "str",
+      "signature": "str",
+      "num_args": "int",
+      "argTypes": ["str"],
+      "argNames": ["str"],
+      "returnType": ["str"],
+      "filename": "str",
+      "startLine": "int",
+      "endLine": "int",
+      "startCol": "int",
+      "endCol": "int",
       "functions": [
         {
-          "name": str
-        },
-        ...
+          "name": "str"
+        }
       ],
       "structs": [
         {
-          "name": str
-        },
-        ...
+          "name": "str"
+        }
       ],
       "enums": [
         {
-          "name": str
-        },
-        ...
+          "name": "str"
+        }
       ],
       "globals": [
         {
-          "name": str
-        },
-        ...
+          "name": "str"
+        }
       ]
-    },
-    ...
-  ]
+    }
+  ],
   "structs": [
     {
-      "name": str,
-      "filename": str,
-      "startLine", int,
-      "endLine", int,
-      "startCol", int,
-      "endCol", endCol
-    },
-    ...
+      "name": "str",
+      "filename": "str",
+      "startLine": "int",
+      "endLine": "int",
+      "startCol": "int",
+      "endCol": "int"
+    }
   ],
   "enums": [
     {
-      "name": str,
-      "filename": str,
-      "startLine", int,
-      "endLine", int,
-      "startCol", int,
-      "endCol", endCol
-    },
-    ...
+      "name": "str",
+      "filename": "str",
+      "startLine": "int",
+      "endLine": "int",
+      "startCol": "int",
+      "endCol": "int"
+    }
   ],
   "globals": [
     {
-      "name": str,
-      "type": str,
-      "filename": str,
-      "startLine": int,
-      "endLine": int,
-      "startCol": int,
-      "endCol": int,
-      "isStatic": bool
-    },
-    ...
+      "name": "str",
+      "type": "str",
+      "filename": "str",
+      "startLine": "int",
+      "endLine": "int",
+      "startCol": "int",
+      "endCol": "int",
+      "isStatic": "bool"
+    }
   ]
 }
 ```
