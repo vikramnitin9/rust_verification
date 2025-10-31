@@ -11,9 +11,6 @@ RUST_KEYWORDS: set[str] = set()
 with pathlib.Path("translation/specifications/rust_keywords.txt").open(encoding="utf-8") as f:
     RUST_KEYWORDS = set(f.readlines())
 
-CPROVER_RESULT = "__CPROVER_result"
-KANI_RESULT = "result"
-
 
 class TranslationError(Exception):
     """Represents an error in translating CBMC to Kani specifications."""
@@ -75,12 +72,12 @@ class CBMCToKani:
             case cbmc_ast.RequiresClause(_, expr):
                 kani_condition = self._to_kani_str(expr)
                 if "__CPROVER_result" in kani_condition:
-                    kani_condition = self._update_cprover_result_expr(kani_condition)
+                    kani_condition = self._replace_cbmc_macros(kani_condition)
                 return f"kani::requires({kani_condition})"
             case cbmc_ast.EnsuresClause(_, expr):
                 kani_condition = self._to_kani_str(expr)
                 if "__CPROVER_result" in kani_condition:
-                    kani_condition = self._update_cprover_result_expr(kani_condition)
+                    kani_condition = self._replace_cbmc_macros(kani_condition)
                 return f"kani::ensures({kani_condition})"
             case cbmc_ast.IndexOp(value, index):
                 kani_value = self._to_kani_str(value)
@@ -96,9 +93,11 @@ class CBMCToKani:
                 )
             case cbmc_ast.CallOp(func, args):
                 rust_func = self._to_kani_str(func)
-                rust_args = [self._to_kani_str(a) for a in args] if args else ""
-                formatted_args = ", ".join(rust_args)
-                return f"{rust_func}({formatted_args})"
+                rust_args = self._to_kani_str(args) if args else ""
+                return f"{rust_func}({rust_args})"
+            case cbmc_ast.DerefOp(operand):
+                rust_operand = self._to_kani_str(operand)
+                return f"*{rust_operand}"
             case cbmc_ast.MemberOp(value, attr):
                 return f"{self._to_kani_str(value)}.{self._to_kani_str(attr)}"
             case cbmc_ast.Bool(v):
@@ -132,17 +131,18 @@ class CBMCToKani:
                 msg = f"Invalid CBMC range: {cbmc_range_expr}"
                 raise TranslationError(msg)
 
-    def _update_cprover_result_expr(self, cprover_result_expr: str) -> str:
-        """Convert a CProver expression containing a __CPROVER_result variable to Kani.
-
-        A __CPROVER_result variable in an expression enables specifications that reason about the
-        return value of a function. The same construct appears in Kani, but is called 'result'.
+    def _replace_cbmc_macros(self, cbmc_str: str) -> str:
+        """Replace CBMC macros (e.g., __CPROVER_result, __CPROVER_old) with their Kani equivalents.
 
         Args:
-            cprover_result_expr (str): A CProver expression containing a __CPROVER_result variable.
+            cbmc_str (str): The string on which to perform macro placement.
 
         Returns:
-            str: A Kani expression that equivalently reasons about the result of a function.
+            str: The string with CBMC macros replaced with Kani equivalents.
         """
-        kani_expr = cprover_result_expr.replace("__CPROVER_result", "result")
-        return f"|result| {kani_expr}"
+        result = cbmc_str
+        if "__CPROVER_result" in cbmc_str:
+            result = f"|result| {cbmc_str.replace('__CPROVER_result', 'result')}"
+        if "__CPROVER_old" in cbmc_str:
+            result = result.replace("__CPROVER_old", "old")
+        return result

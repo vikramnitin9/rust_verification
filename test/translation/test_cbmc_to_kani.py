@@ -36,6 +36,11 @@ def test_ensures_result_simple() -> None:
     kani_specs = ["kani::ensures(|result| result > x)"]
     assert translator.translate(cbmc_specs) == kani_specs
 
+def test_ensures_result_old() -> None:
+    cbmc_specs = ["__CPROVER_ensures(__CPROVER_result == __CPROVER_old(*a))"]
+    kani_specs = ["kani::ensures(|result| result == old(*a))"]
+    assert translator.translate(cbmc_specs) == kani_specs
+
 
 def test_ensures_result_nested() -> None:
     cbmc_specs = ["__CPROVER_ensures(x >= 0 && __CPROVER_result > x)"]

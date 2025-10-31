@@ -219,8 +219,8 @@ class IndexOp(CBMCAst):
 
 @dataclass
 class CallOp(CBMCAst):
-    func: Any
-    args: list[Any]
+    func: CBMCAst
+    args: CBMCAst
 
 
 @dataclass
