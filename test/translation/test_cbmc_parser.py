@@ -12,8 +12,10 @@ from translation.ast.cbmc_ast import (
     EqOp,
     GtOp,
     LeOp,
+    LtOp,
     Name,
     NamedType,
+    BuiltinType,
     QuantifierDecl,
     NeqOp,
     Number,
@@ -69,7 +71,7 @@ def test_parse_nested_condition_expr() -> None:
             pytest.fail(f"Parsed spec is of type {type(parsed_spec)}, expected RequiresClause")
 
 def test_parse_basic_forall_expr() -> None:
-    parsed_spec = parser.parse("__CPROVER_ensures(__CPROVER_forall { int i; (i > 0 && i <= 10) ==> arr[i] == 0 })")
+    parsed_spec = parser.parse("__CPROVER_ensures(__CPROVER_forall { int i; (0 <= i && i < 10) ==> arr[i] == 0 })")
     if not isinstance(parsed_spec, EnsuresClause):
         pytest.fail(f"Top level AST is of type {type(parsed_spec)}, expected EnsuresClause")
     parsed_spec_expr = parsed_spec.expr
@@ -78,14 +80,14 @@ def test_parse_basic_forall_expr() -> None:
 
     # Check the declaration.
     match parsed_spec_expr.decl:
-        case QuantifierDecl(typenode=NamedType(Name("int")), name=Name("i")):
+        case QuantifierDecl(typenode=BuiltinType("int"), name=Name("i")):
             pass
         case _:
             pytest.fail(f"Declaration should be `int i`, but was {parsed_spec_expr.decl}")
         
     # Check the range expression
     match parsed_spec_expr.range_expr:
-        case AndOp(left=GtOp(left=Name("i"), right=Number(0)), right=LeOp(left=Name("i"), right=Number(10))):
+        case AndOp(left=LeOp(left=Number(0), right=Name("i")), right=LtOp(left=Name("i"), right=Number(10))):
             pass
         case _:
             pytest.fail(f"Range should be `i > 0 &&  <= 10`, but was {parsed_spec_expr.range_expr}")
@@ -98,7 +100,7 @@ def test_parse_basic_forall_expr() -> None:
             pytest.fail(f"Body should be `arr[i] == 0`, but was {parsed_spec_expr.expr}")
 
 def test_parse_basic_exists_expr() -> None:
-    parsed_spec = parser.parse("__CPROVER_requires(__CPROVER_exists { long j; (j > 0 && j <= len + 1) && arr[j] == 10 })")
+    parsed_spec = parser.parse("__CPROVER_requires(__CPROVER_exists { long j; (0 <= j && j < len + 1) && arr[j] == 10 })")
     if not isinstance(parsed_spec, RequiresClause):
         pytest.fail(f"Top level AST is of type {type(parsed_spec)}, expected RequiresClause")
     parsed_spec_expr = parsed_spec.expr
@@ -107,17 +109,17 @@ def test_parse_basic_exists_expr() -> None:
 
     # Check the declaration.
     match parsed_spec_expr.decl:
-        case QuantifierDecl(typenode=NamedType(Name("long")), name=Name("j")):
+        case QuantifierDecl(typenode=BuiltinType("long"), name=Name("j")):
             pass
         case _:
             pytest.fail(f"Declaration should be `long j`, but was {parsed_spec_expr.decl}")
     
     # Check the range expression.
     match parsed_spec_expr.range_expr:
-        case AndOp(left=GtOp(left=Name("j"), right=Number(0)), right=LeOp(left=Name("j"), right=AddOp(left=Name("len"), right=Number(1)))):
+        case AndOp(left=LeOp(right=Name("j"), left=Number(0)), right=LtOp(left=Name("j"), right=AddOp(left=Name("len"), right=Number(1)))):
             pass
         case _:
-            pytest.fail(f"Range should be `j > 0 && j <= len + 1`, but was {parsed_spec_expr.range_expr}")
+            pytest.fail(f"Range should be `0 <= j && j < len + 1`, but was {parsed_spec_expr.range_expr}")
 
     # Check the qualifier body.
     match parsed_spec_expr.expr:

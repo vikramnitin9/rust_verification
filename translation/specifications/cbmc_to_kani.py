@@ -1,9 +1,9 @@
 """Deterministic compiler from CBMC to Kani specifications."""
 
 import pathlib
+from typing import Any
 
 from lark.exceptions import UnexpectedToken
-from typing import Any
 
 from translation import CBMCAst, Parser, cbmc_ast
 
@@ -89,7 +89,18 @@ class CBMCToKani:
             case cbmc_ast.Quantifier(_, range_expr, expr, kind):
                 kani_quantifier_macro = f"{kind}!"
                 kani_body_expr = self._to_kani_str(expr)
-                return f"kani::{kani_quantifier_macro}(|{self._to_kani_range(range_expr)}| {kani_body_expr})"
+                return (
+                    "kani::"
+                    f"{kani_quantifier_macro}("
+                    f"|{self._to_kani_range(range_expr)}| {kani_body_expr})"
+                )
+            case cbmc_ast.CallOp(func, args):
+                rust_func = self._to_kani_str(func)
+                rust_args = [self._to_kani_str(a) for a in args] if args else ""
+                formatted_args = ", ".join(rust_args)
+                return f"{rust_func}({formatted_args})"
+            case cbmc_ast.MemberOp(value, attr):
+                return f"{self._to_kani_str(value)}.{self._to_kani_str(attr)}"
             case cbmc_ast.Bool(v):
                 return "true" if v else "false"
             case cbmc_ast.Name(v):
@@ -109,13 +120,17 @@ class CBMCToKani:
         match cbmc_range_expr:
             case cbmc_ast.AndOp(cbmc_ast.LeOp(lower_bound, i), cbmc_ast.LtOp(j, upper_bound)):
                 if i.name != j.name:
-                    raise TranslationError(f"Invalid CBMC range: {cbmc_range_expr}")
+                    bound_mismatch = (
+                        f"Invalid CBMC range (index must be the same in each bound): "
+                        f"{cbmc_range_expr}"
+                    )
+                    raise TranslationError(bound_mismatch)
                 kani_lower_bound = self._to_kani_str(lower_bound)
                 kani_upper_bound = self._to_kani_str(upper_bound)
                 return f"{self._to_kani_str(i)} in ({kani_lower_bound}, {kani_upper_bound})"
             case _:
-                raise TranslationError(f"Invalid CBMC range: {cbmc_range_expr}")
-
+                msg = f"Invalid CBMC range: {cbmc_range_expr}"
+                raise TranslationError(msg)
 
     def _update_cprover_result_expr(self, cprover_result_expr: str) -> str:
         """Convert a CProver expression containing a __CPROVER_result variable to Kani.

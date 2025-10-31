@@ -201,8 +201,8 @@ class PosOp(CBMCAst):
 
 @dataclass
 class MemberOp(CBMCAst):
-    value: Any
-    attr: str
+    value: CBMCAst
+    attr: CBMCAst
 
 
 @dataclass
@@ -235,6 +235,7 @@ class TypeNode(CBMCAst):
 @dataclass
 class BuiltinType(TypeNode):
     # e.g., "int", "unsigned", "signed", "bool", "char", "float", "double"
+    BUILT_IN_TYPES = {"int", "unsigned", "signed", "char", "long", "float", "double"}
     name: str
 
 
@@ -255,7 +256,7 @@ class Quantifier(CBMCAst):
     decl: QuantifierDecl
     range_expr: Any
     expr: Any
-    kind: str
+    kind: str = ""
 
 
 @dataclass
@@ -309,6 +310,8 @@ class _ToAst(Transformer):
     @v_args(inline=True)
     def typ(self, t):  # type: ignore[no-untyped-def]
         if isinstance(t, Name):
+            if t.name in BuiltinType.BUILT_IN_TYPES:
+                return BuiltinType(name=t.name)
             return NamedType(name=t)
         # t is a BuiltinType from TYPE_KW
         return t
