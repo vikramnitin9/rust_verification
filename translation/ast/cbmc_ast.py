@@ -2,6 +2,11 @@
 # Ideally we'd like to type check this file, but Lark does not yet support type annotations.
 # ruff: noqa
 
+#
+# This is a manually-written mapping of cbmc.txt to the AST representation used to
+# parse CBMC specifications into the representation we work with in this codebase.
+#
+
 import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass

@@ -1,3 +1,3 @@
-from .codegraph import CodeGraph
+from .callgraph import CallGraph
 
-__all__ = ["CodeGraph"]
+__all__ = ["CallGraph"]

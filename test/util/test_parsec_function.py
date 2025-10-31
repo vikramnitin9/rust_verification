@@ -1,10 +1,10 @@
 import pytest
 
-from util.function import Function
+from util.parsec_function import ParsecFunction
 
 
 def test_get_source_code() -> None:
-    qsort = Function(
+    qsort = ParsecFunction(
         {
             "name": "swap",
             "num_args": 2,
@@ -25,7 +25,7 @@ def test_get_source_code() -> None:
 
 
 def test_get_source_code_invalid_line_range() -> None:
-    nonexistent_function = Function(
+    nonexistent_function = ParsecFunction(
         {
             "name": "swap",
             "num_args": 2,
@@ -43,7 +43,7 @@ def test_get_source_code_invalid_line_range() -> None:
 
 
 def test_get_source_code_on_one_line() -> None:
-    one_line_function = Function(
+    one_line_function = ParsecFunction(
         {
             "name": "single_line_main",
             "num_args": 0,
@@ -62,7 +62,7 @@ def test_get_source_code_on_one_line() -> None:
 
 
 def test_get_source_code_at_end_of_file() -> None:
-    end_of_file_function = Function(
+    end_of_file_function = ParsecFunction(
         {
             "name": "fn_at_end",
             "num_args": 0,
