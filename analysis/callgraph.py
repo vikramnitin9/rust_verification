@@ -1,41 +1,39 @@
-"""Module for working with LLVM code graphs."""
-# TODO: should that be "call graphs"?
+"""Module for working with call graphs generated via ParseC."""
 
 import copy
 from pathlib import Path
 
 import networkx as nx
 
-from util import LlvmAnalysis
+from util import ParsecResult
 
 
-class CodeGraph:
-    # TODO: "call graph" rather than "code graph"?
-    """Represents a code graph, used to determine the order in which specifications are generated.
+class CallGraph:
+    """Represents a call graph, used to determine the order in which specifications are generated.
 
     Attributes:
-        input_file (Path): The path to the input source code file for which this code graph
+        input_file (Path): The path to the input source code file for which this call graph
             is constructed.
-        llvm_analysis (LlvmAnalysis): The result of running an LLVM code graph analysis on the input
-            file.
+        parsec_result (ParsecResult): The result of running ParseC on the input file.
         call_graph (nx.DiGraph): The call graph, derived from the LLVM analysis via networkx.
     """
 
     input_file: Path
-    llvm_analysis: LlvmAnalysis
+    parsec_result: ParsecResult
     call_graph: nx.DiGraph  # type: ignore[type-arg]
 
     def __init__(self, input_file: Path):
         self.input_file = input_file
-        self.llvm_analysis = LlvmAnalysis(input_file)
-        self.call_graph = self.llvm_analysis.get_call_graph()
+        self.parsec_result = ParsecResult(input_file)
+        self.call_graph = self.parsec_result.get_call_graph()
 
-    # TODO: "recursive loops" suggests to me that that mutual recursion is also handled.
-    def remove_recursive_loops(self) -> "CodeGraph":
-        """Return a copy of this code graph, with self-edges (i.e., recursive calls) removed.
+    def remove_self_edges(self) -> "CallGraph":
+        """Return a copy of this call graph, with self-edges (i.e., direct recursive calls) removed.
+
+        Note: This operation does not remove any nodes from the call graph.
 
         Returns:
-            CodeGraph: A copy of this code graph, with self-edges removed.
+            CodeGraph: A copy of this call graph, with self-edges removed.
         """
         codegraph_copy = copy.deepcopy(self)
         self_loops = list(nx.selfloop_edges(codegraph_copy.call_graph))

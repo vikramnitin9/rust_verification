@@ -19,15 +19,12 @@ def extract_specification(function_lines: list[str]) -> FunctionSpecification:
     preconditions = []
     postconditions = []
     for i, line in enumerate(stripped_lines):
-        # TODO: I think just cascaded `if` would be clearer here.
-        match line:
-            case _ if line.startswith(PRECONDITION_PREFIX):
-                preconditions.append(_get_spec_lines(i, stripped_lines))
-            case _ if line.startswith(POSTCONDITION_PREFIX):
-                postconditions.append(_get_spec_lines(i, stripped_lines))
-            case _:
-                # TODO: Support other specifications, if necessary.
-                continue
+        if line.startswith(PRECONDITION_PREFIX):
+            preconditions.append(_get_spec_lines(i, stripped_lines))
+        elif line.startswith(POSTCONDITION_PREFIX):
+            postconditions.append(_get_spec_lines(i, stripped_lines))
+        elif line.startswith("__CPROVER"):
+            print(f"Encountered {line}, but was not a precondition or postcondition")
     return FunctionSpecification(
         preconditions=preconditions,
         postconditions=postconditions,

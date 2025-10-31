@@ -1,4 +1,4 @@
-"""Represents the LLVM analysis for a function."""
+"""Represents the ParseC representation for a C function."""
 
 import pathlib
 from dataclasses import dataclass, field
@@ -14,10 +14,8 @@ Function signature: $signature
 
 
 @dataclass
-# TODO: "Function" is a poor name for an analysis.  Unless this is a complete LLVM representation
-# of a function, in which case it can be OK, though LlvmFunction would be more descriptive.
-class LlvmFunction:
-    """Represents a C function as analyzed by LLVM."""
+class ParsecFunction:
+    """Represents a C function as parsed by ParseC."""
 
     name: str
     num_args: int
@@ -82,16 +80,9 @@ class LlvmFunction:
             raise ValueError("Function start column is after end column on the same line.")
 
         # Handle 1-based columns; end_col is inclusive
-        # TODO: I don't think any special case is needed for start_line == end_line.  Simplify.
-        if self.start_line == self.end_line:
-            line = lines[self.start_line - 1]
-            return line[self.start_col - 1 : self.end_col]
         func_lines = lines[self.start_line - 1 : self.end_line]
-        # TODO: for correctness, handle the last line before the first, in case they are the same.
-        # First line: drop everything before start_col
-        func_lines[0] = func_lines[0][self.start_col - 1 :]
-        # Last line: keep up to end_col (inclusive -> end-exclusive slice)
         func_lines[-1] = func_lines[-1][: self.end_col]
+        func_lines[0] = func_lines[0][self.start_col - 1 :]
         return "".join(func_lines)
 
     def is_specified(self) -> bool:
@@ -124,8 +115,8 @@ class LlvmFunction:
         )
         if self.preconditions:
             preconds_in_prompt = ", ".join(self.preconditions)
-            function_for_prompt += f"\nPreconditions: {preconds_in_prompt}"
+            function_for_prompt += f"Preconditions: {preconds_in_prompt}\n"
         if self.postconditions:
             postconds_in_prompt = ", ".join(self.postconditions)
-            function_for_prompt += f"\nPostconditions: {postconds_in_prompt}"
+            function_for_prompt += f"Postconditions: {postconds_in_prompt}\n"
         return function_for_prompt
