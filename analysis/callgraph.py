@@ -33,12 +33,12 @@ class CallGraph:
         Note: This operation does not remove any nodes from the call graph.
 
         Returns:
-            CodeGraph: A copy of this call graph, with self-edges removed.
+            CallGraph: A copy of this call graph, with self-edges removed.
         """
-        codegraph_copy = copy.deepcopy(self)
-        self_loops = list(nx.selfloop_edges(codegraph_copy.call_graph))
-        codegraph_copy.call_graph.remove_edges_from(self_loops)
-        return codegraph_copy
+        callgraph_copy = copy.deepcopy(self)
+        self_loops = list(nx.selfloop_edges(callgraph_copy.call_graph))
+        callgraph_copy.call_graph.remove_edges_from(self_loops)
+        return callgraph_copy
 
     def get_names_of_recursive_functions(self) -> list[str]:
         """Return the names of directly-recursive functions in this code graph.
