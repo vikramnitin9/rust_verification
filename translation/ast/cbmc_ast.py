@@ -255,15 +255,18 @@ class Quantifier(CBMCAst):
     decl: QuantifierDecl
     range_expr: Any
     expr: Any
+    kind: str
 
 
 @dataclass
 class ForallExpr(Quantifier):
+    kind: str = "forall"
     pass
 
 
 @dataclass
 class ExistsExpr(Quantifier):
+    kind: str = "exists"
     pass
 
 

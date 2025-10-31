@@ -3,6 +3,7 @@
 import pathlib
 
 from lark.exceptions import UnexpectedToken
+from typing import Any
 
 from translation import CBMCAst, Parser, cbmc_ast
 
@@ -85,6 +86,10 @@ class CBMCToKani:
                 kani_value = self._to_kani_str(value)
                 kani_index = self._to_kani_str(index)
                 return f"{kani_value}[{kani_index}]"
+            case cbmc_ast.Quantifier(_, range_expr, expr, kind):
+                kani_quantifier_macro = f"{kind}!"
+                kani_body_expr = self._to_kani_str(expr)
+                return f"kani::{kani_quantifier_macro}(|{self._to_kani_range(range_expr)}| {kani_body_expr})"
             case cbmc_ast.Bool(v):
                 return "true" if v else "false"
             case cbmc_ast.Name(v):
@@ -99,6 +104,18 @@ class CBMCToKani:
             case unsupported_spec:
                 msg = f"Failed to translate CBMC spec: {unsupported_spec}"
                 raise TranslationError(msg)
+
+    def _to_kani_range(self, cbmc_range_expr: Any) -> str:
+        match cbmc_range_expr:
+            case cbmc_ast.AndOp(cbmc_ast.LeOp(lower_bound, i), cbmc_ast.LtOp(j, upper_bound)):
+                if i.name != j.name:
+                    raise TranslationError(f"Invalid CBMC range: {cbmc_range_expr}")
+                kani_lower_bound = self._to_kani_str(lower_bound)
+                kani_upper_bound = self._to_kani_str(upper_bound)
+                return f"{self._to_kani_str(i)} in ({kani_lower_bound}, {kani_upper_bound})"
+            case _:
+                raise TranslationError(f"Invalid CBMC range: {cbmc_range_expr}")
+
 
     def _update_cprover_result_expr(self, cprover_result_expr: str) -> str:
         """Convert a CProver expression containing a __CPROVER_result variable to Kani.

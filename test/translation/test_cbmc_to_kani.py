@@ -49,3 +49,8 @@ def test_array_condition() -> None:
         "kani::ensures(|result| arr[result] > 0)",
     ]
     assert translator.translate(cbmc_specs) == kani_specs
+
+def test_forall() -> None:
+    cbmc_specs = ["__CPROVER_requires(__CPROVER_exists { int i; (0 <= i && i < n) && arr[i] > 0 })"]
+    kani_specs = ["kani::requires(kani::exists!(|i in (0, n)| arr[i] > 0))"]
+    assert translator.translate(cbmc_specs) == kani_specs
