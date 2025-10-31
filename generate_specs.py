@@ -23,8 +23,9 @@ def main() -> None:
 
     call_graph = CallGraph(output_file_path)
     recursive_funcs = call_graph.get_names_of_recursive_functions()
-    # TODO: Process recursive loops rather than removing them.
 
+    # TODO: Process recursive loops rather than removing them. A topological ordering is not
+    # computed in cases where recursion is present, and we fall back to a DFS post-order traversal.
     # Note: No recursive functions are actually removed from the graph; only self-edges.
     call_graph_without_self_edges = call_graph.remove_self_edges()
 
@@ -198,7 +199,7 @@ def verify_one_function(
 
     write_new_spec_to_file(model, conversation, func_name, parsec_result, out_file)
 
-    for _ in range(DEFAULT_NUM_VERIFICATION_ATTEMPTS):
+    for n in range(DEFAULT_NUM_VERIFICATION_ATTEMPTS):
         # Replace calls to already-processed functions with their contracts
         replace_args = "".join([f"--replace-call-with-contract {f} " for f in processed_funcs])
 
@@ -216,7 +217,9 @@ def verify_one_function(
         try:
             result = subprocess.run(command, shell=True, capture_output=True, text=True)
             if result.returncode == 0:
-                print(f"Verification for function {func_name} succeeded.")
+                print(
+                    f"Verification for function {func_name} succeeded (Number of attempts: {n + 1})"
+                )
                 processed_funcs.append(func_name)
                 return True
             repair_msg = prompt_builder.build_repair_specification_prompt(parsec_function, result)
