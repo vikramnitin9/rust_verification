@@ -18,6 +18,7 @@ ParseC is intended for use only with Linux. The following utilities and librarie
 mkdir build && cd build
 cmake .. && make
 ```
+
 If compilation is successful, the `parsec` binary will be created in the `build` directory. You can add it to your `PATH`, or access it by its full file path.
 
 ## Usage
@@ -31,9 +32,11 @@ parsec hello.c
 To run it on a full project, you need a `compile_commands.json` compilation database for your project. This can be obtained in a few different ways:
 - If your project uses CMake, you can generate one automatically by setting [`CMAKE_EXPORT_COMPILE_COMMANDS`](https://cmake.org/cmake/help/latest/variable/CMAKE_EXPORT_COMPILE_COMMANDS.html).
 - If your project uses `make`, you can use the `bear` utility to generate a compilation database:
+
   ```sh
   bear -- make
   ```
+
 Once you have `compile_commands.json`, you can run `parsec` like this:
 
 ```sh
@@ -124,8 +127,9 @@ The output of `parsec` is a single JSON file, `analysis.json`, created in the cu
   ]
 }
 ```
+
 Note that the field `files` is intended to be populated with a list of source files and metadata about each one; however, this functionality is not yet implemented and the `files` field will currently always contain an empty list.
 
 ## Options and Customization
 
-`parsec` has two command line flags, `--add-instr` and `--rename-main`. These are intended for internal use and debugging only.
+`parsec` has two command-line flags, `--add-instr` and `--rename-main`. These are intended for internal use and debugging only.
