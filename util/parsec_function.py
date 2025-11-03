@@ -2,15 +2,9 @@
 
 import pathlib
 from dataclasses import dataclass, field
-from string import Template
 from typing import Any
 
 from .specifications import FunctionSpecification
-
-TEMPLATE_FOR_FUNCTION_PROMPT = Template("""
-Function name: $name
-Function signature: $signature
-""")
 
 
 @dataclass
@@ -110,14 +104,13 @@ class ParsecFunction:
         Returns:
             str: The string representation of this function.
         """
-        function_for_prompt = TEMPLATE_FOR_FUNCTION_PROMPT.safe_substitute(
-            name=self.name,
-            signature=self.signature,
+        function_name_and_signature = (
+            f"""\nFunction name: {self.name}\nFunction signature: {self.signature}\n"""
         )
         if self.preconditions:
             preconds_in_prompt = ", ".join(self.preconditions)
-            function_for_prompt += f"Preconditions: {preconds_in_prompt}\n"
+            function_name_and_signature += f"Preconditions: {preconds_in_prompt}\n"
         if self.postconditions:
             postconds_in_prompt = ", ".join(self.postconditions)
-            function_for_prompt += f"Postconditions: {postconds_in_prompt}\n"
-        return function_for_prompt
+            function_name_and_signature += f"Postconditions: {postconds_in_prompt}\n"
+        return function_name_and_signature
