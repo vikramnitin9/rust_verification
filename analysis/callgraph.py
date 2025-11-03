@@ -27,17 +27,19 @@ class CallGraph:
         self.parsec_result = ParsecResult(input_file)
         self.call_graph = self.parsec_result.get_call_graph()
 
-    def remove_self_edges(self) -> "CallGraph":
-        """Return a copy of this call graph, with self-edges (i.e., direct recursive calls) removed.
+    def copy(self, remove_self_edges: bool = False) -> "CallGraph":
+        """Return a copy of this call graph, optionally removing any self-edges.
 
-        Note: This operation does not remove any nodes from the call graph.
+        Note: Self-edges represent direct recursive calls, this operation does not modify the
+        original graph on which it is invoked.
 
         Returns:
-            CallGraph: A copy of this call graph, with self-edges removed.
+            CallGraph: A copy of this call graph, optionally removing any self-edges.
         """
         callgraph_copy = copy.deepcopy(self)
-        self_loops = list(nx.selfloop_edges(callgraph_copy.call_graph))
-        callgraph_copy.call_graph.remove_edges_from(self_loops)
+        if remove_self_edges:
+            self_loops = list(nx.selfloop_edges(callgraph_copy.call_graph))
+            callgraph_copy.call_graph.remove_edges_from(self_loops)
         return callgraph_copy
 
     def get_names_of_recursive_functions(self) -> list[str]:

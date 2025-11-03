@@ -12,51 +12,51 @@ from models import LLMGen, get_llm_generation_with_model
 from util import ParsecResult, PromptBuilder, extract_specification
 
 MODEL = "gpt-4o"
-HEADERS_TO_INCLUDE_IN_OUTPUT = ["stdlib.h", "limits.h"]
+DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
 DEFAULT_NUM_VERIFICATION_ATTEMPTS = 10
 
 
 def main() -> None:
-    """Entry point to generate_specs.py."""
+    """Generate specifications for C functions using an LLM and verify them with CBMC."""
     input_file_path = Path(sys.argv[1])
-    output_file_path = _prepare_output_location(input_file_path)
+    output_file_path = _copy_input_file_to_output_file(input_file_path)
+    _insert_default_headers(output_file_path)
 
     call_graph = CallGraph(output_file_path)
     recursive_funcs = call_graph.get_names_of_recursive_functions()
 
     # TODO: Process recursive loops rather than removing them.
     # Note: No recursive functions are actually removed from the graph; only self-edges.
-    call_graph_without_self_edges = call_graph.remove_self_edges()
+    call_graph_without_self_edges = call_graph.copy(remove_self_edges=True)
 
     # Get a list of functions in reverse topological order.
     func_ordering = call_graph_without_self_edges.get_function_names_in_topological_order(
         reverse_order=True
     )
-
-    processed_funcs = []
+    verified_functions: list[str] = []
+    prompt_builder = PromptBuilder()
     for func_name in func_ordering:
         if func_name in recursive_funcs:
             print(f"Skipping self-recursive function {func_name} because of CBMC bugs/limitations.")
-            processed_funcs.append(func_name)
             continue
 
         print(f"Processing function {func_name}...")
 
         is_verification_successful = verify_one_function(
-            PromptBuilder(), func_name, call_graph.parsec_result, processed_funcs, output_file_path
+            prompt_builder,
+            func_name,
+            call_graph.parsec_result,
+            verified_functions,
+            output_file_path,
         )
 
-        if is_verification_successful is None:
-            print(f"Skipping function {func_name} due to missing analysis.")
-            processed_funcs.append(func_name)
-            continue
-
-        if not is_verification_successful:
+        if is_verification_successful:
+            verified_functions.append(func_name)
+        else:
             print(
                 f"Verification for function {func_name} failed after "
                 f"{DEFAULT_NUM_VERIFICATION_ATTEMPTS} attempts."
             )
-            processed_funcs.append(func_name)
             continue
 
 
@@ -165,7 +165,7 @@ def verify_one_function(
     parsec_result: ParsecResult,
     processed_funcs: list[str],
     out_file: Path,
-) -> bool | None:
+) -> bool:
     """Return the result of running CBMC on the specifications generated for a single function.
 
     Args:
@@ -199,31 +199,32 @@ def verify_one_function(
 
     write_new_spec_to_file(model, conversation, func_name, parsec_result, out_file)
 
+    replace_args = "".join([f"--replace-call-with-contract {f} " for f in processed_funcs])
+    verification_command = (
+        f"goto-cc -o {func_name}.goto {out_file.absolute()} --function {func_name} && "
+        f"goto-instrument --partial-loops --unwind 5 {func_name}.goto {func_name}.goto && "
+        f"goto-instrument {replace_args}"
+        f"--enforce-contract {func_name} "
+        f"{func_name}.goto checking-{func_name}-contracts.goto && "
+        f"cbmc checking-{func_name}-contracts.goto --function {func_name} --depth 100"
+    )
+
     for n in range(DEFAULT_NUM_VERIFICATION_ATTEMPTS):
         # Replace calls to already-processed functions with their contracts
         replace_args = "".join([f"--replace-call-with-contract {f} " for f in processed_funcs])
 
-        command = (
-            f"goto-cc -o {func_name}.goto {out_file.absolute()} --function {func_name} && "
-            f"goto-instrument --partial-loops --unwind 5 {func_name}.goto {func_name}.goto && "
-            f"goto-instrument {replace_args}"
-            f"--enforce-contract {func_name} "
-            f"{func_name}.goto checking-{func_name}-contracts.goto && "
-            f"cbmc checking-{func_name}-contracts.goto --function {func_name} --depth 100"
-        )
-
-        print(f"Running command: {command}")
+        print(f"Running command: {verification_command}")
 
         try:
-            result = subprocess.run(command, shell=True, capture_output=True, text=True)
+            result = subprocess.run(
+                verification_command, shell=True, capture_output=True, text=True
+            )
             if result.returncode == 0:
                 print(
                     f"Verification for function {func_name} succeeded (Number of attempts: {n + 1})"
                 )
-                processed_funcs.append(func_name)
                 return True
             repair_msg = prompt_builder.repair_specification_prompt(parsec_function, result)
-            print(repair_msg)
             conversation += [{"role": "user", "content": repair_msg}]
 
             write_new_spec_to_file(model, conversation, func_name, parsec_result, out_file)
@@ -233,18 +234,12 @@ def verify_one_function(
             break
 
     recover_from_failure()
+    print(f"Failed to verify {func_name}, returning after failure recovery")
     return False
 
 
-def _prepare_output_location(input_file_path: Path) -> Path:
-    """Return the path to the output location of the C program with generated specs.
-
-    Note: The output file is (initially) identical to the input file, with the addition of `include`
-    directives for the headers in `HEADERS_TO_INCLUDE_IN_OUTPUT` if they are not already in the
-    file.
-
-    Note: The ParseC result should ideally expose the imports in a file, mitigating the need for the
-    brittle string matching that is currently done.
+def _copy_input_file_to_output_file(input_file_path: Path) -> Path:
+    """Copy the initial input file to the output file, where spec generation should occur.
 
     Args:
         input_file_path (Path): The path to the initial C program for which to generate specs.
@@ -256,16 +251,30 @@ def _prepare_output_location(input_file_path: Path) -> Path:
     output_folder.mkdir(exist_ok=True)
     output_file_path = output_folder / input_file_path.name
 
-    input_program_content = input_file_path.read_text(encoding="utf-8")
-    input_program_lines = [line.strip() for line in input_program_content.splitlines()]
-    initial_output_program = input_program_content
-    for header in HEADERS_TO_INCLUDE_IN_OUTPUT:
-        header_line = f"#include <{header}>"
-        if header_line not in input_program_lines:
-            initial_output_program = f"{header_line}\n" + initial_output_program
-
-    output_file_path.write_text(initial_output_program, encoding="utf-8")
+    input_file_content = input_file_path.read_text(encoding="utf-8")
+    output_file_path.write_text(input_file_content, encoding="utf-8")
     return output_file_path
+
+
+def _insert_default_headers(file_path: Path) -> None:
+    """Insert default headers (DEFAULT_HEADERS_IN_OUTPUT) into the file at `file_path`.
+
+    Some of the LLM-generated specifications use functions that are defined in header files
+    that are not imported in the source code. This function performs a best-effort attempt
+    to include some that are commonly used.
+
+    Args:
+        file_path (Path): The path to the file to update with default headers.
+    """
+    file_content = file_path.read_text(encoding="utf-8")
+    program_lines = [line.strip() for line in file_content.splitlines()]
+    for header in DEFAULT_HEADERS_IN_OUTPUT:
+        header_line = f"#include <{header}>"
+        if header_line not in program_lines:
+            # TODO: The ParseC result should ideally expose the imports in a file, mitigating the
+            # need for the brittle string matching that is currently done.
+            file_content = f"{header_line}\n" + file_content
+    file_path.open(mode="w", encoding="utf-8").write(file_content)
 
 
 if __name__ == "__main__":
