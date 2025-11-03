@@ -11,8 +11,8 @@ class PromptBuilder:
     """Encapsulates functions used in constructing prompts for LLM calls."""
 
     INITIAL_PROMPT_FOR_SPECIFICATION_GENERATION = Path("./prompt.txt").read_text()
-    SOURCE_DELIMITER = "<<SOURCE>>"
-    CALLEE_CONTEXT_DELIMITER = "<<CALLEE_CONTEXT>>"
+    SOURCE_PLACEHOLDER = "<<SOURCE>>"
+    CALLEE_CONTEXT_PLACEHOLDER = "<<CALLEE_CONTEXT>>"
 
     REPAIR_PROMPT_TEMPLATE = Template(
         "Error while running verification for function $function_name:\n"
@@ -21,7 +21,7 @@ class PromptBuilder:
         "Please fix the error and re-generate the function with specifications."
     )
 
-    def build_initial_specification_generation_prompt(
+    def initial_specification_generation_prompt(
         self, function: ParsecFunction, parsec_result: ParsecResult
     ) -> str:
         """Return the initial prompt used for specification generation.
@@ -35,7 +35,7 @@ class PromptBuilder:
         """
         source_code = function.get_source_code()
         prompt = PromptBuilder.INITIAL_PROMPT_FOR_SPECIFICATION_GENERATION.replace(
-            PromptBuilder.SOURCE_DELIMITER, source_code
+            PromptBuilder.SOURCE_PLACEHOLDER, source_code
         )
 
         callee_context = ""
@@ -46,9 +46,9 @@ class PromptBuilder:
                     function.name, callees_with_specs
                 )
 
-        return prompt.replace(PromptBuilder.CALLEE_CONTEXT_DELIMITER, callee_context)
+        return prompt.replace(PromptBuilder.CALLEE_CONTEXT_PLACEHOLDER, callee_context)
 
-    def build_repair_specification_prompt(
+    def repair_specification_prompt(
         self, function: ParsecFunction, verification_result: CompletedProcess[str]
     ) -> str:
         """Return a prompt directing the model to repair a faulty specification.

@@ -185,7 +185,7 @@ def verify_one_function(
         msg = f"Function {func_name} not found in ParseC result"
         raise RuntimeError(msg)
 
-    initial_spec_generation_prompt = prompt_builder.build_initial_specification_generation_prompt(
+    initial_spec_generation_prompt = prompt_builder.initial_specification_generation_prompt(
         parsec_function, parsec_result
     )
 
@@ -222,7 +222,7 @@ def verify_one_function(
                 )
                 processed_funcs.append(func_name)
                 return True
-            repair_msg = prompt_builder.build_repair_specification_prompt(parsec_function, result)
+            repair_msg = prompt_builder.repair_specification_prompt(parsec_function, result)
             print(repair_msg)
             conversation += [{"role": "user", "content": repair_msg}]
 
