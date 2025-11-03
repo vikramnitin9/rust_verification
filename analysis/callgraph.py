@@ -20,7 +20,7 @@ class CallGraph:
 
     input_file: Path
     parsec_result: ParsecResult
-    call_graph: nx.DiGraph
+    call_graph: nx.DiGraph  # type: ignore[type-arg]
 
     def __init__(self, input_file: Path):
         self.input_file = input_file

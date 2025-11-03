@@ -64,7 +64,7 @@ class ParsecResult:
                 print(f"LLVM Analysis for callee function {callee_name} not found")
         return callees
 
-    def get_call_graph(self) -> nx.DiGraph:
+    def get_call_graph(self) -> nx.DiGraph:  # type: ignore[type-arg]
         """Return the call graph for this Parsec result.
 
         Returns:
