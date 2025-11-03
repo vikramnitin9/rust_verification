@@ -27,7 +27,7 @@ class Parser(Generic[T_co]):
 
     Attributes:
         parser (Lark): The Lark parser instance.
-        transformer (TransformerT[t_co]): The transformer to convert raw Lark `Tree` values to
+        transformer (TransformerT[T_co]): The transformer to convert raw Lark `Tree` values to
             user-defined ASTs (e.g., see `cbmc_ast.py`).
     """
 
@@ -40,7 +40,7 @@ class Parser(Generic[T_co]):
         Args:
             path_to_grammar_defn (str): The path to the grammar definition file, in Lark EBNF.
             start (str): The start rule for the grammar.
-            transformer (TransformerT[t_co]): The transformer to convert Lark `Tree` values to
+            transformer (TransformerT[T_co]): The transformer to convert Lark `Tree` values to
                 user-defined ASTs (e.g., see `cbmc_ast.py`).
         """
         grammar_defn = Path(path_to_grammar_defn).read_text(encoding="utf-8")
