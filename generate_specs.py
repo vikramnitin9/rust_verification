@@ -240,7 +240,8 @@ def _prepare_output_location(input_file_path: Path) -> Path:
     """Return the path to the output location of the C program with generated specs.
 
     Note: The output file is (initially) identical to the input file, with the addition of `include`
-    directives for the headers in `HEADERS_TO_INCLUDE_IN_OUTPUT` if they are not already in the file.
+    directives for the headers in `HEADERS_TO_INCLUDE_IN_OUTPUT` if they are not already in the
+    file.
 
     Note: The ParseC result should ideally expose the imports in a file, mitigating the need for the
     brittle string matching that is currently done.

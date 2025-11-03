@@ -92,7 +92,7 @@ class ParsecFunction:
         Returns:
             bool: True iff this function has pre- or post-conditions.
         """
-        return self.preconditions or self.postconditions
+        return len(self.preconditions) > 0 or len(self.postconditions) > 0
 
     def set_specifications(self, specifications: FunctionSpecification) -> None:
         """Set the specifications for this function.

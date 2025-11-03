@@ -40,7 +40,7 @@ class PromptBuilder:
 
         callee_context = ""
         if callees := parsec_result.get_callees(function):
-            callees_with_specs = filter(ParsecFunction.is_specified, callees)
+            callees_with_specs = [callee for callee in callees if callee.is_specified()]
             if callees_with_specs:
                 callee_context = self._get_callee_context_for_prompt(
                     function.name, callees_with_specs
