@@ -81,6 +81,7 @@ class ParsecFunction:
 
         # Handle 1-based columns; end_col is inclusive
         func_lines = lines[self.start_line - 1 : self.end_line]
+        # Note that "end" comes before "beginning", in case they are on the same line.
         func_lines[-1] = func_lines[-1][: self.end_col]
         func_lines[0] = func_lines[0][self.start_col - 1 :]
         return "".join(func_lines)
@@ -91,7 +92,7 @@ class ParsecFunction:
         Returns:
             bool: True iff this function has pre- or post-conditions.
         """
-        return len(self.preconditions) > 0 or len(self.postconditions) > 0
+        return self.preconditions or self.postconditions
 
     def set_specifications(self, specifications: FunctionSpecification) -> None:
         """Set the specifications for this function.

@@ -24,8 +24,7 @@ def main() -> None:
     call_graph = CallGraph(output_file_path)
     recursive_funcs = call_graph.get_names_of_recursive_functions()
 
-    # TODO: Process recursive loops rather than removing them. A topological ordering is not
-    # computed in cases where recursion is present, and we fall back to a DFS post-order traversal.
+    # TODO: Process recursive loops rather than removing them.
     # Note: No recursive functions are actually removed from the graph; only self-edges.
     call_graph_without_self_edges = call_graph.remove_self_edges()
 
@@ -37,7 +36,7 @@ def main() -> None:
     processed_funcs = []
     for func_name in func_ordering:
         if func_name in recursive_funcs:
-            print(f"Skipping recursive function {func_name}")
+            print(f"Skipping self-recursive function {func_name} because of CBMC bugs/limitations.")
             processed_funcs.append(func_name)
             continue
 
@@ -170,7 +169,7 @@ def verify_one_function(
     """Return the result of running CBMC on the specifications generated for a single function.
 
     Args:
-        prompt_builder (PromptBuilder): The prompt builder to construct prompts for the LLM.
+        prompt_builder (PromptBuilder): Constructs prompts for the LLM.
         func_name (str): The name of the function to verify.
         parsec_result (ParsecResult): The result of running `parsec` on the initial code.
         processed_funcs (list[str]): The names of previously-processed functions.
@@ -192,6 +191,7 @@ def verify_one_function(
 
     # Call the LLM to generate a spec.
     model = get_llm_generation_with_model(MODEL)
+    # `conversation` will be added to iteratively.
     conversation = [
         {"role": "system", "content": "You are an intelligent coding assistant"},
         {"role": "user", "content": initial_spec_generation_prompt},
@@ -239,8 +239,8 @@ def verify_one_function(
 def _prepare_output_location(input_file_path: Path) -> Path:
     """Return the path to the output location of the C program with generated specs.
 
-    Note: The output file is (initially) identical to the input file, with the addition of the
-    headers in `HEADERS_TO_INCLUDE_IN_OUTPUT` if they are not already in the file.
+    Note: The output file is (initially) identical to the input file, with the addition of `include`
+    directives for the headers in `HEADERS_TO_INCLUDE_IN_OUTPUT` if they are not already in the file.
 
     Note: The ParseC result should ideally expose the imports in a file, mitigating the need for the
     brittle string matching that is currently done.

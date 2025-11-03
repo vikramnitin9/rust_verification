@@ -69,7 +69,7 @@ class CallGraph:
             return names_in_topological_order
         except nx.NetworkXUnfeasible:
             print(
-                "Cycles detected in call graph: Using postorder DFS traversal for function ordering"
+                "Cycles detected in call graph: Using postorder DFS traversal for function ordering."
             )
             return self._get_function_names_in_postorder_dfs(reverse_order=reverse_order)
 

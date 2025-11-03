@@ -42,7 +42,8 @@ class ParsecResult:
             function_name (str): The name of the function for which to return the ParsecFunction.
 
         Returns:
-            ParsecFunction | None: The ParsecFunction, otherwise None.
+            ParsecFunction | None: The ParsecFunction with the given name, or None if no function
+                with that name exists.
         """
         return self.functions.get(function_name, None)
 

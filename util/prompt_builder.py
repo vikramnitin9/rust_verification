@@ -54,9 +54,9 @@ class PromptBuilder:
         """Return a prompt directing the model to repair a faulty specification.
 
         Args:
-            function (ParsecFunction): The function that is failing to verify.
-            verification_result (CompletedProcess[str]): The result of running a verifier on the
-                function.
+            function (ParsecFunction): The function that does not verify.
+            verification_result (CompletedProcess[str]): The result of running a verifier on
+                `function`.  Only lines containing "FAILURE" are relevant.
 
         Returns:
             str: A prompt directing the model to repair a faulty specification.
