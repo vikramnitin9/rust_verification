@@ -27,8 +27,13 @@ class ParsecResult:
     functions: dict[str, ParsecFunction] = field(default_factory=dict)
 
     def __init__(self, file_path: Path):
-        analysis_file = self._run_parsec(file_path)
-        with Path(analysis_file).open(encoding="utf-8") as f:
+        """Create an instance of ParsecResult from the file at `file_path`.
+
+        Args:
+            file_path (Path): The path to a JSON file written by ParseC.
+        """
+        analysis_result_file = self._run_parsec(file_path)
+        with Path(analysis_result_file).open(encoding="utf-8") as f:
             parsec_analysis = json.load(f)
             function_analyses = [ParsecFunction(f) for f in parsec_analysis.get("functions", [])]
             self.enums = parsec_analysis.get("enums", [])
@@ -66,6 +71,11 @@ class ParsecResult:
 
     def get_call_graph(self) -> nx.DiGraph:  # type: ignore[type-arg]
         """Return the call graph for this Parsec result.
+
+        This is a partial call graph comprising functions and function calls in a single file.
+
+        This method is used in `callgraph.py` to access the (partial) call graph; it is the
+        underlying representation for that class.
 
         Returns:
             nx.DiGraph: The call graph for this Parsec result.
