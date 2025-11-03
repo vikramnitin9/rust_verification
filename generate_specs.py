@@ -9,7 +9,8 @@ from pathlib import Path
 
 from analysis import CallGraph
 from models import LLMGen, get_llm_generation_with_model
-from util import ParsecResult, PromptBuilder, extract_specification
+from util import ParsecFunction, ParsecResult, PromptBuilder, extract_specification
+from verification import Failure, Success, VerificationResult
 
 MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
@@ -35,35 +36,73 @@ def main() -> None:
     )
     verified_functions: list[str] = []
     prompt_builder = PromptBuilder()
+    conversation = [{"role": "system", "content": "You are an intelligent coding assistant"}]
+    generation_strategy = get_llm_generation_with_model(MODEL)
     for func_name in func_ordering:
         if func_name in recursive_funcs:
             print(f"Skipping self-recursive function {func_name} because of CBMC bugs/limitations.")
             continue
 
         print(f"Processing function {func_name}...")
+        function_to_verify = call_graph.parsec_result.get_function(func_name)
+        if not function_to_verify:
+            msg = f"Failed to find function '{func_name}' to verify"
+            raise RuntimeError(msg)
 
-        is_verification_successful = verify_one_function(
-            prompt_builder,
-            func_name,
+        # Get the initial prompt for specification generation.
+        initial_prompt_generation_prompt = prompt_builder.initial_specification_generation_prompt(
+            function_to_verify, call_graph.parsec_result
+        )
+        conversation.append({"role": "user", "content": initial_prompt_generation_prompt})
+
+        # Generate the initial specifications for verification.
+        _generate_specifications(
+            generation_strategy,
+            conversation,
+            function_to_verify,
             call_graph.parsec_result,
-            verified_functions,
             output_file_path,
         )
 
-        if is_verification_successful:
-            verified_functions.append(func_name)
-        else:
-            print(
-                f"Verification for function {func_name} failed after "
-                f"{DEFAULT_NUM_VERIFICATION_ATTEMPTS} attempts."
-            )
-            continue
+        for n in range(DEFAULT_NUM_VERIFICATION_ATTEMPTS):
+            # Attempt to verify the generated specifications for the function.
+            match verify_one_function(func_name, verified_functions, output_file_path):
+                case Success():
+                    print(f"Verification succeeded for '{func_name}' ({n + 1} attempt[s])")
+                    verified_functions.append(func_name)
+                    break
+                case Failure(error_message):
+                    print(
+                        f"Verification failed for '{func_name}' "
+                        f"regenerating specs and re-trying: "
+                        f"{n + 1}/{DEFAULT_NUM_VERIFICATION_ATTEMPTS}"
+                    )
+                    # Re-generate specifications
+                    regenerate_specifications_prompt = prompt_builder.repair_specification_prompt(
+                        function_to_verify, error_message
+                    )
+                    conversation.append(
+                        {"role": "user", "content": regenerate_specifications_prompt}
+                    )
+                    _generate_specifications(
+                        generation_strategy,
+                        conversation,
+                        function_to_verify,
+                        call_graph.parsec_result,
+                        output_file_path,
+                    )
+                case unexpected_verification_result:
+                    msg = f"Unexpected verification result: {unexpected_verification_result}"
+                    raise RuntimeError(msg)
+
+        if func_name not in verified_functions:
+            recover_from_failure()
 
 
-def write_new_spec_to_file(
-    model: LLMGen,
+def _generate_specifications(
+    generation_strategy: LLMGen,
     conversation: list[dict[str, str]],
-    func_name: str,
+    function: ParsecFunction,
     parsec_result: ParsecResult,
     out_file: Path,
 ) -> None:
@@ -78,13 +117,8 @@ def write_new_spec_to_file(
     replace the original function in `out_file` with this new function,
     and update the line/column information for all functions in `parsec_result`.
     """
-    parsec_function = parsec_result.get_function(func_name)
-    if parsec_function is None:
-        print(f"ParseC failed to find a function for '{func_name}'")
-        sys.exit(1)
-
     try:
-        response = model.gen(conversation, top_k=1, temperature=0.0)[0]
+        response = generation_strategy.gen(conversation, top_k=1, temperature=0.0)[0]
         conversation += [{"role": "assistant", "content": response}]
     except Exception as e:
         print(f"Error generating specs: {e}")
@@ -110,10 +144,10 @@ def write_new_spec_to_file(
         raise RuntimeError(msg)
     function_w_spec = function_w_spec.strip()
 
-    start_line = parsec_function.start_line
-    start_col = parsec_function.start_col
-    end_line = parsec_function.end_line
-    end_col = parsec_function.end_col
+    start_line = function.start_line
+    start_col = function.start_col
+    end_line = function.end_line
+    end_col = function.end_col
 
     # Use `with` and `readlines()` here to enable line-by-line file reading.
     with Path(out_file).open(encoding="utf-8") as f:
@@ -131,14 +165,14 @@ def write_new_spec_to_file(
         if function_len > 1
         else start_col + len(function_w_spec)
     )
-    parsec_function.end_line = new_end_line
-    parsec_function.end_col = new_end_col
-    parsec_function.set_specifications(extract_specification(function_w_spec.splitlines()))
+    function.end_line = new_end_line
+    function.end_col = new_end_col
+    function.set_specifications(extract_specification(function_w_spec.splitlines()))
 
     # Update line/col info for other functions.
     line_offset = function_len - (end_line - start_line + 1)
     for other_func in parsec_result.functions.values():
-        if other_func.name == func_name:
+        if other_func.name == function.name:
             continue
         if other_func.start_line > end_line:
             other_func.start_line += line_offset
@@ -160,46 +194,25 @@ def recover_from_failure() -> None:
 
 
 def verify_one_function(
-    prompt_builder: PromptBuilder,
     func_name: str,
-    parsec_result: ParsecResult,
-    processed_funcs: list[str],
+    verified_funcs: list[str],
     out_file: Path,
-) -> bool:
-    """Return the result of running CBMC on the specifications generated for a single function.
+) -> VerificationResult:
+    """Return the result of verifying the function named `func_name` with CBMC.
 
     Args:
-        prompt_builder (PromptBuilder): Constructs prompts for the LLM.
-        func_name (str): The name of the function to verify.
-        parsec_result (ParsecResult): The result of running `parsec` on the initial code.
-        processed_funcs (list[str]): The names of previously-processed functions.
-        out_file (Path): The path to the updated file where the function is defined (with a spec).
+        func_name (str): The name of the function to verify with CBMC.
+        verified_funcs (list[str]): The list of verified functions.
+        out_file (Path): The path to the file in which the function to verify is defined.
+
+    Raises:
+        RuntimeError: Raised when an error occurs in executing the verification command.
 
     Returns:
-        bool | None: True iff verification succeeds, False if it fails. None if the function is
-            not in the result of running `parsec` on the initial code.
+        VerificationResult: Success if the function successfully verifies, Failure if the
+            function does not verify.
     """
-    parsec_function = parsec_result.get_function(func_name)
-    # This should not happen.
-    if parsec_function is None:
-        msg = f"Function {func_name} not found in ParseC result"
-        raise RuntimeError(msg)
-
-    initial_spec_generation_prompt = prompt_builder.initial_specification_generation_prompt(
-        parsec_function, parsec_result
-    )
-
-    # Call the LLM to generate a spec.
-    model = get_llm_generation_with_model(MODEL)
-    # `conversation` will be added to iteratively.
-    conversation = [
-        {"role": "system", "content": "You are an intelligent coding assistant"},
-        {"role": "user", "content": initial_spec_generation_prompt},
-    ]
-
-    write_new_spec_to_file(model, conversation, func_name, parsec_result, out_file)
-
-    replace_args = "".join([f"--replace-call-with-contract {f} " for f in processed_funcs])
+    replace_args = "".join([f"--replace-call-with-contract {f} " for f in verified_funcs])
     verification_command = (
         f"goto-cc -o {func_name}.goto {out_file.absolute()} --function {func_name} && "
         f"goto-instrument --partial-loops --unwind 5 {func_name}.goto {func_name}.goto && "
@@ -209,33 +222,15 @@ def verify_one_function(
         f"cbmc checking-{func_name}-contracts.goto --function {func_name} --depth 100"
     )
 
-    for n in range(DEFAULT_NUM_VERIFICATION_ATTEMPTS):
-        # Replace calls to already-processed functions with their contracts
-        replace_args = "".join([f"--replace-call-with-contract {f} " for f in processed_funcs])
-
-        print(f"Running command: {verification_command}")
-
-        try:
-            result = subprocess.run(
-                verification_command, shell=True, capture_output=True, text=True
-            )
-            if result.returncode == 0:
-                print(
-                    f"Verification for function {func_name} succeeded (Number of attempts: {n + 1})"
-                )
-                return True
-            repair_msg = prompt_builder.repair_specification_prompt(parsec_function, result)
-            conversation += [{"role": "user", "content": repair_msg}]
-
-            write_new_spec_to_file(model, conversation, func_name, parsec_result, out_file)
-
-        except Exception as e:
-            print(f"Error running command for function {func_name}: {e}")
-            break
-
-    recover_from_failure()
-    print(f"Failed to verify {func_name}, returning after failure recovery")
-    return False
+    print(f"Running command: {verification_command}")
+    try:
+        result = subprocess.run(verification_command, shell=True, capture_output=True, text=True)
+        if result.returncode == 0:
+            return Success()
+        return Failure(error_message=result.stdout)
+    except Exception as e:
+        msg = f"Error running command for function {func_name}: {e}"
+        raise RuntimeError(msg) from e
 
 
 def _copy_input_file_to_output_file(input_file_path: Path) -> Path:
