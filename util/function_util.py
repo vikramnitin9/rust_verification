@@ -23,8 +23,6 @@ def extract_specification(function_lines: list[str]) -> FunctionSpecification:
             preconditions.append(_get_spec_lines(i, stripped_lines))
         elif line.startswith(POSTCONDITION_PREFIX):
             postconditions.append(_get_spec_lines(i, stripped_lines))
-        elif line.startswith("__CPROVER"):
-            print(f"Encountered {line}, but was not a precondition or postcondition")
     return FunctionSpecification(
         preconditions=preconditions,
         postconditions=postconditions,
