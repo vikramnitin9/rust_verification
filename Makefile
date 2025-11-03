@@ -42,5 +42,9 @@ ifneq (${PYTHON_FILES},)
 	mypy --strict --ignore-missing-imports ${PYTHON_FILES}
 endif
 
+TAGS: tags
+tags:
+	etags ${PYTHON_FILES}
+
 showvars:
 	@echo "PYTHON_FILES=${PYTHON_FILES}"
