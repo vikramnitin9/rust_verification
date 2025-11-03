@@ -40,12 +40,11 @@ class PromptBuilder:
 
         callee_context = ""
         if callees := parsec_result.get_callees(function):
-            callees_with_specs = [callee for callee in callees if callee.is_specified()]
-            callee_context = (
-                self._get_callee_context_for_prompt(function.name, callees_with_specs)
-                if callees_with_specs
-                else ""
-            )
+            callees_with_specs = filter(ParsecFunction.is_specified, callees)
+            if callees_with_specs:
+                callee_context = self._get_callee_context_for_prompt(
+                    function.name, callees_with_specs
+                )
 
         return prompt.replace(PromptBuilder.CALLEE_CONTEXT_DELIMITER, callee_context)
 
