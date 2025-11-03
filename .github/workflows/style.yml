@@ -23,7 +23,7 @@ jobs:
         pipx ensurepath
     - name: Install shellcheck and checkbashisms
       run: |
-        sudo apt update
-        sudo apt install -y perltidy shfmt shellcheck devscripts
+        sudo apt -yqq update
+        sudo apt install -yqq perltidy shfmt shellcheck devscripts
     - name: Check style
       run: make style-check
