@@ -20,7 +20,7 @@ def test_remove_recursive_functions() -> None:
     unmodified_callgraph = CallGraph(path_to_file)
     assert unmodified_callgraph.get_names_of_recursive_functions() == ["recursive_function"]
 
-    callgraph_no_loops = unmodified_callgraph.remove_self_edges()
+    callgraph_no_loops = unmodified_callgraph.copy(remove_self_edges=True)
     assert callgraph_no_loops.get_names_of_recursive_functions() == []
     assert unmodified_callgraph.get_names_of_recursive_functions() == ["recursive_function"]
 
