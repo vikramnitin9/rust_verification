@@ -17,13 +17,18 @@ from util.parsec_function import ParsecFunction
 
 @dataclass
 class ParsecResult:
-    """Represents the top-level result obtained by running `parsec` on a C file.
+    """Represents the top-level result obtained by running `parsec` on a C project (or file).
 
     Note: The functions in a `ParsecResult` do not have specifications. This is due to the the fact
     that LLVM cannot parse CBMC specs, which are not instances of valid C grammar.
 
     ParseC is a LLVM/Clang-based tool to parse a C program (hence the name).
     It extracts functions, structures, etc. along with their inter-dependencies.
+
+    ParseC can be run on a single C file, or a project. In the case where it is run on a single C
+    file, the `enums` and `files` fields will be empty.
+
+    See: parsec/README.md for additional documentation.
     """
 
     # The warning suppression below is required; nx.DiGraph does not expose subscriptable types.
