@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import os
 import subprocess
@@ -18,10 +19,15 @@ from util.parsec_function import ParsecFunction
 class ParsecResult:
     """Represents the top-level result obtained by running `parsec` on a C file.
 
+    Note: The functions in a `ParsecResult` do not have specifications. This is due to the the fact
+    that LLVM cannot parse CBMC specs, which are not instances of valid C grammar.
+
     ParseC is a LLVM/Clang-based tool to parse a C program (hence the name).
     It extracts functions, structures, etc. along with their inter-dependencies.
     """
 
+    # The warning suppression below is required; nx.DiGraph does not expose subscriptable types.
+    call_graph: nx.DiGraph  # type: ignore[type-arg]
     enums: list[Any] = field(default_factory=list)
     files: list[str] = field(default_factory=list)
     functions: dict[str, ParsecFunction] = field(default_factory=dict)
@@ -39,6 +45,29 @@ class ParsecResult:
             self.enums = parsec_analysis.get("enums", [])
             self.files = parsec_analysis.get("files", [])
             self.functions = {analysis.name: analysis for analysis in function_analyses}
+            # The warning suppression below is required;
+            # nx.DiGraph does not expose subscriptable types.
+            self.call_graph: nx.DiGraph = nx.DiGraph()  # type: ignore[type-arg]
+            for func_name, func in self.functions.items():
+                self.call_graph.add_node(func_name)
+                for callee_name in func.callee_names:
+                    self.call_graph.add_edge(func_name, callee_name)
+
+    def copy(self, remove_self_edges_in_call_graph: bool = False) -> ParsecResult:
+        """Return a copy of this ParsecResult, optionally removing its call graph's self-edges.
+
+        Args:
+            remove_self_edges_in_call_graph (bool, optional): True iff the call graph's self-edges
+                should be removed. Defaults to False.
+
+        Returns:
+            ParsecResult: A copy of this ParsecResult.
+        """
+        parsec_result_copy = copy.deepcopy(self)
+        if remove_self_edges_in_call_graph:
+            self_edges = nx.selfloop_edges(self.call_graph)
+            parsec_result_copy.call_graph.remove_edges_from(self_edges)
+        return parsec_result_copy
 
     def get_function(self, function_name: str) -> ParsecFunction | None:
         """Return the ParsecFunction representation for a function with the given name.
@@ -69,23 +98,62 @@ class ParsecResult:
                 print(f"LLVM Analysis for callee function {callee_name} not found")
         return callees
 
-    def get_call_graph(self) -> nx.DiGraph:  # type: ignore[type-arg]
-        """Return the call graph for this Parsec result.
+    def get_names_of_recursive_functions(self) -> list[str]:
+        """Return the names of directly-recursive functions in this ParsecResult's call graph.
 
-        This is a partial call graph comprising functions and function calls in a single file.
-
-        This method is used in `callgraph.py` to access the (partial) call graph; it is the
-        underlying representation for that class.
+        Note: This does not detect mutually-recursive functions.
 
         Returns:
-            nx.DiGraph: The call graph for this Parsec result.
+            list[str]: The names of directly-recursive functions in this ParsecResult's call graph.
         """
-        call_graph: nx.DiGraph[str] = nx.DiGraph()
-        for func_name, func in self.functions.items():
-            call_graph.add_node(func_name)
-            for callee_name in func.callee_names:
-                call_graph.add_edge(func_name, callee_name)
-        return call_graph
+        return [f for f in self.call_graph if self.call_graph.has_edge(f, f)]
+
+    def get_function_names_in_topological_order(self, reverse_order: bool = False) -> list[str]:
+        """Return the function names in this ParsecResult's call graph in topological order.
+
+        Args:
+            reverse_order (bool, optional): True iff the topological ordering should be reversed.
+                Defaults to False.
+
+        Returns:
+            list[str]: The function names in this Parsec Result's call graph in topological order.
+        """
+        if not self.call_graph.nodes():
+            return []
+        try:
+            names_in_topological_order = list(nx.topological_sort(self.call_graph))
+            if reverse_order:
+                names_in_topological_order.reverse()
+            return names_in_topological_order
+        except nx.NetworkXUnfeasible:
+            print(
+                "Cycles detected in call graph: "
+                "Using postorder DFS traversal for function ordering."
+            )
+            return self._get_function_names_in_postorder_dfs(reverse_order=reverse_order)
+
+    def _get_function_names_in_postorder_dfs(self, reverse_order: bool) -> list[str]:
+        """Return the function names in this ParsecResult's call graph collected via DFS traversal.
+
+        Args:
+            reverse_order (bool): True iff the result of the DFS traversal should be reversed.
+
+        Returns:
+            list[str]: The function names in this ParsecResult's call graph collected via a DFS
+                traversal.
+        """
+        func_names = [f for f in self.call_graph.nodes if f != ""]
+        visited: set[str] = set()
+        result: list[str] = []
+        for f in func_names:
+            if f not in visited:
+                for node in nx.dfs_postorder_nodes(self.call_graph, source=f):
+                    if node not in visited:
+                        visited.add(node)
+                        result.append(node)
+        if reverse_order:
+            result.reverse()
+        return result
 
     def _run_parsec(self, file_path: Path) -> Path:
         parsec_build_dir = os.environ.get("PARSEC_BUILD_DIR")

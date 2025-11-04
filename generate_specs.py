@@ -7,7 +7,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-from analysis import CallGraph
 from models import LLMGen, get_llm_generation_with_model
 from util import ParsecFunction, ParsecResult, PromptBuilder, extract_specification
 from verification import Failure, Success, VerificationResult
@@ -23,17 +22,11 @@ def main() -> None:
     output_file_path = _copy_input_file_to_output_file(input_file_path)
     _insert_default_headers(output_file_path)
 
-    call_graph = CallGraph(output_file_path)
-    recursive_funcs = call_graph.get_names_of_recursive_functions()
-
-    # TODO: Process recursive loops rather than removing them.
-    # Note: No recursive functions are actually removed from the graph; only self-edges.
-    call_graph_without_self_edges = call_graph.copy(remove_self_edges=True)
+    parsec_result = ParsecResult(output_file_path)
+    recursive_funcs = parsec_result.get_names_of_recursive_functions()
 
     # Get a list of functions in reverse topological order.
-    func_ordering = call_graph_without_self_edges.get_function_names_in_topological_order(
-        reverse_order=True
-    )
+    func_ordering = parsec_result.get_function_names_in_topological_order(reverse_order=True)
     verified_functions: list[str] = []
     prompt_builder = PromptBuilder()
     conversation = [{"role": "system", "content": "You are an intelligent coding assistant"}]
@@ -44,14 +37,14 @@ def main() -> None:
             continue
 
         print(f"Processing function {func_name}...")
-        function_to_verify = call_graph.parsec_result.get_function(func_name)
+        function_to_verify = parsec_result.get_function(func_name)
         if not function_to_verify:
             msg = f"Failed to find function '{func_name}' to verify"
             raise RuntimeError(msg)
 
         # Get the initial prompt for specification generation.
         initial_prompt_generation_prompt = prompt_builder.initial_specification_generation_prompt(
-            function_to_verify, call_graph.parsec_result
+            function_to_verify, parsec_result
         )
         conversation.append({"role": "user", "content": initial_prompt_generation_prompt})
 
@@ -60,7 +53,7 @@ def main() -> None:
             generation_strategy,
             conversation,
             function_to_verify,
-            call_graph.parsec_result,
+            parsec_result,
             output_file_path,
         )
 
@@ -88,7 +81,7 @@ def main() -> None:
                         generation_strategy,
                         conversation,
                         function_to_verify,
-                        call_graph.parsec_result,
+                        parsec_result,
                         output_file_path,
                     )
                 case unexpected_verification_result:
