@@ -1,19 +1,20 @@
 """Module to represent verification results."""
 
+from abc import ABC
 from dataclasses import dataclass
 
 
-@dataclass
-class VerificationResult:
+@dataclass(frozen=True)
+class VerificationResult(ABC):
     """Top-level class to represent a verification result."""
 
 
-@dataclass
+@dataclass(frozen=True)
 class Success(VerificationResult):
     """Represents a successful verification result."""
 
 
-@dataclass
+@dataclass(frozen=True)
 class Failure(VerificationResult):
     """Represents an unsuccessful verification result.
 

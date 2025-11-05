@@ -4,6 +4,7 @@ import pathlib
 from dataclasses import dataclass, field
 from typing import Any
 
+from .parsec_error import ParsecError
 from .specifications import FunctionSpecification
 
 
@@ -46,12 +47,15 @@ class ParsecFunction:
         self.arg_names = raw_analysis.get("argNames", [])
         self.arg_types = raw_analysis.get("argTypes", [])
         self.enums = raw_analysis.get("enums", [])
-        self.callee_names = [
-            # When would `if "name" in func` not be true?  Shouldn't that raise an exception?
-            func["name"]
-            for func in raw_analysis.get("functions", [])
-            if "name" in func
-        ]
+        if "functions" not in raw_analysis:
+            msg = f"ParseC result: {raw_analysis} was missing a 'functions' key"
+            raise ParsecError(msg)
+        functions_from_parsec = raw_analysis["functions"]
+        for func in functions_from_parsec:
+            if "name" not in func:
+                msg = f"ParseC function: {func} did not have a 'name' key"
+                raise ParsecError(msg)
+            self.callee_names.append(func["name"])
         self.llvm_globals = raw_analysis.get("globals", [])
         self.structs = raw_analysis.get("structs", [])
 
