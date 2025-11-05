@@ -9,7 +9,7 @@ from pathlib import Path
 
 from models import LLMGen, get_llm_generation_with_model
 from util import ParsecFunction, ParsecResult, PromptBuilder, extract_specification
-from verification import Failure, Success, VerificationResult
+from verification import Failure, Success
 
 MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
@@ -190,7 +190,7 @@ def verify_one_function(
     func_name: str,
     verified_funcs: list[str],
     out_file: Path,
-) -> VerificationResult:
+) -> Success | Failure:
     """Return the result of verifying the function named `func_name` with CBMC.
 
     Args:
@@ -202,7 +202,7 @@ def verify_one_function(
         RuntimeError: Raised when an error occurs in executing the verification command.
 
     Returns:
-        VerificationResult: Success if the function successfully verifies, Failure if the
+        Success | Failure: Success if the function successfully verifies, Failure if the
             function does not verify.
     """
     replace_args = "".join([f"--replace-call-with-contract {f} " for f in verified_funcs])

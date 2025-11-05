@@ -1,3 +1,3 @@
-from .verification_result import VerificationResult, Success, Failure
+from .verification_result import Success, Failure
 
-__all__ = ["VerificationResult", "Success", "Failure"]
+__all__ = ["Success", "Failure"]
