@@ -44,14 +44,15 @@ class ParsecFunction:
         self.end_col = raw_analysis["endCol"]
         self.preconditions = []
         self.postconditions = []
+        self.callee_names = []
         self.arg_names = raw_analysis.get("argNames", [])
         self.arg_types = raw_analysis.get("argTypes", [])
         self.enums = raw_analysis.get("enums", [])
-        if "functions" not in raw_analysis:
-            msg = f"ParseC result: {raw_analysis} was missing a 'functions' key"
+        if "callees" not in raw_analysis:
+            msg = f"ParseC result: {raw_analysis} was missing a 'callees' key"
             raise ParsecError(msg)
-        functions_from_parsec = raw_analysis["functions"]
-        for func in functions_from_parsec:
+        callees_of_parsec_function = raw_analysis["callees"]
+        for func in callees_of_parsec_function:
             if "name" not in func:
                 msg = f"ParseC function: {func} did not have a 'name' key"
                 raise ParsecError(msg)

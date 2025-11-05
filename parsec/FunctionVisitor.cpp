@@ -124,7 +124,7 @@ bool FunctionVisitor::VisitFunctionDecl(FunctionDecl *function) {
                 {"endLine",     endLine},
                 {"startCol",    startCol},
                 {"endCol",      endCol},
-                {"functions",   json::array()}
+                {"callees",   json::array()}
         };
     
         json global_arr = json::array();

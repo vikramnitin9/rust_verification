@@ -24,9 +24,16 @@ def main() -> None:
 
     parsec_result = ParsecResult(output_file_path)
     recursive_funcs = parsec_result.get_names_of_recursive_functions()
+    parsec_result_without_direct_recursive_functions = parsec_result.copy(
+        remove_self_edges_in_call_graph=True
+    )
 
     # Get a list of functions in reverse topological order.
-    func_ordering = parsec_result.get_function_names_in_topological_order(reverse_order=True)
+    func_ordering = (
+        parsec_result_without_direct_recursive_functions.get_function_names_in_topological_order(
+            reverse_order=True
+        )
+    )
     verified_functions: list[str] = []
     prompt_builder = PromptBuilder()
     conversation = [{"role": "system", "content": "You are an intelligent coding assistant"}]
@@ -37,14 +44,16 @@ def main() -> None:
             continue
 
         print(f"Processing function {func_name}...")
-        function_to_verify = parsec_result.get_function(func_name)
+        function_to_verify = parsec_result_without_direct_recursive_functions.get_function(
+            func_name
+        )
         if not function_to_verify:
             msg = f"Failed to find function '{func_name}' to verify"
             raise RuntimeError(msg)
 
         # Get the initial prompt for specification generation.
         initial_prompt_generation_prompt = prompt_builder.initial_specification_generation_prompt(
-            function_to_verify, parsec_result
+            function_to_verify, parsec_result_without_direct_recursive_functions
         )
         conversation.append({"role": "user", "content": initial_prompt_generation_prompt})
 
@@ -53,7 +62,7 @@ def main() -> None:
             generation_strategy,
             conversation,
             function_to_verify,
-            parsec_result,
+            parsec_result_without_direct_recursive_functions,
             output_file_path,
         )
 
@@ -81,7 +90,7 @@ def main() -> None:
                         generation_strategy,
                         conversation,
                         function_to_verify,
-                        parsec_result,
+                        parsec_result_without_direct_recursive_functions,
                         output_file_path,
                     )
                 case unexpected_verification_result:
