@@ -1,31 +1,26 @@
-"""Class to represent the LLVM analysis for a function."""
+"""Represents the ParseC representation for a C function."""
 
 import pathlib
 from dataclasses import dataclass, field
-from string import Template
 from typing import Any
 
-from .specifications import Specifications
-
-TEMPLATE_FOR_FUNCTION_PROMPT = Template("""
-Function name: $name
-Function signature: $signature
-""")
+from .parsec_error import ParsecError
+from .specifications import FunctionSpecification
 
 
 @dataclass
-class Function:
-    """Represents the LLVM analysis for a C function."""
+class ParsecFunction:
+    """Represents a C function as parsed by ParseC."""
 
     name: str
     num_args: int
     return_type: str
     signature: str
     file_name: str
-    start_col: int
     start_line: int
-    end_col: int
+    start_col: int
     end_line: int
+    end_col: int
     preconditions: list[str]
     postconditions: list[str]
     arg_names: list[str] = field(default_factory=list)
@@ -43,18 +38,25 @@ class Function:
         self.return_type = raw_analysis["returnType"]
         self.signature = raw_analysis["signature"]
         self.file_name = raw_analysis["filename"]
-        self.start_col = raw_analysis["startCol"]
         self.start_line = raw_analysis["startLine"]
-        self.end_col = raw_analysis["endCol"]
+        self.start_col = raw_analysis["startCol"]
         self.end_line = raw_analysis["endLine"]
+        self.end_col = raw_analysis["endCol"]
         self.preconditions = []
         self.postconditions = []
+        self.callee_names = []
         self.arg_names = raw_analysis.get("argNames", [])
         self.arg_types = raw_analysis.get("argTypes", [])
         self.enums = raw_analysis.get("enums", [])
-        self.callee_names = [
-            func["name"] for func in raw_analysis.get("functions", []) if "name" in func
-        ]
+        if "callees" not in raw_analysis:
+            msg = f"ParseC result: {raw_analysis} was missing a 'callees' key"
+            raise ParsecError(msg)
+        callees_of_parsec_function = raw_analysis["callees"]
+        for func in callees_of_parsec_function:
+            if "name" not in func:
+                msg = f"ParseC function: {func} did not have a 'name' key"
+                raise ParsecError(msg)
+            self.callee_names.append(func["name"])
         self.llvm_globals = raw_analysis.get("globals", [])
         self.structs = raw_analysis.get("structs", [])
 
@@ -77,14 +79,10 @@ class Function:
             raise ValueError("Function start column is after end column on the same line.")
 
         # Handle 1-based columns; end_col is inclusive
-        if self.start_line == self.end_line:
-            line = lines[self.start_line - 1]
-            return line[self.start_col - 1 : self.end_col]
         func_lines = lines[self.start_line - 1 : self.end_line]
-        # First line: drop everything before start_col
-        func_lines[0] = func_lines[0][self.start_col - 1 :]
-        # Last line: keep up to end_col (inclusive -> end-exclusive slice)
+        # Note that "end" comes before "beginning", in case they are on the same line.
         func_lines[-1] = func_lines[-1][: self.end_col]
+        func_lines[0] = func_lines[0][self.start_col - 1 :]
         return "".join(func_lines)
 
     def is_specified(self) -> bool:
@@ -95,11 +93,11 @@ class Function:
         """
         return len(self.preconditions) > 0 or len(self.postconditions) > 0
 
-    def set_specifications(self, specifications: Specifications) -> None:
+    def set_specifications(self, specifications: FunctionSpecification) -> None:
         """Set the specifications for this function.
 
         Args:
-            specifications (Specifications): The specifications for this function.
+            specifications (FunctionSpecification): The specifications for this function.
         """
         self.preconditions, self.postconditions = specifications
 
@@ -111,14 +109,13 @@ class Function:
         Returns:
             str: The string representation of this function.
         """
-        function_for_prompt = TEMPLATE_FOR_FUNCTION_PROMPT.safe_substitute(
-            name=self.name,
-            signature=self.signature,
+        function_name_and_signature = (
+            f"""\nFunction name: {self.name}\nFunction signature: {self.signature}\n"""
         )
         if self.preconditions:
             preconds_in_prompt = ", ".join(self.preconditions)
-            function_for_prompt += f"\nPreconditions: {preconds_in_prompt}"
+            function_name_and_signature += f"Preconditions: {preconds_in_prompt}\n"
         if self.postconditions:
             postconds_in_prompt = ", ".join(self.postconditions)
-            function_for_prompt += f"\nPostconditions: {postconds_in_prompt}"
-        return function_for_prompt
+            function_name_and_signature += f"Postconditions: {postconds_in_prompt}\n"
+        return function_name_and_signature

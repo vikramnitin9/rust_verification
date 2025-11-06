@@ -1,4 +1,6 @@
-.PHONY: docker-build run test checks style-fix style-check python-style-fix python-style-check python-typecheck showvars
+.PHONY: default docker-build run test checks style-fix style-check python-style-fix python-style-check python-typecheck showvars
+
+default: test
 
 # Build container.
 docker-build:
@@ -39,6 +41,10 @@ ifneq (${PYTHON_FILES},)
 	@mypy --strict --install-types --non-interactive ${PYTHON_FILES} > /dev/null 2>&1 || true
 	mypy --strict --ignore-missing-imports ${PYTHON_FILES}
 endif
+
+TAGS: tags
+tags:
+	etags ${PYTHON_FILES}
 
 showvars:
 	@echo "PYTHON_FILES=${PYTHON_FILES}"

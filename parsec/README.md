@@ -63,7 +63,7 @@ The output of `parsec` is a single JSON file, `analysis.json`, created in the cu
       "endLine": "int",
       "startCol": "int",
       "endCol": "int",
-      "functions": [
+      "callees": [
         {
           "name": "str"
         }

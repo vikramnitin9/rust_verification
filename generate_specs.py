@@ -1,90 +1,180 @@
 """Script to generate specifications for C functions using an LLM and verify them with CBMC."""
 
+from __future__ import annotations
+
+import re
 import subprocess
 import sys
 from pathlib import Path
 
-from analysis import CodeGraph
 from models import LLMGen, get_llm_generation_with_model
-from util import LLVMAnalysis, extract_specifications
+from util import ParsecFunction, ParsecResult, PromptBuilder, extract_specification
+from verification import Failure, Success
 
 MODEL = "gpt-4o"
-HEADERS_TO_INCLUDE_IN_OUTPUT = ["stdlib.h", "limits.h"]
+DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
+DEFAULT_NUM_VERIFICATION_ATTEMPTS = 10
 
 
-def generate_spec(
-    model: LLMGen,
+def main() -> None:
+    """Generate specifications for C functions using an LLM and verify them with CBMC."""
+    input_file_path = Path(sys.argv[1])
+    output_file_path = _copy_input_file_to_output_file(input_file_path)
+    _insert_default_headers(output_file_path)
+
+    parsec_result = ParsecResult(output_file_path)
+    recursive_funcs = parsec_result.get_names_of_recursive_functions()
+    parsec_result_without_direct_recursive_functions = parsec_result.copy(
+        remove_self_edges_in_call_graph=True
+    )
+
+    # Get a list of functions in reverse topological order.
+    func_ordering = (
+        parsec_result_without_direct_recursive_functions.get_function_names_in_topological_order(
+            reverse_order=True
+        )
+    )
+    verified_functions: list[str] = []
+    prompt_builder = PromptBuilder()
+    conversation = [{"role": "system", "content": "You are an intelligent coding assistant"}]
+    generation_strategy = get_llm_generation_with_model(MODEL)
+    for func_name in func_ordering:
+        if func_name in recursive_funcs:
+            print(f"Skipping self-recursive function {func_name} because of CBMC bugs/limitations.")
+            continue
+
+        print(f"Processing function {func_name}...")
+        function_to_verify = parsec_result_without_direct_recursive_functions.get_function(
+            func_name
+        )
+        if not function_to_verify:
+            msg = f"Failed to find function '{func_name}' to verify"
+            raise RuntimeError(msg)
+
+        # Get the initial prompt for specification generation.
+        initial_prompt_generation_prompt = prompt_builder.initial_specification_generation_prompt(
+            function_to_verify, parsec_result_without_direct_recursive_functions
+        )
+        conversation.append({"role": "user", "content": initial_prompt_generation_prompt})
+
+        # Generate the initial specifications for verification.
+        _generate_specifications(
+            generation_strategy,
+            conversation,
+            function_to_verify,
+            parsec_result_without_direct_recursive_functions,
+            output_file_path,
+        )
+
+        for n in range(DEFAULT_NUM_VERIFICATION_ATTEMPTS):
+            # Attempt to verify the generated specifications for the function.
+            match verify_one_function(func_name, verified_functions, output_file_path):
+                case Success():
+                    print(f"Verification succeeded for '{func_name}' ({n + 1} attempt[s])")
+                    verified_functions.append(func_name)
+                    break
+                case Failure(error_message):
+                    print(
+                        f"Verification failed for '{func_name}' "
+                        f"regenerating specs and re-trying: "
+                        f"{n + 1}/{DEFAULT_NUM_VERIFICATION_ATTEMPTS}"
+                    )
+                    # Re-generate specifications
+                    regenerate_specifications_prompt = prompt_builder.repair_specification_prompt(
+                        function_to_verify, error_message
+                    )
+                    conversation.append(
+                        {"role": "user", "content": regenerate_specifications_prompt}
+                    )
+                    _generate_specifications(
+                        generation_strategy,
+                        conversation,
+                        function_to_verify,
+                        parsec_result_without_direct_recursive_functions,
+                        output_file_path,
+                    )
+                case unexpected_verification_result:
+                    msg = f"Unexpected verification result: {unexpected_verification_result}"
+                    raise RuntimeError(msg)
+
+        if func_name not in verified_functions:
+            recover_from_failure()
+
+
+def _generate_specifications(
+    generation_strategy: LLMGen,
     conversation: list[dict[str, str]],
-    func_name: str,
-    llvm_analysis: LLVMAnalysis,
+    function: ParsecFunction,
+    parsec_result: ParsecResult,
     out_file: Path,
 ) -> None:
-    """Use the LLM to generate specifications for a given function and update the source file.
+    """Use the given LLM to generate specifications for a given function and update the source file.
 
-    The LLM is given the following information:
-    - The body of the function `func_name`, including all comments
-    - Extensive documentation of the CBMC API
-    - A history of the conversation so far, including Any errors from verification attempts
+    The LLM prompt contains:
+    - The body of the function `func_name`, including all comments.
+    - Documentation of the CBMC API.
+    - A history of the conversation so far, including any errors from verification attempts.
 
     Take the LLM's response, extract the function with specifications,
     replace the original function in `out_file` with this new function,
-    and update the line/column information for all functions in `llvm_analysis`.
+    and update the line/column information for all functions in `parsec_result`.
     """
-    func_analysis = llvm_analysis.get_analysis_for_function(func_name)
-    if func_analysis is None:
-        sys.exit(1)
-
-    # Check if the function to generate specifications for has any callees.
-    callees = llvm_analysis.get_callees(func_analysis)
-    callees_with_specs = [callee for callee in callees if callee.is_specified()]
-    # If the function has callees, and they have specifications, include them in the conversation.
-    if callees_with_specs:
-        callee_context = "\n".join(str(callee) for callee in callees_with_specs)
-        conversation.append({"role": "user", "content": callee_context})
-
     try:
-        response = model.gen(conversation, top_k=1, temperature=0.0)[0]
+        response = generation_strategy.gen(conversation, top_k=1, temperature=0.0)[0]
         conversation += [{"role": "assistant", "content": response}]
     except Exception as e:
         print(f"Error generating specs: {e}")
         sys.exit(1)
 
-    # Get the part within <FUNC> and </FUNC> tags
-    function_w_specs = response.split("<FUNC>")[1].split("</FUNC>")[0].strip()
-    if function_w_specs[:4] == "```c":
-        function_w_specs = function_w_specs[4:]
-    if function_w_specs[-3:] == "```":
-        function_w_specs = function_w_specs[:-3]
-    function_w_specs = function_w_specs.strip()
+    # Get the part within <FUNC> and </FUNC> tags.
+    functions = re.findall(r"<FUNC>(.*?)</FUNC>", response, re.DOTALL)
+    if len(functions) != 1:
+        msg = f"Wrong number of functions {len(functions)}: {functions}"
+        raise RuntimeError(msg)
+    function_w_spec = functions[0]
+    fences = re.findall(r"```", function_w_spec)
+    if len(fences) == 0:
+        # Nothing to do
+        pass
+    elif len(fences) == 2:
+        match = re.search(r"```[cC]?(.*)```", function_w_spec, re.DOTALL)
+        if match is None:
+            raise RuntimeError("Existing fences not found: " + function_w_spec)
+        function_w_spec = match.group(1)
+    else:
+        msg = f"Wrong number of code fences {len(fences)}: {function_w_spec}"
+        raise RuntimeError(msg)
+    function_w_spec = function_w_spec.strip()
 
-    start_line = func_analysis.start_line
-    start_col = func_analysis.start_col
-    end_line = func_analysis.end_line
-    end_col = func_analysis.end_col
+    start_line = function.start_line
+    start_col = function.start_col
+    end_line = function.end_line
+    end_col = function.end_col
 
+    # Use `with` and `readlines()` here to enable line-by-line file reading.
     with Path(out_file).open(encoding="utf-8") as f:
         lines = f.readlines()
 
     before = [*lines[: start_line - 1], *[lines[start_line - 1][: start_col - 1]]]
     after = [*lines[end_line - 1][end_col:], *lines[end_line:]]
-    new_contents = "".join([*before, function_w_specs, *after])
+    new_contents = "".join([*before, function_w_spec, *after])
 
-    # Update the line/col info for this function
-    function_len = len(function_w_specs.splitlines())
+    # Update the line/col info for this function.
+    function_len = len(function_w_spec.splitlines())
     new_end_line = start_line + function_len - 1
     new_end_col = (
-        len(function_w_specs.splitlines()[-1])
+        len(function_w_spec.splitlines()[-1])
         if function_len > 1
-        else start_col + len(function_w_specs)
+        else start_col + len(function_w_spec)
     )
-    func_analysis.end_line = new_end_line
-    func_analysis.end_col = new_end_col
-    func_analysis.set_specifications(extract_specifications(function_w_specs.splitlines()))
+    function.end_line = new_end_line
+    function.end_col = new_end_col
+    function.set_specifications(extract_specification(function_w_spec.splitlines()))
 
-    # Update line/col info for other functions
+    # Update line/col info for other functions.
     line_offset = function_len - (end_line - start_line + 1)
-    for other_func in llvm_analysis.functions.values():
-        if other_func.name == func_name:
+    for other_func in parsec_result.functions.values():
+        if other_func.name == function.name:
             continue
         if other_func.start_line > end_line:
             other_func.start_line += line_offset
@@ -97,8 +187,7 @@ def generate_spec(
         elif other_func.end_line == end_line and other_func.end_col >= end_col:
             other_func.end_col += new_end_col - end_col
 
-    with Path(out_file).open(mode="w", encoding="utf-8") as f:
-        f.write(new_contents)
+    Path(out_file).write_text(new_contents)
 
 
 def recover_from_failure() -> None:
@@ -106,96 +195,48 @@ def recover_from_failure() -> None:
     raise NotImplementedError("TODO: Implement me")
 
 
-def verify_one_function(func_name: str, llvm_analysis: LLVMAnalysis, out_file: Path) -> bool | None:
-    """Return the result of running CBMC on the specifications generated for a single function.
+def verify_one_function(
+    func_name: str,
+    verified_funcs: list[str],
+    out_file: Path,
+) -> Success | Failure:
+    """Return the result of verifying the function named `func_name` with CBMC.
 
     Args:
-        func_name (str): The name of the function to verify.
-        llvm_analysis (LLVMAnalysis): The top-level LLVM analysis.
-        out_file (Path): The path to the updated file where the function is defined (with specs).
+        func_name (str): The name of the function to verify with CBMC.
+        verified_funcs (list[str]): The list of verified functions.
+        out_file (Path): The path to the file in which the function to verify is defined.
+
+    Raises:
+        RuntimeError: Raised when an error occurs in executing the verification command.
 
     Returns:
-        bool | None: True iff verification succeeds, False if it fails. None if the function is
-            not able to found in the top-level LLVM analysis.
+        Success | Failure: Success if the function successfully verifies, Failure if the
+            function does not verify.
     """
-    # Load the prompt from the template file
-    prompt_file = Path("prompt.txt")
-    with Path(prompt_file).open(encoding="utf-8") as f:
-        prompt_template = f.read()
+    replace_args = "".join([f"--replace-call-with-contract {f} " for f in verified_funcs])
+    verification_command = (
+        f"goto-cc -o {func_name}.goto {out_file.absolute()} --function {func_name} && "
+        f"goto-instrument --partial-loops --unwind 5 {func_name}.goto {func_name}.goto && "
+        f"goto-instrument {replace_args}"
+        f"--enforce-contract {func_name} "
+        f"{func_name}.goto checking-{func_name}-contracts.goto && "
+        f"cbmc checking-{func_name}-contracts.goto --function {func_name} --depth 100"
+    )
 
-    func_analysis = llvm_analysis.get_analysis_for_function(func_name)
-    # This should not happen
-    if func_analysis is None:
-        print(f"Function {func_name} not found in LLVM analysis, skipping.")
-        return None
-
-    # Get the source code of the function
-    inp = func_analysis.get_source_code()
-    # Fill in the prompt_template template
-    prompt = prompt_template.replace("<<SOURCE>>", inp)
-
-    # Call the LLM to generate specs
-    model = get_llm_generation_with_model(MODEL)
-    conversation = [
-        {"role": "system", "content": "You are an intelligent coding assistant"},
-        {"role": "user", "content": prompt},
-    ]
-
-    generate_spec(model, conversation, func_name, llvm_analysis, out_file)
-
-    success = False
-    for _ in range(10):
-        # Replace calls to already processed functions with their contracts
-        replace_cmd = "".join([f"--replace-call-with-contract {f} " for f in processed_funcs])
-
-        command = (
-            f"goto-cc -o {func_name}.goto {out_file.absolute()} --function {func_name} && "
-            f"goto-instrument --partial-loops --unwind 5 {func_name}.goto {func_name}.goto && "
-            f"goto-instrument {replace_cmd}"
-            f"--enforce-contract {func_name} "
-            f"{func_name}.goto checking-{func_name}-contracts.goto && "
-            f"cbmc checking-{func_name}-contracts.goto --function {func_name} --depth 100"
-        )
-
-        print(f"Running command: {command}")
-
-        try:
-            result = subprocess.run(command, shell=True, capture_output=True, text=True)
-            if result.returncode == 0:
-                print(f"Verification for function {func_name} succeeded.")
-                success = True
-                processed_funcs.append(func_name)
-                break
-            filt_out = "\n".join([line for line in result.stdout.splitlines() if "FAILURE" in line])
-            repair_msg = (
-                f"Error while running verification for function {func_name}:\n"
-                f"STDOUT: {filt_out}\n"
-                f"STDERR: {result.stderr}\n"
-                "Please fix the error and re-generate the function with specifications."
-            )
-            print(repair_msg)
-            conversation += [{"role": "user", "content": repair_msg}]
-
-            generate_spec(model, conversation, func_name, llvm_analysis, out_file)
-
-        except Exception as e:
-            print(f"Error running command for function {func_name}: {e}")
-            break
-
-    if not success:
-        recover_from_failure()
-
-    return success
+    print(f"Running command: {verification_command}")
+    try:
+        result = subprocess.run(verification_command, shell=True, capture_output=True, text=True)
+        if result.returncode == 0:
+            return Success()
+        return Failure(error_message=result.stdout)
+    except Exception as e:
+        msg = f"Error running command for function {func_name}: {e}"
+        raise RuntimeError(msg) from e
 
 
-def _prepare_output_location(input_file_path: Path) -> Path:
-    """Return the path to the output location of the C program with generated specs.
-
-    Note: The output file is (initially) identical to the input file, with the addition of the
-    headers in `HEADERS_TO_INCLUDE_IN_OUTPUT` if they are not already in the file.
-
-    Note: The LLVM analysis should ideally expose the imports in a file, mitigating the need for the
-    brittle string matching that is currently done.
+def _copy_input_file_to_output_file(input_file_path: Path) -> Path:
+    """Copy the initial input file to the output file, where spec generation should occur.
 
     Args:
         input_file_path (Path): The path to the initial C program for which to generate specs.
@@ -207,50 +248,31 @@ def _prepare_output_location(input_file_path: Path) -> Path:
     output_folder.mkdir(exist_ok=True)
     output_file_path = output_folder / input_file_path.name
 
-    input_program_content = input_file_path.read_text(encoding="utf-8")
-    input_program_lines = [line.strip() for line in input_program_content.splitlines()]
-    initial_output_program = input_program_content
-    for header in HEADERS_TO_INCLUDE_IN_OUTPUT:
-        header_line = f"#include <{header}>"
-        if header_line not in input_program_lines:
-            initial_output_program = f"{header_line}\n" + initial_output_program
-
-    output_file_path.write_text(initial_output_program, encoding="utf-8")
+    input_file_content = input_file_path.read_text(encoding="utf-8")
+    output_file_path.write_text(input_file_content, encoding="utf-8")
     return output_file_path
 
 
+def _insert_default_headers(file_path: Path) -> None:
+    """Insert default headers (DEFAULT_HEADERS_IN_OUTPUT) into the file at `file_path`.
+
+    Some of the LLM-generated specifications use functions that are defined in header files
+    that are not imported in the source code. This function performs a best-effort attempt
+    to include some that are commonly used.
+
+    Args:
+        file_path (Path): The path to the file to update with default headers.
+    """
+    file_content = file_path.read_text(encoding="utf-8")
+    program_lines = [line.strip() for line in file_content.splitlines()]
+    for header in DEFAULT_HEADERS_IN_OUTPUT:
+        header_line = f"#include <{header}>"
+        if header_line not in program_lines:
+            # TODO: The ParseC result should ideally expose the imports in a file, mitigating the
+            # need for the brittle string matching that is currently done.
+            file_content = f"{header_line}\n" + file_content
+    file_path.open(mode="w", encoding="utf-8").write(file_content)
+
+
 if __name__ == "__main__":
-    input_file_path = Path(sys.argv[1])
-    output_file_path = _prepare_output_location(input_file_path)
-
-    # Get a list of functions in reverse topological order
-    code_graph = CodeGraph(output_file_path)
-    recursive_funcs = code_graph.get_names_of_recursive_functions()
-    code_graph_no_recursive_loops = code_graph.remove_recursive_loops()
-    func_ordering = code_graph_no_recursive_loops.get_function_names_in_topological_order(
-        reverse_order=True
-    )
-
-    processed_funcs = []
-    for func_name in func_ordering:
-        # Skip recursive functions for now
-        if func_name in recursive_funcs:
-            print(f"Skipping recursive function {func_name}")
-            processed_funcs.append(func_name)
-            continue
-
-        print(f"Processing function {func_name}...")
-
-        is_verification_successful = verify_one_function(
-            func_name, code_graph.llvm_analysis, output_file_path
-        )
-
-        if is_verification_successful is None:
-            print(f"Skipping function {func_name} due to missing analysis.")
-            processed_funcs.append(func_name)
-            continue
-
-        if not is_verification_successful:
-            print(f"Verification for function {func_name} failed after multiple attempts.")
-            processed_funcs.append(func_name)
-            continue
+    main()
