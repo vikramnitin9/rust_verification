@@ -23,6 +23,7 @@ class FunctionSpecification:
 
             function_spec = ...
             pre, post = function_spec
+
         Returns:
             Iterator[list[str]]: An iterator comprising a tuple of pre and postconditions.
         """
