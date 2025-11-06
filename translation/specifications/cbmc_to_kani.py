@@ -126,6 +126,19 @@ class CBMCToKani:
                 raise TranslationError(msg)
 
     def _to_kani_range(self, cbmc_range_expr: Any) -> str:
+        """Translate a range expression in CBMC to the equivalent Kani range as a string.
+
+        E.g., `10 <= i && i < 20` translates to `i in (10, 20)`; Rust ranges are closed.
+
+        Args:
+            cbmc_range_expr (Any): A CBMC range expression.
+
+        Raises:
+            TranslationError: Raised when an invalid CBMC range is encountered.
+
+        Returns:
+            str: A string representation of the equivalent Kani range.
+        """
         match cbmc_range_expr:
             case cbmc_ast.AndOp(cbmc_ast.LeOp(lower_bound, i), cbmc_ast.LtOp(j, upper_bound)):
                 if i.name != j.name:
