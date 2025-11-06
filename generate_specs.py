@@ -2,23 +2,40 @@
 
 from __future__ import annotations
 
+import argparse
+import json
 import re
 import subprocess
 import sys
+import time
+from dataclasses import asdict
 from pathlib import Path
 
 from models import LLMGen, get_llm_generation_with_model
 from util import ParsecFunction, ParsecResult, PromptBuilder, extract_specification
-from verification import Failure, Success
+from verification import Failure, GenerateVerifyIteration, Success
 
 MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
-DEFAULT_NUM_VERIFICATION_ATTEMPTS = 10
+DEFAULT_NUM_SPECIFY_AND_VERIFY_RETRIES = 3
 
 
 def main() -> None:
     """Generate specifications for C functions using an LLM and verify them with CBMC."""
-    input_file_path = Path(sys.argv[1])
+    parser = argparse.ArgumentParser(
+        prog="generate_specs.py", description="Generate CBMC specifications for a C file."
+    )
+    parser.add_argument(
+        "--file", required=True, help="Path to the C file for which to generate specifications."
+    )
+    parser.add_argument(
+        "--save-conversation",
+        action="store_true",
+        help="Save the conversation used to generate specifications.",
+    )
+    args = parser.parse_args()
+
+    input_file_path = Path(args.file)
     output_file_path = _copy_input_file_to_output_file(input_file_path)
     _insert_default_headers(output_file_path)
 
@@ -38,6 +55,7 @@ def main() -> None:
     prompt_builder = PromptBuilder()
     conversation = [{"role": "system", "content": "You are an intelligent coding assistant"}]
     generation_strategy = get_llm_generation_with_model(MODEL)
+    conversation_log: list[GenerateVerifyIteration] = []
     for func_name in func_ordering:
         if func_name in recursive_funcs:
             print(f"Skipping self-recursive function {func_name} because of CBMC bugs/limitations.")
@@ -52,62 +70,86 @@ def main() -> None:
             raise RuntimeError(msg)
 
         # Get the initial prompt for specification generation.
-        initial_prompt_generation_prompt = prompt_builder.initial_specification_generation_prompt(
+        spec_generation_prompt = prompt_builder.initial_specification_generation_prompt(
             function_to_verify, parsec_result_without_direct_recursive_functions
         )
-        conversation.append({"role": "user", "content": initial_prompt_generation_prompt})
-
-        # Generate the initial specifications for verification.
-        _generate_specifications(
+        updated_file = _generate_specifications(
             generation_strategy,
             conversation,
+            spec_generation_prompt,
             function_to_verify,
             parsec_result_without_direct_recursive_functions,
             output_file_path,
         )
+        # Attempt to verify the generated specifications for the function.
+        verification_result = verify_one_function(func_name, verified_functions, output_file_path)
+        if args.save_conversation:
+            conversation_log.append(
+                GenerateVerifyIteration(spec_generation_prompt, updated_file, verification_result)
+            )
 
-        for n in range(DEFAULT_NUM_VERIFICATION_ATTEMPTS):
-            # Attempt to verify the generated specifications for the function.
-            match verify_one_function(func_name, verified_functions, output_file_path):
-                case Success():
-                    print(f"Verification succeeded for '{func_name}' ({n + 1} attempt[s])")
-                    verified_functions.append(func_name)
-                    break
-                case Failure(error_message):
-                    print(
-                        f"Verification failed for '{func_name}' "
-                        f"regenerating specs and re-trying: "
-                        f"{n + 1}/{DEFAULT_NUM_VERIFICATION_ATTEMPTS}"
+        if isinstance(verification_result, Success):
+            print(f"Verification succeeded for '{func_name}'")
+            verified_functions.append(func_name)
+            continue
+        print(f"Verification failed for '{func_name}'; regenerating specs and re-trying")
+
+        for n in range(DEFAULT_NUM_SPECIFY_AND_VERIFY_RETRIES):
+            # Try to re-generate specifications for verification.
+            spec_generation_prompt = prompt_builder.repair_specification_prompt(
+                function_to_verify, verification_result.error_message
+            )
+            updated_file = _generate_specifications(
+                generation_strategy,
+                conversation,
+                spec_generation_prompt,
+                function_to_verify,
+                parsec_result_without_direct_recursive_functions,
+                output_file_path,
+            )
+            verification_result = verify_one_function(
+                func_name, verified_functions, output_file_path
+            )
+            if isinstance(verification_result, Success):
+                print(
+                    f"Verification succeeded for '{func_name}' after "
+                    f"{n + 1}/{DEFAULT_NUM_SPECIFY_AND_VERIFY_RETRIES} retries(s)"
+                )
+                verified_functions.append(func_name)
+                if args.save_conversation:
+                    conversation_log.append(
+                        GenerateVerifyIteration(
+                            spec_generation_prompt, updated_file, verification_result
+                        )
                     )
-                    # Re-generate specifications
-                    regenerate_specifications_prompt = prompt_builder.repair_specification_prompt(
-                        function_to_verify, error_message
+                break  # Move on to the next function to generate specs and verify.
+            print(f"Verification failed for '{func_name}'; on retry attempt {n + 1}")
+            if args.save_conversation:
+                conversation_log.append(
+                    GenerateVerifyIteration(
+                        spec_generation_prompt, updated_file, verification_result
                     )
-                    conversation.append(
-                        {"role": "user", "content": regenerate_specifications_prompt}
-                    )
-                    _generate_specifications(
-                        generation_strategy,
-                        conversation,
-                        function_to_verify,
-                        parsec_result_without_direct_recursive_functions,
-                        output_file_path,
-                    )
-                case unexpected_verification_result:
-                    msg = f"Unexpected verification result: {unexpected_verification_result}"
-                    raise RuntimeError(msg)
+                )
+            continue
 
         if func_name not in verified_functions:
+            print(
+                f"{func_name} failed to verify after "
+                f"{DEFAULT_NUM_SPECIFY_AND_VERIFY_RETRIES} retries(s)"
+            )
             recover_from_failure()
+    if args.save_conversation:
+        _write_conversation_log(conversation_log)
 
 
 def _generate_specifications(
     generation_strategy: LLMGen,
     conversation: list[dict[str, str]],
+    prompt: str,
     function: ParsecFunction,
     parsec_result: ParsecResult,
     out_file: Path,
-) -> None:
+) -> str:
     """Use the given LLM to generate specifications for a given function and update the source file.
 
     The LLM prompt contains:
@@ -118,10 +160,14 @@ def _generate_specifications(
     Take the LLM's response, extract the function with specifications,
     replace the original function in `out_file` with this new function,
     and update the line/column information for all functions in `parsec_result`.
+
+    Returns:
+        str: The contents of the file with the newly-generated specifications.
     """
     try:
+        conversation.append({"role": "user", "content": prompt})
         response = generation_strategy.gen(conversation, top_k=1, temperature=0.0)[0]
-        conversation += [{"role": "assistant", "content": response}]
+        conversation.append({"role": "assistant", "content": response})
     except Exception as e:
         print(f"Error generating specs: {e}")
         sys.exit(1)
@@ -187,12 +233,12 @@ def _generate_specifications(
         elif other_func.end_line == end_line and other_func.end_col >= end_col:
             other_func.end_col += new_end_col - end_col
 
-    Path(out_file).write_text(new_contents)
+    Path(out_file).write_text(new_contents, encoding="utf-8")
+    return new_contents
 
 
 def recover_from_failure() -> None:
     """Implement recovery logic."""
-    raise NotImplementedError("TODO: Implement me")
 
 
 def verify_one_function(
@@ -272,6 +318,29 @@ def _insert_default_headers(file_path: Path) -> None:
             # need for the brittle string matching that is currently done.
             file_content = f"{header_line}\n" + file_content
     file_path.open(mode="w", encoding="utf-8").write(file_content)
+
+
+def _write_conversation_log(conversation_log: list[GenerateVerifyIteration]) -> None:
+    """Write the conversation log to disk.
+
+    Args:
+        conversation_log (list[GenerateVerifyIteration]): The conversation log.
+    """
+    path_to_log = _get_path_to_conversation_log()
+    path_to_log.write_text(json.dumps([asdict(it) for it in conversation_log]))
+
+
+def _get_path_to_conversation_log() -> Path:
+    """Return the path to where the conversation log should be written.
+
+    Returns:
+        Path: The path to where the conversation log should be written.
+    """
+    current_time = int(time.time())
+    path_to_log = Path(f"logs/specifications/{current_time}-specs.json")
+    path_to_log.parent.mkdir(parents=True, exist_ok=True)
+    path_to_log.touch(exist_ok=True)
+    return path_to_log
 
 
 if __name__ == "__main__":
