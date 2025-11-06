@@ -1,7 +1,8 @@
 """Module for LLM-based generation."""
 
 # ruff: noqa
-# Vikram would be best suited to document this class
+# TODO: Vikram, please document.
+# Vikram would be best suited to document this class.
 
 import json
 import os
@@ -50,6 +51,8 @@ class LLMGen:
         """
         from . import ModelError
 
+        if top_k < 1:
+            raise ModelError("top_k must be >= 1")
         if top_k != 1 and temperature == 0:
             raise ModelError("Top k sampling requires a non-zero temperature")
 

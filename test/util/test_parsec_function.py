@@ -1,10 +1,10 @@
 import pytest
 
-from util.function import Function
+from util.parsec_function import ParsecFunction
 
 
 def test_get_source_code() -> None:
-    qsort = Function(
+    qsort = ParsecFunction(
         {
             "name": "swap",
             "num_args": 2,
@@ -15,6 +15,7 @@ def test_get_source_code() -> None:
             "endLine": 10,
             "startCol": 1,
             "endCol": 25,
+            "callees": []
         }
     )
     extracted_func = qsort.get_source_code()
@@ -25,7 +26,7 @@ def test_get_source_code() -> None:
 
 
 def test_get_source_code_invalid_line_range() -> None:
-    nonexistent_function = Function(
+    nonexistent_function = ParsecFunction(
         {
             "name": "swap",
             "num_args": 2,
@@ -36,6 +37,7 @@ def test_get_source_code_invalid_line_range() -> None:
             "endLine": 9999,
             "startCol": 1,
             "endCol": 25,
+            "callees": []
         }
     )
     with pytest.raises(ValueError):
@@ -43,7 +45,7 @@ def test_get_source_code_invalid_line_range() -> None:
 
 
 def test_get_source_code_on_one_line() -> None:
-    one_line_function = Function(
+    one_line_function = ParsecFunction(
         {
             "name": "single_line_main",
             "num_args": 0,
@@ -54,6 +56,7 @@ def test_get_source_code_on_one_line() -> None:
             "endLine": 3,
             "startCol": 1,
             "endCol": 52,
+            "callees": []
         }
     )
     extracted_func = one_line_function.get_source_code()
@@ -62,7 +65,7 @@ def test_get_source_code_on_one_line() -> None:
 
 
 def test_get_source_code_at_end_of_file() -> None:
-    end_of_file_function = Function(
+    end_of_file_function = ParsecFunction(
         {
             "name": "fn_at_end",
             "num_args": 0,
@@ -73,6 +76,7 @@ def test_get_source_code_at_end_of_file() -> None:
             "endLine": 9,
             "startCol": 1,
             "endCol": 37,
+            "callees": []
         }
     )
     extracted_func = end_of_file_function.get_source_code()
