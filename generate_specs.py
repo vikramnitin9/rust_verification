@@ -17,7 +17,7 @@ from verification import Failure, GenerateVerifyIteration, Success
 
 MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
-DEFAULT_NUM_SPECIFY_AND_VERIFY_RETRIES = 3
+DEFAULT_NUM_SPECIFY_AND_VERIFY_RETRIES = 10
 
 
 def main() -> None:
