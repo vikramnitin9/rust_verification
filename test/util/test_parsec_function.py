@@ -15,6 +15,7 @@ def test_get_source_code() -> None:
             "endLine": 10,
             "startCol": 1,
             "endCol": 25,
+            "callees": []
         }
     )
     extracted_func = qsort.get_source_code()
@@ -36,6 +37,7 @@ def test_get_source_code_invalid_line_range() -> None:
             "endLine": 9999,
             "startCol": 1,
             "endCol": 25,
+            "callees": []
         }
     )
     with pytest.raises(ValueError):
@@ -54,6 +56,7 @@ def test_get_source_code_on_one_line() -> None:
             "endLine": 3,
             "startCol": 1,
             "endCol": 52,
+            "callees": []
         }
     )
     extracted_func = one_line_function.get_source_code()
@@ -73,6 +76,7 @@ def test_get_source_code_at_end_of_file() -> None:
             "endLine": 9,
             "startCol": 1,
             "endCol": 37,
+            "callees": []
         }
     )
     extracted_func = end_of_file_function.get_source_code()
