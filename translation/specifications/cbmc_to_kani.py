@@ -79,6 +79,16 @@ class CBMCToKani:
                 if "__CPROVER_result" in kani_condition:
                     kani_condition = self._replace_cbmc_macros(kani_condition)
                 return f"kani::ensures({kani_condition})"
+            case cbmc_ast.AssignsExpr(condition=cond, targets=target_list):
+                if cond:
+                    msg = f"Conditional assignment(s) in: {spec} are not supported in Kani"
+                    raise TranslationError(msg)
+                kani_writeable_set = self._to_kani_str(target_list)
+                return f"kani::modifies({kani_writeable_set})"
+            case cbmc_ast.AssignsTargetList(targets):
+                return self._to_kani_str(targets)
+            case cbmc_ast.ExprList(items):
+                return ", ".join(self._to_kani_str(item) for item in items)
             case cbmc_ast.IndexOp(value, index):
                 kani_value = self._to_kani_str(value)
                 kani_index = self._to_kani_str(index)

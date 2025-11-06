@@ -5,6 +5,8 @@ from translation.ast.cbmc_ast import (
     DerefOp,
     AndOp,
     AssignsExpr,
+    AssignsTargetList,
+    ExprList,
     EnsuresClause,
     ForallExpr,
     ExistsExpr,
@@ -155,13 +157,13 @@ def test_assigns() -> None:
     assigns_cbmc_spec = "__CPROVER_ensures(__CPROVER_assigns(*out))"
     parsed_spec = parser.parse(assigns_cbmc_spec)
     match parsed_spec:
-        case EnsuresClause(_, AssignsExpr(condition=None, targets=[DerefOp(operand=Name("out"))])):
+        case EnsuresClause(_, _):
             pass
         case _:
             pytest.fail(f"Parsed spec is of type {type(parsed_spec)}, expected EnsuresClause")
     
     match parsed_spec.expr:
-        case AssignsExpr(condition=None, targets=[DerefOp(operand=Name("out"))]):
+        case AssignsExpr(condition=None, targets=AssignsTargetList(items=ExprList(items=[DerefOp(operand=Name("out"))]))):
             pass
         case _:
             pytest.fail(f"Expected the parsed spec expression: '__CPROVER_assigns(*out), but got: {parsed_spec.expr}'")

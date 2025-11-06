@@ -287,14 +287,19 @@ class ReturnValue(CBMCAst):
 
 
 @dataclass
-class AssignsExpr(CBMCAst):
-    condition: Any | None
-    targets: list[Any]
+class ExprList(CBMCAst, ast_utils.AsList):
+    items: list[CBMCAst]
 
 
 @dataclass
-class AssignsTargetList(CBMCAst, ast_utils.AsList):
-    items: list[Any]
+class AssignsTargetList(CBMCAst):
+    items: ExprList
+
+
+@dataclass
+class AssignsExpr(CBMCAst):
+    condition: Any | None
+    targets: AssignsTargetList
 
 
 class _ToAst(Transformer):
@@ -343,7 +348,7 @@ class _ToAst(Transformer):
 
     @v_args(inline=True)
     def assigns_empty(self):  # type: ignore[no-untyped-def]
-        return AssignsExpr(condition=None, targets=[])
+        return AssignsExpr(condition=None, targets=AssignsTargetList())
 
     @v_args(inline=True)
     def assigns_unconditional(self, *targets):  # type: ignore[no-untyped-def]
@@ -351,16 +356,15 @@ class _ToAst(Transformer):
         # The targets must be side-effect free.
         for target in target_list:
             self._validate_side_effect_free(target)
-        return AssignsExpr(condition=None, targets=target_list)
+        return AssignsExpr(condition=None, targets=AssignsTargetList(*target_list))
 
     @v_args(inline=True)
     def assigns_conditional(self, condition, *targets):  # type: ignore[no-untyped-def]
-        """Handle __CPROVER_assigns(condition: targets) - conditional"""
         target_list = list(targets)
         # Validate targets are side-effect free
         for target in target_list:
             self._validate_side_effect_free(target)
-        return AssignsExpr(condition=condition, targets=target_list)
+        return AssignsExpr(condition=condition, targets=AssignsTargetList(*target_list))
 
     def _validate_side_effect_free(self, expr: Any) -> None:
         """Raise ValueError if an expression contains a function call.

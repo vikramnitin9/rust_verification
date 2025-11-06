@@ -65,3 +65,14 @@ def test_exists() -> None:
     kani_specs = ["kani::ensures(kani::exists!(|i in (0, arr.size())| arr[i] > 0))"]
     assert translator.translate(cbmc_specs) == kani_specs
 
+def test_assigns() -> None:
+    cbmc_specs = [
+        "__CPROVER_ensures(__CPROVER_assigns(*out))",
+        "__CPROVER_ensures(__CPROVER_assigns(*out1, *out2))"
+    ]
+    kani_specs = [
+        "kani::ensures(kani::modifies(*out))",
+        "kani::ensures(kani::modifies(*out1, *out2))"
+    ]
+    assert translator.translate(cbmc_specs) == kani_specs
+

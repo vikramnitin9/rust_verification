@@ -74,7 +74,7 @@ quantifier_decl : typ NAME
                 | expr_list                                                 -> assigns_unconditional
                 | bool_expr ":" expr_list                                   -> assigns_conditional
 
-?expr_list: expr ("," expr)*
+expr_list: expr ("," expr)*
 
 // ---------- Types ----------
 // Token for builtin type keywords (prevents them being lexed as NAME)
