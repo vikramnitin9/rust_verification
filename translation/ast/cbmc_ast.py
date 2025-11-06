@@ -286,6 +286,17 @@ class ReturnValue(CBMCAst):
     pass
 
 
+@dataclass
+class AssignsExpr(CBMCAst):
+    condition: Any | None
+    targets: list[Any]
+
+
+@dataclass
+class AssignsTargetList(CBMCAst, ast_utils.AsList):
+    items: list[Any]
+
+
 class _ToAst(Transformer):
     def NAME(self, tok: Any) -> Name | Bool:
         txt = str(tok)
@@ -329,6 +340,56 @@ class _ToAst(Transformer):
         if isinstance(a, Name) and isinstance(b, TypeNode):  # tolerate reversed order
             return QuantifierDecl(typenode=b, name=a)
         raise ValueError(f"Unexpected quantifier_decl children: {type(a)} {type(b)}")
+
+    @v_args(inline=True)
+    def assigns_empty(self):  # type: ignore[no-untyped-def]
+        return AssignsExpr(condition=None, targets=[])
+
+    @v_args(inline=True)
+    def assigns_unconditional(self, *targets):  # type: ignore[no-untyped-def]
+        target_list = list(targets)
+        # The targets must be side-effect free.
+        for target in target_list:
+            self._validate_side_effect_free(target)
+        return AssignsExpr(condition=None, targets=target_list)
+
+    @v_args(inline=True)
+    def assigns_conditional(self, condition, *targets):  # type: ignore[no-untyped-def]
+        """Handle __CPROVER_assigns(condition: targets) - conditional"""
+        target_list = list(targets)
+        # Validate targets are side-effect free
+        for target in target_list:
+            self._validate_side_effect_free(target)
+        return AssignsExpr(condition=condition, targets=target_list)
+
+    def _validate_side_effect_free(self, expr: Any) -> None:
+        """Raise ValueError if an expression contains a function call.
+
+        This is a best-effort attempt to validate that an expression is side-effect free by checking
+        for the presence of function calls in an expression. Some functions are obviously
+        side-effect free, but this information requires a more complicated analysis to obtain.
+
+        Args:
+            expr (Any): The expression to validate.
+
+        Raises:
+            ValueError: Raised when a function call appears in the expression.
+        """
+        if isinstance(expr, CallOp):
+            raise ValueError(f"Function calls not allowed in assigns targets: {expr}")
+        # Check subexpressions.
+        if hasattr(expr, "value"):
+            self._validate_side_effect_free(expr.value)
+        if hasattr(expr, "index"):
+            self._validate_side_effect_free(expr.index)
+        if hasattr(expr, "left"):
+            self._validate_side_effect_free(expr.left)
+        if hasattr(expr, "right"):
+            self._validate_side_effect_free(expr.right)
+
+    @v_args(inline=True)
+    def assigns_target_list(self, *targets):  # type: ignore[no-untyped-def]
+        return list(targets)
 
     # Keep start inline
     @v_args(inline=True)
