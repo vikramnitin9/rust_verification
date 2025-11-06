@@ -5,8 +5,8 @@ from dataclasses import dataclass
 
 
 @dataclass
-class Specifications:
-    """Represents the pre and postconditions of a function.
+class FunctionSpecification:
+    """Represents the pre and postconditions of a function, if present.
 
     Attributes:
         preconditions (list[str]): The preconditions of the function.
@@ -16,10 +16,13 @@ class Specifications:
     preconditions: list[str]
     postconditions: list[str]
 
-    # TODO: What is the point of this?
     def __iter__(self) -> Iterator[list[str]]:
-        """Return a singleton iterator that yields a list this specification's clauses.
+        """Return a singleton iterator that yields a list of this specification's clauses.
 
+        This function allows tuple-based unpacking and assignments, e.g.,
+
+            function_spec = ...
+            pre, post = function_spec
         Returns:
             Iterator[list[str]]: An iterator comprising a tuple of pre and postconditions.
         """
