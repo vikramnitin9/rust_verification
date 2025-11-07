@@ -324,14 +324,14 @@ def _insert_default_headers(file_path: Path) -> None:
             # TODO: The ParseC result should ideally expose the imports in a file, mitigating the
             # need for the brittle string matching that is currently done.
             file_content = f"{header_line}\n" + file_content
-    file_path.open(mode="w", encoding="utf-8").write(file_content)
+    file_path.write_text(file_content)
 
 
 def _write_conversation_log(conversation_log: dict[str, list[LlmGenerateVerifyIteration]]) -> None:
     """Write the conversation log to disk.
 
     Args:
-        conversation_log (list[GenerateVerifyIteration]): The conversation log.
+        conversation_log (dict[str, list[LlmGenerateVerifyIteration]]): The conversation log.
     """
     path_to_log = _get_path_to_conversation_log()
     path_to_log.write_text(
@@ -339,8 +339,10 @@ def _write_conversation_log(conversation_log: dict[str, list[LlmGenerateVerifyIt
             {
                 func_name: [attempt.to_dict() for attempt in attempts]
                 for func_name, attempts in conversation_log.items()
-            }
-        )
+            },
+            indent=4,
+        ),
+        encoding="utf-8",
     )
 
 
