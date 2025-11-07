@@ -30,6 +30,13 @@ def main() -> None:
         "--file", required=True, help="Path to the C file for which to generate specifications."
     )
     parser.add_argument(
+        "--num-retries",
+        required=False,
+        help="The number of times to retry specification generation and verification",
+        default=DEFAULT_NUM_SPECIFY_AND_VERIFY_RETRIES,
+        type=int
+    )
+    parser.add_argument(
         "--save-conversation",
         action="store_true",
         help="Save the conversation used to generate specifications.",
@@ -97,7 +104,7 @@ def main() -> None:
             continue
         print(f"Verification failed for '{func_name}'; regenerating specs and re-trying")
 
-        for n in range(DEFAULT_NUM_SPECIFY_AND_VERIFY_RETRIES):
+        for n in range(args.num_retries):
             # Try to re-generate specifications for verification.
             spec_generation_prompt = prompt_builder.repair_specification_prompt(
                 function_to_verify, verification_result
@@ -116,7 +123,7 @@ def main() -> None:
             if isinstance(verification_result, Success):
                 print(
                     f"Verification succeeded for '{func_name}' after "
-                    f"{n + 1}/{DEFAULT_NUM_SPECIFY_AND_VERIFY_RETRIES} retries(s)"
+                    f"{n + 1}/{args.num_retries} retries(s)"
                 )
                 verified_functions.append(func_name)
                 if args.save_conversation:
@@ -138,7 +145,7 @@ def main() -> None:
         if func_name not in verified_functions:
             print(
                 f"{func_name} failed to verify after "
-                f"{DEFAULT_NUM_SPECIFY_AND_VERIFY_RETRIES} retries(s)"
+                f"{args.num_retries} retries(s)"
             )
             recover_from_failure()
     if args.save_conversation:
@@ -349,7 +356,6 @@ def _get_path_to_conversation_log() -> Path:
     current_time = int(time.time())
     path_to_log = Path(f"logs/specifications/{current_time}-specs.json")
     path_to_log.parent.mkdir(parents=True, exist_ok=True)
-    path_to_log.touch(exist_ok=True)
     return path_to_log
 
 

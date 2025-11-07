@@ -22,8 +22,18 @@ Then run the Python script
 ```sh
 make run
 # Inside the container:
-python generate_specs.py data/qsort.c
+python generate_specs.py --file data/qsort.c
 ```
+
+You can also write a record of the conversation used to generate specifications by passing in the
+`--save-conversation` flag:
+
+```sh
+python generate_specs.py --file data/qsort.c --save-conversation
+```
+
+Which saves the conversation record to `logs/specifications`
+
 
 ## Step 2: Converting C (CProver) specifications to Rust (Kani)
 
