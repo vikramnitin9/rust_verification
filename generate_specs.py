@@ -140,7 +140,6 @@ def main() -> None:
                         func_name, spec_generation_prompt, updated_file, verification_result
                     )
                 )
-            continue
 
         if func_name not in verified_functions:
             print(f"{func_name} failed to verify after {args.num_retries} retries(s)")
@@ -324,7 +323,7 @@ def _insert_default_headers(file_path: Path) -> None:
             # TODO: The ParseC result should ideally expose the imports in a file, mitigating the
             # need for the brittle string matching that is currently done.
             file_content = f"{header_line}\n" + file_content
-    file_path.write_text(file_content)
+    file_path.write_text(file_content, encoding="utf-8")
 
 
 def _write_conversation_log(conversation_log: dict[str, list[LlmGenerateVerifyIteration]]) -> None:
