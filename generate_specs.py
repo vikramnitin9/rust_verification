@@ -34,7 +34,7 @@ def main() -> None:
         required=False,
         help="The number of times to retry specification generation and verification",
         default=DEFAULT_NUM_SPECIFY_AND_VERIFY_RETRIES,
-        type=int
+        type=int,
     )
     parser.add_argument(
         "--save-conversation",
@@ -143,10 +143,7 @@ def main() -> None:
             continue
 
         if func_name not in verified_functions:
-            print(
-                f"{func_name} failed to verify after "
-                f"{args.num_retries} retries(s)"
-            )
+            print(f"{func_name} failed to verify after {args.num_retries} retries(s)")
             recover_from_failure()
     if args.save_conversation:
         _write_conversation_log(conversation_log)
