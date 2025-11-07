@@ -1,4 +1,4 @@
 from .verification_result import Success, Failure
-from .generate_verify_iteration import GenerateVerifyIteration
+from .llm_generate_verify_iteration import LlmGenerateVerifyIteration
 
-__all__ = ["Success", "Failure", "GenerateVerifyIteration"]
+__all__ = ["Success", "Failure", "LlmGenerateVerifyIteration"]

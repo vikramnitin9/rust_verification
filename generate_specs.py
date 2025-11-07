@@ -8,16 +8,17 @@ import re
 import subprocess
 import sys
 import time
-from dataclasses import asdict
+from collections import defaultdict
 from pathlib import Path
 
 from models import LLMGen, get_llm_generation_with_model
 from util import ParsecFunction, ParsecResult, PromptBuilder, extract_specification
-from verification import Failure, GenerateVerifyIteration, Success
+from verification import Failure, LlmGenerateVerifyIteration, Success
 
 MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
 DEFAULT_NUM_SPECIFY_AND_VERIFY_RETRIES = 10
+DEFAULT_SYSTEM_PROMPT = Path("system-prompt.txt").read_text(encoding="utf-8")
 
 
 def main() -> None:
@@ -53,10 +54,10 @@ def main() -> None:
     )
     verified_functions: list[str] = []
     prompt_builder = PromptBuilder()
-    conversation = [{"role": "system", "content": "You are an intelligent coding assistant"}]
     generation_strategy = get_llm_generation_with_model(MODEL)
-    conversation_log: list[GenerateVerifyIteration] = []
+    conversation_log: dict[str, list[LlmGenerateVerifyIteration]] = defaultdict(list)
     for func_name in func_ordering:
+        conversation = [{"role": "system", "content": DEFAULT_SYSTEM_PROMPT}]
         if func_name in recursive_funcs:
             print(f"Skipping self-recursive function {func_name} because of CBMC bugs/limitations.")
             continue
@@ -84,8 +85,10 @@ def main() -> None:
         # Attempt to verify the generated specifications for the function.
         verification_result = verify_one_function(func_name, verified_functions, output_file_path)
         if args.save_conversation:
-            conversation_log.append(
-                GenerateVerifyIteration(spec_generation_prompt, updated_file, verification_result)
+            conversation_log[func_name].append(
+                LlmGenerateVerifyIteration(
+                    func_name, spec_generation_prompt, updated_file, verification_result
+                )
             )
 
         if isinstance(verification_result, Success):
@@ -117,17 +120,17 @@ def main() -> None:
                 )
                 verified_functions.append(func_name)
                 if args.save_conversation:
-                    conversation_log.append(
-                        GenerateVerifyIteration(
-                            spec_generation_prompt, updated_file, verification_result
+                    conversation_log[func_name].append(
+                        LlmGenerateVerifyIteration(
+                            func_name, spec_generation_prompt, updated_file, verification_result
                         )
                     )
                 break  # Move on to the next function to generate specs and verify.
             print(f"Verification failed for '{func_name}'; on retry attempt {n + 1}")
             if args.save_conversation:
-                conversation_log.append(
-                    GenerateVerifyIteration(
-                        spec_generation_prompt, updated_file, verification_result
+                conversation_log[func_name].append(
+                    LlmGenerateVerifyIteration(
+                        func_name, spec_generation_prompt, updated_file, verification_result
                     )
                 )
             continue
@@ -320,14 +323,21 @@ def _insert_default_headers(file_path: Path) -> None:
     file_path.open(mode="w", encoding="utf-8").write(file_content)
 
 
-def _write_conversation_log(conversation_log: list[GenerateVerifyIteration]) -> None:
+def _write_conversation_log(conversation_log: dict[str, list[LlmGenerateVerifyIteration]]) -> None:
     """Write the conversation log to disk.
 
     Args:
         conversation_log (list[GenerateVerifyIteration]): The conversation log.
     """
     path_to_log = _get_path_to_conversation_log()
-    path_to_log.write_text(json.dumps([asdict(it) for it in conversation_log]))
+    path_to_log.write_text(
+        json.dumps(
+            {
+                func_name: [attempt.to_dict() for attempt in attempts]
+                for func_name, attempts in conversation_log.items()
+            }
+        )
+    )
 
 
 def _get_path_to_conversation_log() -> Path:

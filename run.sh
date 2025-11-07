@@ -26,6 +26,7 @@ if docker info -f "{{println .SecurityOptions}}" | grep -q rootless; then
                            -v "$(pwd)/specs:/app/specs" \
                            -v "$(pwd)/logs:/app/logs" \
                            -v "$(pwd)/prompt.txt:/app/prompt.txt" \
+                           -v "$(pwd)/system-prompt.txt:/app/system-prompt.txt" \
                            -v "$(pwd)/generate_specs.py:/app/generate_specs.py" \
                            cbmc:latest "${CMD[@]}"
 else
@@ -40,6 +41,7 @@ else
                     -v "$(pwd)/specs:/app/specs" \
                     -v "$(pwd)/logs:/app/logs" \
                     -v "$(pwd)/prompt.txt:/app/prompt.txt" \
+                    -v "$(pwd)/system-prompt.txt:/app/system-prompt.txt" \
                     -v "$(pwd)/generate_specs.py:/app/generate_specs.py" \
                     cbmc:latest "${CMD[@]}"
 fi
