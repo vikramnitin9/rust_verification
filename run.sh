@@ -12,7 +12,7 @@ else
 fi
 
 if ! command -v docker &>/dev/null ; then
-  echo "$0: command not found: docker"
+  echo "$0: command not found: docker" >&2
   exit 2
 fi
 
