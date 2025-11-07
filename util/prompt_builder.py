@@ -4,6 +4,7 @@ from pathlib import Path
 from string import Template
 
 from util import ParsecFunction, ParsecResult
+from verification.verification_result import Failure
 
 
 class PromptBuilder:
@@ -47,22 +48,25 @@ class PromptBuilder:
 
         return prompt.replace(PromptBuilder.CALLEE_CONTEXT_PLACEHOLDER, callee_context)
 
-    def repair_specification_prompt(self, function: ParsecFunction, error_message: str) -> str:
+    def repair_specification_prompt(
+        self, function: ParsecFunction, verification_failure: Failure
+    ) -> str:
         """Return a prompt directing the model to repair a faulty specification.
 
         Args:
             function (ParsecFunction): The function that does not verify.
-            error_message (str): The error message from running a verifier on `function`.
-                Only lines containing "FAILURE" are relevant.
+            verification_failure (Failure): The failed result of verifying the function.
 
         Returns:
             str: A prompt directing the model to repair a faulty specification.
         """
-        lines_involving_failure = [line for line in error_message.splitlines() if "FAILURE" in line]
+        lines_involving_failure = [
+            line for line in verification_failure.stdout.splitlines() if "FAILURE" in line
+        ]
         return PromptBuilder.REPAIR_PROMPT_TEMPLATE.safe_substitute(
             function_name=function.name,
             failure_lines="\n".join(lines_involving_failure),
-            stderr=error_message,
+            stderr=verification_failure.stderr,
         )
 
     def _get_callee_context_for_prompt(

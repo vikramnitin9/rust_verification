@@ -13,7 +13,9 @@ class Failure:
     """Represents an unsuccessful verification result.
 
     Attributes:
-        error_message (str): The error message stemming from an unsuccessful verification result.
+        stdout (str): The output from an unsuccessful verification result.
+        stderr (str): The error message stemming from an unsuccessful verification result.
     """
 
-    error_message: str
+    stdout: str
+    stderr: str

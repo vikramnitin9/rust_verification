@@ -100,7 +100,7 @@ def main() -> None:
         for n in range(DEFAULT_NUM_SPECIFY_AND_VERIFY_RETRIES):
             # Try to re-generate specifications for verification.
             spec_generation_prompt = prompt_builder.repair_specification_prompt(
-                function_to_verify, verification_result.error_message
+                function_to_verify, verification_result
             )
             updated_file = _generate_specifications(
                 generation_strategy,
@@ -278,7 +278,7 @@ def verify_one_function(
         result = subprocess.run(verification_command, shell=True, capture_output=True, text=True)
         if result.returncode == 0:
             return Success()
-        return Failure(error_message=result.stdout)
+        return Failure(stdout=result.stdout, stderr=result.stderr)
     except Exception as e:
         msg = f"Error running command for function {func_name}: {e}"
         raise RuntimeError(msg) from e
