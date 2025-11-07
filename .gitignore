@@ -1,4 +1,5 @@
 specs/
+logs/
 
 # Caches for linting tools
 .mypy_cache
