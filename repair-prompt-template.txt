@@ -1,0 +1,12 @@
+Error while running verification for function: $function_name
+STDOUT: $failure_lines
+STDERR: $stderr
+Remember to add the contracts (__CPROVER_requires and __CPROVER_ensures) in the function header,
+not the function body.
+Fill in the area marked by <FUNCTION WITH REPAIRED SPECS> in your response:
+<FUNC>
+```c
+<FUNCTION WITH REPAIRED SPECS>
+```
+</FUNC>"
+Do not include any explanations or re-define other functions.
