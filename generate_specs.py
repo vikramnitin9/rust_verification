@@ -6,11 +6,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-from models import LLMGen, get_llm_generation_with_model
+from specifications import LlmSpecificationGenerator
 from util import (
-    ParsecFunction,
     ParsecResult,
-    PromptBuilder,
     extract_function,
     function_util,
 )
@@ -40,9 +38,11 @@ def main() -> None:
         )
     )
     verified_functions: list[str] = []
-    prompt_builder = PromptBuilder()
     conversation = [{"role": "system", "content": "You are an intelligent coding assistant"}]
-    generation_strategy = get_llm_generation_with_model(MODEL)
+    specification_generator = LlmSpecificationGenerator(
+        MODEL, parsec_result_without_direct_recursive_functions
+    )
+
     for func_name in func_ordering:
         if func_name in recursive_funcs:
             print(f"Skipping self-recursive function {func_name} because of CBMC bugs/limitations.")
@@ -56,19 +56,10 @@ def main() -> None:
             msg = f"Failed to find function '{func_name}' to verify"
             raise RuntimeError(msg)
 
-        # Get the initial prompt for specification generation.
-        initial_prompt_generation_prompt = prompt_builder.initial_specification_generation_prompt(
-            function_to_verify, parsec_result_without_direct_recursive_functions
-        )
-        conversation.append({"role": "user", "content": initial_prompt_generation_prompt})
-
         # Generate the initial specifications for verification.
-        _generate_specifications(
-            generation_strategy,
-            conversation,
-            function_to_verify,
-            parsec_result_without_direct_recursive_functions,
-            output_file_path,
+        (_, response) = specification_generator.generate_specifications(func_name, conversation)
+        _update_output_file_and_parsec_result(
+            response, func_name, parsec_result_without_direct_recursive_functions, output_file_path
         )
 
         for n in range(DEFAULT_NUM_VERIFICATION_ATTEMPTS):
@@ -84,17 +75,13 @@ def main() -> None:
                         f"regenerating specs and re-trying: "
                         f"{n + 1}/{DEFAULT_NUM_VERIFICATION_ATTEMPTS}"
                     )
-                    # Re-generate specifications
-                    regenerate_specifications_prompt = prompt_builder.repair_specification_prompt(
-                        function_to_verify, error_message
+                    # Repair specifications
+                    (_, response) = specification_generator.repair_specifications(
+                        func_name, error_message, conversation
                     )
-                    conversation.append(
-                        {"role": "user", "content": regenerate_specifications_prompt}
-                    )
-                    _generate_specifications(
-                        generation_strategy,
-                        conversation,
-                        function_to_verify,
+                    _update_output_file_and_parsec_result(
+                        response,
+                        func_name,
                         parsec_result_without_direct_recursive_functions,
                         output_file_path,
                     )
@@ -106,40 +93,18 @@ def main() -> None:
             recover_from_failure()
 
 
-def _generate_specifications(
-    generation_strategy: LLMGen,
-    conversation: list[dict[str, str]],
-    function: ParsecFunction,
-    parsec_result: ParsecResult,
-    out_file: Path,
-) -> None:
-    """Use the given LLM to generate specifications for a given function and update the source file.
-
-    The LLM prompt contains:
-    - The body of the function `func_name`, including all comments.
-    - Documentation of the CBMC API.
-    - A history of the conversation so far, including any errors from verification attempts.
-
-    Take the LLM's response, extract the function with specifications,
-    replace the original function in `out_file` with this new function,
-    and update the line/column information for all functions in `parsec_result`.
-    """
-    try:
-        response = generation_strategy.gen(conversation, top_k=1, temperature=0.0)[0]
-        conversation += [{"role": "assistant", "content": response}]
-    except Exception as e:
-        print(f"Error generating specs: {e}")
-        sys.exit(1)
-
-    function_from_response = extract_function(response)
-    function_util.update_function_declaration(
-        function.name, function_from_response, parsec_result, out_file
-    )
-
-
 def recover_from_failure() -> None:
     """Implement recovery logic."""
     raise NotImplementedError("TODO: Implement me")
+
+
+def _update_output_file_and_parsec_result(
+    llm_response: str, function_name: str, parsec_result: ParsecResult, output_file: Path
+) -> None:
+    updated_function_content = extract_function(llm_response)
+    function_util.update_function_declaration(
+        function_name, updated_function_content, parsec_result, output_file
+    )
 
 
 def verify_one_function(
@@ -176,7 +141,7 @@ def verify_one_function(
         result = subprocess.run(verification_command, shell=True, capture_output=True, text=True)
         if result.returncode == 0:
             return Success()
-        return Failure(error_message=result.stdout)
+        return Failure(error_message=result.stderr)
     except Exception as e:
         msg = f"Error running command for function {func_name}: {e}"
         raise RuntimeError(msg) from e

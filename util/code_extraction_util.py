@@ -18,6 +18,7 @@ def extract_function(text: str, function_tag: str = "FUNC", code_fence_language:
     Returns:
         str: The part of a string inside a set of code fences, delimited by function tags.
     """
+    print(f"RESPONSE IS = {text}\n\n")
     open_tag = f"<{function_tag}>"
     close_tag = f"</{function_tag}>"
 
