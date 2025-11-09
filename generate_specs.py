@@ -58,12 +58,8 @@ def main() -> None:
 
         # Generate the initial specifications for verification.
         (_, response) = specification_generator.generate_specifications(func_name, conversation)
-        function_from_response = extract_function(response)
-        function_util.update_function_declaration(
-            func_name,
-            function_from_response,
-            parsec_result_without_direct_recursive_functions,
-            output_file_path,
+        _update_output_file_and_parsec_result(
+            response, func_name, parsec_result_without_direct_recursive_functions, output_file_path
         )
 
         for n in range(DEFAULT_NUM_VERIFICATION_ATTEMPTS):
@@ -79,14 +75,13 @@ def main() -> None:
                         f"regenerating specs and re-trying: "
                         f"{n + 1}/{DEFAULT_NUM_VERIFICATION_ATTEMPTS}"
                     )
-                    # Re-generate specifications
+                    # Repair specifications
                     (_, response) = specification_generator.repair_specifications(
                         func_name, error_message, conversation
                     )
-                    function_from_response = extract_function(response)
-                    function_util.update_function_declaration(
+                    _update_output_file_and_parsec_result(
+                        response,
                         func_name,
-                        function_from_response,
                         parsec_result_without_direct_recursive_functions,
                         output_file_path,
                     )
@@ -101,6 +96,15 @@ def main() -> None:
 def recover_from_failure() -> None:
     """Implement recovery logic."""
     raise NotImplementedError("TODO: Implement me")
+
+
+def _update_output_file_and_parsec_result(
+    llm_response: str, function_name: str, parsec_result: ParsecResult, output_file: Path
+) -> None:
+    updated_function_content = extract_function(llm_response)
+    function_util.update_function_declaration(
+        function_name, updated_function_content, parsec_result, output_file
+    )
 
 
 def verify_one_function(

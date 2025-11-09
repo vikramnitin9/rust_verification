@@ -8,5 +8,5 @@ Fill in the area marked by <FUNCTION WITH REPAIRED SPECS> in your response:
 ```c
 <FUNCTION WITH REPAIRED SPECS>
 ```
-</FUNC>"
+</FUNC>
 Do not include any explanations or re-define other functions.

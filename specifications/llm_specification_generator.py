@@ -1,6 +1,6 @@
 """Module for generating and repairing specifications via LLMs."""
 
-from models import LLMGen, get_llm_generation_with_model
+from models import LLMGen, ModelError, get_llm_generation_with_model
 from util import ParsecResult, PromptBuilder
 
 
@@ -53,13 +53,12 @@ class LlmSpecificationGenerator:
             "content": specification_generation_prompt,
         }
         conversation.append(specification_generation_message)
-        print(specification_generation_message)
 
         try:
             response = self._model.gen(conversation, top_k=1, temperature=0.0)[0]
             return (specification_generation_prompt, response)
-        except Exception as e:
-            msg = f"Error during specification generation for '{function_name}: {e}"
+        except ModelError as e:
+            msg = f"Error during specification generation for '{function_name}': {e}"
             raise RuntimeError(msg) from e
 
     def repair_specifications(
@@ -92,11 +91,10 @@ class LlmSpecificationGenerator:
         repair_prompt = self._prompt_builder.specification_repair_prompt(function, error_message)
         repair_message = {"role": "user", "content": repair_prompt}
         conversation.append(repair_message)
-        print(repair_prompt)
 
         try:
             response = self._model.gen(conversation, top_k=1, temperature=0.0)[0]
             return (repair_prompt, response)
         except Exception as e:
-            msg = f"Error during specification repair for '{function_name}: {e}"
+            msg = f"Error during specification repair for '{function_name}': {e}"
             raise RuntimeError(msg) from e
