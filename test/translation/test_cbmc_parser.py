@@ -17,7 +17,6 @@ from translation.ast.cbmc_ast import (
     LeOp,
     LtOp,
     Name,
-    NamedType,
     BuiltinType,
     QuantifierDecl,
     NeqOp,
@@ -27,7 +26,6 @@ from translation.ast.cbmc_ast import (
     ToAst,
 )
 from translation.parser import Parser
-from typing import cast
 
 parser: Parser[CBMCAst] = Parser(
     path_to_grammar_defn="translation/grammar/cbmc.txt",
@@ -93,11 +91,11 @@ def test_parse_basic_forall_expr() -> None:
         case AndOp(left=LeOp(left=Number(0), right=Name("i")), right=LtOp(left=Name("i"), right=Number(10))):
             pass
         case _:
-            pytest.fail(f"Range should be `i > 0 &&  <= 10`, but was {parsed_spec_expr.range_expr}")
+            pytest.fail(f"Range should be `0 <= i && i < 10`, but was {parsed_spec_expr.range_expr}")
     
     # Check the qualifier body.
     match parsed_spec_expr.expr:
-        case EqOp(left=IndexOp(value=Name("arr"), index=Name(i)), right=Number(0)):
+        case EqOp(left=IndexOp(value=Name("arr"), index=Name("i")), right=Number(0)):
             pass
         case _:
             pytest.fail(f"Body should be `arr[i] == 0`, but was {parsed_spec_expr.expr}")
@@ -129,7 +127,7 @@ def test_parse_basic_exists_expr() -> None:
         case EqOp(left=IndexOp(value=Name("arr"), index=Name("j")), right=Number(10)):
             pass
         case _:
-            pytest.fail(f"Body should be `arr[j] == 10`, but was {parsed_spec_expr.range_expr}")
+            pytest.fail(f"Body should be `arr[j] == 10`, but was {parsed_spec_expr.expr}")
 
 
 
