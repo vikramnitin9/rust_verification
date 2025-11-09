@@ -1,3 +1,5 @@
+void foo() {}
+
 void swap(int* a, int* b)
 {
     int t = *a;

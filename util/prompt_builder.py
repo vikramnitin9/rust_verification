@@ -9,31 +9,26 @@ from util import ParsecFunction, ParsecResult
 class PromptBuilder:
     """Encapsulates functions used in constructing prompts for LLM calls."""
 
-    INITIAL_PROMPT_FOR_SPECIFICATION_GENERATION = Path("./prompt.txt").read_text()
+    PROMPT_FOR_SPECIFICATION_GENERATION = Path("./prompt.txt").read_text()
     SOURCE_PLACEHOLDER = "<<SOURCE>>"
     CALLEE_CONTEXT_PLACEHOLDER = "<<CALLEE_CONTEXT>>"
 
-    REPAIR_PROMPT_TEMPLATE = Template(
-        "Error while running verification for function $function_name:\n"
-        "STDOUT: $failure_lines\n"
-        "STDERR: $stderr\n"
-        "Please fix the error and re-generate the function with specifications."
-    )
+    REPAIR_PROMPT_TEMPLATE = Template(Path("./repair-prompt-template.txt").read_text())
 
-    def initial_specification_generation_prompt(
+    def specification_generation_prompt(
         self, function: ParsecFunction, parsec_result: ParsecResult
     ) -> str:
-        """Return the initial prompt used for specification generation.
+        """Return the prompt used for specification generation.
 
         Args:
             function (ParsecFunction): The function for which to generate specifications.
             parsec_result (ParsecResult): The top-level ParseC result.
 
         Returns:
-            str: The initial prompt used for specification generation.
+            str: The initial used for specification generation.
         """
         source_code = function.get_source_code()
-        prompt = PromptBuilder.INITIAL_PROMPT_FOR_SPECIFICATION_GENERATION.replace(
+        prompt = PromptBuilder.PROMPT_FOR_SPECIFICATION_GENERATION.replace(
             PromptBuilder.SOURCE_PLACEHOLDER, source_code
         )
 
@@ -47,7 +42,7 @@ class PromptBuilder:
 
         return prompt.replace(PromptBuilder.CALLEE_CONTEXT_PLACEHOLDER, callee_context)
 
-    def repair_specification_prompt(self, function: ParsecFunction, error_message: str) -> str:
+    def specification_repair_prompt(self, function: ParsecFunction, error_message: str) -> str:
         """Return a prompt directing the model to repair a faulty specification.
 
         Args:

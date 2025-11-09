@@ -4,6 +4,7 @@ from .function_util import extract_specification
 from .parsec_result import ParsecResult
 from .specifications import FunctionSpecification
 from .prompt_builder import PromptBuilder
+from .code_extraction_util import extract_function
 
 __all__ = [
     "ParsecFunction",
@@ -12,4 +13,5 @@ __all__ = [
     "PromptBuilder",
     "FunctionSpecification",
     "extract_specification",
+    "extract_function"
 ]
