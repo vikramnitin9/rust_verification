@@ -24,6 +24,7 @@ if docker info -f "{{println .SecurityOptions}}" | grep -q rootless; then
                            -v "$(pwd)/analysis:/app/analysis" \
                            -v "$(pwd)/docs:/app/docs" \
                            -v "$(pwd)/models:/app/models" \
+                           -v "$(pwd)/specifications:/app/specifications" \
                            -v "$(pwd)/test:/app/test" \
                            -v "$(pwd)/translation:/app/translation" \
                            -v "$(pwd)/util:/app/util" \
@@ -32,6 +33,7 @@ if docker info -f "{{println .SecurityOptions}}" | grep -q rootless; then
                            -v "$(pwd)/logs:/app/logs" \
                            -v "$(pwd)/prompt.txt:/app/prompt.txt" \
                            -v "$(pwd)/system-prompt.txt:/app/system-prompt.txt" \
+                           -v "$(pwd)/repair-prompt-template.txt:/app/repair-prompt-template.txt" \
                            -v "$(pwd)/generate_specs.py:/app/generate_specs.py" \
                            cbmc:latest "${CMD[@]}"
 else
@@ -39,6 +41,7 @@ else
                     -v "$(pwd)/analysis:/app/analysis" \
                     -v "$(pwd)/docs:/app/docs" \
                     -v "$(pwd)/models:/app/models" \
+                    -v "$(pwd)/specifications:/app/specifications" \
                     -v "$(pwd)/test:/app/test" \
                     -v "$(pwd)/translation:/app/translation" \
                     -v "$(pwd)/util:/app/util" \
@@ -47,6 +50,7 @@ else
                     -v "$(pwd)/logs:/app/logs" \
                     -v "$(pwd)/prompt.txt:/app/prompt.txt" \
                     -v "$(pwd)/system-prompt.txt:/app/system-prompt.txt" \
+                    -v "$(pwd)/repair-prompt-template.txt:/app/repair-prompt-template.txt" \
                     -v "$(pwd)/generate_specs.py:/app/generate_specs.py" \
                     cbmc:latest "${CMD[@]}"
 fi
