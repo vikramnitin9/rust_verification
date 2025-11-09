@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-
 import argparse
 import json
-import re
-
 import subprocess
 import sys
 import time
@@ -14,8 +11,6 @@ from collections import defaultdict
 from pathlib import Path
 
 from models import LLMGen, get_llm_generation_with_model
-
-from verification import Failure, LlmGenerateVerifyIteration, Success
 from util import (
     ParsecFunction,
     ParsecResult,
@@ -23,7 +18,7 @@ from util import (
     extract_function,
     extract_specification,
 )
-
+from verification import Failure, LlmGenerateVerifyIteration, Success
 
 MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
