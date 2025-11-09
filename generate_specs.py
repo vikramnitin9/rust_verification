@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+
 import argparse
 import json
 import re
+
 import subprocess
 import sys
 import time
@@ -12,8 +14,16 @@ from collections import defaultdict
 from pathlib import Path
 
 from models import LLMGen, get_llm_generation_with_model
-from util import ParsecFunction, ParsecResult, PromptBuilder, extract_specification
+
 from verification import Failure, LlmGenerateVerifyIteration, Success
+from util import (
+    ParsecFunction,
+    ParsecResult,
+    PromptBuilder,
+    extract_function,
+    extract_specification,
+)
+
 
 MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
@@ -178,25 +188,7 @@ def _generate_specifications(
         print(f"Error generating specs: {e}")
         sys.exit(1)
 
-    # Get the part within <FUNC> and </FUNC> tags.
-    functions = re.findall(r"<FUNC>(.*?)</FUNC>", response, re.DOTALL)
-    if len(functions) != 1:
-        msg = f"Wrong number of functions {len(functions)}: {functions}"
-        raise RuntimeError(msg)
-    function_w_spec = functions[0]
-    fences = re.findall(r"```", function_w_spec)
-    if len(fences) == 0:
-        # Nothing to do
-        pass
-    elif len(fences) == 2:
-        match = re.search(r"```[cC]?(.*)```", function_w_spec, re.DOTALL)
-        if match is None:
-            raise RuntimeError("Existing fences not found: " + function_w_spec)
-        function_w_spec = match.group(1)
-    else:
-        msg = f"Wrong number of code fences {len(fences)}: {function_w_spec}"
-        raise RuntimeError(msg)
-    function_w_spec = function_w_spec.strip()
+    function_from_response = extract_function(response)
 
     start_line = function.start_line
     start_col = function.start_col
@@ -209,19 +201,19 @@ def _generate_specifications(
 
     before = [*lines[: start_line - 1], *[lines[start_line - 1][: start_col - 1]]]
     after = [*lines[end_line - 1][end_col:], *lines[end_line:]]
-    new_contents = "".join([*before, function_w_spec, *after])
+    new_contents = "".join([*before, function_from_response, *after])
 
     # Update the line/col info for this function.
-    function_len = len(function_w_spec.splitlines())
+    function_len = len(function_from_response.splitlines())
     new_end_line = start_line + function_len - 1
     new_end_col = (
-        len(function_w_spec.splitlines()[-1])
+        len(function_from_response.splitlines()[-1])
         if function_len > 1
-        else start_col + len(function_w_spec)
+        else start_col + len(function_from_response)
     )
     function.end_line = new_end_line
     function.end_col = new_end_col
-    function.set_specifications(extract_specification(function_w_spec.splitlines()))
+    function.set_specifications(extract_specification(function_from_response.splitlines()))
 
     # Update line/col info for other functions.
     line_offset = function_len - (end_line - start_line + 1)
