@@ -348,7 +348,7 @@ class _ToAst(Transformer):
 
     @v_args(inline=True)
     def assigns_empty(self):  # type: ignore[no-untyped-def]
-        return AssignsExpr(condition=None, targets=AssignsTargetList())
+        return AssignsExpr(condition=None, targets=AssignsTargetList(items=ExprList([])))
 
     @v_args(inline=True)
     def assigns_unconditional(self, *targets):  # type: ignore[no-untyped-def]

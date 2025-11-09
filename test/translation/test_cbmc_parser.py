@@ -153,7 +153,22 @@ def test_parse_multi_line_spec() -> None:
         case _:
             pytest.fail(f"Parsed spec is of type {type(parsed_spec)}, expected RequiresClause")
 
-def test_assigns() -> None:
+def test_assigns_empty_args() -> None:
+    assigns_cbmc_spec = "__CPROVER_ensures(__CPROVER_assigns())"
+    parsed_spec = parser.parse(assigns_cbmc_spec)
+    match parsed_spec:
+        case EnsuresClause(_, _):
+            pass
+        case _:
+            pytest.fail(f"Parsed spec is of type {type(parsed_spec)}, expected EnsuresClause")
+    
+    match parsed_spec.expr:
+        case AssignsExpr(condition=None, targets=AssignsTargetList(items=ExprList(items=[]))):
+            pass
+        case _:
+            pytest.fail(f"Expected the parsed spec expression: '__CPROVER_assigns(), but got: {parsed_spec.expr}'")
+
+def test_assigns_single_arg() -> None:
     assigns_cbmc_spec = "__CPROVER_ensures(__CPROVER_assigns(*out))"
     parsed_spec = parser.parse(assigns_cbmc_spec)
     match parsed_spec:
@@ -167,3 +182,21 @@ def test_assigns() -> None:
             pass
         case _:
             pytest.fail(f"Expected the parsed spec expression: '__CPROVER_assigns(*out), but got: {parsed_spec.expr}'")
+
+def test_assigns_multiple_args() -> None:
+    assigns_cbmc_spec = "__CPROVER_ensures(__CPROVER_assigns(*out1, *out2))"
+    parsed_spec = parser.parse(assigns_cbmc_spec)
+    match parsed_spec:
+        case EnsuresClause(_, _):
+            pass
+        case _:
+            pytest.fail(f"Parsed spec is of type {type(parsed_spec)}, expected EnsuresClause")
+    
+    match parsed_spec.expr:
+        case AssignsExpr(condition=None, targets=AssignsTargetList(items=ExprList(items=[
+            DerefOp(operand=Name("out1")),
+            DerefOp(operand=Name("out2"))
+        ]))):
+            pass
+        case _:
+            pytest.fail(f"Expected the parsed spec expression: '__CPROVER_assigns(*out1, *out2), but got: {parsed_spec.expr}'")
