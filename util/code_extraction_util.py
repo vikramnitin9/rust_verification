@@ -41,7 +41,6 @@ def extract_function(text: str, function_tag: str = "FUNC", code_fence_language:
     if not match:
         raise RuntimeError("Existing fences not found: " + code_fence)
     code_inside_fence = match.group(1)
-    print(code_inside_fence)
     if code_inside_fence.isspace():
         msg = "The part between the code fence was empty"
         raise RuntimeError(msg)

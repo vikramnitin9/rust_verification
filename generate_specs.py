@@ -16,7 +16,7 @@ from util import (
     ParsecResult,
     PromptBuilder,
     extract_function,
-    extract_specification,
+    function_util,
 )
 from verification import Failure, LlmGenerateVerifyIteration, Success
 
@@ -184,50 +184,9 @@ def _generate_specifications(
         sys.exit(1)
 
     function_from_response = extract_function(response)
-
-    start_line = function.start_line
-    start_col = function.start_col
-    end_line = function.end_line
-    end_col = function.end_col
-
-    # Use `with` and `readlines()` here to enable line-by-line file reading.
-    with Path(out_file).open(encoding="utf-8") as f:
-        lines = f.readlines()
-
-    before = [*lines[: start_line - 1], *[lines[start_line - 1][: start_col - 1]]]
-    after = [*lines[end_line - 1][end_col:], *lines[end_line:]]
-    new_contents = "".join([*before, function_from_response, *after])
-
-    # Update the line/col info for this function.
-    function_len = len(function_from_response.splitlines())
-    new_end_line = start_line + function_len - 1
-    new_end_col = (
-        len(function_from_response.splitlines()[-1])
-        if function_len > 1
-        else start_col + len(function_from_response)
+    return function_util.update_function_declaration(
+        function.name, function_from_response, parsec_result, out_file
     )
-    function.end_line = new_end_line
-    function.end_col = new_end_col
-    function.set_specifications(extract_specification(function_from_response.splitlines()))
-
-    # Update line/col info for other functions.
-    line_offset = function_len - (end_line - start_line + 1)
-    for other_func in parsec_result.functions.values():
-        if other_func.name == function.name:
-            continue
-        if other_func.start_line > end_line:
-            other_func.start_line += line_offset
-            other_func.end_line += line_offset
-        elif other_func.start_line == end_line and other_func.start_col >= end_col:
-            other_func.start_col += new_end_col - end_col
-            other_func.end_col += new_end_col - end_col
-        elif other_func.end_line > end_line:
-            other_func.end_line += line_offset
-        elif other_func.end_line == end_line and other_func.end_col >= end_col:
-            other_func.end_col += new_end_col - end_col
-
-    Path(out_file).write_text(new_contents, encoding="utf-8")
-    return new_contents
 
 
 def recover_from_failure() -> None:
