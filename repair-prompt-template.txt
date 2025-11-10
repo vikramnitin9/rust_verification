@@ -3,10 +3,9 @@ STDOUT: $failure_lines
 STDERR: $stderr
 Remember to add the contracts (__CPROVER_requires and __CPROVER_ensures) in the function header,
 not the function body.
-Fill in the area marked by <FUNCTION WITH REPAIRED SPECS> in your response:
-<FUNC>
-```c
-<FUNCTION WITH REPAIRED SPECS>
-```
-</FUNC>
+Your response is in the following format:
+
+{ "function_with_specs": "<SOURCE CODE HERE>" }
+
+There is no need to delimit the format with tags, return the plain object and nothing else.
 Do not include any explanations or re-define other functions.
