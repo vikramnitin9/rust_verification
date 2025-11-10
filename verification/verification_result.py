@@ -13,8 +13,8 @@ class Failure:
     """Represents an unsuccessful verification result.
 
     Attributes:
-        stdout (str): The output from an unsuccessful verification result.
-        stderr (str): The error message stemming from an unsuccessful verification result.
+        stdout (str): The stdout output from an unsuccessful verification result.
+        stderr (str): The stderr output from an unsuccessful verification result.
     """
 
     stdout: str
