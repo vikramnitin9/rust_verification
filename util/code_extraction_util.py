@@ -24,6 +24,9 @@ def extract_function(text: str) -> str:
         text = text.strip().removeprefix("```json").removesuffix("```")
     try:
         return str(json.loads(text)["function_with_specs"])
-    except JSONDecodeError as e:
-        msg = f"The LLM failed to return a valid JSON object: {text}, error = {e}"
-        raise RuntimeError(msg) from e
+    except JSONDecodeError as je:
+        msg = f"The LLM failed to return a valid JSON object: {text}, error = {je}"
+        raise RuntimeError(msg) from je
+    except KeyError as ke:
+        msg = "The LLM returned valid JSON, but was missing the 'function_with_specs' key"
+        raise RuntimeError(msg) from ke
