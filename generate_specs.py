@@ -109,7 +109,7 @@ def main() -> None:
             continue
         print(f"Verification failed for '{func_name}'; attempting to repair the generated specs")
 
-        repair_results = _run_repair_loop(
+        repair_iterations = _run_repair_loop(
             specification_generator,
             func_name,
             verified_functions,
@@ -120,22 +120,18 @@ def main() -> None:
             args.num_repair,
         )
 
-        if args.num_repair != 0 and not repair_results:
+        if args.num_repair != 0 and not repair_iterations:
             raise RuntimeError()
         if args.save_conversation:
-            conversation_log[func_name].extend(repair_results)
+            conversation_log[func_name].extend(repair_iterations)
 
-        final_repair_result = repair_results[-1]
-        if isinstance(final_repair_result, Success):
-            print(
-                f"Verification succeeded for '{func_name}' after {len(repair_results)} repair "
-                "attempt(s)"
-            )
-        else:
-            print(
-                f"Verification failed for '{func_name}' after {len(repair_results)} repair "
-                "attempt(s)"
-            )
+        final_repair_iteration = repair_iterations[-1]
+        is_repair_successful = isinstance(final_repair_iteration.verification_result, Success)
+        repair_result_msg = (
+            f"Verification {'succeeded' if is_repair_successful else 'failed'} for "
+            f"'{func_name}' after {len(repair_iterations)} repair iterations"
+        )
+        print(repair_result_msg)
 
         if func_name not in verified_functions:
             recover_from_failure()
