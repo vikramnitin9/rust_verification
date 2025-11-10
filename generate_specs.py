@@ -15,11 +15,12 @@ from util import (
     extract_function,
     function_util,
 )
-from verification import Failure, LlmGenerateVerifyIteration, Success
+from verification import Failure, LlmGenerateVerifyIteration, Success, VerificationResult
 
 MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
-DEFAULT_NUM_REPAIR_ATTEMPTS = 10
+DEFAULT_NUM_REGENERATION_ATTEMPTS = 10
+DEFAULT_NUM_REPAIR_ATTEMPTS = 5
 DEFAULT_SYSTEM_PROMPT = Path("system-prompt.txt").read_text(encoding="utf-8")
 
 
@@ -30,6 +31,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--file", required=True, help="Path to the C file for which to generate specifications."
+    )
+    parser.add_argument(
+        "--num-regeneration",
+        required=False,
+        help="The number of times to regenerate a specification after failing to repair it.",
+        default=DEFAULT_NUM_REGENERATION_ATTEMPTS,
+        type=int,
     )
     parser.add_argument(
         "--num-repair",
@@ -101,42 +109,87 @@ def main() -> None:
             continue
         print(f"Verification failed for '{func_name}'; attempting to repair the generated specs")
 
-        for n in range(args.num_repair):
-            # Try to repair specifications for verification.
-            llm_invocation_result = specification_generator.repair_specifications(
-                func_name,
-                verification_result,
-                conversation,
+        repair_results = _run_repair_loop(
+            specification_generator,
+            func_name,
+            verified_functions,
+            verification_result,
+            conversation,
+            parsec_result_without_direct_recursive_functions,
+            output_file_path,
+            args.num_repair,
+        )
+
+        if args.num_repair != 0 and not repair_results:
+            raise RuntimeError()
+        if args.save_conversation:
+            conversation_log[func_name].extend(repair_results)
+
+        final_repair_result = repair_results[-1]
+        if isinstance(final_repair_result, Success):
+            print(
+                f"Verification succeeded for '{func_name}' after {len(repair_results)} repair "
+                "attempt(s)"
             )
-            updated_file = _update_parsec_result_and_output_file(
-                llm_invocation_result.response,
-                func_name,
-                parsec_result_without_direct_recursive_functions,
-                output_file_path,
+        else:
+            print(
+                f"Verification failed for '{func_name}' after {len(repair_results)} repair "
+                "attempt(s)"
             )
-            verification_result = verify_one_function(
-                func_name, verified_functions, output_file_path
-            )
-            if args.save_conversation:
-                conversation_log[func_name].append(
-                    LlmGenerateVerifyIteration(
-                        func_name, llm_invocation_result.prompt, updated_file, verification_result
-                    )
-                )
-            if isinstance(verification_result, Success):
-                print(
-                    f"Verification succeeded for '{func_name}' after "
-                    f"{n + 1}/{args.num_repair} repair attempt(s)"
-                )
-                verified_functions.append(func_name)
-                break  # Move on to the next function to generate specs and verify.
-            print(f"Verification failed for '{func_name}'; on repair attempt {n + 1}")
 
         if func_name not in verified_functions:
-            print(f"{func_name} failed to verify after {args.num_repair} repair attempt(s)")
             recover_from_failure()
     if args.save_conversation:
         _write_conversation_log(conversation_log)
+
+
+def _run_repair_loop(
+    specification_generator: LlmSpecificationGenerator,
+    function_name: str,
+    verified_functions: list[str],
+    initial_verification_failure: Failure,
+    conversation: list[dict[str, str]],
+    parsec_result: ParsecResult,
+    output_file_path: Path,
+    num_repair_attempts: int,
+) -> list[LlmGenerateVerifyIteration]:
+    verification_result: VerificationResult = initial_verification_failure
+    repair_attempts: list[LlmGenerateVerifyIteration] = []
+    for n in range(num_repair_attempts):
+        print(f"Running repair for '{function_name}' specs: attempt {n + 1}/{num_repair_attempts}'")
+        llm_invocation_result = specification_generator.repair_specifications(
+            function_name, verification_result, conversation
+        )
+        verification_result = verify_one_function(
+            function_name, verified_functions, output_file_path
+        )
+        _update_parsec_result_and_output_file(
+            llm_invocation_result.response,
+            function_name,
+            parsec_result,
+            output_file_path,
+        )
+        if isinstance(verification_result, Failure):
+            repair_attempts.append(
+                LlmGenerateVerifyIteration(
+                    function_name,
+                    llm_invocation_result.prompt,
+                    llm_invocation_result.response,
+                    verification_result,
+                )
+            )
+        else:
+            repair_attempts.append(
+                LlmGenerateVerifyIteration(
+                    function_name,
+                    llm_invocation_result.prompt,
+                    llm_invocation_result.response,
+                    verification_result,
+                )
+            )
+            return repair_attempts
+
+    return repair_attempts
 
 
 def recover_from_failure() -> None:

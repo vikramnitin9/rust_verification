@@ -4,12 +4,17 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class Success:
+class VerificationResult:
+    """Top-level type for a verification result."""
+
+
+@dataclass(frozen=True)
+class Success(VerificationResult):
     """Represents a successful verification result."""
 
 
 @dataclass(frozen=True)
-class Failure:
+class Failure(VerificationResult):
     """Represents an unsuccessful verification result.
 
     Attributes:

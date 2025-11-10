@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from models import LLMGen, ModelError, get_llm_generation_with_model
 from util import ParsecResult, PromptBuilder
-from verification import Failure
+from verification import Failure, VerificationResult
 
 
 @dataclass(frozen=True)
@@ -79,14 +79,14 @@ class LlmSpecificationGenerator:
     def repair_specifications(
         self,
         function_name: str,
-        verification_failure: Failure,
+        verification_result: VerificationResult,
         conversation: list[dict[str, str]],
     ) -> LlmInvocationResult:
         """Repair the specifications for the function with the given name.
 
         Args:
             function_name (str): The function for which to repair specifications.
-            verification_failure (Failure): The failure information from a verifier run.
+            verification_result (VerificationResult): The result of running a verifier.
             conversation (list[dict[str, str]]): The LLM conversation, so far.
 
         Raises:
@@ -96,13 +96,17 @@ class LlmSpecificationGenerator:
         Returns:
             LlmInvocationResponse: The prompt used to invoke an LLM and its response.
         """
+        if not isinstance(verification_result, Failure):
+            raise TypeError(
+                "A repair prompt cannot be constructed for a successful verifier result."
+            )
         function = self._parsec_result.get_function(function_name)
         if not function:
             msg = f"Function: '{function_name}' was missing from the ParseC result"
             raise RuntimeError(msg)
 
         repair_prompt = self._prompt_builder.repair_specification_prompt(
-            function, verification_failure
+            function, verification_result
         )
         repair_message = {"role": "user", "content": repair_prompt}
         conversation.append(repair_message)
