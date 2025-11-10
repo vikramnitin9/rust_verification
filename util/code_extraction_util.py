@@ -28,5 +28,5 @@ def extract_function(text: str) -> str:
         msg = f"The LLM failed to return a valid JSON object: {text}, error = {je}"
         raise RuntimeError(msg) from je
     except KeyError as ke:
-        msg = "The LLM returned valid JSON, but was missing the 'function_with_specs' key"
+        msg = "The LLM returned valid JSON, but was missing the 'function_with_specs' key: {text}"
         raise RuntimeError(msg) from ke
