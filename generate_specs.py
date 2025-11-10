@@ -141,7 +141,7 @@ def verify_one_function(
         result = subprocess.run(verification_command, shell=True, capture_output=True, text=True)
         if result.returncode == 0:
             return Success()
-        return Failure(error_message=result.stderr)
+        return Failure(stdout=result.stdout, stderr=result.stderr)
     except Exception as e:
         msg = f"Error running command for function {func_name}: {e}"
         raise RuntimeError(msg) from e
