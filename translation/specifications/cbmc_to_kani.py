@@ -4,6 +4,7 @@ import pathlib
 from typing import Any
 
 from lark.exceptions import UnexpectedToken
+from loguru import logger
 
 from translation import CBMCAst, Parser, cbmc_ast
 
@@ -45,10 +46,10 @@ class CBMCToKani:
                 cbmc_ast = self.parser.parse(spec)
                 kani_specs.append(self._to_kani_str(cbmc_ast))
             except UnexpectedToken as ut:  # noqa: PERF203
-                print(f"Failed to parse: '{spec}' with error: '{ut}'")
+                logger.error(f"Failed to parse: '{spec}' with error: '{ut}'")
                 continue
             except TranslationError as te:
-                print(
+                logger.warning(
                     f"Successfully parsed '{spec}', but failed to convert it to a Kani "
                     f"specification: '{te}'"
                 )
