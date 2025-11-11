@@ -86,7 +86,7 @@ class LlmSpecificationGenerator:
 
         Args:
             function_name (str): The function for which to repair specifications.
-            verification_result (VerificationResult): The result of running a verifier.
+            verification_result (VerificationResult): The result of a verifier run.
             conversation (list[dict[str, str]]): The LLM conversation, so far.
 
         Raises:
@@ -104,6 +104,10 @@ class LlmSpecificationGenerator:
         if not function:
             msg = f"Function: '{function_name}' was missing from the ParseC result"
             raise RuntimeError(msg)
+
+        if not isinstance(verification_result, Failure):
+            msg = "Repairing a specification that verifies successfully is not required"
+            raise TypeError(msg)
 
         repair_prompt = self._prompt_builder.repair_specification_prompt(
             function, verification_result

@@ -9,6 +9,8 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
+from loguru import logger
+
 from specifications import LlmSpecificationGenerator
 from util import (
     ParsecResult,
@@ -79,10 +81,18 @@ def main() -> None:
     for func_name in func_ordering:
         conversation = [{"role": "system", "content": DEFAULT_SYSTEM_PROMPT}]
         if func_name in recursive_funcs:
-            print(f"Skipping self-recursive function {func_name} because of CBMC bugs/limitations.")
+            logger.info(
+                f"Skipping self-recursive function {func_name} because of CBMC bugs/limitations."
+            )
             continue
 
-        print(f"Processing function {func_name}...")
+        logger.info(f"Processing function {func_name}...")
+        function_to_verify = parsec_result_without_direct_recursive_functions.get_function(
+            func_name
+        )
+        if not function_to_verify:
+            msg = f"Failed to find function '{func_name}' to verify"
+            raise RuntimeError(msg)
 
         # Generate the initial specifications for verification.
         llm_invocation_result = specification_generator.generate_specifications(
@@ -104,10 +114,12 @@ def main() -> None:
             )
 
         if isinstance(verification_result, Success):
-            print(f"Verification succeeded for '{func_name}'")
+            logger.success(f"Verification succeeded for '{func_name}'")
             verified_functions.append(func_name)
             continue
-        print(f"Verification failed for '{func_name}'; attempting to repair the generated specs")
+        logger.warning(
+            f"Verification failed for '{func_name}'; attempting to repair the generated specs"
+        )
 
         repair_iterations = _run_repair_loop(
             specification_generator,
@@ -131,7 +143,10 @@ def main() -> None:
             f"Verification {'succeeded' if is_repair_successful else 'failed'} for "
             f"'{func_name}' after {len(repair_iterations)} repair iterations"
         )
-        print(repair_result_msg)
+        if is_repair_successful:
+            logger.success(repair_result_msg)
+        else:
+            logger.warning(repair_result_msg)
 
         if func_name not in verified_functions:
             recover_from_failure()
@@ -152,7 +167,9 @@ def _run_repair_loop(
     verification_result: VerificationResult = initial_verification_failure
     repair_attempts: list[LlmGenerateVerifyIteration] = []
     for n in range(num_repair_attempts):
-        print(f"Running repair for '{function_name}' specs: attempt {n + 1}/{num_repair_attempts}'")
+        logger.info(
+            f"Running repair for '{function_name}' specs: attempt {n + 1}/{num_repair_attempts}'"
+        )
         llm_invocation_result = specification_generator.repair_specifications(
             function_name, verification_result, conversation
         )
@@ -242,7 +259,7 @@ def verify_one_function(
         f"cbmc checking-{func_name}-contracts.goto --function {func_name} --depth 100"
     )
 
-    print(f"Running command: {verification_command}")
+    logger.debug(f"Running command: {verification_command}")
     try:
         result = subprocess.run(verification_command, shell=True, capture_output=True, text=True)
         if result.returncode == 0:
