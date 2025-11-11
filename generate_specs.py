@@ -98,7 +98,7 @@ def main() -> None:
         llm_invocation_result = specification_generator.generate_specifications(
             func_name, conversation
         )
-        updated_file = _update_parsec_result_and_output_file(
+        _update_parsec_result_and_output_file(
             llm_invocation_result.response,
             func_name,
             parsec_result_without_direct_recursive_functions,
@@ -108,9 +108,7 @@ def main() -> None:
         verification_result = verify_one_function(func_name, verified_functions, output_file_path)
         if args.save_conversation:
             conversation_log[func_name].append(
-                LlmGenerateVerifyIteration(
-                    func_name, llm_invocation_result.prompt, updated_file, verification_result
-                )
+                LlmGenerateVerifyIteration(func_name, llm_invocation_result, verification_result)
             )
 
         if isinstance(verification_result, Success):
@@ -186,8 +184,7 @@ def _run_repair_loop(
             repair_attempts.append(
                 LlmGenerateVerifyIteration(
                     function_name,
-                    llm_invocation_result.prompt,
-                    llm_invocation_result.response,
+                    llm_invocation_result,
                     verification_result,
                 )
             )
@@ -195,8 +192,7 @@ def _run_repair_loop(
             repair_attempts.append(
                 LlmGenerateVerifyIteration(
                     function_name,
-                    llm_invocation_result.prompt,
-                    llm_invocation_result.response,
+                    llm_invocation_result,
                     verification_result,
                 )
             )

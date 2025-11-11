@@ -3,8 +3,8 @@
 from dataclasses import dataclass
 
 from models import LLMGen, ModelError, get_llm_generation_with_model
-from util import ParsecResult, PromptBuilder
-from verification import Failure, VerificationResult
+from util import ParsecResult
+from verification import Failure, PromptBuilder, VerificationResult
 
 
 @dataclass(frozen=True)
@@ -53,7 +53,7 @@ class LlmSpecificationGenerator:
                 occurs during specification generation.
 
         Returns:
-            LlmInvocationResponse: The prompt used to invoke an LLM and its response.
+            LlmInvocationResult: The prompt used to invoke an LLM and its response.
         """
         function = self._parsec_result.get_function(function_name)
         if not function:
@@ -94,7 +94,7 @@ class LlmSpecificationGenerator:
                 occurs during specification repair.
 
         Returns:
-            LlmInvocationResponse: The prompt used to invoke an LLM and its response.
+            LlmInvocationResult: The prompt used to invoke an LLM and its response.
         """
         if not isinstance(verification_result, Failure):
             raise TypeError(
