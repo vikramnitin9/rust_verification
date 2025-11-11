@@ -56,6 +56,7 @@ class PromptBuilder:
         lines_involving_failure = [line for line in error_message.splitlines() if "FAILURE" in line]
         return PromptBuilder.REPAIR_PROMPT_TEMPLATE.safe_substitute(
             function_name=function.name,
+            function_implementation=self._get_source_code_for_prompt(function),
             failure_lines="\n".join(lines_involving_failure),
             stderr=error_message,
         )
@@ -74,3 +75,20 @@ class PromptBuilder:
         """
         callee_context = "\n".join(str(callee) for callee in callees_with_specs)
         return f"{caller} has the following callees:\n{callee_context}"
+
+    def _get_source_code_for_prompt(self, function: ParsecFunction) -> str:
+        """Return the source code for a function as it should appear in a prompt.
+
+        Args:
+            function (ParsecFunction): The function that should be included in a prompt.
+
+        Returns:
+            str: The source code for a function as it should appear in a prompt.
+        """
+        source_code_lines = function.get_source_code().splitlines()
+        lines = [f"{line + function.start_line}" for line, _ in enumerate(source_code_lines)]
+        max_line_length = max(len(line) for line in lines)
+        lines = [line.ljust(max_line_length) for line in lines]
+        return "\n".join(
+            f"{line}: {content}" for line, content in zip(lines, source_code_lines, strict=False)
+        )

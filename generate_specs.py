@@ -6,6 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from loguru import logger
+
 from specifications import LlmSpecificationGenerator
 from util import (
     ParsecResult,
@@ -45,10 +47,12 @@ def main() -> None:
 
     for func_name in func_ordering:
         if func_name in recursive_funcs:
-            print(f"Skipping self-recursive function {func_name} because of CBMC bugs/limitations.")
+            logger.info(
+                f"Skipping self-recursive function {func_name} because of CBMC bugs/limitations."
+            )
             continue
 
-        print(f"Processing function {func_name}...")
+        logger.info(f"Processing function {func_name}...")
         function_to_verify = parsec_result_without_direct_recursive_functions.get_function(
             func_name
         )
@@ -66,11 +70,11 @@ def main() -> None:
             # Attempt to verify the generated specifications for the function.
             match verify_one_function(func_name, verified_functions, output_file_path):
                 case Success():
-                    print(f"Verification succeeded for '{func_name}' ({n + 1} attempt[s])")
+                    logger.success(f"Verification succeeded for '{func_name}' ({n + 1} attempt[s])")
                     verified_functions.append(func_name)
                     break
                 case Failure(error_message):
-                    print(
+                    logger.warning(
                         f"Verification failed for '{func_name}' "
                         f"regenerating specs and re-trying: "
                         f"{n + 1}/{DEFAULT_NUM_VERIFICATION_ATTEMPTS}"
@@ -136,12 +140,12 @@ def verify_one_function(
         f"cbmc checking-{func_name}-contracts.goto --function {func_name} --depth 100"
     )
 
-    print(f"Running command: {verification_command}")
+    logger.debug(f"Running command: {verification_command}")
     try:
         result = subprocess.run(verification_command, shell=True, capture_output=True, text=True)
         if result.returncode == 0:
             return Success()
-        return Failure(error_message=result.stderr)
+        return Failure(stdout=result.stdout, stderr=result.stderr)
     except Exception as e:
         msg = f"Error running command for function {func_name}: {e}"
         raise RuntimeError(msg) from e
