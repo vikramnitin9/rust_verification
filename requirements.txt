@@ -5,3 +5,4 @@ dotenv
 networkx
 pytest>=8.4.2
 lark>=1.3.0
+loguru>=0.7.3

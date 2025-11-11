@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import networkx as nx
+from loguru import logger
 
 from util.parsec_function import ParsecFunction
 
@@ -100,7 +101,7 @@ class ParsecResult:
             if callee_analysis := self.get_function(callee_name):
                 callees.append(callee_analysis)
             else:
-                print(f"LLVM Analysis for callee function {callee_name} not found")
+                logger.error(f"LLVM Analysis for callee function {callee_name} not found")
         return callees
 
     def get_names_of_recursive_functions(self) -> list[str]:
@@ -131,7 +132,7 @@ class ParsecResult:
                 names_in_topological_order.reverse()
             return names_in_topological_order
         except nx.NetworkXUnfeasible:
-            print(
+            logger.warning(
                 "Cycles detected in call graph: "
                 "Using postorder DFS traversal for function ordering."
             )
