@@ -3,9 +3,9 @@
 from pathlib import Path
 from string import Template
 
-from verification_result import Failure
-
 from util import ParsecFunction, ParsecResult
+
+from .verification_result import Failure
 
 
 class PromptBuilder:
