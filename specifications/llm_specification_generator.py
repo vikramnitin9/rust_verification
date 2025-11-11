@@ -3,8 +3,8 @@
 from dataclasses import dataclass
 
 from models import LLMGen, ModelError, get_llm_generation_with_model
-from util import ParsecResult, PromptBuilder
-from verification import Failure, VerificationResult
+from util import ParsecResult
+from verification import Failure, PromptBuilder, VerificationResult
 
 
 @dataclass(frozen=True)
