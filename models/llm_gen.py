@@ -11,6 +11,7 @@ import time
 
 import litellm
 from litellm import completion
+from loguru import logger
 
 
 class LLMGen:
@@ -84,7 +85,7 @@ class LLMGen:
                 count += 1
                 if count >= 5:
                     raise ModelError("Vertex AI API: Too many retries")
-                print(f"LLM Error {e}. Waiting 10 seconds and retrying")
+                logger.warning(f"LLM Error {e}. Waiting 10 seconds and retrying")
                 time.sleep(10)
             except Exception as e:
                 raise ModelError(f"LLM Error: {e}")

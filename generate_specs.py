@@ -9,6 +9,8 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
+from loguru import logger
+
 from specifications import LlmSpecificationGenerator
 from util import (
     ParsecResult,
@@ -71,10 +73,18 @@ def main() -> None:
     for func_name in func_ordering:
         conversation = [{"role": "system", "content": DEFAULT_SYSTEM_PROMPT}]
         if func_name in recursive_funcs:
-            print(f"Skipping self-recursive function {func_name} because of CBMC bugs/limitations.")
+            logger.info(
+                f"Skipping self-recursive function {func_name} because of CBMC bugs/limitations."
+            )
             continue
 
-        print(f"Processing function {func_name}...")
+        logger.info(f"Processing function {func_name}...")
+        function_to_verify = parsec_result_without_direct_recursive_functions.get_function(
+            func_name
+        )
+        if not function_to_verify:
+            msg = f"Failed to find function '{func_name}' to verify"
+            raise RuntimeError(msg)
 
         # Generate the initial specifications for verification.
         llm_invocation_result = specification_generator.generate_specifications(
@@ -96,10 +106,12 @@ def main() -> None:
             )
 
         if isinstance(verification_result, Success):
-            print(f"Verification succeeded for '{func_name}'")
+            logger.success(f"Verification succeeded for '{func_name}'")
             verified_functions.append(func_name)
             continue
-        print(f"Verification failed for '{func_name}'; attempting to repair the generated specs")
+        logger.warning(
+            f"Verification failed for '{func_name}'; attempting to repair the generated specs"
+        )
 
         for n in range(args.num_repair):
             # Try to repair specifications for verification.
@@ -124,16 +136,18 @@ def main() -> None:
                     )
                 )
             if isinstance(verification_result, Success):
-                print(
+                logger.success(
                     f"Verification succeeded for '{func_name}' after "
                     f"{n + 1}/{args.num_repair} repair attempt(s)"
                 )
                 verified_functions.append(func_name)
                 break  # Move on to the next function to generate specs and verify.
-            print(f"Verification failed for '{func_name}'; on repair attempt {n + 1}")
+            logger.warning(f"Verification failed for '{func_name}'; on repair attempt {n + 1}")
 
         if func_name not in verified_functions:
-            print(f"{func_name} failed to verify after {args.num_repair} repair attempt(s)")
+            logger.warning(
+                f"{func_name} failed to verify after {args.num_repair} repair attempt(s)"
+            )
             recover_from_failure()
     if args.save_conversation:
         _write_conversation_log(conversation_log)
@@ -193,7 +207,7 @@ def verify_one_function(
         f"cbmc checking-{func_name}-contracts.goto --function {func_name} --depth 100"
     )
 
-    print(f"Running command: {verification_command}")
+    logger.debug(f"Running command: {verification_command}")
     try:
         result = subprocess.run(verification_command, shell=True, capture_output=True, text=True)
         if result.returncode == 0:
