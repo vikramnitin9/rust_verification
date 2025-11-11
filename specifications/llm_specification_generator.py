@@ -94,7 +94,7 @@ class LlmSpecificationGenerator:
                 occurs during specification repair.
 
         Returns:
-            LlmInvocationResponse: The prompt used to invoke an LLM and its response.
+            LlmInvocationResult: The prompt used to invoke an LLM and its response.
         """
         function = self._parsec_result.get_function(function_name)
         if not function:

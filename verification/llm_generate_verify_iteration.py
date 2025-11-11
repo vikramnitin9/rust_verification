@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from typing import Any
 
+from specifications import LlmInvocationResult
 from verification import Failure, Success
 
 
@@ -12,15 +13,13 @@ class LlmGenerateVerifyIteration:
 
     Attributes:
         function (str): The function under specification generation and verification.
-        prompt (str): The prompt used to generate a specification.
-        response (str): The response from the LLM.
+        llm_invocation_result (LlmInvocationResult): The prompt to an LLM and the result obtained.
         verification_result (Success | Failure): The result of verifying the specifications in the
             file.
     """
 
     function: str
-    prompt: str
-    response: str
+    llm_invocation_result: LlmInvocationResult
     verification_result: Success | Failure
 
     def to_dict(self: "LlmGenerateVerifyIteration") -> dict[str, Any]:
@@ -39,7 +38,7 @@ class LlmGenerateVerifyIteration:
         )
         return {
             "function": self.function,
-            "prompt": self.prompt,
-            "response": self.response,
+            "prompt": self.llm_invocation_result.prompt,
+            "response": self.llm_invocation_result.response,
             "verification_result": verifier_result,
         }
