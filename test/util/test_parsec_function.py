@@ -62,7 +62,7 @@ def test_get_source_code_with_docs_multi_line() -> None:
     )
     extracted_func = fn.get_source_code(include_documentation_comments=True)
     expected_extracted_func = (
-        "/** this comment\nspans two\nlines\n */\nvoid f2()\n{\n}"
+        "/** this comment\nspans three\nlines\n */\nvoid f2()\n{\n}"
     )
     assert extracted_func == expected_extracted_func
 
