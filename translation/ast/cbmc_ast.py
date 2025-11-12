@@ -381,7 +381,10 @@ class _ToAst(Transformer):
         """
         if isinstance(expr, CallOp):
             raise ValueError(f"Function calls not allowed in assigns targets: {expr}")
-        # Check subexpressions.
+        if isinstance(expr, ExprList):
+            for e in expr.items:
+                self._validate_side_effect_free(e)
+        # Check subexpressions
         if hasattr(expr, "value"):
             self._validate_side_effect_free(expr.value)
         if hasattr(expr, "index"):
@@ -390,6 +393,8 @@ class _ToAst(Transformer):
             self._validate_side_effect_free(expr.left)
         if hasattr(expr, "right"):
             self._validate_side_effect_free(expr.right)
+        if hasattr(expr, "operand"):
+            self._validate_side_effect_free(expr.operand)
 
     @v_args(inline=True)
     def assigns_target_list(self, *targets):  # type: ignore[no-untyped-def]

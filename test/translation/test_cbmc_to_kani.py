@@ -1,6 +1,8 @@
 from translation import CBMCToKani
 from translation import Parser, ToAst, CBMCAst
 
+import pytest
+
 cbmc_parser: Parser[CBMCAst] = Parser(
     path_to_grammar_defn="translation/grammar/cbmc.txt",
     start="cbmc_clause",
@@ -76,3 +78,9 @@ def test_assigns() -> None:
     ]
     assert translator.translate(cbmc_specs) == kani_specs
 
+def test_assigns_to_side_effectful_operation() -> None:
+    cbmc_specs = [
+        "__CPROVER_ensures(__CPROVER_assigns(*side_effect()))",
+    ]
+    with pytest.raises(ValueError):
+        translator.translate(cbmc_specs)

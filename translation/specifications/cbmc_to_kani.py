@@ -3,7 +3,7 @@
 import pathlib
 from typing import Any
 
-from lark.exceptions import UnexpectedToken
+from lark.exceptions import UnexpectedToken, VisitError
 from loguru import logger
 
 from translation import CBMCAst, Parser, cbmc_ast
@@ -54,6 +54,11 @@ class CBMCToKani:
                     f"specification: '{te}'"
                 )
                 continue
+            except VisitError as ve:
+                logger.warning(f"Encountered visit error: {ve}")
+                if ve.orig_exc:
+                    raise ve.orig_exc from ve
+                raise
 
         return kani_specs
 
