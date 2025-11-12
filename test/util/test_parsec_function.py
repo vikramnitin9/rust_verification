@@ -98,7 +98,7 @@ def test_get_comment_no_comments() -> None:
             "endCol": 37,
             "callees": [],
     })
-    assert function.get_comments() == ""
+    assert function.get_documentation_comments() == ""
 
 
 def test_get_comment_double_slash() -> None:
@@ -115,7 +115,7 @@ def test_get_comment_double_slash() -> None:
             "callees": [],
     })
     expected_comments = "// Double-slash comment\n// Again"
-    assert function.get_comments() == expected_comments
+    assert function.get_documentation_comments() == expected_comments
 
 def test_get_comment_multi_line() -> None:
     function = ParsecFunction({
@@ -131,7 +131,7 @@ def test_get_comment_multi_line() -> None:
             "callees": [],
     })
     expected_comment = "/**\n* Brief description.\n*\n* @param a first parameter\n* @return if any return value\n*\n* Detailed description\n**/"
-    assert function.get_comments() == expected_comment
+    assert function.get_documentation_comments() == expected_comment
 
 def test_get_comment_multi_line_pathological() -> None:
     function = ParsecFunction({
@@ -146,4 +146,5 @@ def test_get_comment_multi_line_pathological() -> None:
             "endCol": 9,
             "callees": [],
     })
-    print(function.get_comments())
+    expected_comment = "/*\nTest\n\n\nDetailed description */"
+    assert function.get_documentation_comments() == expected_comment

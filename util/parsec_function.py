@@ -60,11 +60,11 @@ class ParsecFunction:
         self.llvm_globals = raw_analysis.get("globals", [])
         self.structs = raw_analysis.get("structs", [])
 
-    def get_source_code(self, include_comments: bool = False) -> str:
-        """Return the source code for this function, optionally including method comments.
+    def get_source_code(self, include_documentation_comments: bool = False) -> str:
+        """Return the source code for this function, optionally including documentation comments.
 
         Returns:
-            str: The source code for this function, optionally including method comments.
+            str: The source code for this function, optionally including documentation comments.
         """
         with pathlib.Path(self.file_name).open(encoding="utf-8") as f:
             lines = f.readlines()
@@ -86,24 +86,26 @@ class ParsecFunction:
 
         source_code = "".join(func_lines)
 
-        if include_comments:
-            source_code = f"{self.get_comments()}\n{source_code}"
+        if include_documentation_comments:
+            source_code = f"{self.get_documentation_comments()}\n{source_code}"
 
         return source_code
 
-    def get_comments(self) -> str:
-        """Return the content of lines immediately preceding this function that might be comments.
+    def get_documentation_comments(self) -> str:
+        """Return the content of lines immediately preceding this function (usually documentation).
 
         Returns:
-            str: The comments for this function.
+            str: The documentation comments for this function.
         """
         with pathlib.Path(self.file_name).open(encoding="utf-8") as f:
             lines = f.read().splitlines()
 
-        i = self.start_line - 1  # Start/end lines are 1-indexed.
+        # Function start/end lines are 1-indexed.
+        # But the function signature could be on line 2 of the file, while a comment is on line 1.
+        i = self.start_line - 2
         comments: list[str] = []
         multi_line_comment_seen = False
-        while i > 0:
+        while i >= 0:
             curr_line = lines[i]
             if not multi_line_comment_seen and (not curr_line or curr_line.isspace()):
                 break
