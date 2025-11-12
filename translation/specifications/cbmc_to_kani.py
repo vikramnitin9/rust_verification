@@ -10,7 +10,7 @@ from translation import CBMCAst, Parser, cbmc_ast
 
 RUST_KEYWORDS: set[str] = set()
 with pathlib.Path("translation/specifications/rust_keywords.txt").open(encoding="utf-8") as f:
-    RUST_KEYWORDS = set(f.readlines())
+    RUST_KEYWORDS = {kw.strip() for kw in f}
 
 
 class TranslationError(Exception):
@@ -72,13 +72,11 @@ class CBMCToKani:
         match spec:
             case cbmc_ast.RequiresClause(_, expr):
                 kani_condition = self._to_kani_str(expr)
-                if "__CPROVER_result" in kani_condition:
-                    kani_condition = self._replace_cbmc_macros(kani_condition)
+                kani_condition = self._replace_cbmc_macros(kani_condition)
                 return f"kani::requires({kani_condition})"
             case cbmc_ast.EnsuresClause(_, expr):
                 kani_condition = self._to_kani_str(expr)
-                if "__CPROVER_result" in kani_condition:
-                    kani_condition = self._replace_cbmc_macros(kani_condition)
+                kani_condition = self._replace_cbmc_macros(kani_condition)
                 return f"kani::ensures({kani_condition})"
             case cbmc_ast.AssignsExpr(condition=cond, targets=target_list):
                 if cond:
