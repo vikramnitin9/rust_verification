@@ -27,7 +27,7 @@ class PromptBuilder:
         Returns:
             str: The initial used for specification generation.
         """
-        source_code = function.get_source_code()
+        source_code = function.get_source_code(include_comments=True)
         prompt = PromptBuilder.PROMPT_FOR_SPECIFICATION_GENERATION.replace(
             PromptBuilder.SOURCE_PLACEHOLDER, source_code
         )
