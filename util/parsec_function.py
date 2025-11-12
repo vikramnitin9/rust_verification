@@ -87,8 +87,8 @@ class ParsecFunction:
         source_code = "".join(func_lines)
 
         if include_documentation_comments:
-            source_code = f"{self.get_documentation_comments()}\n{source_code}"
-
+            if documentation := self.get_documentation_comments():
+                source_code = f"{documentation}\n{source_code}"
         return source_code
 
     def get_documentation_comments(self) -> str:

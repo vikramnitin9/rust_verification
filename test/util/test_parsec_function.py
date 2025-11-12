@@ -24,6 +24,48 @@ def test_get_source_code() -> None:
     )
     assert extracted_func == expected_extracted_func
 
+def test_get_source_code_with_docs_double_slash() -> None:
+    fn = ParsecFunction(
+        {
+            "name": "f1",
+            "num_args": 0,
+            "returnType": "void",
+            "signature": "void f1()",
+            "filename": "test/data/get_source_code/test_with_doc_comments.c",
+            "startLine": 5,
+            "endLine": 5,
+            "startCol": 1,
+            "endCol": 13,
+            "callees": [],
+        }
+    )
+    extracted_func = fn.get_source_code(include_documentation_comments=True)
+    expected_extracted_func = (
+        "// This is a documentation\n// Comment\nvoid f1() { }"
+    )
+    assert extracted_func == expected_extracted_func
+
+def test_get_source_code_with_docs_multi_line() -> None:
+    fn = ParsecFunction(
+        {
+            "name": "f1",
+            "num_args": 0,
+            "returnType": "void",
+            "signature": "void f2()",
+            "filename": "test/data/get_source_code/test_with_doc_comments.c",
+            "startLine": 11,
+            "endLine": 13,
+            "startCol": 1,
+            "endCol": 9,
+            "callees": [],
+        }
+    )
+    extracted_func = fn.get_source_code(include_documentation_comments=True)
+    expected_extracted_func = (
+        "/** this comment\nspans two\nlines\n */\nvoid f2()\n{\n}"
+    )
+    assert extracted_func == expected_extracted_func
+
 
 def test_get_source_code_invalid_line_range() -> None:
     nonexistent_function = ParsecFunction(
