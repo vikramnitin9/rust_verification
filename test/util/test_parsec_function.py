@@ -62,10 +62,30 @@ def test_get_source_code_with_docs_multi_line() -> None:
     )
     extracted_func = fn.get_source_code(include_documentation_comments=True)
     expected_extracted_func = (
-        "/** this comment\nspans three\nlines\n */\nvoid f2()\n{\n}"
+        "/** this comment\nspans three\nlines\n */\nvoid f2()\n{\n}\n"
     )
     assert extracted_func == expected_extracted_func
 
+def test_get_source_code_with_docs_inline_comment_above() -> None:
+    fn = ParsecFunction(
+        {
+            "name": "f3",
+            "num_args": 0,
+            "returnType": "void",
+            "signature": "void f3()",
+            "filename": "test/data/get_source_code/test_with_doc_comments.c",
+            "startLine": 16,
+            "endLine": 16,
+            "startCol": 1,
+            "endCol": 12,
+            "callees": [],
+        }
+    )
+    extracted_func = fn.get_source_code(include_documentation_comments=True)
+    expected_extracted_func = (
+        "void f3() {}"
+    )
+    assert extracted_func == expected_extracted_func
 
 def test_get_source_code_invalid_line_range() -> None:
     nonexistent_function = ParsecFunction(

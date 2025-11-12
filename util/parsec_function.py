@@ -110,7 +110,7 @@ class ParsecFunction:
             if not multi_line_comment_seen and (not curr_line or curr_line.isspace()):
                 break
             if self._is_comment(curr_line):
-                multi_line_comment_seen = curr_line.endswith("*/")
+                multi_line_comment_seen = curr_line.endswith("*/") and "/*" not in curr_line
                 comments.append(curr_line)
             elif multi_line_comment_seen:
                 comments.append(curr_line)
@@ -129,9 +129,18 @@ class ParsecFunction:
         """
         stripped_line = line.strip()
         comment_start_delimiters = ["//", "/*", "*"]
-        return any(
-            stripped_line.startswith(delimit) for delimit in comment_start_delimiters
-        ) or stripped_line.endswith("*/")
+
+        if any(stripped_line.startswith(delimit) for delimit in comment_start_delimiters):
+            return True
+
+        if stripped_line.endswith("*/"):
+            comment_start = stripped_line.find("/*")
+            # Catch cases like
+            # int global = 1; /* this is a bad practice */
+            # which we should not include.
+            return comment_start <= 0 or not stripped_line[:comment_start].strip()
+
+        return False
 
     def is_specified(self) -> bool:
         """Return True iff this function has pre- or post-conditions.
