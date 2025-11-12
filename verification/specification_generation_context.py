@@ -45,3 +45,7 @@ class SpecificationGenerationContext:
     def increment_repair_attempt(self) -> None:
         """Increment this context's repair attempts."""
         self.repair_attempts += 1
+
+    def reset_repair_attempts(self) -> None:
+        """Set this context's repair attempts to 0."""
+        self.repair_attempts = 0

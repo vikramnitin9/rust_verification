@@ -106,6 +106,7 @@ def main() -> None:
         )
 
         for _ in range(args.num_regeneration):
+            specgen_context.reset_repair_attempts()
             attempts = _generate_and_verify(
                 specification_generator=specification_generator,
                 specgen_context=specgen_context,
