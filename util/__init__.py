@@ -4,6 +4,7 @@ from .function_util import extract_specification
 from .parsec_result import ParsecResult
 from .specifications import FunctionSpecification
 from .code_extraction_util import extract_function
+from .llm_invocation_result import LlmInvocationResult
 
 __all__ = [
     "ParsecFunction",
@@ -11,5 +12,6 @@ __all__ = [
     "ParsecResult",
     "FunctionSpecification",
     "extract_specification",
-    "extract_function"
+    "extract_function",
+    "LlmInvocationResult"
 ]

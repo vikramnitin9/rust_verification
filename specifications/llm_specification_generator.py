@@ -1,23 +1,8 @@
 """Module for generating and repairing specifications via LLMs."""
 
-from dataclasses import dataclass
-
 from models import LLMGen, ModelError, get_llm_generation_with_model
-from util import ParsecResult
-from verification import Failure, PromptBuilder, VerificationResult
-
-
-@dataclass(frozen=True)
-class LlmInvocationResult:
-    """Represent the prompt dispatched to an LLM and the subsequent response.
-
-    Attributes:
-        prompt (str): The prompt dispatched to an LLM.
-        response (str): The response from an LLM.
-    """
-
-    prompt: str
-    response: str
+from util import LlmInvocationResult, ParsecResult
+from verification import Failure, PromptBuilder, SpecificationGenerationContext, VerificationResult
 
 
 class LlmSpecificationGenerator:
@@ -40,12 +25,12 @@ class LlmSpecificationGenerator:
         self._prompt_builder = PromptBuilder()
 
     def generate_specifications(
-        self, function_name: str, conversation: list[dict[str, str]]
+        self, specgen_context: SpecificationGenerationContext, conversation: list[dict[str, str]]
     ) -> LlmInvocationResult:
         """Generate a set of specifications for the function with the given name.
 
         Args:
-            function_name (str): The function for which to generate specifications.
+            specgen_context (SpecificationGenerationContext): The specification generation context.
             conversation (list[dict[str, str]]): The LLM conversation, so far.
 
         Raises:
@@ -55,9 +40,9 @@ class LlmSpecificationGenerator:
         Returns:
             LlmInvocationResult: The prompt used to invoke an LLM and its response.
         """
-        function = self._parsec_result.get_function(function_name)
+        function = self._parsec_result.get_function(specgen_context.function_name)
         if not function:
-            msg = f"Function: '{function_name}' was missing from the ParseC result"
+            msg = f"Function: '{specgen_context.function_name}' was missing from the ParseC result"
             raise RuntimeError(msg)
 
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
@@ -71,22 +56,27 @@ class LlmSpecificationGenerator:
 
         try:
             response = self._model.gen(conversation, top_k=1, temperature=0.0)[0]
+            specgen_context.increment_generation_attempt()
             return LlmInvocationResult(specification_generation_prompt, response)
         except ModelError as e:
-            msg = f"Error during specification generation for '{function_name}': {e}"
+            msg = (
+                f"Error during specification generation for '{specgen_context.function_name}': {e}"
+            )
             raise RuntimeError(msg) from e
 
     def repair_specifications(
         self,
-        function_name: str,
+        specgen_context: SpecificationGenerationContext,
         verification_result: VerificationResult,
         conversation: list[dict[str, str]],
     ) -> LlmInvocationResult:
         """Repair the specifications for the function with the given name.
 
         Args:
-            function_name (str): The function for which to repair specifications.
-            verification_result (VerificationResult): The result of a verifier run.
+            specgen_context (SpecificationGenerationContext): The specification generation
+                context.
+            verification_result: The result of running verification on the specification requiring
+                repair.
             conversation (list[dict[str, str]]): The LLM conversation, so far.
 
         Raises:
@@ -96,13 +86,9 @@ class LlmSpecificationGenerator:
         Returns:
             LlmInvocationResult: The prompt used to invoke an LLM and its response.
         """
-        if not isinstance(verification_result, Failure):
-            raise TypeError(
-                "A repair prompt cannot be constructed for a successful verifier result."
-            )
-        function = self._parsec_result.get_function(function_name)
+        function = self._parsec_result.get_function(specgen_context.function_name)
         if not function:
-            msg = f"Function: '{function_name}' was missing from the ParseC result"
+            msg = f"Function: '{specgen_context.function_name}' was missing from the ParseC result"
             raise RuntimeError(msg)
 
         if not isinstance(verification_result, Failure):
@@ -117,7 +103,8 @@ class LlmSpecificationGenerator:
 
         try:
             response = self._model.gen(conversation, top_k=1, temperature=0.0)[0]
+            specgen_context.increment_repair_attempt()
             return LlmInvocationResult(repair_prompt, response)
         except ModelError as e:
-            msg = f"Error during specification repair for '{function_name}': {e}"
+            msg = f"Error during specification repair for '{specgen_context.function_name}': {e}"
             raise RuntimeError(msg) from e

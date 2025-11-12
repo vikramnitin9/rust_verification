@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from specifications import LlmInvocationResult
+from util import LlmInvocationResult
 from verification import Failure, Success
 
 

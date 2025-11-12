@@ -17,7 +17,13 @@ from util import (
     extract_function,
     function_util,
 )
-from verification import Failure, LlmGenerateVerifyIteration, Success, VerificationResult
+from verification import (
+    Failure,
+    LlmGenerateVerifyIteration,
+    SpecificationGenerationContext,
+    Success,
+    VerificationResult,
+)
 
 MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
@@ -73,13 +79,11 @@ def main() -> None:
     )
     verified_functions: list[str] = []
     conversation_log: dict[str, list[LlmGenerateVerifyIteration]] = defaultdict(list)
-    conversation = [{"role": "system", "content": "You are an intelligent coding assistant"}]
     specification_generator = LlmSpecificationGenerator(
         MODEL, parsec_result_without_direct_recursive_functions
     )
 
     for func_name in func_ordering:
-        conversation = [{"role": "system", "content": DEFAULT_SYSTEM_PROMPT}]
         if func_name in recursive_funcs:
             logger.info(
                 f"Skipping self-recursive function {func_name} because of CBMC bugs/limitations."
@@ -94,108 +98,119 @@ def main() -> None:
             msg = f"Failed to find function '{func_name}' to verify"
             raise RuntimeError(msg)
 
-        # Generate the initial specifications for verification.
-        llm_invocation_result = specification_generator.generate_specifications(
-            func_name, conversation
+        specgen_context = SpecificationGenerationContext(
+            function_name=func_name,
+            verified_functions=verified_functions,
+            parsec_result=parsec_result_without_direct_recursive_functions,
+            output_file_path=output_file_path,
         )
-        _update_parsec_result_and_output_file(
-            llm_invocation_result.response,
-            func_name,
-            parsec_result_without_direct_recursive_functions,
-            output_file_path,
-        )
-        # Attempt to verify the generated specifications for the function.
-        verification_result = verify_one_function(func_name, verified_functions, output_file_path)
-        if args.save_conversation:
-            conversation_log[func_name].append(
-                LlmGenerateVerifyIteration(func_name, llm_invocation_result, verification_result)
+
+        for _ in range(args.num_regeneration):
+            attempts = _generate_and_verify(
+                specification_generator=specification_generator,
+                specgen_context=specgen_context,
+                num_repair_attempts=args.num_repair,
             )
+            if not attempts:
+                raise RuntimeError("Expected at least one generate specification iteration")
 
-        if isinstance(verification_result, Success):
-            logger.success(f"Verification succeeded for '{func_name}'")
-            verified_functions.append(func_name)
-            continue
-        logger.warning(
-            f"Verification failed for '{func_name}'; attempting to repair the generated specs"
-        )
+            max_num_regenerate_repair_iterations = args.num_repair * args.num_regeneration
+            if len(attempts) > max_num_regenerate_repair_iterations:
+                msg = (
+                    f"Expected at most {max_num_regenerate_repair_iterations} specification "
+                    f"generation/repair iterations, but got: {len(attempts)}"
+                )
+                raise RuntimeError(msg)
 
-        repair_iterations = _run_repair_loop(
-            specification_generator,
-            func_name,
-            verified_functions,
-            verification_result,
-            conversation,
-            parsec_result_without_direct_recursive_functions,
-            output_file_path,
-            args.num_repair,
-        )
+            if args.save_conversation:
+                conversation_log[func_name].extend(attempts)
 
-        if args.num_repair != 0 and not repair_iterations:
-            raise RuntimeError()
-        if args.save_conversation:
-            conversation_log[func_name].extend(repair_iterations)
-
-        final_repair_iteration = repair_iterations[-1]
-        is_repair_successful = isinstance(final_repair_iteration.verification_result, Success)
-        repair_result_msg = (
-            f"Verification {'succeeded' if is_repair_successful else 'failed'} for "
-            f"'{func_name}' after {len(repair_iterations)} repair iterations"
-        )
-        if is_repair_successful:
-            logger.success(repair_result_msg)
-        else:
-            logger.warning(repair_result_msg)
-
-        if func_name not in verified_functions:
+            final_attempt = attempts[-1]
+            if isinstance(final_attempt.verification_result, Success):
+                msg = (
+                    f"Successfully verified '{final_attempt.function}' (Generation attempt = "
+                    f"{specgen_context.generation_attempts}, Repair attempt = "
+                    f"{specgen_context.repair_attempts})"
+                )
+                logger.success(msg)
+                break  # Move on to the next function to verify.
             recover_from_failure()
+
     if args.save_conversation:
         _write_conversation_log(conversation_log)
 
 
+def _generate_and_verify(
+    specification_generator: LlmSpecificationGenerator,
+    specgen_context: SpecificationGenerationContext,
+    num_repair_attempts: int,
+) -> list[LlmGenerateVerifyIteration]:
+    attempts = []
+    conversation = [{"role": "system", "content": DEFAULT_SYSTEM_PROMPT}]
+
+    # Initial specification generation.
+    llm_invocation_result = specification_generator.generate_specifications(
+        specgen_context, conversation
+    )
+
+    # Update the ParseC result and output file.
+    _update_parsec_result_and_output_file(llm_invocation_result.response, specgen_context)
+
+    # Verify the result.
+    verification_result = verify_one_function(specgen_context)
+
+    specgen_context.add_verified_function(specgen_context.function_name)
+    attempts.append(
+        LlmGenerateVerifyIteration(
+            specgen_context.function_name, llm_invocation_result, verification_result
+        )
+    )
+
+    if isinstance(verification_result, Success):
+        # Go no further if the initial specification verifies.
+        return attempts
+
+    # Attempt to repair the faulty specification.
+    repair_iterations = _run_repair_loop(
+        specification_generator,
+        specgen_context,
+        verification_result,
+        conversation,
+        num_repair_attempts,
+    )
+
+    attempts.extend(repair_iterations)
+    return attempts
+
+
 def _run_repair_loop(
     specification_generator: LlmSpecificationGenerator,
-    function_name: str,
-    verified_functions: list[str],
+    specgen_context: SpecificationGenerationContext,
     initial_verification_failure: Failure,
     conversation: list[dict[str, str]],
-    parsec_result: ParsecResult,
-    output_file_path: Path,
     num_repair_attempts: int,
 ) -> list[LlmGenerateVerifyIteration]:
     verification_result: VerificationResult = initial_verification_failure
     repair_attempts: list[LlmGenerateVerifyIteration] = []
     for n in range(num_repair_attempts):
         logger.info(
-            f"Running repair for '{function_name}' specs: attempt {n + 1}/{num_repair_attempts}'"
+            f"Running repair for '{specgen_context.function_name}' specs: "
+            f"attempt {n + 1}/{num_repair_attempts}'"
         )
         llm_invocation_result = specification_generator.repair_specifications(
-            function_name, verification_result, conversation
+            specgen_context, verification_result, conversation
         )
-        verification_result = verify_one_function(
-            function_name, verified_functions, output_file_path
-        )
-        _update_parsec_result_and_output_file(
-            llm_invocation_result.response,
-            function_name,
-            parsec_result,
-            output_file_path,
-        )
-        if isinstance(verification_result, Failure):
-            repair_attempts.append(
-                LlmGenerateVerifyIteration(
-                    function_name,
-                    llm_invocation_result,
-                    verification_result,
-                )
+        verification_result = verify_one_function(specgen_context)
+        _update_parsec_result_and_output_file(llm_invocation_result.response, specgen_context)
+        repair_attempts.append(
+            LlmGenerateVerifyIteration(
+                specgen_context.function_name,
+                llm_invocation_result,
+                verification_result,
             )
-        else:
-            repair_attempts.append(
-                LlmGenerateVerifyIteration(
-                    function_name,
-                    llm_invocation_result,
-                    verification_result,
-                )
-            )
+        )
+        if isinstance(verification_result, Success):
+            specgen_context.add_verified_function(specgen_context.function_name)
             return repair_attempts
 
     return repair_attempts
@@ -206,37 +221,31 @@ def recover_from_failure() -> None:
 
 
 def _update_parsec_result_and_output_file(
-    llm_response: str, function_name: str, parsec_result: ParsecResult, output_file: Path
+    llm_response: str, specgen_context: SpecificationGenerationContext
 ) -> str:
     """Update the ParseC result and output file with the function with specifications.
 
     Args:
         llm_response (str): The response from the LLM.
-        function_name (str): The name of the function that should be updated in the ParseC result
-            and output file.
-        parsec_result (ParsecResult): The ParseC result to update.
-        output_file (Path): The path to the output file to update.
+        specgen_context (SpecificationGenerationContext): The specification generation context.
 
     Returns:
         str: The contents of the updated file.
     """
     updated_function_content = extract_function(llm_response)
     return function_util.update_function_declaration(
-        function_name, updated_function_content, parsec_result, output_file
+        specgen_context.function_name,
+        updated_function_content,
+        specgen_context.parsec_result,
+        specgen_context.output_file_path,
     )
 
 
-def verify_one_function(
-    func_name: str,
-    verified_funcs: list[str],
-    out_file: Path,
-) -> Success | Failure:
+def verify_one_function(specgen_context: SpecificationGenerationContext) -> Success | Failure:
     """Return the result of verifying the function named `func_name` with CBMC.
 
     Args:
-        func_name (str): The name of the function to verify with CBMC.
-        verified_funcs (list[str]): The list of verified functions.
-        out_file (Path): The path to the file in which the function to verify is defined.
+        specgen_context (SpecificationGenerationContext): The specification generation context.
 
     Raises:
         RuntimeError: Raised when an error occurs in executing the verification command.
@@ -245,9 +254,13 @@ def verify_one_function(
         Success | Failure: Success if the function successfully verifies, Failure if the
             function does not verify.
     """
-    replace_args = "".join([f"--replace-call-with-contract {f} " for f in verified_funcs])
+    func_name = specgen_context.function_name
+    output_file_path = specgen_context.output_file_path.absolute()
+    replace_args = "".join(
+        [f"--replace-call-with-contract {f} " for f in specgen_context.verified_functions]
+    )
     verification_command = (
-        f"goto-cc -o {func_name}.goto {out_file.absolute()} --function {func_name} && "
+        f"goto-cc -o {func_name}.goto {output_file_path} --function {func_name} && "
         f"goto-instrument --partial-loops --unwind 5 {func_name}.goto {func_name}.goto && "
         f"goto-instrument {replace_args}"
         f"--enforce-contract {func_name} "

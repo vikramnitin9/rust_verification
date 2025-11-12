@@ -1,3 +1,3 @@
-from .llm_specification_generator import LlmSpecificationGenerator, LlmInvocationResult
+from .llm_specification_generator import LlmSpecificationGenerator
 
-__all__ = ["LlmSpecificationGenerator", "LlmInvocationResult"]
+__all__ = ["LlmSpecificationGenerator"]
