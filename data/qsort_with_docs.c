@@ -4,8 +4,8 @@
 
 /**
  * Swap consumes two pointers and switches their values.
- * I.e., given a pointer a and a pointer b, a should point
- * to the value of a, and b should point to the value of a.
+ * I.e., given a pointer 'a' and a pointer 'b', 'a' should point
+ * to the original value of 'b', and 'b' should point to the original value of 'b'.
  *
  * @param a int* A pointer to an integer.
  * @param b int* A pointer to an integer.
