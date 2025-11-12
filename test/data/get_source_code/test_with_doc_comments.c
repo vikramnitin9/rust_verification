@@ -5,7 +5,7 @@
 void f1() { }
 
 /** this comment
-spans two
+spans three
 lines
  */
 void f2()
