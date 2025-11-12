@@ -27,7 +27,7 @@ void swap(int* a, int* b)
  *
  * @param arr[] The array to re-order.
  * @param low The starting index of the subarray to re-order.
- * @param high The pivot index.
+ * @param high The ending index of the subarray to partition (used as pivot element).
  *
  * @return The pivot index.
  */
