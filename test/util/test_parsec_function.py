@@ -24,6 +24,68 @@ def test_get_source_code() -> None:
     )
     assert extracted_func == expected_extracted_func
 
+def test_get_source_code_with_docs_double_slash() -> None:
+    fn = ParsecFunction(
+        {
+            "name": "f1",
+            "num_args": 0,
+            "returnType": "void",
+            "signature": "void f1()",
+            "filename": "test/data/get_source_code/test_with_doc_comments.c",
+            "startLine": 5,
+            "endLine": 5,
+            "startCol": 1,
+            "endCol": 13,
+            "callees": [],
+        }
+    )
+    extracted_func = fn.get_source_code(include_documentation_comments=True)
+    expected_extracted_func = (
+        "// This is a documentation\n// Comment\nvoid f1() { }"
+    )
+    assert extracted_func == expected_extracted_func
+
+def test_get_source_code_with_docs_multi_line() -> None:
+    fn = ParsecFunction(
+        {
+            "name": "f1",
+            "num_args": 0,
+            "returnType": "void",
+            "signature": "void f2()",
+            "filename": "test/data/get_source_code/test_with_doc_comments.c",
+            "startLine": 11,
+            "endLine": 13,
+            "startCol": 1,
+            "endCol": 9,
+            "callees": [],
+        }
+    )
+    extracted_func = fn.get_source_code(include_documentation_comments=True)
+    expected_extracted_func = (
+        "/** this comment\nspans three\nlines\n */\nvoid f2()\n{\n}\n"
+    )
+    assert extracted_func == expected_extracted_func
+
+def test_get_source_code_with_docs_inline_comment_above() -> None:
+    fn = ParsecFunction(
+        {
+            "name": "f3",
+            "num_args": 0,
+            "returnType": "void",
+            "signature": "void f3()",
+            "filename": "test/data/get_source_code/test_with_doc_comments.c",
+            "startLine": 16,
+            "endLine": 16,
+            "startCol": 1,
+            "endCol": 12,
+            "callees": [],
+        }
+    )
+    extracted_func = fn.get_source_code(include_documentation_comments=True)
+    expected_extracted_func = (
+        "void f3() {}"
+    )
+    assert extracted_func == expected_extracted_func
 
 def test_get_source_code_invalid_line_range() -> None:
     nonexistent_function = ParsecFunction(
@@ -84,3 +146,67 @@ def test_get_source_code_at_end_of_file() -> None:
         'void fn_at_end()\n{\n    printf("This");\n    printf("Function is at the end");\n}'
     )
     assert extracted_func == expected_extracted_func
+
+def test_get_comment_no_comments() -> None:
+    function = ParsecFunction({
+            "name": "f2",
+            "num_args": 0,
+            "returnType": "void",
+            "signature": "void f2()",
+            "filename": "test/data/get_comments/test.c",
+            "startLine": 7,
+            "endLine": 11,
+            "startCol": 1,
+            "endCol": 37,
+            "callees": [],
+    })
+    assert function.get_documentation_comments() == ""
+
+
+def test_get_comment_double_slash() -> None:
+    function = ParsecFunction({
+            "name": "f1",
+            "num_args": 0,
+            "returnType": "void",
+            "signature": "void f1()",
+            "filename": "test/data/get_comments/test.c",
+            "startLine": 5,
+            "endLine": 5,
+            "startCol": 1,
+            "endCol": 38,
+            "callees": [],
+    })
+    expected_comments = "// Double-slash comment\n// Again"
+    assert function.get_documentation_comments() == expected_comments
+
+def test_get_comment_multi_line() -> None:
+    function = ParsecFunction({
+            "name": "f3",
+            "num_args": 0,
+            "returnType": "void",
+            "signature": "void f3(int a)",
+            "filename": "test/data/get_comments/test.c",
+            "startLine": 21,
+            "endLine": 24,
+            "startCol": 1,
+            "endCol": 14,
+            "callees": [],
+    })
+    expected_comment = "/**\n* Brief description.\n*\n* @param a first parameter\n* @return if any return value\n*\n* Detailed description\n**/"
+    assert function.get_documentation_comments() == expected_comment
+
+def test_get_comment_multi_line_pathological() -> None:
+    function = ParsecFunction({
+            "name": "f4",
+            "num_args": 0,
+            "returnType": "void",
+            "signature": "void f4()",
+            "filename": "test/data/get_comments/test.c",
+            "startLine": 31,
+            "endLine": 34,
+            "startCol": 1,
+            "endCol": 9,
+            "callees": [],
+    })
+    expected_comment = "/*\nTest\n\n\nDetailed description */"
+    assert function.get_documentation_comments() == expected_comment
