@@ -60,11 +60,11 @@ class ParsecFunction:
         self.llvm_globals = raw_analysis.get("globals", [])
         self.structs = raw_analysis.get("structs", [])
 
-    def get_source_code(self) -> str:
-        """Return the source code for this function.
+    def get_source_code(self, include_documentation_comments: bool = False) -> str:
+        """Return the source code for this function, optionally including documentation comments.
 
         Returns:
-            str: The source code for this function.
+            str: The source code for this function, optionally including documentation comments.
         """
         with pathlib.Path(self.file_name).open(encoding="utf-8") as f:
             lines = f.readlines()
@@ -83,7 +83,64 @@ class ParsecFunction:
         # Note that "end" comes before "beginning", in case they are on the same line.
         func_lines[-1] = func_lines[-1][: self.end_col]
         func_lines[0] = func_lines[0][self.start_col - 1 :]
-        return "".join(func_lines)
+
+        source_code = "".join(func_lines)
+
+        if include_documentation_comments:
+            if documentation := self.get_documentation_comments():
+                source_code = f"{documentation}\n{source_code}"
+        return source_code
+
+    def get_documentation_comments(self) -> str:
+        """Return the content of lines immediately preceding this function (usually documentation).
+
+        Returns:
+            str: The documentation comments for this function.
+        """
+        with pathlib.Path(self.file_name).open(encoding="utf-8") as f:
+            lines = f.read().splitlines()
+
+        # Function start/end lines are 1-indexed.
+        # But the function signature could be on line 2 of the file, while a comment is on line 1.
+        i = self.start_line - 2
+        comments: list[str] = []
+        multi_line_comment_seen = False
+        while i >= 0:
+            curr_line = lines[i]
+            if not multi_line_comment_seen and (not curr_line or curr_line.isspace()):
+                break
+            if self._is_comment(curr_line):
+                multi_line_comment_seen = curr_line.endswith("*/") and "/*" not in curr_line
+                comments.append(curr_line)
+            elif multi_line_comment_seen:
+                comments.append(curr_line)
+            i -= 1
+        comments.reverse()  # Necessary since we walk the source file backwards from the definition.
+        return "\n".join(comments) if comments else ""
+
+    def _is_comment(self, line: str) -> bool:
+        """Return True iff a line comprises a comment (or part of one).
+
+        Args:
+            line (str): The line to check for a comment.
+
+        Returns:
+            bool: True iff a line comprises a comment (or part of one).
+        """
+        stripped_line = line.strip()
+        comment_start_delimiters = ["//", "/*", "*"]
+
+        if any(stripped_line.startswith(delimit) for delimit in comment_start_delimiters):
+            return True
+
+        if stripped_line.endswith("*/"):
+            comment_start = stripped_line.find("/*")
+            # Catch cases like
+            # int global = 1; /* this is a bad practice */
+            # which we should not include.
+            return comment_start <= 0 or not stripped_line[:comment_start].strip()
+
+        return False
 
     def is_specified(self) -> bool:
         """Return True iff this function has pre- or post-conditions.
