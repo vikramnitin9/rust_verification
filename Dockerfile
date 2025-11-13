@@ -77,7 +77,7 @@ RUN arch=$(uname -m) && \
 RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
 RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 
-RUN conda install -y python=3.10 pip
+RUN conda install -y python=3.13 pip
 COPY --chown=${USER_ID}:${GROUP_ID} requirements.txt /app/requirements.txt
 RUN pip install -r /app/requirements.txt
 
