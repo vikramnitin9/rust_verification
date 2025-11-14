@@ -1,12 +1,15 @@
 """Script to translate CBMC specifications for C functions into equivalents in Kani."""
 
 import argparse
+import json
 import pickle as pkl
+from dataclasses import asdict
 from pathlib import Path
 from typing import cast
 
 from loguru import logger
 
+from translation import CBMCAst, CBMCToKani, Parser, ToAst
 from util import FunctionSpecification, ParsecFunction
 
 
@@ -35,30 +38,60 @@ def main() -> None:
         raise RuntimeError(msg)
 
     logger.debug(f"Starting specification translation for functions in: '{path_to_functions}'")
+
+    cbmc_parser: Parser[CBMCAst] = Parser(
+        path_to_grammar_defn="translation/grammar/cbmc.txt",
+        start="cbmc_clause",
+        transformer=ToAst(),
+    )
     functions_to_translated_specs: dict[str, FunctionSpecification] = {}
+    translator = CBMCToKani(parser=cbmc_parser)
 
     for function_name, function in functions.items():
-        functions_to_translated_specs[function_name] = _translate_specifications(function)
+        functions_to_translated_specs[function_name] = _translate_specifications(
+            translator, function
+        )
+
+    _save_translated_specifications(
+        functions_to_translated_specs=functions_to_translated_specs,
+        path_to_functions=path_to_functions,
+    )
 
 
-def _translate_specifications(function: ParsecFunction) -> FunctionSpecification:
-    """TODO: fill me in.
+def _translate_specifications(
+    translator: CBMCToKani, function: ParsecFunction
+) -> FunctionSpecification:
+    """Return the translated specifications originating from the given function.
 
     Args:
-        function (ParsecFunction): _description_
+        translator (CBMCToKani): The translator to use for specification translation.
+        function (ParsecFunction): The function to obtain the specifications to translate.
 
     Returns:
-        FunctionSpecification: _description_
+        FunctionSpecification: A translated function specification.
     """
-    translated_preconditions: list[str] = []
-    translated_postconditions: list[str] = []
-    for _ in function.preconditions:
-        pass
-    for _ in function.postconditions:
-        pass
     return FunctionSpecification(
-        preconditions=translated_preconditions, postconditions=translated_postconditions
+        preconditions=translator.translate(function.preconditions),
+        postconditions=translator.translate(function.postconditions),
     )
+
+
+def _save_translated_specifications(
+    functions_to_translated_specs: dict[str, FunctionSpecification], path_to_functions: Path
+) -> None:
+    """Save translated specifications to disk.
+
+    Args:
+        functions_to_translated_specs (dict[str, FunctionSpecification]): A map from function names
+            to their translated specifications.
+        path_to_functions (Path): The path to the original functions file.
+    """
+    result_file = path_to_functions.with_suffix("")
+    with Path(f"{result_file}-translated-specs.json").open("w") as f:
+        data_to_write = {
+            name: asdict(specs) for name, specs in functions_to_translated_specs.items()
+        }
+        f.write(json.dumps(data_to_write, indent=4))
 
 
 if __name__ == "__main__":

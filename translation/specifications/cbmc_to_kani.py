@@ -12,6 +12,9 @@ RUST_KEYWORDS: set[str] = set()
 with pathlib.Path("translation/specifications/rust_keywords.txt").open(encoding="utf-8") as f:
     RUST_KEYWORDS = {kw.strip() for kw in f}
 
+# These are obtained from C's limits.h header file, will be expanded as we build out the translator.
+C_LIMITS_TO_RUST = {"INT_MAX": "i32::MAX", "INT_MIN": "i32::MIN"}
+
 
 class TranslationError(Exception):
     """Represents an error in translating CBMC to Kani specifications."""
@@ -120,7 +123,7 @@ class CBMCToKani:
                 if v in RUST_KEYWORDS:
                     msg = f"Specification '{spec}' contains a Rust keyword: '{v}'"
                     raise TranslationError(msg)
-                return str(v)
+                return C_LIMITS_TO_RUST.get(str(v), str(v))
             case cbmc_ast.BinOp(left, right):
                 return f"{self._to_kani_str(left)} {spec.operator()} {self._to_kani_str(right)}"
             case cbmc_ast.Number(v):
