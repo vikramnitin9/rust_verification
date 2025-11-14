@@ -229,6 +229,8 @@ def _update_parsec_result_and_output_file(
 ) -> str:
     """Update the ParseC result and output file with the function with specifications.
 
+    Note: The return value of this function will be used in functions in future commits.
+
     Args:
         llm_response (str): The response from the LLM.
         specgen_context (SpecificationGenerationContext): The specification generation context.

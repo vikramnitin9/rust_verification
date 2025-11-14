@@ -35,6 +35,7 @@ if docker info -f "{{println .SecurityOptions}}" | grep -q rootless; then
                            -v "$(pwd)/system-prompt.txt:/app/system-prompt.txt" \
                            -v "$(pwd)/repair-prompt-template.txt:/app/repair-prompt-template.txt" \
                            -v "$(pwd)/generate_specs.py:/app/generate_specs.py" \
+                           -v "$(pwd)/translate_specs.py:/app/translate_specs.py" \
                            cbmc:latest "${CMD[@]}"
 else
     docker run --rm $INTERACTIVE -v "$(pwd)/data:/app/data" \
@@ -52,5 +53,6 @@ else
                     -v "$(pwd)/system-prompt.txt:/app/system-prompt.txt" \
                     -v "$(pwd)/repair-prompt-template.txt:/app/repair-prompt-template.txt" \
                     -v "$(pwd)/generate_specs.py:/app/generate_specs.py" \
+                    -v "$(pwd)/translate_specs.py:/app/translate_specs.py" \
                     cbmc:latest "${CMD[@]}"
 fi
