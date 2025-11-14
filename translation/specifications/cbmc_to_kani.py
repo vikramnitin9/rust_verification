@@ -32,19 +32,19 @@ class CBMCToKani:
     def __init__(self, parser: Parser[CBMCAst]):
         self.parser = parser
 
-    def translate(self, cprover_specs: list[str]) -> list[str]:
+    def translate(self, cbmc_specs: list[str]) -> list[str]:
         """Return a list of Kani specifications translated from a list of CBMC specifications.
 
         Args:
-            cprover_specs (list[str]): _description_
+            cbmc_specs (list[str]): A list of CBMC specifications.
 
         Returns:
-            list[str]: _description_
+            list[str]: A list of Kani specifications translated from a list of CBMC specifications.
         """
-        if not cprover_specs:
+        if not cbmc_specs:
             return []
         kani_specs = []
-        for spec in cprover_specs:
+        for spec in cbmc_specs:
             try:
                 cbmc_ast = self.parser.parse(spec)
                 kani_specs.append(self._to_kani_str(cbmc_ast))
@@ -152,27 +152,35 @@ class CBMCToKani:
         """
         match cbmc_range_expr:
             # Case 1: lower_bound <= i && i < upper_bound (most common)
-            case cbmc_ast.AndOp(cbmc_ast.LeOp(lower_bound, i), cbmc_ast.LtOp(_, upper_bound)):
+            case cbmc_ast.AndOp(cbmc_ast.LeOp(lower_bound, i), cbmc_ast.LtOp(j, upper_bound)) if (
+                i.name == j.name
+            ):
                 kani_lower = self._to_kani_str(lower_bound)
                 kani_upper = self._to_kani_str(upper_bound)
                 return f"{self._to_kani_str(i)} in ({kani_lower}, {kani_upper})"
 
             # Case 2: lower_bound <= i && i <= upper_bound (closed range)
-            case cbmc_ast.AndOp(cbmc_ast.LeOp(lower_bound, i), cbmc_ast.LeOp(_, upper_bound)):
+            case cbmc_ast.AndOp(cbmc_ast.LeOp(lower_bound, i), cbmc_ast.LeOp(j, upper_bound)) if (
+                i.name == j.name
+            ):
                 kani_lower = self._to_kani_str(lower_bound)
                 kani_upper = self._to_kani_str(upper_bound)
                 # Kani ranges are half-open, so add 1 to upper bound for closed range
                 return f"{self._to_kani_str(i)} in ({kani_lower}, {kani_upper} + 1)"
 
             # Case 3: lower_bound < i && i < upper_bound (open range)
-            case cbmc_ast.AndOp(cbmc_ast.LtOp(lower_bound, i), cbmc_ast.LtOp(_, upper_bound)):
+            case cbmc_ast.AndOp(cbmc_ast.LtOp(lower_bound, i), cbmc_ast.LtOp(j, upper_bound)) if (
+                i.name == j.name
+            ):
                 kani_lower = self._to_kani_str(lower_bound)
                 kani_upper = self._to_kani_str(upper_bound)
                 # Add 1 to lower bound for strict lower bound
                 return f"{self._to_kani_str(i)} in ({kani_lower} + 1, {kani_upper})"
 
             # Case 4: lower_bound < i && i <= upper_bound (mixed range)
-            case cbmc_ast.AndOp(cbmc_ast.LtOp(lower_bound, i), cbmc_ast.LeOp(_, upper_bound)):
+            case cbmc_ast.AndOp(cbmc_ast.LtOp(lower_bound, i), cbmc_ast.LeOp(j, upper_bound)) if (
+                i.name == j.name
+            ):
                 kani_lower = self._to_kani_str(lower_bound)
                 kani_upper = self._to_kani_str(upper_bound)
                 # Add 1 to both bounds
