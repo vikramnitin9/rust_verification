@@ -66,7 +66,6 @@ def main() -> None:
     )
     verified_functions: list[str] = []
     conversation_log: dict[str, list[LlmGenerateVerifyIteration]] = defaultdict(list)
-    conversation = [{"role": "system", "content": "You are an intelligent coding assistant"}]
     specification_generator = LlmSpecificationGenerator(
         MODEL, parsec_result_without_direct_recursive_functions
     )
@@ -164,6 +163,8 @@ def _update_parsec_result_and_output_file(
     llm_response: str, function_name: str, parsec_result: ParsecResult, output_file: Path
 ) -> str:
     """Update the ParseC result and output file with the function with specifications.
+
+    Note: The return value of this function will be used in functions in future commits.
 
     Args:
         llm_response (str): The response from the LLM.
