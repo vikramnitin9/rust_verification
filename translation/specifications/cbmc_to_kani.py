@@ -201,11 +201,10 @@ class CBMCToKani:
         """
         result = cbmc_str
         if "__CPROVER_result" in cbmc_str or "__CPROVER_return_value" in cbmc_str:
-            result = f"|result| {
-                cbmc_str.replace('__CPROVER_result', 'result').replace(
-                    '__CPROVER_return_value', 'result'
-                )
-            }"
+            replaced = cbmc_str.replace("__CPROVER_result", "result").replace(
+                "__CPROVER_return_value", "result"
+            )
+            result = f"|result| {replaced}"
         if "__CPROVER_old" in cbmc_str:
             result = result.replace("__CPROVER_old", "old")
         return result
