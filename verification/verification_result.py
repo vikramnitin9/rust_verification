@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class VerificationResult:
-    """Top-level type for a verification result."""
+    """Represents a verifier result."""
 
 
 @dataclass(frozen=True)
