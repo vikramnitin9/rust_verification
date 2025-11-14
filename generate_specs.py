@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import pickle as pkl
 import subprocess
 import time
 from collections import defaultdict
@@ -150,6 +151,10 @@ def main() -> None:
     if args.save_conversation:
         _write_conversation_log(conversation_log)
 
+        _save_functions_with_specs(
+            parsec_result_without_direct_recursive_functions, output_file_path
+        )
+
 
 def recover_from_failure() -> None:
     """Implement recovery logic."""
@@ -284,6 +289,24 @@ def _get_path_to_conversation_log() -> Path:
     path_to_log = Path(f"logs/specifications/{current_time}-specs.json")
     path_to_log.parent.mkdir(parents=True, exist_ok=True)
     return path_to_log
+
+
+def _save_functions_with_specs(parsec_result: ParsecResult, output_file_path: Path) -> None:
+    """Write functions from a ParseC result that have specifications to disk.
+
+    This is needed for specification translation. Ideally, the specified functions would be read
+    directly from the source file resulting directly from specification generation. However, CBMC
+    specifications are not legal C code, and are not able to be easily parsed (e.g., with ParseC).
+
+    Args:
+        parsec_result (ParsecResult): The ParseC result in which to look for specified functions.
+        output_file_path (Path): The path to the file where the result of specification generation
+            is saved.
+    """
+    functions_with_specs = [f for f in parsec_result.functions.values() if f.is_specified()]
+    result_file = output_file_path.with_suffix("")
+    with Path(f"{result_file}-specified-functions.pkl").open("wb") as f:
+        pkl.dump(functions_with_specs, f)
 
 
 if __name__ == "__main__":
