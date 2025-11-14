@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import argparse
+import json
 import pickle as pkl
 import subprocess
-import sys
+import time
+from collections import defaultdict
 from pathlib import Path
 
 from loguru import logger
@@ -15,16 +18,37 @@ from util import (
     extract_function,
     function_util,
 )
-from verification import Failure, Success
+from verification import Failure, LlmGenerateVerifyIteration, Success
 
 MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
-DEFAULT_NUM_VERIFICATION_ATTEMPTS = 10
+DEFAULT_NUM_REPAIR_ATTEMPTS = 10
+DEFAULT_SYSTEM_PROMPT = Path("system-prompt.txt").read_text(encoding="utf-8")
 
 
 def main() -> None:
     """Generate specifications for C functions using an LLM and verify them with CBMC."""
-    input_file_path = Path(sys.argv[1])
+    parser = argparse.ArgumentParser(
+        prog="generate_specs.py", description="Generate CBMC specifications for a C file."
+    )
+    parser.add_argument(
+        "--file", required=True, help="Path to the C file for which to generate specifications."
+    )
+    parser.add_argument(
+        "--num-repair",
+        required=False,
+        help="The number of times to repair a generated specification.",
+        default=DEFAULT_NUM_REPAIR_ATTEMPTS,
+        type=int,
+    )
+    parser.add_argument(
+        "--save-conversation",
+        action="store_true",
+        help="Save the conversation used to generate specifications.",
+    )
+    args = parser.parse_args()
+
+    input_file_path = Path(args.file)
     output_file_path = _copy_input_file_to_output_file(input_file_path)
     _insert_default_headers(output_file_path)
 
@@ -41,12 +65,13 @@ def main() -> None:
         )
     )
     verified_functions: list[str] = []
-    conversation = [{"role": "system", "content": "You are an intelligent coding assistant"}]
+    conversation_log: dict[str, list[LlmGenerateVerifyIteration]] = defaultdict(list)
     specification_generator = LlmSpecificationGenerator(
         MODEL, parsec_result_without_direct_recursive_functions
     )
 
     for func_name in func_ordering:
+        conversation = [{"role": "system", "content": DEFAULT_SYSTEM_PROMPT}]
         if func_name in recursive_funcs:
             logger.info(
                 f"Skipping self-recursive function {func_name} because of CBMC bugs/limitations."
@@ -62,40 +87,68 @@ def main() -> None:
             raise RuntimeError(msg)
 
         # Generate the initial specifications for verification.
-        (_, response) = specification_generator.generate_specifications(func_name, conversation)
-        _update_output_file_and_parsec_result(
-            response, func_name, parsec_result_without_direct_recursive_functions, output_file_path
+        llm_invocation_result = specification_generator.generate_specifications(
+            func_name, conversation
+        )
+        _update_parsec_result_and_output_file(
+            llm_invocation_result.response,
+            func_name,
+            parsec_result_without_direct_recursive_functions,
+            output_file_path,
+        )
+        # Attempt to verify the generated specifications for the function.
+        verification_result = verify_one_function(func_name, verified_functions, output_file_path)
+        if args.save_conversation:
+            conversation_log[func_name].append(
+                LlmGenerateVerifyIteration(func_name, llm_invocation_result, verification_result)
+            )
+
+        if isinstance(verification_result, Success):
+            logger.success(f"Verification succeeded for '{func_name}'")
+            verified_functions.append(func_name)
+            continue
+        logger.warning(
+            f"Verification failed for '{func_name}'; attempting to repair the generated specs"
         )
 
-        for n in range(DEFAULT_NUM_VERIFICATION_ATTEMPTS):
-            # Attempt to verify the generated specifications for the function.
-            match verify_one_function(func_name, verified_functions, output_file_path):
-                case Success():
-                    logger.success(f"Verification succeeded for '{func_name}' ({n + 1} attempt[s])")
-                    verified_functions.append(func_name)
-                    break
-                case Failure(error_message):
-                    logger.warning(
-                        f"Verification failed for '{func_name}' "
-                        f"regenerating specs and re-trying: "
-                        f"{n + 1}/{DEFAULT_NUM_VERIFICATION_ATTEMPTS}"
+        for n in range(args.num_repair):
+            # Try to repair specifications for verification.
+            llm_invocation_result = specification_generator.repair_specifications(
+                func_name,
+                verification_result,
+                conversation,
+            )
+            _update_parsec_result_and_output_file(
+                llm_invocation_result.response,
+                func_name,
+                parsec_result_without_direct_recursive_functions,
+                output_file_path,
+            )
+            verification_result = verify_one_function(
+                func_name, verified_functions, output_file_path
+            )
+            if args.save_conversation:
+                conversation_log[func_name].append(
+                    LlmGenerateVerifyIteration(
+                        func_name, llm_invocation_result, verification_result
                     )
-                    # Repair specifications
-                    (_, response) = specification_generator.repair_specifications(
-                        func_name, error_message, conversation
-                    )
-                    _update_output_file_and_parsec_result(
-                        response,
-                        func_name,
-                        parsec_result_without_direct_recursive_functions,
-                        output_file_path,
-                    )
-                case unexpected_verification_result:
-                    msg = f"Unexpected verification result: {unexpected_verification_result}"
-                    raise RuntimeError(msg)
+                )
+            if isinstance(verification_result, Success):
+                logger.success(
+                    f"Verification succeeded for '{func_name}' after "
+                    f"{n + 1}/{args.num_repair} repair attempt(s)"
+                )
+                verified_functions.append(func_name)
+                break  # Move on to the next function to generate specs and verify.
+            logger.warning(f"Verification failed for '{func_name}'; on repair attempt {n + 1}")
 
         if func_name not in verified_functions:
+            logger.warning(
+                f"{func_name} failed to verify after {args.num_repair} repair attempt(s)"
+            )
             recover_from_failure()
+    if args.save_conversation:
+        _write_conversation_log(conversation_log)
 
         _save_functions_with_specs(
             parsec_result_without_direct_recursive_functions, output_file_path
@@ -104,14 +157,27 @@ def main() -> None:
 
 def recover_from_failure() -> None:
     """Implement recovery logic."""
-    raise NotImplementedError("TODO: Implement me")
 
 
-def _update_output_file_and_parsec_result(
+def _update_parsec_result_and_output_file(
     llm_response: str, function_name: str, parsec_result: ParsecResult, output_file: Path
-) -> None:
+) -> str:
+    """Update the ParseC result and output file with the function with specifications.
+
+    Note: The return value of this function will be used in functions in future commits.
+
+    Args:
+        llm_response (str): The response from the LLM.
+        function_name (str): The name of the function that should be updated in the ParseC result
+            and output file.
+        parsec_result (ParsecResult): The ParseC result to update.
+        output_file (Path): The path to the output file to update.
+
+    Returns:
+        str: The contents of the updated file.
+    """
     updated_function_content = extract_function(llm_response)
-    function_util.update_function_declaration(
+    return function_util.update_function_declaration(
         function_name, updated_function_content, parsec_result, output_file
     )
 
@@ -192,7 +258,38 @@ def _insert_default_headers(file_path: Path) -> None:
             # TODO: The ParseC result should ideally expose the imports in a file, mitigating the
             # need for the brittle string matching that is currently done.
             file_content = f"{header_line}\n" + file_content
-    file_path.open(mode="w", encoding="utf-8").write(file_content)
+    file_path.write_text(file_content, encoding="utf-8")
+
+
+def _write_conversation_log(conversation_log: dict[str, list[LlmGenerateVerifyIteration]]) -> None:
+    """Write the conversation log to disk.
+
+    Args:
+        conversation_log (dict[str, list[LlmGenerateVerifyIteration]]): The conversation log.
+    """
+    path_to_log = _get_path_to_conversation_log()
+    path_to_log.write_text(
+        json.dumps(
+            {
+                func_name: [attempt.to_dict() for attempt in attempts]
+                for func_name, attempts in conversation_log.items()
+            },
+            indent=4,
+        ),
+        encoding="utf-8",
+    )
+
+
+def _get_path_to_conversation_log() -> Path:
+    """Return the path to where the conversation log should be written.
+
+    Returns:
+        Path: The path to where the conversation log should be written.
+    """
+    current_time = int(time.time())
+    path_to_log = Path(f"logs/specifications/{current_time}-specs.json")
+    path_to_log.parent.mkdir(parents=True, exist_ok=True)
+    return path_to_log
 
 
 def _save_functions_with_specs(parsec_result: ParsecResult, output_file_path: Path) -> None:

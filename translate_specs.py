@@ -22,7 +22,7 @@ def main() -> None:
     parser.add_argument(
         "--functions",
         required=True,
-        help="Path to the .pkl file containing the"
+        help="Path to the .pkl file containing the "
         "list of ParsecFunction objects with specifications to translate.",
     )
 
