@@ -6,6 +6,34 @@ from typing import Any
 from util import LlmInvocationResult
 from verification import Failure, Success
 
+from .specification_generation_context import SpecificationGenerationContext
+
+
+@dataclass
+class GenerateRepairMetadata:
+    """Represents a point in the specification generation/repair loop.
+
+    Attributes:
+        generation (int): The iteration of the generation loop.
+        repair (int): The iteration of the repair loop.
+
+    """
+
+    generation: int
+    repair: int
+
+    def __init__(self, specgen_context: SpecificationGenerationContext):
+        self.generation = specgen_context.generation_attempts
+        self.repair = specgen_context.repair_attempts
+
+    def __str__(self) -> str:
+        """Return the string representation of this generate/repair metadata.
+
+        Returns:
+            str: The string representation of this generate/repair metadata.
+        """
+        return f"Generation attempt = {self.generation}, Repair attempt = {self.repair}"
+
 
 @dataclass(frozen=True)
 class LlmGenerateVerifyIteration:
@@ -20,6 +48,7 @@ class LlmGenerateVerifyIteration:
 
     function: str
     llm_invocation_result: LlmInvocationResult
+    iteration_metadata: GenerateRepairMetadata
     verification_result: Success | Failure
 
     def to_dict(self: "LlmGenerateVerifyIteration") -> dict[str, Any]:
@@ -40,5 +69,9 @@ class LlmGenerateVerifyIteration:
             "function": self.function,
             "prompt": self.llm_invocation_result.prompt,
             "response": self.llm_invocation_result.response,
+            "iteration_metadata": {
+                "generation_attempt": self.iteration_metadata.generation,
+                "repair_attempt": self.iteration_metadata.repair,
+            },
             "verification_result": verifier_result,
         }

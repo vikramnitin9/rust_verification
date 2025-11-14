@@ -20,6 +20,7 @@ from util import (
 )
 from verification import (
     Failure,
+    GenerateRepairMetadata,
     LlmGenerateVerifyIteration,
     SpecificationGenerationContext,
     Success,
@@ -130,9 +131,8 @@ def main() -> None:
             final_attempt = attempts[-1]
             if isinstance(final_attempt.verification_result, Success):
                 msg = (
-                    f"Successfully verified '{final_attempt.function}' (Generation attempt = "
-                    f"{specgen_context.generation_attempts}, Repair attempt = "
-                    f"{specgen_context.repair_attempts})"
+                    f"Successfully verified '{final_attempt.function} "
+                    f"({final_attempt.iteration_metadata})"
                 )
                 logger.success(msg)
                 break  # Move on to the next function to verify.
@@ -164,9 +164,13 @@ def _generate_and_verify(
     verification_result = verify_one_function(specgen_context)
 
     specgen_context.add_verified_function(specgen_context.function_name)
+
     attempts.append(
         LlmGenerateVerifyIteration(
-            specgen_context.function_name, llm_invocation_result, verification_result
+            function=specgen_context.function_name,
+            llm_invocation_result=llm_invocation_result,
+            iteration_metadata=GenerateRepairMetadata(specgen_context),
+            verification_result=verification_result,
         )
     )
 
@@ -210,6 +214,7 @@ def _run_repair_loop(
             LlmGenerateVerifyIteration(
                 specgen_context.function_name,
                 llm_invocation_result,
+                GenerateRepairMetadata(specgen_context),
                 verification_result,
             )
         )
