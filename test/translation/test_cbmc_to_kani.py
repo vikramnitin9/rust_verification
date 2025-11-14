@@ -59,12 +59,12 @@ def test_array_condition() -> None:
 
 def test_forall() -> None:
     cbmc_specs = ["__CPROVER_requires(__CPROVER_forall { int i; (0 <= i && i < n) ==> arr[i] > 0 })"]
-    kani_specs = ["kani::requires(kani::forall!(|i in (0, n)| arr[i] > 0))"]
+    kani_specs = ["kani::forall!(|i in (0, n)| arr[i] > 0)"]
     assert translator.translate(cbmc_specs) == kani_specs
 
 def test_exists() -> None:
     cbmc_specs = ["__CPROVER_ensures(__CPROVER_exists { int i; (0 <= i && i < arr.size()) && arr[i] > 0 })"]
-    kani_specs = ["kani::ensures(kani::exists!(|i in (0, arr.size())| arr[i] > 0))"]
+    kani_specs = ["kani::exists!(|i in (0, arr.size())| arr[i] > 0)"]
     assert translator.translate(cbmc_specs) == kani_specs
 
 def test_assigns() -> None:

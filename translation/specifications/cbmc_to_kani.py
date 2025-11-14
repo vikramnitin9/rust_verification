@@ -81,10 +81,14 @@ class CBMCToKani:
             case cbmc_ast.RequiresClause(_, expr):
                 kani_condition = self._to_kani_str(expr)
                 kani_condition = self._replace_cbmc_macros(kani_condition)
+                if isinstance(expr, cbmc_ast.Quantifier):
+                    return kani_condition
                 return f"kani::requires({kani_condition})"
             case cbmc_ast.EnsuresClause(_, expr):
                 kani_condition = self._to_kani_str(expr)
                 kani_condition = self._replace_cbmc_macros(kani_condition)
+                if isinstance(expr, cbmc_ast.Quantifier):
+                    return kani_condition
                 return f"kani::ensures({kani_condition})"
             case cbmc_ast.AssignsExpr(condition=cond, targets=target_list):
                 if cond:
@@ -123,7 +127,7 @@ class CBMCToKani:
                 if v in RUST_KEYWORDS:
                     msg = f"Specification '{spec}' contains a Rust keyword: '{v}'"
                     raise TranslationError(msg)
-                return C_LIMITS_TO_RUST.get(str(v), str(v))
+                return C_LIMITS_TO_RUST.get(v, v)
             case cbmc_ast.BinOp(left, right):
                 return f"{self._to_kani_str(left)} {spec.operator()} {self._to_kani_str(right)}"
             case cbmc_ast.Number(v):
