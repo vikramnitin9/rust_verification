@@ -117,14 +117,6 @@ def main() -> None:
             if not attempts:
                 raise RuntimeError("Expected at least one generate specification iteration")
 
-            max_num_regenerate_repair_iterations = args.num_repair * args.num_regeneration
-            if len(attempts) > max_num_regenerate_repair_iterations:
-                msg = (
-                    f"Expected at most {max_num_regenerate_repair_iterations} specification "
-                    f"generation/repair iterations, but got: {len(attempts)}"
-                )
-                raise RuntimeError(msg)
-
             if args.save_conversation:
                 conversation_log[func_name].extend(attempts)
 
@@ -163,8 +155,6 @@ def _generate_and_verify(
     # Verify the result.
     verification_result = verify_one_function(specgen_context)
 
-    specgen_context.add_verified_function(specgen_context.function_name)
-
     attempts.append(
         LlmGenerateVerifyIteration(
             function=specgen_context.function_name,
@@ -176,6 +166,7 @@ def _generate_and_verify(
 
     if isinstance(verification_result, Success):
         # Go no further if the initial specification verifies.
+        specgen_context.add_verified_function(specgen_context.function_name)
         return attempts
 
     # Attempt to repair the faulty specification.
@@ -205,11 +196,13 @@ def _run_repair_loop(
             f"Running repair for '{specgen_context.function_name}' specs: "
             f"attempt {n + 1}/{num_repair_attempts}'"
         )
+
         llm_invocation_result = specification_generator.repair_specifications(
             specgen_context, verification_result, conversation
         )
-        verification_result = verify_one_function(specgen_context)
         _update_parsec_result_and_output_file(llm_invocation_result.response, specgen_context)
+
+        verification_result = verify_one_function(specgen_context)
         repair_attempts.append(
             LlmGenerateVerifyIteration(
                 specgen_context.function_name,
