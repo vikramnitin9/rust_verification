@@ -85,6 +85,12 @@ def main() -> None:
         MODEL, parsec_result_without_direct_recursive_functions
     )
 
+    specgen_context = SpecificationGenerationContext(
+        verified_functions=verified_functions,
+        parsec_result=parsec_result_without_direct_recursive_functions,
+        output_file_path=output_file_path,
+    )
+
     for func_name in func_ordering:
         if func_name in recursive_funcs:
             logger.info(
@@ -100,15 +106,12 @@ def main() -> None:
             msg = f"Failed to find function '{func_name}' to verify"
             raise RuntimeError(msg)
 
-        specgen_context = SpecificationGenerationContext(
-            function_name=func_name,
-            verified_functions=verified_functions,
-            parsec_result=parsec_result_without_direct_recursive_functions,
-            output_file_path=output_file_path,
-        )
+        specgen_context.set_function(function_to_verify)
 
         for _ in range(args.num_regeneration):
-            specgen_context.reset_repair_attempts()
+            if specgen_context.has_successful_verification_state():
+                specgen_context.rollback_to_latest_verified_state()
+
             attempts = _generate_and_verify(
                 specification_generator=specification_generator,
                 specgen_context=specgen_context,
@@ -126,8 +129,10 @@ def main() -> None:
                     f"Successfully verified '{final_attempt.function} "
                     f"({final_attempt.iteration_metadata})"
                 )
+                specgen_context.checkpoint_successful_verification()
                 logger.success(msg)
                 break  # Move on to the next function to verify.
+
             recover_from_failure()
 
     if args.save_conversation:
@@ -157,7 +162,7 @@ def _generate_and_verify(
 
     attempts.append(
         LlmGenerateVerifyIteration(
-            function=specgen_context.function_name,
+            function=specgen_context.get_function_name(),
             llm_invocation_result=llm_invocation_result,
             iteration_metadata=GenerateRepairMetadata(specgen_context),
             verification_result=verification_result,
@@ -166,7 +171,7 @@ def _generate_and_verify(
 
     if isinstance(verification_result, Success):
         # Go no further if the initial specification verifies.
-        specgen_context.add_verified_function(specgen_context.function_name)
+        specgen_context.add_verified_function(specgen_context.get_function_name())
         return attempts
 
     # Attempt to repair the faulty specification.
@@ -193,7 +198,7 @@ def _run_repair_loop(
     repair_attempts: list[LlmGenerateVerifyIteration] = []
     for n in range(num_repair_attempts):
         logger.info(
-            f"Running repair for '{specgen_context.function_name}' specs: "
+            f"Running repair for '{specgen_context.get_function_name()}' specs: "
             f"attempt {n + 1}/{num_repair_attempts}'"
         )
 
@@ -205,14 +210,14 @@ def _run_repair_loop(
         verification_result = verify_one_function(specgen_context)
         repair_attempts.append(
             LlmGenerateVerifyIteration(
-                specgen_context.function_name,
+                specgen_context.get_function_name(),
                 llm_invocation_result,
                 GenerateRepairMetadata(specgen_context),
                 verification_result,
             )
         )
         if isinstance(verification_result, Success):
-            specgen_context.add_verified_function(specgen_context.function_name)
+            specgen_context.add_verified_function(specgen_context.get_function_name())
             return repair_attempts
 
     return repair_attempts
@@ -238,7 +243,7 @@ def _update_parsec_result_and_output_file(
     """
     updated_function_content = extract_function(llm_response)
     return function_util.update_function_declaration(
-        specgen_context.function_name,
+        specgen_context.get_function_name(),
         updated_function_content,
         specgen_context.parsec_result,
         specgen_context.output_file_path,
@@ -258,7 +263,7 @@ def verify_one_function(specgen_context: SpecificationGenerationContext) -> Succ
         Success | Failure: Success if the function successfully verifies, Failure if the
             function does not verify.
     """
-    func_name = specgen_context.function_name
+    func_name = specgen_context.get_function_name()
     output_file_path = specgen_context.output_file_path.absolute()
     replace_args = "".join(
         [f"--replace-call-with-contract {f} " for f in specgen_context.verified_functions]

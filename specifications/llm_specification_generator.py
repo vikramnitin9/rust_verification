@@ -40,9 +40,12 @@ class LlmSpecificationGenerator:
         Returns:
             LlmInvocationResult: The prompt used to invoke an LLM and its response.
         """
-        function = self._parsec_result.get_function(specgen_context.function_name)
+        function = self._parsec_result.get_function(specgen_context.get_function_name())
         if not function:
-            msg = f"Function: '{specgen_context.function_name}' was missing from the ParseC result"
+            msg = (
+                f"Function: '{specgen_context.get_function_name()}' "
+                "was missing from the ParseC result"
+            )
             raise RuntimeError(msg)
 
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
@@ -60,7 +63,8 @@ class LlmSpecificationGenerator:
             return LlmInvocationResult(specification_generation_prompt, response)
         except ModelError as e:
             msg = (
-                f"Error during specification generation for '{specgen_context.function_name}': {e}"
+                f"Error during specification generation for "
+                f"'{specgen_context.get_function_name()}': {e}"
             )
             raise RuntimeError(msg) from e
 
@@ -86,9 +90,12 @@ class LlmSpecificationGenerator:
         Returns:
             LlmInvocationResult: The prompt used to invoke an LLM and its response.
         """
-        function = self._parsec_result.get_function(specgen_context.function_name)
+        function = self._parsec_result.get_function(specgen_context.get_function_name())
         if not function:
-            msg = f"Function: '{specgen_context.function_name}' was missing from the ParseC result"
+            msg = (
+                f"Function: '{specgen_context.get_function_name()}' "
+                "was missing from the ParseC result"
+            )
             raise RuntimeError(msg)
 
         if not isinstance(verification_result, Failure):
@@ -106,5 +113,8 @@ class LlmSpecificationGenerator:
             specgen_context.increment_repair_attempt()
             return LlmInvocationResult(repair_prompt, response)
         except ModelError as e:
-            msg = f"Error during specification repair for '{specgen_context.function_name}': {e}"
+            msg = (
+                f"Error during specification repair for "
+                f"'{specgen_context.get_function_name()}': {e}"
+            )
             raise RuntimeError(msg) from e
