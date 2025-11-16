@@ -199,7 +199,7 @@ def _run_repair_loop(
     for n in range(num_repair_attempts):
         logger.info(
             f"Running repair for '{specgen_context.get_function_name()}' specs: "
-            f"attempt {n + 1}/{num_repair_attempts}'"
+            f"attempt {n + 1}/{num_repair_attempts}"
         )
 
         llm_invocation_result = specification_generator.repair_specifications(

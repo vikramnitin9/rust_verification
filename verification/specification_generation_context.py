@@ -39,12 +39,14 @@ class SpecificationGenerationContext:
     repair_attempts: int = 0
 
     def set_function(self, function: ParsecFunction) -> None:
-        """Set this context's function.
+        """Set this context's function, and reset the generation and repair attempts.
 
         Args:
             function (ParsecFunction): The function that this context's function should be set to.
         """
         self.function = function
+        self.generation_attempts = 0
+        self.repair_attempts = 0
 
     def get_function_name(self) -> str:
         """Return the name of this context's function.
@@ -96,8 +98,9 @@ class SpecificationGenerationContext:
             logger.debug("Rolling back to latest successful verification state")
             self.parsec_result = self._latest_verified_parsec_result
             self.function = self.parsec_result.get_function(self.get_function_name())
-            with self.output_file_path.open(mode="w") as f:
-                f.writelines(self._latest_verified_program_content)
+            self.output_file_path.write_text(
+                self._latest_verified_program_content, encoding="utf-8"
+            )
         else:
             raise RuntimeError(
                 "Rollback is not possible when there is no prior program state that passed "
