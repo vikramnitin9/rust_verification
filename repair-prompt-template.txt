@@ -4,7 +4,7 @@ STDERR: $stderr
 Remember to add the contracts (__CPROVER_requires and __CPROVER_ensures) in the function header,
 not the function body.
 
-Here's the current implementation of $function_name:
+Here is the current implementation of $function_name with line numbers:
 
 $function_implementation
 
@@ -16,7 +16,7 @@ There is no need to delimit the format with tags, return the plain object and no
 Do not include any explanations or re-define other functions.
 
 Here are some tips:
-* Use INT_MAX and/or INT_MIN to reason about overflows.
-* CBMC symbolically expands all of the preconditions, (e.g., the argument of __CPROVER_is_fresh)
-  before it applies the constraints from later clauses. Make sure you constrain any values before
-  you use them in later pre or postconditions.
+* CBMC symbolically expands all of the preconditions, for example the argument of __CPROVER_is_fresh,
+  before it applies the constraints from later __CPROVER_requires clauses, so make sure you 
+  constrain relevant values first before using them in subsequent clauses.
+* Use INT_MAX and/or INT_MIN, if required, to reason about overflows.
