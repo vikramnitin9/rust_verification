@@ -94,7 +94,10 @@ class SpecificationGenerationContext:
             RuntimeError: Raised when rollback is attempted without a prior verified program state.
         """
         self.repair_attempts = 0
-        if self._latest_verified_parsec_result and self._latest_verified_program_content:
+        if (
+            self._latest_verified_parsec_result is not None
+            and self._latest_verified_program_content is not None
+        ):
             logger.debug("Rolling back to latest successful verification state")
             self.parsec_result = self._latest_verified_parsec_result
             self.function = self.parsec_result.get_function(self.get_function_name())
