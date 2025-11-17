@@ -105,7 +105,6 @@ class SpecificationGenerationContext:
                 "Rollback is not possible when there is no prior program state that passed "
                 "verification"
             )
-        # complain about nullness without an explicit check.
         logger.debug("Rolling back to latest successful verification state")
         self.repair_attempts = 0
         self.parsec_result = self._latest_verified_parsec_result
