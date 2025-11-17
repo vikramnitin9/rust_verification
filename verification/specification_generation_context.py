@@ -18,7 +18,8 @@ class SpecificationGenerationContext:
         parsec_result (ParsecResult): The ParseC result (updated with specifications from a task).
         output_file_path (Path): The path to the output file where function(s) with specs are
             written.
-        function (ParsecFunction): The function for which to generate/repair specifications.
+        function (ParsecFunction | None): The function for which to generate/repair specifications.
+            Defaults to None and must be set via set_function before use.
         _latest_verified_parsec_result (ParsecResult | None): The ParsecResult of the latest
             verified program.
         _latest_verified_program_content (str | None): The program content of the latest verified
@@ -91,24 +92,29 @@ class SpecificationGenerationContext:
         """Roll back this context to the latest verified program state.
 
         Raises:
-            RuntimeError: Raised when rollback is attempted without a prior verified program state.
+            RuntimeError: Raised when rollback is attempted without a prior verified program state
+                or if the function to verify isn't found in the ParseC result.
         """
-        self.repair_attempts = 0
         if (
-            self._latest_verified_parsec_result is not None
-            and self._latest_verified_program_content is not None
+            self._latest_verified_parsec_result is None
+            or self._latest_verified_program_content is None
         ):
-            logger.debug("Rolling back to latest successful verification state")
-            self.parsec_result = self._latest_verified_parsec_result
-            self.function = self.parsec_result.get_function(self.get_function_name())
-            self.output_file_path.write_text(
-                self._latest_verified_program_content, encoding="utf-8"
-            )
-        else:
+            # It's inelegant to not use has_successful_verification_state here, but type checkers
+            # complain about nullness without an explicit check.
             raise RuntimeError(
                 "Rollback is not possible when there is no prior program state that passed "
                 "verification"
             )
+        # complain about nullness without an explicit check.
+        logger.debug("Rolling back to latest successful verification state")
+        self.repair_attempts = 0
+        self.parsec_result = self._latest_verified_parsec_result
+        if function := self.parsec_result.get_function(self.get_function_name()):
+            self.function = function
+        else:
+            msg = "Function to verify was missing during specification generation context rollback"
+            raise RuntimeError(msg)
+        self.output_file_path.write_text(self._latest_verified_program_content, encoding="utf-8")
 
     def has_successful_verification_state(self) -> bool:
         """Return True iff there is a prior program state that passed verification.
