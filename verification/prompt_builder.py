@@ -11,6 +11,7 @@ from .verification_result import Failure
 class PromptBuilder:
     """Encapsulates functions used in constructing prompts for LLM calls."""
 
+    # TODO: This is a template, just like `REPAIR_PROMPT_TEMPLATE`, so make their names consistent.
     PROMPT_FOR_SPECIFICATION_GENERATION = Path("./prompt.txt").read_text()
     SOURCE_PLACEHOLDER = "<<SOURCE>>"
     CALLEE_CONTEXT_PLACEHOLDER = "<<CALLEE_CONTEXT>>"
@@ -66,6 +67,8 @@ class PromptBuilder:
             stderr=verification_failure.stderr,
         )
 
+    # TODO: This does not take a prompt.  It just returns the specs.
+    # So I would name it that way:  get_specs.
     def _get_callee_context_for_prompt(
         self, caller: str, callees_with_specs: list[ParsecFunction]
     ) -> str:
@@ -81,8 +84,10 @@ class PromptBuilder:
         callee_context = "\n".join(str(callee) for callee in callees_with_specs)
         return f"{caller} has the following callees:\n{callee_context}"
 
+    # TODO: This doesn't take a prompt.  So I would name it `..._for_function`.
     def _get_source_code_for_prompt(self, function: ParsecFunction) -> str:
         """Return the source code for a function as it should appear in a prompt.
+        # TODO: "As it should appear" means with each line prefixed by a line number.
 
         Args:
             function (ParsecFunction): The function that should be included in a prompt.
