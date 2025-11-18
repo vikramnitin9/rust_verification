@@ -86,8 +86,8 @@ class PromptBuilder:
 
     # TODO: This doesn't take a prompt.  So I would name it `..._for_function`.
     def _get_source_code_for_prompt(self, function: ParsecFunction) -> str:
-        """Return the source code for a function as it should appear in a prompt.
         # TODO: "As it should appear" means with each line prefixed by a line number.
+        """Return the source code for a function as it should appear in a prompt.
 
         Args:
             function (ParsecFunction): The function that should be included in a prompt.
