@@ -9,8 +9,9 @@ from typing import cast
 
 from loguru import logger
 
-from translation import CBMCAst, CBMCToKani, Parser, ToAst
+from translation import CBMCAst, CBMCToKani, KaniProofHarness, Parser, ToAst
 from util import FunctionSpecification, ParsecFunction
+from verification import KaniVerificationContext
 
 
 def main() -> None:
@@ -44,16 +45,18 @@ def main() -> None:
         start="cbmc_clause",
         transformer=ToAst(),
     )
-    functions_to_translated_specs: dict[str, FunctionSpecification] = {}
+    functions_to_verification_contexts: dict[str, KaniVerificationContext] = {}
     translator = CBMCToKani(parser=cbmc_parser)
 
     for function_name, function in functions.items():
-        functions_to_translated_specs[function_name] = _translate_specifications(
-            translator, function
+        specs = _translate_specifications(translator, function)
+        proof_harness = KaniProofHarness(function)
+        functions_to_verification_contexts[function_name] = KaniVerificationContext(
+            specifications=specs, proof_harness=proof_harness
         )
 
     _save_translated_specifications(
-        functions_to_translated_specs=functions_to_translated_specs,
+        functions_to_verification_contexts=functions_to_verification_contexts,
         path_to_functions=path_to_functions,
     )
 
@@ -77,19 +80,19 @@ def _translate_specifications(
 
 
 def _save_translated_specifications(
-    functions_to_translated_specs: dict[str, FunctionSpecification], path_to_functions: Path
+    functions_to_verification_contexts: dict[str, KaniVerificationContext], path_to_functions: Path
 ) -> None:
     """Save translated specifications to disk.
 
     Args:
-        functions_to_translated_specs (dict[str, FunctionSpecification]): A map from function names
-            to their translated specifications.
+        functions_to_verification_contexts (dict[str, KaniVerificationContext]): A map from function
+            names to their Kani verification contexts.
         path_to_functions (Path): The path to the original functions file.
     """
     result_file = path_to_functions.with_suffix("")
     with Path(f"{result_file}-translated-specs.json").open("w") as f:
         data_to_write = {
-            name: asdict(specs) for name, specs in functions_to_translated_specs.items()
+            name: asdict(specs) for name, specs in functions_to_verification_contexts.items()
         }
         f.write(json.dumps(data_to_write, indent=4))
 
