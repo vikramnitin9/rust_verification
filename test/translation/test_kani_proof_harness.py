@@ -3,7 +3,7 @@ from util import ParsecFunction
 
 def test_kani_proof_harness_no_mut():
     harness = KaniProofHarness(ParsecFunction({
-            "name": "swap",
+            "name": "add",
             "num_args": 2,
             "returnType": "int",
             "signature": "int add(int a, int b)",
@@ -16,7 +16,7 @@ def test_kani_proof_harness_no_mut():
             "endCol": 25,
             "callees": [],
         }))
-    assert str(harness) == """#[cfg(kani)]\n#[kani::proof]\nfn check_swap() {\n    let a: i32 = kani::any();\n    let b: i32 = kani::any();\n\n    swap(a, b)\n}"""
+    assert str(harness) == """#[cfg(kani)]\n#[kani::proof]\nfn check_add() {\n    let a: i32 = kani::any();\n    let b: i32 = kani::any();\n\n    add(a, b)\n}"""
 
 def test_kani_proof_harness_swap():
     harness = KaniProofHarness(ParsecFunction({
