@@ -52,7 +52,7 @@ def main() -> None:
         specs = _translate_specifications(translator, function)
         proof_harness = KaniProofHarness(function)
         functions_to_verification_contexts[function_name] = KaniVerificationContext(
-            specifications=specs, proof_harness=proof_harness
+            specification=specs, proof_harness=proof_harness
         )
 
     _save_translated_specifications(

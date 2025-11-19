@@ -8,13 +8,13 @@ from util import FunctionSpecification
 
 @dataclass(frozen=True)
 class KaniVerificationContext:
-    """A verification context for Kani.
+    """A verification context for a single Rust function, using Kani as the verifier backend.
 
     Attributes:
-        specifications (FunctionSpecification): The pre and postconditions for a Rust function.
+        specification (FunctionSpecification): The pre and postconditions for a Rust function.
         proof_harness (KaniProofHarness): The proof harness for the Rust function under
             verification.
     """
 
-    specifications: FunctionSpecification
+    specification: FunctionSpecification
     proof_harness: KaniProofHarness

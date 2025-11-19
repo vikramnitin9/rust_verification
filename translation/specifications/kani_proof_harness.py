@@ -34,38 +34,42 @@ class RustTypeWrapper:
             str: The declaration for this type.
         """
         variable_and_type = f"{variable_name}: {self.rust_type}"
-        lhs = (
-            f"let mut {variable_and_type}"
-            if self.is_mutable_reference
-            else f"let {variable_and_type}"
-        )
-        return f"{lhs} = {val}"
+        mut = "mut " if self.is_mutable_reference else ""
+        return f"let {mut}{variable_and_type} = {val}"
 
-    def to_argument(self, argument_name: str) -> str:
-        """Return an argument that is an instantiation of this Rust type.
+    def to_argument(self, name: str) -> str:
+        """Return the given name as if it is an argument to a function.
+
+        This returns either:
+            The name itself, or
+            The name prefixed by "&mut " for a mutable reference.
 
         Args:
-            argument_name (str): The argument name.
+            name (str): The name to express as an argument to a function.
 
         Returns:
-            str: The argument that is an instantiation of this Rust type.
+            str: The name expressed as an argument to function.
         """
-        return f"&mut {argument_name}" if self.is_mutable_reference else argument_name
+        return f"&mut {name}" if self.is_mutable_reference else name
 
 
 @dataclass
 class KaniProofHarness:
     """Represents a Kani proof harness.
 
+    A Kani proof harness is a single function acting as the entry point for verification.
+    It comprises a call to the function under verification, and a set of assumptions
+    (if applicable).
+
     Attributes:
         _signature (str): The signature of this harness.
-        _body (str): The body of this harness
+        _nondet_variable_decls (str): The non-deterministic variable declarations in this harness.
         _annotations (list[str]): The annotations of this harness.
-        _function_call (str): The function call inside this harness.
+        _function_call (str): The call to the function being verified with this harness.
     """
 
     _signature: str
-    _body: str
+    _nondet_variable_decls: str
     _annotations: list[str]
     _function_call: str
 
@@ -77,23 +81,21 @@ class KaniProofHarness:
             )
             raise RuntimeError(msg)
 
-        self._annotations = KANI_PROOF_ANNOS
+        self._annotations = list(KANI_PROOF_ANNOS)
         harness_function_name = f"check_{c_function.name}"
         self._signature = f"fn {harness_function_name}()"
 
-        rust_arguments = {}
-        for param_name, c_param_type in zip(
-            c_function.arg_names, c_function.arg_types, strict=False
-        ):
-            rust_arguments[param_name] = self._to_rust_type(c_param_type)
-        harness_function_decls = {
-            name: rust_type.declaration(name, "kani::any();")
-            for name, rust_type in rust_arguments.items()
+        rust_arguments_to_types = {
+            name: self._to_rust_type(c_type)
+            for name, c_type in zip(c_function.arg_names, c_function.arg_types, strict=False)
         }
-        self._body = "\n    ".join(decl for decl in harness_function_decls.values())
+        self._nondet_variable_decls = "\n    ".join(
+            rust_type.declaration(name, val="kani::any();")
+            for name, rust_type in rust_arguments_to_types.items()
+        )
         argument_list = ", ".join(
             type_wrapper.to_argument(param_name)
-            for param_name, type_wrapper in rust_arguments.items()
+            for param_name, type_wrapper in rust_arguments_to_types.items()
         )
         self._function_call = f"{c_function.name}({argument_list})"
 
@@ -105,7 +107,8 @@ class KaniProofHarness:
         """
         harness_annotations = "\n".join(self._annotations)
         return (
-            f"{harness_annotations}\n{self._signature} {{\n    {self._body}\n\n    "
+            f"{harness_annotations}\n{self._signature} {{\n    "
+            f"{self._nondet_variable_decls}\n\n    "
             f"{self._function_call}\n}}"
         )
 
