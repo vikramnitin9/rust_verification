@@ -77,7 +77,7 @@ class KaniProofHarness:
         if len(c_function.arg_names) != len(c_function.arg_types):
             msg = (
                 f"Mismatch between function parameters '{c_function.arg_names}' "
-                "and their types = '{c_function.arg_types}'"
+                f"and their types = '{c_function.arg_types}'"
             )
             raise RuntimeError(msg)
 
