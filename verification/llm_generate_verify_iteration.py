@@ -12,13 +12,10 @@ class LlmGenerateVerifyIteration:
     """Represent one iteration of generating a specification via an LLM and verifying it.
 
     Attributes:
-        # TODO: Is this the function name, the function code, or something else?
-        function (str): The function being analyzed.
-        llm_invocation_result (LlmInvocationResult): The prompt to an LLM and the result obtained.
+        function (str): The name of the function being analyzed.
+        llm_invocation_result (LlmInvocationResult): The prompt to an LLM and its response.
         verification_result (Success | Failure): The result of verifying the specifications in the
-            file.
-        # TODO: Just above, I think "the result obtained" may be the
-        # same as "in the file".  Please make them consistent.
+            response.
     """
 
     function: str
@@ -27,6 +24,10 @@ class LlmGenerateVerifyIteration:
 
     def to_dict(self: "LlmGenerateVerifyIteration") -> dict[str, Any]:
         """Return a dictionary representation of this class.
+
+        Note: the dictionary representation of this class differs in how the `llm_invocation_result`
+        is formatted. The `prompt` and `response` fields are top-level key-value pairs as opposed
+        to being nested inside an object that maps to an `llm_invocation_result` key.
 
         Args:
             self (LlmGenerateVerifyIteration): An instance of this class.
@@ -41,9 +42,6 @@ class LlmGenerateVerifyIteration:
         )
         return {
             "function": self.function,
-            # TODO: It is a bit surprising to see these split up, without a mention in the `to_dict`
-            # documentation that the dict representation differs from the "Attributes" in the class
-            # documentation.
             "prompt": self.llm_invocation_result.prompt,
             "response": self.llm_invocation_result.response,
             "verification_result": verifier_result,
