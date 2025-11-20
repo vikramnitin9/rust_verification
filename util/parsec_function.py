@@ -6,6 +6,7 @@ from typing import Any
 
 from .parsec_error import ParsecError
 from .specifications import FunctionSpecification
+from .text_util import prepend_line_numbers
 
 
 @dataclass
@@ -60,11 +61,19 @@ class ParsecFunction:
         self.llvm_globals = raw_analysis.get("globals", [])
         self.structs = raw_analysis.get("structs", [])
 
-    def get_source_code(self, include_documentation_comments: bool = False) -> str:
+    def get_source_code(
+        self, include_documentation_comments: bool = False, include_line_numbers: bool = False
+    ) -> str:
         """Return the source code for this function, optionally including documentation comments.
 
+        Args:
+            include_documentation_comments (bool): True iff documentation comments appearing before
+                the function signature should be included.
+            include_line_numbers (bool): True iff line numbers should be included.
+
         Returns:
-            str: The source code for this function, optionally including documentation comments.
+            str: The source code for this function, optionally including documentation comments and
+                line numbers.
         """
         with pathlib.Path(self.file_name).open(encoding="utf-8") as f:
             lines = f.readlines()
@@ -86,16 +95,35 @@ class ParsecFunction:
 
         source_code = "".join(func_lines)
 
+        if include_line_numbers:
+            source_code = "\n".join(
+                f"{line}: {content}"
+                for line, content in prepend_line_numbers(
+                    source_code.splitlines(), self.start_line, self.end_line + 1
+                )
+            )
+
         if include_documentation_comments:
             if documentation := self.get_documentation_comments():
+                if include_line_numbers:
+                    documentation_lines = documentation.splitlines()
+                    documentation = "\n".join(
+                        f"{line}: {content}"
+                        for line, content in prepend_line_numbers(
+                            documentation_lines,
+                            self.start_line - len(documentation_lines),
+                            self.start_line,
+                        )
+                    )
                 source_code = f"{documentation}\n{source_code}"
         return source_code
 
-    def get_documentation_comments(self) -> str:
+    def get_documentation_comments(self) -> str | None:
         """Return the content of lines immediately preceding this function (usually documentation).
 
         Returns:
-            str: The documentation comments for this function.
+            str | None: The documentation comments for this function or None if there are no
+                comments.
         """
         with pathlib.Path(self.file_name).open(encoding="utf-8") as f:
             lines = f.read().splitlines()
@@ -116,7 +144,7 @@ class ParsecFunction:
                 comments.append(curr_line)
             i -= 1
         comments.reverse()  # Necessary since we walk the source file backwards from the definition.
-        return "\n".join(comments) if comments else ""
+        return "\n".join(comments) if comments else None
 
     def _is_comment(self, line: str) -> bool:
         """Return True iff a line comprises a comment (or part of one).
