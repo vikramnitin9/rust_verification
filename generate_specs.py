@@ -79,7 +79,7 @@ def main() -> None:
             reverse_order=True
         )
     )
-    verified_functions: list[str] = []
+    verified_functions: set[str] = set()
     conversation_log: dict[str, list[LlmGenerateVerifyIteration]] = defaultdict(list)
     specification_generator = LlmSpecificationGenerator(
         MODEL, parsec_result_without_direct_recursive_functions

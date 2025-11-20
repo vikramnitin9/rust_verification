@@ -14,7 +14,7 @@ class SpecificationGenerationContext:
     """Class to encapsulate context for a specification generation/repair task for a function.
 
     Attributes:
-        verified_functions (list[str]): The list of verified functions.
+        verified_functions (set[str]): The set of verified functions.
         parsec_result (ParsecResult): The ParseC result (updated with specifications from a task).
         output_file_path (Path): The path to the output file where function(s) with specs are
             written.
@@ -30,7 +30,7 @@ class SpecificationGenerationContext:
             function, from scratch.
     """
 
-    verified_functions: list[str]
+    verified_functions: set[str]
     parsec_result: ParsecResult
     output_file_path: Path
     function: ParsecFunction | None = None
@@ -69,7 +69,7 @@ class SpecificationGenerationContext:
             function_name (str): The function name to add to this context's list of verified
                 functions.
         """
-        self.verified_functions.append(function_name)
+        self.verified_functions.add(function_name)
 
     def increment_generation_attempt(self) -> None:
         """Increment this context's generation attempts."""
