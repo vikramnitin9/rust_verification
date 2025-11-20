@@ -82,7 +82,6 @@ def test_get_source_code_with_docs_multi_line_with_line_numbers() -> None:
         }
     )
     extracted_func = fn.get_source_code(include_documentation_comments=True, include_line_numbers=True)
-    print(extracted_func)
     expected_extracted_func = (
         "7 : /** this comment\n8 : spans three\n9 : lines\n10:  */\n11: void f2()\n12: {\n13: }"
     )
