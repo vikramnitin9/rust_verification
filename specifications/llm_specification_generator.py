@@ -102,7 +102,7 @@ class LlmSpecificationGenerator:
             msg = "Repairing a specification that verifies successfully is not required"
             raise TypeError(msg)
 
-        repair_prompt = self._prompt_builder.repair_specification_prompt(
+        repair_prompt = self._prompt_builder.specification_repair_prompt(
             function, verification_result
         )
         repair_message = {"role": "user", "content": repair_prompt}
