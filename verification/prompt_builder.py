@@ -60,7 +60,9 @@ class PromptBuilder:
         ]
         return PromptBuilder.SPECIFICATION_REPAIR_PROMPT_TEMPLATE.safe_substitute(
             function_name=function.name,
-            function_implementation=self._get_source_code_for_function(function),
+            function_implementation=function.get_source_code(
+                include_documentation_comments=True, include_line_numbers=True
+            ),
             failure_lines="\n".join(lines_involving_failure),
             stderr=verification_failure.stderr,
         )
@@ -77,20 +79,3 @@ class PromptBuilder:
         """
         callee_context = "\n".join(str(callee) for callee in callees_with_specs)
         return f"{caller} has the following callees:\n{callee_context}"
-
-    def _get_source_code_for_function(self, function: ParsecFunction) -> str:
-        """Return the source code for a function with each line prefixed by a line number.
-
-        Args:
-            function (ParsecFunction): The function that should be included in a prompt.
-
-        Returns:
-            str: The source code for a function with each line prefixed by a line number.
-        """
-        source_code_lines = function.get_source_code().splitlines()
-        lines = [f"{line + function.start_line}" for line, _ in enumerate(source_code_lines)]
-        max_line_length = max(len(line) for line in lines)
-        lines = [line.ljust(max_line_length) for line in lines]
-        return "\n".join(
-            f"{line}: {content}" for line, content in zip(lines, source_code_lines, strict=False)
-        )
