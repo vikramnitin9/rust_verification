@@ -31,7 +31,7 @@ MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
 DEFAULT_NUM_REGENERATION_ATTEMPTS = 10
 DEFAULT_NUM_REPAIR_ATTEMPTS = 5
-DEFAULT_SYSTEM_PROMPT = Path("system-prompt.txt").read_text(encoding="utf-8")
+DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
 
 
 def main() -> None:

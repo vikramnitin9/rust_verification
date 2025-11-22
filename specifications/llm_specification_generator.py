@@ -1,8 +1,10 @@
 """Module for generating and repairing specifications via LLMs."""
 
 from models import LLMGen, ModelError, get_llm_generation_with_model
-from util import LlmInvocationResult, ParsecResult
+from util import ParsecResult
 from verification import Failure, PromptBuilder, SpecificationGenerationContext, VerificationResult
+
+from .llm_invocation_result import LlmInvocationResult
 
 
 class LlmSpecificationGenerator:

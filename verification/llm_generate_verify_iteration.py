@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from util import LlmInvocationResult
+from specifications.llm_invocation_result import LlmInvocationResult
 from verification import Failure, Success
 
 from .specification_generation_context import SpecificationGenerationContext
