@@ -12,12 +12,8 @@ from pathlib import Path
 
 from loguru import logger
 
-from specifications import LlmSpecificationGenerator
-from util import (
-    ParsecResult,
-    extract_function,
-    function_util,
-)
+from specifications import FailureRecoveryOracle, LlmSpecificationGenerator
+from util import ParsecResult, extract_function, function_util, text_util
 from verification import Failure, LlmGenerateVerifyIteration, Success
 
 MODEL = "gpt-4o"
@@ -98,10 +94,9 @@ def main() -> None:
         )
         # Attempt to verify the generated specifications for the function.
         verification_result = verify_one_function(func_name, verified_functions, output_file_path)
-        if args.save_conversation:
-            conversation_log[func_name].append(
-                LlmGenerateVerifyIteration(func_name, llm_invocation_result, verification_result)
-            )
+        conversation_log[func_name].append(
+            LlmGenerateVerifyIteration(func_name, llm_invocation_result, verification_result)
+        )
 
         if isinstance(verification_result, Success):
             logger.success(f"Verification succeeded for '{func_name}'")
@@ -127,12 +122,9 @@ def main() -> None:
             verification_result = verify_one_function(
                 func_name, verified_functions, output_file_path
             )
-            if args.save_conversation:
-                conversation_log[func_name].append(
-                    LlmGenerateVerifyIteration(
-                        func_name, llm_invocation_result, verification_result
-                    )
-                )
+            conversation_log[func_name].append(
+                LlmGenerateVerifyIteration(func_name, llm_invocation_result, verification_result)
+            )
             if isinstance(verification_result, Success):
                 logger.success(
                     f"Verification succeeded for '{func_name}' after "
@@ -146,17 +138,26 @@ def main() -> None:
             logger.warning(
                 f"{func_name} failed to verify after {args.num_repair} repair attempt(s)"
             )
-            recover_from_failure()
+            recover_from_failure(func_name, parsec_result, conversation_log[func_name])
+
     if args.save_conversation:
         _write_conversation_log(conversation_log)
 
-        _save_functions_with_specs(
-            parsec_result_without_direct_recursive_functions, output_file_path
-        )
+    _save_functions_with_specs(parsec_result_without_direct_recursive_functions, output_file_path)
 
 
-def recover_from_failure() -> None:
-    """Implement recovery logic."""
+def recover_from_failure(
+    function_name: str, parsec_result: ParsecResult, iterations: list[LlmGenerateVerifyIteration]
+) -> None:
+    """Implement failure recovery.
+
+    Args:
+        function_name (str): The name of the function that failed to verify.
+        parsec_result (ParsecResult): The ParseC result.
+        iterations (list[LlmGenerateVerifyIteration]): The list of failing specifications.
+    """
+    failure_recovery_oracle = FailureRecoveryOracle(MODEL, parsec_result)
+    failure_recovery_oracle.determine_recovery_policy(function_name, iterations)
 
 
 def _update_parsec_result_and_output_file(
@@ -216,7 +217,8 @@ def verify_one_function(
         result = subprocess.run(verification_command, shell=True, capture_output=True, text=True)
         if result.returncode == 0:
             return Success()
-        return Failure(stdout=result.stdout, stderr=result.stderr)
+        failure_lines = text_util.get_lines_with_suffix(text=result.stdout, suffix="FAILURE")
+        return Failure(stdout=result.stdout, stderr=result.stderr, num_failures=len(failure_lines))
     except Exception as e:
         msg = f"Error running command for function {func_name}: {e}"
         raise RuntimeError(msg) from e
