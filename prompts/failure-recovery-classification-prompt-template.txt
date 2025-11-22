@@ -1,0 +1,24 @@
+The following is the specification with the fewest errors reported by CBMC
+for the function $function_name:
+
+$function_with_specifications
+
+CBMC reports the following errors:
+
+$failure_lines
+
+$stderr
+
+Classify the next step to take for handling this failure, choose from:
+
+    GIVE_UP: When CBMC is insufficiently expressive to prove the implementation of $function_name
+             satisfies the current specification.
+    BACKTRACK: When the specification might be consistent with $function_name, but necessarily with
+             a callee's contract.
+
+Your response should comprise the next step, and your brief reasoning for selecting it, e.g.,
+
+{
+    "next_step": ...,
+    "reasoning": ...
+}
