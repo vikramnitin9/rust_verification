@@ -11,9 +11,11 @@ from .verification_result import Failure
 class PromptBuilder:
     """Encapsulates functions used in constructing prompts for LLM calls."""
 
-    SPECIFICATION_GENERATION_PROMPT_TEMPLATE = Path("./prompt.txt").read_text()
+    SPECIFICATION_GENERATION_PROMPT_TEMPLATE = Path(
+        "./prompts/generate-specifications-prompt-template.txt"
+    ).read_text()
     SPECIFICATION_REPAIR_PROMPT_TEMPLATE = Template(
-        Path("./repair-prompt-template.txt").read_text()
+        Path("./prompts/repair-specifications-prompt-template.txt").read_text()
     )
     SOURCE_PLACEHOLDER = "<<SOURCE>>"
     CALLEE_CONTEXT_PLACEHOLDER = "<<CALLEE_CONTEXT>>"
