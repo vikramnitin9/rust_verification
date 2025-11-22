@@ -178,6 +178,14 @@ class ParsecFunction:
         """
         return len(self.preconditions) > 0 or len(self.postconditions) > 0
 
+    def is_direct_recursive(self) -> bool:
+        """Return True iff this function is direct recursive.
+
+        Returns:
+            bool: True iff this function is direct recursive.
+        """
+        return self.name in self.callee_names
+
     def set_specifications(self, specifications: FunctionSpecification) -> None:
         """Set the specifications for this function.
 

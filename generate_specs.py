@@ -53,35 +53,21 @@ def main() -> None:
     _insert_default_headers(output_file_path)
 
     parsec_result = ParsecResult(output_file_path)
-    recursive_funcs = parsec_result.get_names_of_recursive_functions()
-    parsec_result_without_direct_recursive_functions = parsec_result.copy(
-        remove_self_edges_in_call_graph=True
-    )
 
     # Get a list of functions in reverse topological order.
-    func_ordering = (
-        parsec_result_without_direct_recursive_functions.get_function_names_in_topological_order(
-            reverse_order=True
-        )
-    )
+    func_ordering = parsec_result.copy(
+        remove_self_edges_in_call_graph=True
+    ).get_function_names_in_topological_order(reverse_order=True)
     verified_functions: list[str] = []
+    trusted_functions: list[str] = []
     conversation_log: dict[str, list[LlmGenerateVerifyIteration]] = defaultdict(list)
-    specification_generator = LlmSpecificationGenerator(
-        MODEL, parsec_result_without_direct_recursive_functions
-    )
+    specification_generator = LlmSpecificationGenerator(MODEL, parsec_result)
 
     for func_name in func_ordering:
         conversation = [{"role": "system", "content": DEFAULT_SYSTEM_PROMPT}]
-        if func_name in recursive_funcs:
-            logger.info(
-                f"Skipping self-recursive function {func_name} because of CBMC bugs/limitations."
-            )
-            continue
 
         logger.info(f"Processing function {func_name}...")
-        function_to_verify = parsec_result_without_direct_recursive_functions.get_function(
-            func_name
-        )
+        function_to_verify = parsec_result.get_function(func_name)
         if not function_to_verify:
             msg = f"Failed to find function '{func_name}' to verify"
             raise RuntimeError(msg)
@@ -93,11 +79,21 @@ def main() -> None:
         _update_parsec_result_and_output_file(
             llm_invocation_result.response,
             func_name,
-            parsec_result_without_direct_recursive_functions,
+            parsec_result,
             output_file_path,
         )
-        # Attempt to verify the generated specifications for the function.
-        verification_result = verify_one_function(func_name, verified_functions, output_file_path)
+        # Attempt to verify the generated specifications for the function, if applicable.
+        if function_to_verify.is_direct_recursive():
+            print(
+                f"Generated specs for direct-recursive function '{func_name}', "
+                "its specifications will be trusted"
+            )
+            trusted_functions.append(func_name)
+            continue
+
+        verification_result = verify_one_function(
+            func_name, verified_functions, trusted_functions, output_file_path
+        )
         if args.save_conversation:
             conversation_log[func_name].append(
                 LlmGenerateVerifyIteration(func_name, llm_invocation_result, verification_result)
@@ -121,11 +117,11 @@ def main() -> None:
             _update_parsec_result_and_output_file(
                 llm_invocation_result.response,
                 func_name,
-                parsec_result_without_direct_recursive_functions,
+                parsec_result,
                 output_file_path,
             )
             verification_result = verify_one_function(
-                func_name, verified_functions, output_file_path
+                func_name, verified_functions, trusted_functions, output_file_path
             )
             if args.save_conversation:
                 conversation_log[func_name].append(
@@ -150,9 +146,7 @@ def main() -> None:
     if args.save_conversation:
         _write_conversation_log(conversation_log)
 
-        _save_functions_with_specs(
-            parsec_result_without_direct_recursive_functions, output_file_path
-        )
+        _save_functions_with_specs(parsec_result, output_file_path)
 
 
 def recover_from_failure() -> None:
@@ -185,13 +179,20 @@ def _update_parsec_result_and_output_file(
 def verify_one_function(
     func_name: str,
     verified_funcs: list[str],
+    trusted_funcs: list[str],
     out_file: Path,
 ) -> Success | Failure:
     """Return the result of verifying the function named `func_name` with CBMC.
 
+    verified_funcs and trusted_funcs comprise functions whose specifications have been already
+    verified with CBMC, or functions whose specifications are trusted (i.e., assumed) by its
+    callers. Direct recursive functions are examples of trusted functions, since CBMC is unable
+    to verify them directly.
+
     Args:
         func_name (str): The name of the function to verify with CBMC.
         verified_funcs (list[str]): The list of verified functions.
+        trusted_funcs (list[str]): The list of trusted functions.
         out_file (Path): The path to the file in which the function to verify is defined.
 
     Raises:
@@ -201,7 +202,9 @@ def verify_one_function(
         Success | Failure: Success if the function successfully verifies, Failure if the
             function does not verify.
     """
-    replace_args = "".join([f"--replace-call-with-contract {f} " for f in verified_funcs])
+    replace_args = "".join(
+        [f"--replace-call-with-contract {f} " for f in verified_funcs + trusted_funcs]
+    )
     verification_command = (
         f"goto-cc -o {func_name}.goto {out_file.absolute()} --function {func_name} && "
         f"goto-instrument --partial-loops --unwind 5 {func_name}.goto {func_name}.goto && "

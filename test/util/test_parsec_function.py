@@ -231,3 +231,18 @@ def test_get_comment_multi_line_pathological() -> None:
     })
     expected_comment = "/*\nTest\n\n\nDetailed description */"
     assert function.get_documentation_comments() == expected_comment
+
+def test_is_direct_recursive_is_true() -> None:
+    function = ParsecFunction({
+            "name": "recursive_function",
+            "num_args": 0,
+            "returnType": "void",
+            "signature": "void recursive_function()",
+            "filename": "test/data/callgraph/direct_recursion.c",
+            "startLine": 14,
+            "endLine": 17,
+            "startCol": 1,
+            "endCol": 25,
+            "callees": [{"name": "recursive_function"}],
+    })
+    assert function.is_direct_recursive()
