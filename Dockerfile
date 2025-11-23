@@ -81,7 +81,6 @@ RUN conda install -y python=3.13 pip
 COPY --chown=${USER_ID}:${GROUP_ID} requirements.txt /app/requirements.txt
 RUN pip install -r /app/requirements.txt
 
-# Install ParseC.
 COPY --chown=${USER_ID}:${GROUP_ID} parsec /app/parsec
 RUN cd /app/parsec && \
     rm -rf build && \
@@ -91,19 +90,9 @@ RUN cd /app/parsec && \
     make -j 4
 ENV PARSEC_BUILD_DIR=/app/parsec/build
 
-# Install Kani.
 ENV CARGO_HOME="/app/.cargo"
 ENV RUSTUP_HOME="/app/.rustup"
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/app/.cargo/bin:${PATH}"
 RUN rustup default 1.90.0
 RUN cargo install --locked kani-verifier && cargo kani setup
-
-# Install ParseRust
-RUN rustup install nightly-2024-10-01
-RUN rustup default nightly-2024-10-01
-RUN rustup component add llvm-tools rustc-dev
-
-COPY --chown=${USER_ID}:${GROUP_ID} parserust /app/parserust
-RUN cd /app/parserust && \
-    cargo install --debug --locked --path . --force
