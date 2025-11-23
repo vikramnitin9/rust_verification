@@ -1,23 +1,10 @@
 """Module for generating and repairing specifications via LLMs."""
 
-from dataclasses import dataclass
-
 from models import LLMGen, ModelError, get_llm_generation_with_model
 from util import ParsecResult
 from verification import Failure, PromptBuilder, VerificationResult
 
-
-@dataclass(frozen=True)
-class LlmInvocationResult:
-    """Represent the prompt dispatched to an LLM and the subsequent response.
-
-    Attributes:
-        prompt (str): The prompt dispatched to an LLM.
-        response (str): The response from an LLM.
-    """
-
-    prompt: str
-    response: str
+from .llm_invocation_result import LlmInvocationResult
 
 
 class LlmSpecificationGenerator:
@@ -105,7 +92,7 @@ class LlmSpecificationGenerator:
             msg = "Repairing a specification that verifies successfully is not required"
             raise TypeError(msg)
 
-        repair_prompt = self._prompt_builder.repair_specification_prompt(
+        repair_prompt = self._prompt_builder.specification_repair_prompt(
             function, verification_result
         )
         repair_message = {"role": "user", "content": repair_prompt}

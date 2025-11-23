@@ -66,6 +66,27 @@ def test_get_source_code_with_docs_multi_line() -> None:
     )
     assert extracted_func == expected_extracted_func
 
+def test_get_source_code_with_docs_multi_line_with_line_numbers() -> None:
+    fn = ParsecFunction(
+        {
+            "name": "f1",
+            "num_args": 0,
+            "returnType": "void",
+            "signature": "void f2()",
+            "filename": "test/data/get_source_code/test_with_doc_comments.c",
+            "startLine": 11,
+            "endLine": 13,
+            "startCol": 1,
+            "endCol": 9,
+            "callees": [],
+        }
+    )
+    extracted_func = fn.get_source_code(include_documentation_comments=True, include_line_numbers=True)
+    expected_extracted_func = (
+        "7 : /** this comment\n8 : spans three\n9 : lines\n10:  */\n11: void f2()\n12: {\n13: }"
+    )
+    assert extracted_func == expected_extracted_func
+
 def test_get_source_code_with_docs_inline_comment_above() -> None:
     fn = ParsecFunction(
         {
@@ -160,7 +181,7 @@ def test_get_comment_no_comments() -> None:
             "endCol": 37,
             "callees": [],
     })
-    assert function.get_documentation_comments() == ""
+    assert function.get_documentation_comments() is None
 
 
 def test_get_comment_double_slash() -> None:
