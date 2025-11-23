@@ -5,10 +5,10 @@ from pathlib import Path
 import tree_sitter_rust as tsrust
 from tree_sitter import Language, Node, Parser
 
-from .rust_parser import RustFunction, RustParser
+from .rust_parser import RustFunction, RustTypeWrapper
 
 
-class TsRustParser(RustParser):
+class TsRustParser:
     """Class for parsing Rust source code via tree-sitter (TS).
 
     Attributes:
@@ -22,7 +22,7 @@ class TsRustParser(RustParser):
         rs_language = Language(tsrust.language())
         self._parser = Parser(rs_language)
 
-    def get_functions_defined_in_file(self, file_name: str) -> list[RustFunction]:
+    def get_functions_defined_in_file(self, file_name: str) -> dict[str, RustFunction]:
         """Return the Rust functions defined in the given file.
 
         Args:
@@ -35,7 +35,7 @@ class TsRustParser(RustParser):
         tree = self._parser.parse(path_to_src.read_bytes())
         function_nodes = self._collect_nodes_of_type(tree.root_node, typ="function_item")
         parsed_fns = [self._parse_rust_function(fn_node) for fn_node in function_nodes]
-        return [fn for fn in parsed_fns if fn]
+        return {fn.name: fn for fn in parsed_fns if fn}
 
     def _collect_nodes_of_type(self, root_node: Node, typ: str) -> list[Node]:
         target_nodes, stack = [], [root_node]
@@ -49,7 +49,7 @@ class TsRustParser(RustParser):
     def _parse_rust_function(self, function_item_node: Node) -> RustFunction | None:
         fn_name = function_item_node.child_by_field_name("name")
         param_nodes = function_item_node.child_by_field_name("parameters")
-        param_to_type: dict[str, str] = {}
+        param_to_type: dict[str, RustTypeWrapper] = {}
         if not fn_name or not param_nodes:
             return None
         if not fn_name.text:
@@ -65,14 +65,35 @@ class TsRustParser(RustParser):
                 param_to_type[name] = typ
         return RustFunction(name=fn_name.text.decode("utf-8"), param_to_type=param_to_type)
 
-    def _parse_parameter(self, parameter_node: Node) -> tuple[str, str]:
+    def _parse_parameter(self, parameter_node: Node) -> tuple[str, RustTypeWrapper]:
         param_name_node = parameter_node.child_by_field_name("pattern")
         param_type_node = parameter_node.child_by_field_name("type")
-        assert param_name_node, f"Malformed parameter node: {parameter_node}"
-        assert param_type_node, f"Malformed parameter node: {parameter_node}"
-        assert param_name_node.text, f"Malformed parameter node: {parameter_node}"
-        assert param_type_node.text, f"Malformed parameter node: {parameter_node}"
+        assert param_name_node and param_name_node.text, (
+            f"Malformed parameter node: {parameter_node}"
+        )
+        assert param_type_node and param_type_node.text, (
+            f"Malformed parameter node: {parameter_node}"
+        )
         return (
             param_name_node.text.decode(encoding="utf-8"),
-            param_type_node.text.decode(encoding="utf-8"),
+            self._get_rust_type_wrapper(param_type_node),
         )
+
+    def _get_rust_type_wrapper(self, type_node: Node) -> RustTypeWrapper:
+        match type_node.type:
+            case "primitive_type":
+                assert type_node.text, f"Malformed parameter node: {type_node}"
+                return RustTypeWrapper(rust_type=type_node.text.decode(encoding="utf-8"))
+            case "reference_type":
+                is_mutable_reference = any(
+                    child.type == "mutable_specifier" for child in type_node.children
+                )
+                base_type = type_node.child_by_field_name("type")
+                assert base_type and base_type.text, f"Malformed base type node: {base_type}"
+                return RustTypeWrapper(
+                    rust_type=base_type.text.decode(encoding="utf-8"),
+                    is_mutable_reference=is_mutable_reference,
+                )
+            case unhandled_type:
+                msg = f"Unhandled type in RustTypeWrapper creation: {unhandled_type}"
+                raise RuntimeError(msg)
