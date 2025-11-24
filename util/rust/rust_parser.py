@@ -59,7 +59,8 @@ class RustFunction:
 
     Attributes:
         name (str): The name of the function.
-        param_to_type (dict[str, RustTypeWrapper]): The parameters (and their type) of the function.
+        param_to_type (MappingProxyType[str, RustTypeWrapper]): The parameters (and their type) of
+            the function.
     """
 
     name: str
