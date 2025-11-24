@@ -9,16 +9,19 @@ class RustTypeWrapper:
     """Lightweight representation of a Rust type.
 
     Attributes:
-        rust_type (str): Represents the base Rust type (e.g., i32)
-        is_mutable_reference (bool): True iff the type is a mutable reference
+        rust_type (str): Represents the base Rust type (e.g., i32).
+        is_reference (bool): True iff this is a reference type.
+        is_mutable (bool): True iff this type is mutable.
     """
 
     rust_type: str
-    is_mutable_reference: bool
+    is_reference: bool
+    is_mutable: bool
 
-    def __init__(self, rust_type: str, is_mutable_reference: bool = False):
+    def __init__(self, rust_type: str, is_reference: bool, is_mutable: bool = False):
         self.rust_type = rust_type
-        self.is_mutable_reference = is_mutable_reference
+        self.is_reference = is_reference
+        self.is_mutable = is_mutable
 
     def declaration(self, variable_name: str, val: str) -> str:
         """Return a declaration (an inhabitant) for this type.
@@ -31,7 +34,7 @@ class RustTypeWrapper:
             str: The declaration for this type.
         """
         variable_and_type = f"{variable_name}: {self.rust_type}"
-        mut = "mut " if self.is_mutable_reference else ""
+        mut = "mut " if self.is_mutable else ""
         return f"let {mut}{variable_and_type} = {val}"
 
     def to_argument(self, name: str) -> str:
@@ -47,7 +50,11 @@ class RustTypeWrapper:
         Returns:
             str: The name expressed as an argument to function.
         """
-        return f"&mut {name}" if self.is_mutable_reference else name
+        if self.is_mutable and self.is_reference:
+            return f"&mut {name}"
+        if not self.is_mutable and self.is_reference:
+            return f"&{name}"
+        return f"{name}"
 
 
 @dataclass(frozen=True)

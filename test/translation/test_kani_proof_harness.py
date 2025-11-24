@@ -5,7 +5,7 @@ from util.rust import RustFunction, RustTypeWrapper
 def test_kani_proof_harness_no_mut():
     harness = KaniProofHarness(
         RustFunction(
-            name="add", param_to_type={"a": RustTypeWrapper("i32"), "b": RustTypeWrapper("i32")}
+            name="add", param_to_type={"a": RustTypeWrapper("i32", is_reference=False), "b": RustTypeWrapper("i32", is_reference=False)}
         )
     )
     assert (
@@ -19,8 +19,8 @@ def test_kani_proof_harness_swap():
         RustFunction(
             name="swap",
             param_to_type={
-                "a": RustTypeWrapper("i32", is_mutable_reference=True),
-                "b": RustTypeWrapper("i32", is_mutable_reference=True),
+                "a": RustTypeWrapper("i32", is_reference=True, is_mutable=True),
+                "b": RustTypeWrapper("i32", is_reference=True, is_mutable=True),
             },
         )
     )

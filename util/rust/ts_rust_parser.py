@@ -74,6 +74,7 @@ class TsRustParser:
         assert param_type_node and param_type_node.text, (
             f"Malformed parameter node: {parameter_node}"
         )
+        print(parameter_node)
         return (
             param_name_node.text.decode(encoding="utf-8"),
             self._get_rust_type_wrapper(param_type_node),
@@ -81,9 +82,11 @@ class TsRustParser:
 
     def _get_rust_type_wrapper(self, type_node: Node) -> RustTypeWrapper:
         match type_node.type:
-            case "primitive_type":
+            case tnode if tnode == "primitive_type" or tnode == "type_identifier":
                 assert type_node.text, f"Malformed parameter node: {type_node}"
-                return RustTypeWrapper(rust_type=type_node.text.decode(encoding="utf-8"))
+                return RustTypeWrapper(
+                    rust_type=type_node.text.decode(encoding="utf-8"), is_reference=False
+                )
             case "reference_type":
                 is_mutable_reference = any(
                     child.type == "mutable_specifier" for child in type_node.children
@@ -92,8 +95,13 @@ class TsRustParser:
                 assert base_type and base_type.text, f"Malformed base type node: {base_type}"
                 return RustTypeWrapper(
                     rust_type=base_type.text.decode(encoding="utf-8"),
-                    is_mutable_reference=is_mutable_reference,
+                    is_reference=True,
+                    is_mutable=is_mutable_reference,
                 )
             case unhandled_type:
-                msg = f"Unhandled type in RustTypeWrapper creation: {unhandled_type}"
+                assert type_node.text, f"Malformed type node: {type_node}"
+                msg = (
+                    f"Unhandled type in RustTypeWrapper creation: "
+                    f"'{unhandled_type}', type node = {type_node.text.decode(encoding='utf-8')}"
+                )
                 raise RuntimeError(msg)
