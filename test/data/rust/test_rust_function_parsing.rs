@@ -1,5 +1,5 @@
 // No parameter
-fn f0(i: i32) {
+fn f0() {
 
 }
 
@@ -24,6 +24,6 @@ fn f4(mut a: &String)) {
 }
 
 // Mutable binding, mutable reference
-fn f5(mut a: &mut String)) {
+fn f5(mut a: &mut String) {
 
 }

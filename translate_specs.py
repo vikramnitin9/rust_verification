@@ -116,7 +116,7 @@ def _check_translation_preconditions(
     if len(c_functions) != len(rust_function_name_to_function):
         msg = (
             f"Mismatch between C functions ({len(c_functions)}) "
-            "and Rust functions ({len(rust_function_name_to_function)})"
+            f"and Rust functions ({len(rust_function_name_to_function)})"
         )
         raise TranslationError(msg)
     if {f.name for f in c_functions} != set(rust_function_name_to_function.keys()):

@@ -1,6 +1,7 @@
 """Tree-sitter based Rust Parser Class."""
 
 from pathlib import Path
+from types import MappingProxyType
 
 import tree_sitter_rust as tsrust
 from tree_sitter import Language, Node, Parser
@@ -29,7 +30,7 @@ class TsRustParser:
             file_name (str): The file from which to parse Rust functions.
 
         Returns:
-            list[RustFunction]: The list of Rust functions defined in the given file.
+            dict[str, RustFunction]: A mapping from function names to Rust functions.
         """
         path_to_src = Path(file_name)
         tree = self._parser.parse(path_to_src.read_bytes())
@@ -56,14 +57,16 @@ class TsRustParser:
             return None
         if not param_nodes.named_children:
             # Zero-argument function declaration.
-            return RustFunction(name=fn_name.text.decode("utf-8"), param_to_type=param_to_type)
+            return RustFunction(
+                name=fn_name.text.decode("utf-8"), param_to_type=MappingProxyType(param_to_type)
+            )
 
         for param_node in param_nodes.named_children:
-            name_and_type = self._parse_parameter(param_node)
-            if name_and_type:
-                name, typ = name_and_type
-                param_to_type[name] = typ
-        return RustFunction(name=fn_name.text.decode("utf-8"), param_to_type=param_to_type)
+            name, typ = self._parse_parameter(param_node)
+            param_to_type[name] = typ
+        return RustFunction(
+            name=fn_name.text.decode("utf-8"), param_to_type=MappingProxyType(param_to_type)
+        )
 
     def _parse_parameter(self, parameter_node: Node) -> tuple[str, RustTypeWrapper]:
         param_name_node = parameter_node.child_by_field_name("pattern")
@@ -74,7 +77,6 @@ class TsRustParser:
         assert param_type_node and param_type_node.text, (
             f"Malformed parameter node: {parameter_node}"
         )
-        print(parameter_node)
         return (
             param_name_node.text.decode(encoding="utf-8"),
             self._get_rust_type_wrapper(param_type_node),

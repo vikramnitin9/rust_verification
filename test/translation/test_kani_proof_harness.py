@@ -1,11 +1,19 @@
 from translation import KaniProofHarness
 from util.rust import RustFunction, RustTypeWrapper
 
+from types import MappingProxyType
+
 
 def test_kani_proof_harness_no_mut():
     harness = KaniProofHarness(
         RustFunction(
-            name="add", param_to_type={"a": RustTypeWrapper("i32", is_reference=False), "b": RustTypeWrapper("i32", is_reference=False)}
+            name="add",
+            param_to_type=MappingProxyType(
+                {
+                    "a": RustTypeWrapper("i32", is_reference=False),
+                    "b": RustTypeWrapper("i32", is_reference=False),
+                }
+            ),
         )
     )
     assert (
@@ -18,10 +26,12 @@ def test_kani_proof_harness_swap():
     harness = KaniProofHarness(
         RustFunction(
             name="swap",
-            param_to_type={
-                "a": RustTypeWrapper("i32", is_reference=True, is_mutable=True),
-                "b": RustTypeWrapper("i32", is_reference=True, is_mutable=True),
-            },
+            param_to_type=MappingProxyType(
+                {
+                    "a": RustTypeWrapper("i32", is_reference=True, is_mutable=True),
+                    "b": RustTypeWrapper("i32", is_reference=True, is_mutable=True),
+                }
+            ),
         )
     )
     assert (

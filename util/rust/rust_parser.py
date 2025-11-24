@@ -1,6 +1,7 @@
 """Module for Rust parsing code."""
 
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Protocol
 
 
@@ -16,12 +17,7 @@ class RustTypeWrapper:
 
     rust_type: str
     is_reference: bool
-    is_mutable: bool
-
-    def __init__(self, rust_type: str, is_reference: bool, is_mutable: bool = False):
-        self.rust_type = rust_type
-        self.is_reference = is_reference
-        self.is_mutable = is_mutable
+    is_mutable: bool = False
 
     def declaration(self, variable_name: str, val: str) -> str:
         """Return a declaration (an inhabitant) for this type.
@@ -67,7 +63,7 @@ class RustFunction:
     """
 
     name: str
-    param_to_type: dict[str, RustTypeWrapper]
+    param_to_type: MappingProxyType[str, RustTypeWrapper]
 
 
 class RustParser(Protocol):
