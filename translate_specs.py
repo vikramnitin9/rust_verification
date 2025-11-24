@@ -63,7 +63,7 @@ def main() -> None:
     for c_function in c_functions:
         specs = _translate_specifications(translator, c_function)
         rust_candidate = candidate_rust_functions[c_function.name]
-        proof_harness = KaniProofHarness(rust_candidate)
+        proof_harness = KaniProofHarness(rust_candidate, specs)
         functions_to_verification_contexts[c_function.name] = KaniVerificationContext(
             specification=specs, proof_harness=proof_harness
         )

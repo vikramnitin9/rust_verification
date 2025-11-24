@@ -1,10 +1,22 @@
 """Classes used to represent Kani proof harnesses."""
 
+import re
 from dataclasses import dataclass
+from string import Template
 
+from util import FunctionSpecification
 from util.rust import RustFunction
 
 KANI_PROOF_ANNOS = ["#[cfg(kani)]", "#[kani::proof]"]
+
+KANI_PROOF_HARNESS_TEMPLATE = Template("""$harness_annotations
+fn check_$function_name() {
+    $variable_declarations
+
+    if ($assumed_expressions) {
+        $function_call
+    }
+}""")
 
 
 @dataclass
@@ -22,15 +34,18 @@ class KaniProofHarness:
         _function_call (str): The call to the function being verified with this harness.
     """
 
-    _signature: str
+    _rust_candidate: RustFunction
     _nondet_variable_decls: str
     _annotations: list[str]
+    _assumed_exprs: list[str]
     _function_call: str
 
-    def __init__(self, rust_candidate: RustFunction):
+    def __init__(self, rust_candidate: RustFunction, spec: FunctionSpecification):
+        self._rust_candidate = rust_candidate
         self._annotations = list(KANI_PROOF_ANNOS)
-        harness_function_name = f"check_{rust_candidate.name}"
-        self._signature = f"fn {harness_function_name}()"
+        self._assumed_exprs = [
+            self._get_expression_in_precondition(pre) for pre in spec.preconditions
+        ]
         self._nondet_variable_decls = "\n    ".join(
             type_wrapper.declaration(name, val="kani::any();")
             for name, type_wrapper in rust_candidate.param_to_type.items()
@@ -48,8 +63,34 @@ class KaniProofHarness:
             str: The source code representation of this proof harness.
         """
         harness_annotations = "\n".join(self._annotations)
-        return (
-            f"{harness_annotations}\n{self._signature} {{\n    "
-            f"{self._nondet_variable_decls}\n\n    "
-            f"{self._function_call}\n}}"
+        return KANI_PROOF_HARNESS_TEMPLATE.substitute(
+            harness_annotations=harness_annotations,
+            function_name=self._rust_candidate.name,
+            variable_declarations=self._nondet_variable_decls,
+            assumed_expressions=" && ".join(self._assumed_exprs) if self._assumed_exprs else "true",
+            function_call=self._function_call,
         )
+
+    def _get_expression_in_precondition(self, precondition: str) -> str:
+        """Return the expression in the Kani precondition annotation.
+
+        In more detail, given a Kani precondition, e.g.,
+
+            kani::requires(<EXPR>)
+
+        Return just the <EXPR> part.
+
+        Args:
+            precondition (str): The Kani precondition.
+
+        Raises:
+            RuntimeError: Raised when matching the expression in the precondition fails.
+
+        Returns:
+            str: The expression in the Kani precondition annotation.
+        """
+        match = re.search(r"kani::requires\((?P<expr>.*?)\)", precondition)
+        if match and "expr" in match.groupdict():
+            return match.group("expr")
+        msg = f"Failed to parse precondition expression in '{precondition}'"
+        raise RuntimeError(msg)
