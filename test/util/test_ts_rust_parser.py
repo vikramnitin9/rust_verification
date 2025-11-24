@@ -14,26 +14,32 @@ def test_parse_rust_qsort() -> None:
         RustFunction(name="main", param_to_type=MappingProxyType({})),
         RustFunction(
             name="swap",
-            param_to_type=MappingProxyType({
-                "a": RustTypeWrapper("i32", is_mutable=True, is_reference=True),
-                "b": RustTypeWrapper("i32", is_mutable=True, is_reference=True),
-            }),
+            param_to_type=MappingProxyType(
+                {
+                    "a": RustTypeWrapper("i32", is_mutable=True, is_reference=True),
+                    "b": RustTypeWrapper("i32", is_mutable=True, is_reference=True),
+                }
+            ),
         ),
         RustFunction(
             name="partition",
-            param_to_type=MappingProxyType({
-                "arr": RustTypeWrapper("[i32]", is_mutable=True, is_reference=True),
-                "low": RustTypeWrapper("usize", is_reference=False),
-                "high": RustTypeWrapper("usize", is_reference=False),
-            }),
+            param_to_type=MappingProxyType(
+                {
+                    "arr": RustTypeWrapper("[i32]", is_mutable=True, is_reference=True),
+                    "low": RustTypeWrapper("usize", is_reference=False),
+                    "high": RustTypeWrapper("usize", is_reference=False),
+                }
+            ),
         ),
         RustFunction(
             name="quickSort",
-            param_to_type=MappingProxyType({
-                "arr": RustTypeWrapper("[i32]", is_mutable=True, is_reference=True),
-                "low": RustTypeWrapper("usize", is_reference=False),
-                "high": RustTypeWrapper("usize", is_reference=False),
-            }),
+            param_to_type=MappingProxyType(
+                {
+                    "arr": RustTypeWrapper("[i32]", is_mutable=True, is_reference=True),
+                    "low": RustTypeWrapper("usize", is_reference=False),
+                    "high": RustTypeWrapper("usize", is_reference=False),
+                }
+            ),
         ),
     ]
     for expected_fn in expected_fns:
