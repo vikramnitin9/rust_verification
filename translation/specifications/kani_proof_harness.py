@@ -46,7 +46,7 @@ class KaniProofHarness:
             self._get_expression_in_precondition(pre) for pre in spec.preconditions
         ]
         self._nondet_variable_decls = "\n    ".join(
-            type_wrapper.declaration(name, val="kani::any();")
+            type_wrapper.declaration(name, val="kani::any()")
             for name, type_wrapper in rust_candidate.param_to_type.items()
         )
         argument_list = ", ".join(

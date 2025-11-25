@@ -51,7 +51,7 @@ def test_parse_rust_qsort(ts_rust_parser: RustParser) -> None:
             pytest.fail(f"Expected {expected_fn.name} to be parsed")
 
 
-def test_parse_rust_parameter_type_binding_decls(ts_rust_parser: TsRustParser) -> None:
+def test_parse_rust_parameter_type_binding_decls(ts_rust_parser: RustParser) -> None:
     parsed_fns = ts_rust_parser.get_functions_defined_in_file(
         file_name="test/data/rust/test_rust_function_parsing.rs"
     )
@@ -65,14 +65,14 @@ def test_parse_rust_parameter_type_binding_decls(ts_rust_parser: TsRustParser) -
     for fn_name, expected_decl in fn_name_to_expected_decls.items():
         if parsed_fn := parsed_fns.get(fn_name):
             assert expected_decl == parsed_fn.param_to_type["a"].declaration(
-                variable_name="x", val="kani::any();"
+                variable_name="x", val="kani::any()"
             )
             pass
         else:
             pytest.fail(f"Expected {fn_name} to be parsed")
 
 
-def test_parse_rust_parameter_type_binding_args(ts_rust_parser: TsRustParser) -> None:
+def test_parse_rust_parameter_type_binding_args(ts_rust_parser: RustParser) -> None:
     parsed_fns = ts_rust_parser.get_functions_defined_in_file(
         file_name="test/data/rust/test_rust_function_parsing.rs"
     )

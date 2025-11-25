@@ -31,7 +31,7 @@ class RustTypeWrapper:
         """
         variable_and_type = f"{variable_name}: {self.rust_type}"
         mut = "mut " if self.is_mutable else ""
-        return f"let {mut}{variable_and_type} = {val}"
+        return f"let {mut}{variable_and_type} = {val};"
 
     def to_argument(self, name: str) -> str:
         """Return the given name as if it is an argument to a function.
