@@ -12,7 +12,7 @@ KANI_PROOF_HARNESS_TEMPLATE = Template("""$harness_annotations
 fn check_$function_name() {
     $variable_declarations
 
-    if ($assumed_expressions) {
+    if $assumed_expressions {
         $function_call;
     }
 }""")
