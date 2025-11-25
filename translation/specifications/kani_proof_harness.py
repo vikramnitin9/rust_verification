@@ -13,7 +13,7 @@ fn check_$function_name() {
     $variable_declarations
 
     if ($assumed_expressions) {
-        $function_call
+        $function_call;
     }
 }""")
 
