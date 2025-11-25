@@ -39,6 +39,15 @@ class TsRustParser:
         return {fn.name: fn for fn in parsed_fns if fn}
 
     def _collect_nodes_of_type(self, root_node: Node, typ: str) -> list[Node]:
+        """Return nodes under the root node that match the given type.
+
+        Args:
+            root_node (Node): The node under which to search.
+            typ (str): The type of nodes to collect.
+
+        Returns:
+            list[Node]: The nodes under the root node that match the given type.
+        """
         target_nodes, stack = [], [root_node]
         while stack:
             curr_node = stack.pop()
@@ -48,6 +57,14 @@ class TsRustParser:
         return target_nodes
 
     def _parse_rust_function(self, function_item_node: Node) -> RustFunction | None:
+        """Return a RustFunction parsed from the function_item node, or None.
+
+        Args:
+            function_item_node (Node): The tree-sitter function_item node.
+
+        Returns:
+            RustFunction | None: The RustFunction parsed from the function_item node, or None.
+        """
         fn_name = function_item_node.child_by_field_name("name")
         param_nodes = function_item_node.child_by_field_name("parameters")
         param_to_type: dict[str, RustTypeWrapper] = {}
@@ -69,6 +86,15 @@ class TsRustParser:
         )
 
     def _parse_parameter(self, parameter_node: Node) -> tuple[str, RustTypeWrapper]:
+        """Return a tuple comprising the name of a Rust function parameter and its type.
+
+        Args:
+            parameter_node (Node): The tree-sitter parameter node.
+
+        Returns:
+            tuple[str, RustTypeWrapper]: A tuple comprising the name of a Rust function parameter
+                and its type.
+        """
         param_name_node = parameter_node.child_by_field_name("pattern")
         param_type_node = parameter_node.child_by_field_name("type")
         assert param_name_node and param_name_node.text, (
@@ -83,6 +109,18 @@ class TsRustParser:
         )
 
     def _get_rust_type_wrapper(self, type_node: Node) -> RustTypeWrapper:
+        """Return the RustTypeWrapper parsed from a tree-sitter type node.
+
+        Args:
+            type_node (Node): The tree-sitter type node.
+
+        Raises:
+            RuntimeError: Raised when the tree-sitter type node is malformed. This should never
+                happen.
+
+        Returns:
+            RustTypeWrapper: The RustTypeWrapper parsed from a tree-sitter type node.
+        """
         match type_node.type:
             case tnode if tnode == "primitive_type" or tnode == "type_identifier":
                 assert type_node.text, f"Malformed parameter node: {type_node}"

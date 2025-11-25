@@ -113,6 +113,24 @@ def _save_translated_specifications(
 def _check_translation_preconditions(
     c_functions: list[ParsecFunction], rust_function_name_to_function: dict[str, RustFunction]
 ) -> None:
+    """Check preconditions that must be met for specification translation.
+
+    Args:
+        c_functions (list[ParsecFunction]): The C functions for which to translate specifications.
+        rust_function_name_to_function (dict[str, RustFunction]): A map of candidate Rust functions
+            (i.e., translated from the C functions).
+
+    The following preconditions must be met for specification translation to occur:
+
+    1. There exists a 1:1 mapping from a C function to a Rust function.
+    2. Each Rust function must maintain the same signature of its C equivalent, i.e., equivalent
+       return type, function name, argument list.
+
+    The current implementation checks only (1).
+
+    Raises:
+        TranslationError: Raised when the first precondition is not satisfied.
+    """
     if len(c_functions) != len(rust_function_name_to_function):
         msg = (
             f"Mismatch between C functions ({len(c_functions)}) "
