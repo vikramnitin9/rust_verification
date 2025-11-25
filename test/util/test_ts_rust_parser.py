@@ -3,10 +3,12 @@ from types import MappingProxyType
 
 import pytest
 
-ts_rust_parser: RustParser = TsRustParser()
+@pytest.fixture
+def ts_rust_parser() -> RustParser:
+    return TsRustParser()
 
 
-def test_parse_rust_qsort() -> None:
+def test_parse_rust_qsort(ts_rust_parser: RustParser) -> None:
     parsed_fns = ts_rust_parser.get_functions_defined_in_file(
         file_name="data/rust_qsort/src/main.rs"
     )
@@ -49,7 +51,7 @@ def test_parse_rust_qsort() -> None:
             pytest.fail(f"Expected {expected_fn.name} to be parsed")
 
 
-def test_parse_rust_parameter_type_binding_decls() -> None:
+def test_parse_rust_parameter_type_binding_decls(ts_rust_parser: TsRustParser) -> None:
     parsed_fns = ts_rust_parser.get_functions_defined_in_file(
         file_name="test/data/rust/test_rust_function_parsing.rs"
     )
@@ -70,7 +72,7 @@ def test_parse_rust_parameter_type_binding_decls() -> None:
             pytest.fail(f"Expected {fn_name} to be parsed")
 
 
-def test_parse_rust_parameter_type_binding_args() -> None:
+def test_parse_rust_parameter_type_binding_args(ts_rust_parser: TsRustParser) -> None:
     parsed_fns = ts_rust_parser.get_functions_defined_in_file(
         file_name="test/data/rust/test_rust_function_parsing.rs"
     )

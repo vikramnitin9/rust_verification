@@ -1,6 +1,5 @@
 """Classes used to represent Kani proof harnesses."""
 
-import re
 from dataclasses import dataclass
 from string import Template
 
@@ -89,8 +88,23 @@ class KaniProofHarness:
         Returns:
             str: The expression in the Kani precondition annotation.
         """
-        match = re.search(r"kani::requires\((?P<expr>.*?)\)", precondition)
-        if match and "expr" in match.groupdict():
-            return match.group("expr")
-        msg = f"Failed to parse precondition expression in '{precondition}'"
+        precondition_prefix = "kani::requires"
+        if precondition_prefix not in precondition:
+            msg = f"Failed to parse precondition expression in: {precondition}"
+            raise RuntimeError(msg)
+        expr_wrapped_in_parens = precondition[len(precondition_prefix) :].strip()
+
+        paren_count = 0
+        expr_start_index = None
+        for i, char in enumerate(expr_wrapped_in_parens):
+            if char == "(":
+                if paren_count == 0:
+                    expr_start_index = i + 1
+                paren_count += 1
+            elif char == ")":
+                paren_count -= 1
+                if paren_count == 0:
+                    return expr_wrapped_in_parens[expr_start_index:i]
+
+        msg = f"Failed to parse precondition expression in: {precondition}"
         raise RuntimeError(msg)
