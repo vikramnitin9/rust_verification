@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import json
 import pickle as pkl
-import subprocess
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -19,11 +18,10 @@ from util import (
     function_util,
 )
 from verification import (
-    Failure,
+    CbmcVerificationClient,
     LlmGenerateVerifyIteration,
     Success,
     VerificationClient,
-    CbmcVerificationClient,
 )
 
 MODEL = "gpt-4o"

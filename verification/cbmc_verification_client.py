@@ -1,12 +1,12 @@
 """Client for verifying source code via CBMC."""
 
 import subprocess
-
 from pathlib import Path
-from .verification_result import Success, Failure
-from .verification_client import VerificationClient
 
 from loguru import logger
+
+from .verification_client import VerificationClient
+from .verification_result import Failure, Success
 
 
 class CbmcVerificationClient(VerificationClient):
@@ -44,8 +44,8 @@ class CbmcVerificationClient(VerificationClient):
         )
         verification_command = (
             f"goto-cc -o {function_name}.goto {file_path.absolute()} --function {function_name} && "
-            f"goto-instrument --partial-loops --unwind 5 {function_name}.goto {function_name}.goto && "
-            f"goto-instrument {replace_call_with_contract_args}"
+            f"goto-instrument --partial-loops --unwind 5 {function_name}.goto {function_name}.goto "
+            f"&& goto-instrument {replace_call_with_contract_args} "
             f"--enforce-contract {function_name} "
             f"{function_name}.goto checking-{function_name}-contracts.goto && "
             f"cbmc checking-{function_name}-contracts.goto --function {function_name} --depth 100"
