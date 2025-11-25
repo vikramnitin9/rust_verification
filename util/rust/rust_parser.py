@@ -1,7 +1,6 @@
 """Module for Rust parsing code."""
 
 from dataclasses import dataclass
-from types import MappingProxyType
 from typing import Protocol
 
 
@@ -59,12 +58,12 @@ class RustFunction:
 
     Attributes:
         name (str): The name of the function.
-        param_to_type (MappingProxyType[str, RustTypeWrapper]): The parameters (and their type) of
+        param_to_type (dict[str, RustTypeWrapper]): The parameters (and their type) of
             the function.
     """
 
     name: str
-    param_to_type: MappingProxyType[str, RustTypeWrapper]
+    param_to_type: dict[str, RustTypeWrapper]
 
 
 class RustParser(Protocol):

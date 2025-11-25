@@ -1,5 +1,4 @@
 from util.rust import TsRustParser, RustFunction, RustParser, RustTypeWrapper
-from types import MappingProxyType
 
 import pytest
 
@@ -13,35 +12,32 @@ def test_parse_rust_qsort(ts_rust_parser: RustParser) -> None:
         file_name="data/rust_qsort/src/main.rs"
     )
     expected_fns = [
-        RustFunction(name="main", param_to_type=MappingProxyType({})),
+        RustFunction(name="main", param_to_type={}),
         RustFunction(
             name="swap",
-            param_to_type=MappingProxyType(
+            param_to_type=
                 {
                     "a": RustTypeWrapper("i32", is_mutable=True, is_reference=True),
                     "b": RustTypeWrapper("i32", is_mutable=True, is_reference=True),
                 }
-            ),
         ),
         RustFunction(
             name="partition",
-            param_to_type=MappingProxyType(
+            param_to_type=
                 {
                     "arr": RustTypeWrapper("[i32]", is_mutable=True, is_reference=True),
                     "low": RustTypeWrapper("usize", is_reference=False),
                     "high": RustTypeWrapper("usize", is_reference=False),
                 }
-            ),
         ),
         RustFunction(
             name="quickSort",
-            param_to_type=MappingProxyType(
+            param_to_type=
                 {
                     "arr": RustTypeWrapper("[i32]", is_mutable=True, is_reference=True),
                     "low": RustTypeWrapper("usize", is_reference=False),
                     "high": RustTypeWrapper("usize", is_reference=False),
                 }
-            ),
         ),
     ]
     for expected_fn in expected_fns:

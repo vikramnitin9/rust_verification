@@ -2,19 +2,17 @@ from translation import KaniProofHarness
 from util.rust import RustFunction, RustTypeWrapper
 from util import FunctionSpecification
 
-from types import MappingProxyType
 
 
 def test_kani_proof_harness_no_mut():
     harness = KaniProofHarness(
         RustFunction(
             name="add",
-            param_to_type=MappingProxyType(
+            param_to_type=
                 {
                     "a": RustTypeWrapper("i32", is_reference=False),
                     "b": RustTypeWrapper("i32", is_reference=False),
                 }
-            )
         ),
         spec=FunctionSpecification(preconditions=["kani::requires(a < i32::MAX && b < i32::MAX)"], postconditions=[])
     )
@@ -27,12 +25,11 @@ def test_kani_proof_harness_nested_parens_preconds():
     harness = KaniProofHarness(
         RustFunction(
             name="add",
-            param_to_type=MappingProxyType(
+            param_to_type=
                 {
                     "a": RustTypeWrapper("i32", is_reference=False),
-                    "b": RustTypeWrapper("i32", is_reference=False),
+                    "b": RustTypeWrapper("i32", is_reference=False)
                 }
-            )
         ),
         spec=FunctionSpecification(preconditions=["kani::requires((a < i32::MAX) && (b < i32::MAX))"], postconditions=[])
     )
@@ -48,12 +45,11 @@ def test_kani_proof_harness_swap():
     harness = KaniProofHarness(
         RustFunction(
             name="swap",
-            param_to_type=MappingProxyType(
+            param_to_type=
                 {
                     "a": RustTypeWrapper("i32", is_reference=True, is_mutable=True),
                     "b": RustTypeWrapper("i32", is_reference=True, is_mutable=True),
                 }
-            )
         ),
         spec=FunctionSpecification(preconditions=[], postconditions=[])
     )

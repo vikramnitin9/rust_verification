@@ -31,6 +31,7 @@ class KaniProofHarness:
         _nondet_variable_decls (str): The non-deterministic variable declarations in this harness.
         _annotations (list[str]): The annotations of this harness.
         _function_call (str): The call to the function being verified with this harness.
+        _source_code (str): The source code of this harness.
     """
 
     _rust_candidate: RustFunction
@@ -38,6 +39,7 @@ class KaniProofHarness:
     _annotations: list[str]
     _assumed_exprs: list[str]
     _function_call: str
+    _source_code: str
 
     def __init__(self, rust_candidate: RustFunction, spec: FunctionSpecification):
         self._rust_candidate = rust_candidate
@@ -54,6 +56,14 @@ class KaniProofHarness:
             for param_name, type_wrapper in rust_candidate.param_to_type.items()
         )
         self._function_call = f"{rust_candidate.name}({argument_list})"
+        harness_annotations = "\n".join(self._annotations)
+        self._source_code = KANI_PROOF_HARNESS_TEMPLATE.substitute(
+            harness_annotations=harness_annotations,
+            function_name=self._rust_candidate.name,
+            variable_declarations=self._nondet_variable_decls,
+            assumed_expressions=" && ".join(self._assumed_exprs) if self._assumed_exprs else "true",
+            function_call=self._function_call,
+        )
 
     def __str__(self) -> str:
         """Return the source code representation of this proof harness.
@@ -61,14 +71,7 @@ class KaniProofHarness:
         Returns:
             str: The source code representation of this proof harness.
         """
-        harness_annotations = "\n".join(self._annotations)
-        return KANI_PROOF_HARNESS_TEMPLATE.substitute(
-            harness_annotations=harness_annotations,
-            function_name=self._rust_candidate.name,
-            variable_declarations=self._nondet_variable_decls,
-            assumed_expressions=" && ".join(self._assumed_exprs) if self._assumed_exprs else "true",
-            function_call=self._function_call,
-        )
+        return self._source_code
 
     def _get_expression_in_precondition(self, precondition: str) -> str:
         """Return the expression in the Kani precondition annotation.

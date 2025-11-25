@@ -1,7 +1,6 @@
 """Tree-sitter based Rust Parser Class."""
 
 from pathlib import Path
-from types import MappingProxyType
 
 import tree_sitter_rust as tsrust
 from tree_sitter import Language, Node, Parser
@@ -75,15 +74,13 @@ class TsRustParser:
         if not param_nodes.named_children:
             # Zero-argument function declaration.
             return RustFunction(
-                name=fn_name.text.decode("utf-8"), param_to_type=MappingProxyType(param_to_type)
+                name=fn_name.text.decode(encoding="utf-8"), param_to_type=param_to_type
             )
 
         for param_node in param_nodes.named_children:
             name, typ = self._parse_parameter(param_node)
             param_to_type[name] = typ
-        return RustFunction(
-            name=fn_name.text.decode("utf-8"), param_to_type=MappingProxyType(param_to_type)
-        )
+        return RustFunction(name=fn_name.text.decode(encoding="utf-8"), param_to_type=param_to_type)
 
     def _parse_parameter(self, parameter_node: Node) -> tuple[str, RustTypeWrapper]:
         """Return a tuple comprising the name of a Rust function parameter and its type.
@@ -97,12 +94,12 @@ class TsRustParser:
         """
         param_name_node = parameter_node.child_by_field_name("pattern")
         param_type_node = parameter_node.child_by_field_name("type")
-        assert param_name_node and param_name_node.text, (
-            f"Malformed parameter node: {parameter_node}"
-        )
-        assert param_type_node and param_type_node.text, (
-            f"Malformed parameter node: {parameter_node}"
-        )
+        if not (param_name_node and param_name_node.text):
+            msg = f"Malformed parameter node: {parameter_node}"
+            raise ValueError(msg)
+        if not (param_type_node and param_type_node.text):
+            msg = f"Malformed parameter node: {parameter_node}"
+            raise ValueError(msg)
         return (
             param_name_node.text.decode(encoding="utf-8"),
             self._get_rust_type_wrapper(param_type_node),
@@ -121,9 +118,11 @@ class TsRustParser:
         Returns:
             RustTypeWrapper: The RustTypeWrapper parsed from a tree-sitter type node.
         """
+        if not type_node.text:
+            msg = f"Malformed parameter node: {type_node}"
+            raise ValueError(msg)
         match type_node.type:
             case "primitive_type" | "type_identifier":
-                assert type_node.text, f"Malformed parameter node: {type_node}"
                 return RustTypeWrapper(
                     rust_type=type_node.text.decode(encoding="utf-8"), is_reference=False
                 )
@@ -132,14 +131,15 @@ class TsRustParser:
                     child.type == "mutable_specifier" for child in type_node.children
                 )
                 base_type = type_node.child_by_field_name("type")
-                assert base_type and base_type.text, f"Malformed base type node: {base_type}"
+                if not (base_type and base_type.text):
+                    msg = f"Malformed base type node: {base_type}"
+                    raise ValueError(msg)
                 return RustTypeWrapper(
                     rust_type=base_type.text.decode(encoding="utf-8"),
                     is_reference=True,
                     is_mutable=is_mutable_reference,
                 )
             case unhandled_type:
-                assert type_node.text, f"Malformed type node: {type_node}"
                 msg = (
                     f"Unhandled type in RustTypeWrapper creation: "
                     f"'{unhandled_type}', type node = {type_node.text.decode(encoding='utf-8')}"
