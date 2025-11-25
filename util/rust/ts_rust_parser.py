@@ -122,7 +122,7 @@ class TsRustParser:
             RustTypeWrapper: The RustTypeWrapper parsed from a tree-sitter type node.
         """
         match type_node.type:
-            case tnode if tnode == "primitive_type" or tnode == "type_identifier":
+            case "primitive_type" | "type_identifier":
                 assert type_node.text, f"Malformed parameter node: {type_node}"
                 return RustTypeWrapper(
                     rust_type=type_node.text.decode(encoding="utf-8"), is_reference=False
