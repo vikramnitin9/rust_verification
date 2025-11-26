@@ -1,10 +1,10 @@
 """Client for verifying source code via CBMC."""
 
 import subprocess
-from pathlib import Path
 
 from loguru import logger
 
+from .specification_generation_context import SpecificationGenerationContext
 from .verification_client import VerificationClient
 from .verification_result import Failure, Success
 
@@ -13,21 +13,13 @@ class CbmcVerificationClient(VerificationClient):
     """Client for verifying source code via CBMC."""
 
     def verify(
-        self,
-        function_name: str,
-        names_of_verified_functions: list[str],
-        names_of_trusted_functions: list[str],
-        file_path: Path,
+        self, specification_generation_context: SpecificationGenerationContext
     ) -> Success | Failure:
-        """Return the result of verifying the function named `function_name` with CBMC.
+        """Return the result of verifying the function in the context with CBMC.
 
         Args:
-            function_name (str): The name of the function to verify with CBMC.
-            names_of_verified_functions (list[str]): The names of functions that have been verified
-                with CBMC.
-            names_of_trusted_functions (list[str]): The names of functions that are trusted by CBMC
-                (i.e., their specifications are trusted, not verified.)
-            file_path (Path): The path to the file in which the function to verify is defined.
+            specification_generation_context (SpecificationGenerationContext): The specification
+                generation context to be used in verification.
 
         Raises:
             RuntimeError: Raised when an error occurs in executing the verification command.
@@ -36,14 +28,18 @@ class CbmcVerificationClient(VerificationClient):
             Success | Failure: Success if the function successfully verifies, Failure if the
                 function does not verify.
         """
+        function_name = specification_generation_context.get_function_name()
+
         replace_call_with_contract_args = "".join(
             [
                 f"--replace-call-with-contract {f} "
-                for f in names_of_verified_functions + names_of_trusted_functions
+                for f in specification_generation_context.verified_functions
             ]
         )
         verification_command = (
-            f"goto-cc -o {function_name}.goto {file_path.absolute()} --function {function_name} && "
+            f"goto-cc -o {function_name}.goto "
+            f"{specification_generation_context.output_file_path.absolute()} --function "
+            f"{function_name} && "
             f"goto-instrument --partial-loops --unwind 5 {function_name}.goto {function_name}.goto "
             f"&& goto-instrument {replace_call_with_contract_args} "
             f"--enforce-contract {function_name} "
