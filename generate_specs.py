@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import json
 import pickle as pkl
-import subprocess
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -13,8 +12,13 @@ from pathlib import Path
 from loguru import logger
 
 from specifications import FailureRecoveryOracle, LlmSpecificationGenerator
-from util import ParsecResult, extract_function, function_util, text_util
-from verification import Failure, LlmGenerateVerifyIteration, Success
+from util import ParsecResult, extract_function, function_util
+from verification import (
+    CbmcVerificationClient,
+    LlmGenerateVerifyIteration,
+    Success,
+    VerificationClient,
+)
 
 MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
@@ -65,6 +69,7 @@ def main() -> None:
     specification_generator = LlmSpecificationGenerator(
         MODEL, parsec_result_without_direct_recursive_functions
     )
+    verifier: VerificationClient = CbmcVerificationClient()
 
     for func_name in func_ordering:
         conversation = [{"role": "system", "content": DEFAULT_SYSTEM_PROMPT}]
@@ -93,7 +98,12 @@ def main() -> None:
             output_file_path,
         )
         # Attempt to verify the generated specifications for the function.
-        verification_result = verify_one_function(func_name, verified_functions, output_file_path)
+        verification_result = verifier.verify(
+            function_name=func_name,
+            names_of_verified_functions=verified_functions,
+            names_of_trusted_functions=[],
+            file_path=output_file_path,
+        )
         conversation_log[func_name].append(
             LlmGenerateVerifyIteration(func_name, llm_invocation_result, verification_result)
         )
@@ -119,8 +129,11 @@ def main() -> None:
                 parsec_result_without_direct_recursive_functions,
                 output_file_path,
             )
-            verification_result = verify_one_function(
-                func_name, verified_functions, output_file_path
+            verification_result = verifier.verify(
+                function_name=func_name,
+                names_of_verified_functions=verified_functions,
+                names_of_trusted_functions=[],
+                file_path=output_file_path,
             )
             conversation_log[func_name].append(
                 LlmGenerateVerifyIteration(func_name, llm_invocation_result, verification_result)
@@ -181,47 +194,6 @@ def _update_parsec_result_and_output_file(
     return function_util.update_function_declaration(
         function_name, updated_function_content, parsec_result, output_file
     )
-
-
-def verify_one_function(
-    func_name: str,
-    verified_funcs: list[str],
-    out_file: Path,
-) -> Success | Failure:
-    """Return the result of verifying the function named `func_name` with CBMC.
-
-    Args:
-        func_name (str): The name of the function to verify with CBMC.
-        verified_funcs (list[str]): The list of verified functions.
-        out_file (Path): The path to the file in which the function to verify is defined.
-
-    Raises:
-        RuntimeError: Raised when an error occurs in executing the verification command.
-
-    Returns:
-        Success | Failure: Success if the function successfully verifies, Failure if the
-            function does not verify.
-    """
-    replace_args = "".join([f"--replace-call-with-contract {f} " for f in verified_funcs])
-    verification_command = (
-        f"goto-cc -o {func_name}.goto {out_file.absolute()} --function {func_name} && "
-        f"goto-instrument --partial-loops --unwind 5 {func_name}.goto {func_name}.goto && "
-        f"goto-instrument {replace_args}"
-        f"--enforce-contract {func_name} "
-        f"{func_name}.goto checking-{func_name}-contracts.goto && "
-        f"cbmc checking-{func_name}-contracts.goto --function {func_name} --depth 100"
-    )
-
-    logger.debug(f"Running command: {verification_command}")
-    try:
-        result = subprocess.run(verification_command, shell=True, capture_output=True, text=True)
-        if result.returncode == 0:
-            return Success()
-        failure_lines = text_util.get_lines_with_suffix(text=result.stdout, suffix="FAILURE")
-        return Failure(stdout=result.stdout, stderr=result.stderr, num_failures=len(failure_lines))
-    except Exception as e:
-        msg = f"Error running command for function {func_name}: {e}"
-        raise RuntimeError(msg) from e
 
 
 def _copy_input_file_to_output_file(input_file_path: Path) -> Path:
