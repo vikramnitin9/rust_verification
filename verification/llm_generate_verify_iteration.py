@@ -43,6 +43,6 @@ class LlmGenerateVerifyIteration:
         return {
             "function": self.function,
             "prompt": self.llm_invocation_result.prompt,
-            "response": self.llm_invocation_result.response,
+            "response": self.llm_invocation_result.responses,
             "verification_result": verifier_result,
         }
