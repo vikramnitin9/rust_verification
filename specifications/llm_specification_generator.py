@@ -27,13 +27,19 @@ class LlmSpecificationGenerator:
         self._prompt_builder = PromptBuilder()
 
     def generate_specifications(
-        self, function_name: str, conversation: list[dict[str, str]]
+        self,
+        function_name: str,
+        conversation: list[dict[str, str]],
+        num_samples: int,
+        temperature: float = 0.0,
     ) -> LlmInvocationResult:
         """Generate a set of specifications for the function with the given name.
 
         Args:
             function_name (str): The function for which to generate specifications.
             conversation (list[dict[str, str]]): The LLM conversation, so far.
+            num_samples (int): The number of generated specifications to sample from the LLM.
+            temperature (float): The temperature setting for the LLM. Defaults to 0.0.
 
         Raises:
             RuntimeError: Raised when the function is missing from the ParseC result, or an error
@@ -57,7 +63,8 @@ class LlmSpecificationGenerator:
         conversation.append(specification_generation_message)
 
         try:
-            response = self._model.gen(conversation, top_k=1, temperature=0.0)[0]
+            response = self._model.gen(conversation, top_k=num_samples, temperature=temperature)
+            print(response)
             return LlmInvocationResult(specification_generation_prompt, response)
         except ModelError as e:
             msg = f"Error during specification generation for '{function_name}': {e}"
@@ -99,7 +106,7 @@ class LlmSpecificationGenerator:
         conversation.append(repair_message)
 
         try:
-            response = self._model.gen(conversation, top_k=1, temperature=0.0)[0]
+            response = self._model.gen(conversation, top_k=1, temperature=0.0)
             return LlmInvocationResult(repair_prompt, response)
         except ModelError as e:
             msg = f"Error during specification repair for '{function_name}': {e}"

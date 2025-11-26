@@ -26,7 +26,9 @@ from verification import (
 
 MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
+DEFAULT_NUM_SPECIFICATION_GENERATION_SAMPLES = 1
 DEFAULT_NUM_REPAIR_ATTEMPTS = 10
+DEFAULT_MODEL_TEMPERATURE = 1.0
 DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
 
 
@@ -39,11 +41,25 @@ def main() -> None:
         "--file", required=True, help="Path to the C file for which to generate specifications."
     )
     parser.add_argument(
+        "--num-specification-generation-samples",
+        required=False,
+        help="The number of samples for specification generation.",
+        default=DEFAULT_NUM_SPECIFICATION_GENERATION_SAMPLES,
+        type=int,
+    )
+    parser.add_argument(
         "--num-repair",
         required=False,
         help="The number of times to repair a generated specification.",
         default=DEFAULT_NUM_REPAIR_ATTEMPTS,
         type=int,
+    )
+    parser.add_argument(
+        "--model-temperature",
+        required=False,
+        help="The temperature to use for specification generation",
+        default=DEFAULT_MODEL_TEMPERATURE,
+        type=float,
     )
     parser.add_argument(
         "--save-conversation",
@@ -93,10 +109,13 @@ def main() -> None:
 
         # Generate the initial specifications for verification.
         llm_invocation_result = specification_generator.generate_specifications(
-            func_name, conversation
+            func_name,
+            conversation,
+            args.num_specification_generation_samples,
+            temperature=args.model_temperature,
         )
         _update_parsec_result_and_output_file(
-            llm_invocation_result.response,
+            llm_invocation_result.responses[0],
             func_name,
             parsec_result_without_direct_recursive_functions,
             output_file_path,
@@ -129,7 +148,7 @@ def main() -> None:
                 conversation,
             )
             _update_parsec_result_and_output_file(
-                llm_invocation_result.response,
+                llm_invocation_result.responses[0],
                 func_name,
                 parsec_result_without_direct_recursive_functions,
                 output_file_path,
