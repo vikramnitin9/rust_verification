@@ -4,5 +4,7 @@ from .llm_generate_verify_iteration import GenerateRepairMetadata, LlmGenerateVe
 from .specification_generation_context import SpecificationGenerationContext
 from .kani_verification_context import KaniVerificationContext
 from .llm_generate_verify_iteration import LlmGenerateVerifyIteration
+from .verification_client import VerificationClient
+from .cbmc_verification_client import CbmcVerificationClient
 
-__all__ = ["PromptBuilder", "Success", "Failure", "VerificationResult", "GenerateRepairMetadata", "LlmGenerateVerifyIteration", "SpecificationGenerationContext", "KaniVerificationContext"]
+__all__ = ["PromptBuilder", "Success", "Failure", "VerificationResult", "GenerateRepairMetadata", "LlmGenerateVerifyIteration", "SpecificationGenerationContext", "KaniVerificationContext", "VerificationClient", "CbmcVerificationClient"]

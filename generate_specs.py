@@ -19,11 +19,13 @@ from util import (
     function_util,
 )
 from verification import (
+    CbmcVerificationClient,
     Failure,
     GenerateRepairMetadata,
     LlmGenerateVerifyIteration,
     SpecificationGenerationContext,
     Success,
+    VerificationClient,
     VerificationResult,
 )
 
@@ -84,6 +86,7 @@ def main() -> None:
     specification_generator = LlmSpecificationGenerator(
         MODEL, parsec_result_without_direct_recursive_functions
     )
+    verifier: VerificationClient = CbmcVerificationClient()
 
     specgen_context = SpecificationGenerationContext(
         verified_functions=verified_functions,
@@ -114,6 +117,7 @@ def main() -> None:
 
             attempts = _generate_and_verify(
                 specification_generator=specification_generator,
+                verifier=verifier,
                 specgen_context=specgen_context,
                 num_repair_attempts=args.num_repair,
             )
@@ -143,6 +147,7 @@ def main() -> None:
 
 def _generate_and_verify(
     specification_generator: LlmSpecificationGenerator,
+    verifier: VerificationClient,
     specgen_context: SpecificationGenerationContext,
     num_repair_attempts: int,
 ) -> list[LlmGenerateVerifyIteration]:
@@ -158,7 +163,7 @@ def _generate_and_verify(
     _update_parsec_result_and_output_file(llm_invocation_result.response, specgen_context)
 
     # Verify the result.
-    verification_result = verify_one_function(specgen_context)
+    verification_result = verifier.verify(specgen_context)
 
     attempts.append(
         LlmGenerateVerifyIteration(
