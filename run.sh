@@ -31,9 +31,7 @@ if docker info -f "{{println .SecurityOptions}}" | grep -q rootless; then
                            -v "$(pwd)/verification:/app/verification" \
                            -v "$(pwd)/specs:/app/specs" \
                            -v "$(pwd)/logs:/app/logs" \
-                           -v "$(pwd)/prompt.txt:/app/prompt.txt" \
-                           -v "$(pwd)/system-prompt.txt:/app/system-prompt.txt" \
-                           -v "$(pwd)/repair-prompt-template.txt:/app/repair-prompt-template.txt" \
+                           -v "$(pwd)/prompts:/app/prompts" \
                            -v "$(pwd)/generate_specs.py:/app/generate_specs.py" \
                            -v "$(pwd)/translate_specs.py:/app/translate_specs.py" \
                            cbmc:latest "${CMD[@]}"
@@ -49,9 +47,7 @@ else
                     -v "$(pwd)/verification:/app/verification" \
                     -v "$(pwd)/specs:/app/specs" \
                     -v "$(pwd)/logs:/app/logs" \
-                    -v "$(pwd)/prompt.txt:/app/prompt.txt" \
-                    -v "$(pwd)/system-prompt.txt:/app/system-prompt.txt" \
-                    -v "$(pwd)/repair-prompt-template.txt:/app/repair-prompt-template.txt" \
+                    -v "$(pwd)/prompts:/app/prompts" \
                     -v "$(pwd)/generate_specs.py:/app/generate_specs.py" \
                     -v "$(pwd)/translate_specs.py:/app/translate_specs.py" \
                     cbmc:latest "${CMD[@]}"

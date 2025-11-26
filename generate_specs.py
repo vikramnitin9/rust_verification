@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import json
 import pickle as pkl
-import subprocess
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -18,12 +17,17 @@ from util import (
     extract_function,
     function_util,
 )
-from verification import Failure, LlmGenerateVerifyIteration, Success
+from verification import (
+    CbmcVerificationClient,
+    LlmGenerateVerifyIteration,
+    Success,
+    VerificationClient,
+)
 
 MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
 DEFAULT_NUM_REPAIR_ATTEMPTS = 10
-DEFAULT_SYSTEM_PROMPT = Path("system-prompt.txt").read_text(encoding="utf-8")
+DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
 
 
 def main() -> None:
@@ -62,6 +66,7 @@ def main() -> None:
     trusted_functions: list[str] = []
     conversation_log: dict[str, list[LlmGenerateVerifyIteration]] = defaultdict(list)
     specification_generator = LlmSpecificationGenerator(MODEL, parsec_result)
+    verifier: VerificationClient = CbmcVerificationClient()
 
     for func_name in func_ordering:
         conversation = [{"role": "system", "content": DEFAULT_SYSTEM_PROMPT}]
@@ -91,8 +96,12 @@ def main() -> None:
             trusted_functions.append(func_name)
             continue
 
-        verification_result = verify_one_function(
-            func_name, verified_functions, trusted_functions, output_file_path
+        # Attempt to verify the generated specifications for the function.
+        verification_result = verifier.verify(
+            function_name=func_name,
+            names_of_verified_functions=verified_functions,
+            names_of_trusted_functions=trusted_functions,
+            file_path=output_file_path,
         )
         if args.save_conversation:
             conversation_log[func_name].append(
@@ -120,8 +129,11 @@ def main() -> None:
                 parsec_result,
                 output_file_path,
             )
-            verification_result = verify_one_function(
-                func_name, verified_functions, trusted_functions, output_file_path
+            verification_result = verifier.verify(
+                function_name=func_name,
+                names_of_verified_functions=verified_functions,
+                names_of_trusted_functions=trusted_functions,
+                file_path=output_file_path,
             )
             if args.save_conversation:
                 conversation_log[func_name].append(
@@ -174,55 +186,6 @@ def _update_parsec_result_and_output_file(
     return function_util.update_function_declaration(
         function_name, updated_function_content, parsec_result, output_file
     )
-
-
-def verify_one_function(
-    func_name: str,
-    verified_funcs: list[str],
-    trusted_funcs: list[str],
-    out_file: Path,
-) -> Success | Failure:
-    """Return the result of verifying the function named `func_name` with CBMC.
-
-    verified_funcs and trusted_funcs comprise functions whose specifications have been already
-    verified with CBMC, or functions whose specifications are trusted (i.e., assumed) by its
-    callers. Direct recursive functions are examples of trusted functions, since CBMC is unable
-    to verify them directly.
-
-    Args:
-        func_name (str): The name of the function to verify with CBMC.
-        verified_funcs (list[str]): The list of verified functions.
-        trusted_funcs (list[str]): The list of trusted functions.
-        out_file (Path): The path to the file in which the function to verify is defined.
-
-    Raises:
-        RuntimeError: Raised when an error occurs in executing the verification command.
-
-    Returns:
-        Success | Failure: Success if the function successfully verifies, Failure if the
-            function does not verify.
-    """
-    replace_args = "".join(
-        [f"--replace-call-with-contract {f} " for f in verified_funcs + trusted_funcs]
-    )
-    verification_command = (
-        f"goto-cc -o {func_name}.goto {out_file.absolute()} --function {func_name} && "
-        f"goto-instrument --partial-loops --unwind 5 {func_name}.goto {func_name}.goto && "
-        f"goto-instrument {replace_args}"
-        f"--enforce-contract {func_name} "
-        f"{func_name}.goto checking-{func_name}-contracts.goto && "
-        f"cbmc checking-{func_name}-contracts.goto --function {func_name} --depth 100"
-    )
-
-    logger.debug(f"Running command: {verification_command}")
-    try:
-        result = subprocess.run(verification_command, shell=True, capture_output=True, text=True)
-        if result.returncode == 0:
-            return Success()
-        return Failure(stdout=result.stdout, stderr=result.stderr)
-    except Exception as e:
-        msg = f"Error running command for function {func_name}: {e}"
-        raise RuntimeError(msg) from e
 
 
 def _copy_input_file_to_output_file(input_file_path: Path) -> Path:
