@@ -15,12 +15,11 @@ Classify the next step to take for handling this failure, choose from:
              satisfies the current specification.
     BACKTRACK: When the specification might be consistent with $function_name, but necessarily with
              a callee's contract.
-    KEEP_GOING: When there is not enough information to make a decision whether to give up or
-             backtrack.
 
-Your response should comprise the next step, and your brief reasoning for selecting it, e.g.,
+Your response should comprise your reasoning process and the next step you take for handling
+the failure. Specifically, state the reasoning first and follow up with the next step, i.e.,
 
 {
-    "next_step": ...,
-    "reasoning": ...
+    "reasoning": ...,
+    "next_step": ...
 }
