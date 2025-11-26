@@ -89,7 +89,7 @@ def main() -> None:
         )
         # Attempt to verify the generated specifications for the function, if applicable.
         if function_to_verify.is_direct_recursive():
-            print(
+            logger.info(
                 f"Generated specs for direct-recursive function '{func_name}', "
                 "its specifications will be trusted"
             )
