@@ -114,18 +114,19 @@ def main() -> None:
             args.num_specification_generation_samples,
             temperature=args.model_temperature,
         )
-        _update_parsec_result_and_output_file(
-            llm_invocation_result.responses[0],
+        # Create a temporary file with the candidate specs.
+        function_with_candidate_specs = extract_function(llm_invocation_result.responses[0])
+        file_with_candidate_specs = function_util.get_file_with_updated_function(
             func_name,
+            function_with_candidate_specs,
             parsec_result_without_direct_recursive_functions,
             output_file_path,
         )
-        # Attempt to verify the generated specifications for the function.
         verification_result = verifier.verify(
             function_name=func_name,
             names_of_verified_functions=verified_functions,
             names_of_trusted_functions=[],
-            file_path=output_file_path,
+            file_path=file_with_candidate_specs,
         )
         if args.save_conversation:
             conversation_log[func_name].append(
@@ -135,6 +136,14 @@ def main() -> None:
         if isinstance(verification_result, Success):
             logger.success(f"Verification succeeded for '{func_name}'")
             verified_functions.append(func_name)
+            # Update the ParsecResult and output file
+            function_util.update_parsec_analysis(
+                func_name,
+                function_with_candidate_specs,
+                parsec_result_without_direct_recursive_functions,
+            )
+            verified_file_content = file_with_candidate_specs.read_text(encoding="utf-8")
+            function_util.update_source_file(verified_file_content, output_file_path)
             continue
         logger.warning(
             f"Verification failed for '{func_name}'; attempting to repair the generated specs"
@@ -142,6 +151,7 @@ def main() -> None:
 
         for n in range(args.num_repair):
             # Try to repair specifications for verification.
+            # TODO: use the temporary file here to build the prompt.
             llm_invocation_result = specification_generator.repair_specifications(
                 func_name,
                 verification_result,
