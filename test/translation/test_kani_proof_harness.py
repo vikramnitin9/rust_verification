@@ -1,54 +1,61 @@
 from translation import KaniProofHarness
-from util import ParsecFunction
+from util.rust import RustFunction, RustTypeWrapper
+from util import FunctionSpecification
+
 
 
 def test_kani_proof_harness_no_mut():
     harness = KaniProofHarness(
-        ParsecFunction(
-            {
-                "name": "add",
-                "num_args": 2,
-                "returnType": "int",
-                "signature": "int add(int a, int b)",
-                "filename": "data/qsort.c",
-                "argNames": ["a", "b"],
-                "argTypes": ["int", "int"],
-                "startLine": 1,
-                "endLine": 25,
-                "startCol": 1,
-                "endCol": 25,
-                "callees": [],
-            }
-        )
+        RustFunction(
+            name="add",
+            param_to_type=
+                {
+                    "a": RustTypeWrapper("i32", is_reference=False),
+                    "b": RustTypeWrapper("i32", is_reference=False),
+                }
+        ),
+        spec=FunctionSpecification(preconditions=["kani::requires(a < i32::MAX && b < i32::MAX)"], postconditions=[])
     )
     assert (
         str(harness)
-        == """#[cfg(kani)]\n#[kani::proof]\nfn check_add() {\n    let a: i32 = kani::any();\n    let b: i32 = kani::any();\n\n    add(a, b)\n}"""
+        == """#[cfg(kani)]\n#[kani::proof]\nfn check_add() {\n    let a: i32 = kani::any();\n    let b: i32 = kani::any();\n\n    if a < i32::MAX && b < i32::MAX {\n        add(a, b);\n    }\n}"""
     )
+
+def test_kani_proof_harness_nested_parens_preconds():
+    harness = KaniProofHarness(
+        RustFunction(
+            name="add",
+            param_to_type=
+                {
+                    "a": RustTypeWrapper("i32", is_reference=False),
+                    "b": RustTypeWrapper("i32", is_reference=False)
+                }
+        ),
+        spec=FunctionSpecification(preconditions=["kani::requires((a < i32::MAX) && (b < i32::MAX))"], postconditions=[])
+    )
+    assert (
+        str(harness)
+        == """#[cfg(kani)]\n#[kani::proof]\nfn check_add() {\n    let a: i32 = kani::any();\n    let b: i32 = kani::any();\n\n    if (a < i32::MAX) && (b < i32::MAX) {\n        add(a, b);\n    }\n}"""
+    )
+
+
 
 
 def test_kani_proof_harness_swap():
     harness = KaniProofHarness(
-        ParsecFunction(
-            {
-                "name": "swap",
-                "num_args": 2,
-                "returnType": "void",
-                "signature": "void swap(int* a, int* b)",
-                "filename": "data/qsort.c",
-                "startLine": 999,
-                "endLine": 9999,
-                "argNames": ["a", "b"],
-                "argTypes": ["int *", "int *"],
-                "startCol": 1,
-                "endCol": 25,
-                "callees": [],
-            }
-        )
+        RustFunction(
+            name="swap",
+            param_to_type=
+                {
+                    "a": RustTypeWrapper("i32", is_reference=True, is_mutable=True),
+                    "b": RustTypeWrapper("i32", is_reference=True, is_mutable=True),
+                }
+        ),
+        spec=FunctionSpecification(preconditions=[], postconditions=[])
     )
     assert (
         str(harness)
-        == """#[cfg(kani)]\n#[kani::proof]\nfn check_swap() {\n    let mut a: i32 = kani::any();\n    let mut b: i32 = kani::any();\n\n    swap(&mut a, &mut b)\n}"""
+        == """#[cfg(kani)]\n#[kani::proof]\nfn check_swap() {\n    let mut a: i32 = kani::any();\n    let mut b: i32 = kani::any();\n\n    if true {\n        swap(&mut a, &mut b);\n    }\n}"""
     )
 
 
