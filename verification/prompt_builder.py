@@ -3,8 +3,9 @@
 from pathlib import Path
 from string import Template
 
-from util import ParsecFunction, ParsecResult
+from util import ParsecFunction, ParsecResult, text_util
 
+from .llm_generate_verify_iteration import LlmGenerateVerifyIteration
 from .verification_result import Failure
 
 
@@ -16,6 +17,9 @@ class PromptBuilder:
     ).read_text()
     SPECIFICATION_REPAIR_PROMPT_TEMPLATE = Template(
         Path("./prompts/repair-specifications-prompt-template.txt").read_text()
+    )
+    FAILURE_RECOVERY_CLASSIFICATION_PROMPT_TEMPLATE = Template(
+        Path("./prompts/failure-recovery-classification-prompt-template.txt").read_text()
     )
     SOURCE_PLACEHOLDER = "<<SOURCE>>"
     CALLEE_CONTEXT_PLACEHOLDER = "<<CALLEE_CONTEXT>>"
@@ -67,6 +71,39 @@ class PromptBuilder:
             ),
             failure_lines="\n".join(lines_involving_failure),
             stderr=verification_failure.stderr,
+        )
+
+    def failure_recovery_classification_prompt(
+        self, function: ParsecFunction, failed_iteration: LlmGenerateVerifyIteration
+    ) -> str:
+        """Return a prompt directing the model to classify a verification failure.
+
+        Args:
+            function (str): The function that does not verify.
+            failed_iteration (LlmGenerateVerifyIteration): The failed specification generation
+                iteration.
+
+        Returns:
+            str: A prompt directing the model to classify a verification failure.
+        """
+        if not isinstance(failed_iteration.verification_result, Failure):
+            msg = (
+                f"Unable to create a failure recovery classification prompt for "
+                f"'{failed_iteration}'"
+            )
+            raise TypeError(msg)
+        explicit_failure_lines = "\n".join(
+            text_util.get_lines_with_suffix(
+                failed_iteration.verification_result.stdout, suffix="FAILURE"
+            )
+        )
+        return PromptBuilder.FAILURE_RECOVERY_CLASSIFICATION_PROMPT_TEMPLATE.substitute(
+            function_name=function.name,
+            function_with_specifications=function.get_source_code(
+                include_documentation_comments=True, include_line_numbers=True
+            ),
+            failure_lines=explicit_failure_lines,
+            stderr=failed_iteration.verification_result.stderr,
         )
 
     def _get_callee_specs(self, caller: str, callees_with_specs: list[ParsecFunction]) -> str:
