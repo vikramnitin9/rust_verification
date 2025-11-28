@@ -6,6 +6,14 @@ from typing import Protocol
 from .verification_result import Failure, Success
 
 
+def setup_verification(func):
+    def wrapper(*args, **kwargs):
+        # TODO: create a temporary file for verification.
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 class VerificationClient(Protocol):
     """Client for verifying source code."""
 

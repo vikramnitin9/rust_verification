@@ -1,3 +1,5 @@
+#!/opt/miniconda3/bin/python
+
 """Script to translate CBMC specifications for C functions into equivalents in Kani."""
 
 import argparse

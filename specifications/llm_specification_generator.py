@@ -64,7 +64,6 @@ class LlmSpecificationGenerator:
 
         try:
             response = self._model.gen(conversation, top_k=num_samples, temperature=temperature)
-            print(response)
             return LlmInvocationResult(specification_generation_prompt, response)
         except ModelError as e:
             msg = f"Error during specification generation for '{function_name}': {e}"

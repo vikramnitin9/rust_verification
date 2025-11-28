@@ -1,3 +1,5 @@
+#!/opt/miniconda3/bin/python
+
 """Script to generate specifications for C functions using an LLM and verify them with CBMC."""
 
 from __future__ import annotations
@@ -137,13 +139,13 @@ def main() -> None:
             logger.success(f"Verification succeeded for '{func_name}'")
             verified_functions.append(func_name)
             # Update the ParsecResult and output file
-            function_util.update_parsec_analysis(
+            function_util.update_parsec_result(
                 func_name,
                 function_with_candidate_specs,
                 parsec_result_without_direct_recursive_functions,
             )
             verified_file_content = file_with_candidate_specs.read_text(encoding="utf-8")
-            function_util.update_source_file(verified_file_content, output_file_path)
+            _overwrite_file(verified_file_content, output_file_path)
             continue
         logger.warning(
             f"Verification failed for '{func_name}'; attempting to repair the generated specs"
@@ -310,6 +312,10 @@ def _save_functions_with_specs(parsec_result: ParsecResult, output_file_path: Pa
     result_file = output_file_path.with_suffix("")
     with Path(f"{result_file}-specified-functions.pkl").open("wb") as f:
         pkl.dump(functions_with_specs, f)
+
+
+def _overwrite_file(content: str, path: Path) -> None:
+    Path(path).write_text(content, encoding="utf-8")
 
 
 if __name__ == "__main__":
