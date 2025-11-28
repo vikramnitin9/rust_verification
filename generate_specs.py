@@ -1,3 +1,5 @@
+#!/opt/miniconda3/bin/python
+
 """Script to generate specifications for C functions using an LLM and verify them with CBMC."""
 
 from __future__ import annotations
