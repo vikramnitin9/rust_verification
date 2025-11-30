@@ -18,7 +18,8 @@ jobs:
     - run: python --version
     - name: Install Python programs
       run: |
-        pip install -r requirements.txt
+        pip install mypy==1.19.0
+        pip install ruff==0.14.7
         pipx ensurepath
     - name: Install shellcheck and checkbashisms
       run: |
