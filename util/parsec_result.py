@@ -87,7 +87,8 @@ class ParsecResult:
             f"{path_to_file_with_cbmc_annotations.with_suffix('')}-cbmc-commented-out{path_to_file_with_cbmc_annotations.suffix}"
         )
         tmp_file_with_commented_out_cbmc_annotations.write_text(
-            file_lines_with_commented_out_annotations
+            file_lines_with_commented_out_annotations,
+            encoding="utf-8",
         )
         return ParsecResult(tmp_file_with_commented_out_cbmc_annotations)
 

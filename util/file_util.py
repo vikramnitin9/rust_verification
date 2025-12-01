@@ -14,7 +14,7 @@ def copy_file_to_folder(input_file_path: Path, destination_folder_name: str) -> 
         Path: The path to the file that is copied from the input file to the destination folder.
     """
     output_folder = Path(destination_folder_name)
-    output_folder.mkdir(exist_ok=True)
+    output_folder.mkdir(parents=True, exist_ok=True)
     output_file_path = output_folder / input_file_path.name
 
     content = input_file_path.read_text(encoding="utf-8")
@@ -35,8 +35,9 @@ def insert_lines_at_beginning(lines_to_insert: list[str], file_path: Path) -> No
     file_content = file_path.read_text(encoding="utf-8")
     existing_lines = [line.strip() for line in file_content.splitlines()]
     lines_to_add = [line for line in lines_to_insert if line.strip() not in existing_lines]
-    updated_file_content = "\n".join(lines_to_add) + "\n" + file_content
-    file_path.write_text(updated_file_content, encoding="utf-8")
+    if lines_to_add:
+        updated_file_content = "\n".join(lines_to_add) + "\n" + file_content
+        file_path.write_text(updated_file_content, encoding="utf-8")
 
 
 def overwrite_file(content: str, path_to_file_to_overwrite: Path) -> None:
