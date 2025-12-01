@@ -136,7 +136,7 @@ def test_uncomment_cbmc_specs_single_line() -> None:
     ]
     assert lines_with_specs == text_util.uncomment_cbmc_annotations(lines_with_commented_out_specs)
 
-def test_uncomment_out_cbmc_specs_multi_line_specs() -> None:
+def test_uncomment_cbmc_specs_multi_line_specs() -> None:
     lines_with_commented_out_specs = [
         "int partition(int arr[], int low, int high)\n",
         f"{text_util.CBMC_COMMENT_PREFIX}__CPROVER_requires(\n",

@@ -35,6 +35,7 @@ class ParsecResult:
 
     # The warning suppression below is required; nx.DiGraph does not expose subscriptable types.
     call_graph: nx.DiGraph  # type: ignore[type-arg]
+    file_path: Path
     enums: list[Any] = field(default_factory=list)
     files: list[str] = field(default_factory=list)
     functions: dict[str, ParsecFunction] = field(default_factory=dict)
@@ -45,6 +46,7 @@ class ParsecResult:
         Args:
             file_path (Path): The path to a JSON file written by ParseC.
         """
+        self.file_path = file_path
         analysis_result_file = self._run_parsec(file_path)
         with Path(analysis_result_file).open(encoding="utf-8") as f:
             parsec_analysis = json.load(f)

@@ -34,10 +34,9 @@ def insert_lines_at_beginning(lines_to_insert: list[str], file_path: Path) -> No
     """
     file_content = file_path.read_text(encoding="utf-8")
     existing_lines = [line.strip() for line in file_content.splitlines()]
-    for line_to_insert in lines_to_insert:
-        if line_to_insert not in existing_lines:
-            file_content = f"{line_to_insert}\n{file_content}"
-    file_path.write_text(file_content, encoding="utf-8")
+    lines_to_add = [line for line in lines_to_insert if line.strip() not in existing_lines]
+    updated_file_content = "\n".join(lines_to_add) + "\n" + file_content
+    file_path.write_text(updated_file_content, encoding="utf-8")
 
 
 def overwrite_file(content: str, path_to_file_to_overwrite: Path) -> None:
@@ -47,4 +46,4 @@ def overwrite_file(content: str, path_to_file_to_overwrite: Path) -> None:
         content (str): The content with which to overwrite the file.
         path_to_file_to_overwrite (Path): The path to the file to overwrite.
     """
-    Path(path_to_file_to_overwrite).write_text(content, encoding="utf-8")
+    path_to_file_to_overwrite.write_text(content, encoding="utf-8")

@@ -93,16 +93,8 @@ class LlmSpecificationGenerator:
             msg = "Repairing a specification that verifies successfully is not required"
             raise TypeError(msg)
 
-        parsec_result_for_candidate_file = ParsecResult.parse_source_with_cbmc_annotations(
-            verification_result.source
-        )
-        function = parsec_result_for_candidate_file.get_function(function_name)
-        if not function:
-            msg = f"Function: '{function_name}' was missing from the ParseC result"
-            raise RuntimeError(msg)
-
         repair_prompt = self._prompt_builder.specification_repair_prompt(
-            function, verification_result
+            function_name, verification_result
         )
         repair_message = {"role": "user", "content": repair_prompt}
         conversation.append(repair_message)

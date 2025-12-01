@@ -6,7 +6,7 @@ from typing import Any
 
 from .parsec_error import ParsecError
 from .specifications import FunctionSpecification
-from .text_util import CBMC_COMMENT_PREFIX, prepend_line_numbers
+from .text_util import prepend_line_numbers, uncomment_cbmc_annotations
 
 
 @dataclass
@@ -65,7 +65,7 @@ class ParsecFunction:
         self,
         include_documentation_comments: bool = False,
         include_line_numbers: bool = False,
-        uncomment_cbmc_annotations: bool = False,
+        should_uncomment_cbmc_annotations: bool = False,
     ) -> str:
         """Return the source code for this function, optionally including documentation comments.
 
@@ -73,8 +73,8 @@ class ParsecFunction:
             include_documentation_comments (bool): True iff documentation comments appearing before
                 the function signature should be included.
             include_line_numbers (bool): True iff line numbers should be included.
-            uncomment_cbmc_annotations (bool): True iff any CBMC annotations in the source code
-                should be uncommented.
+            should_uncomment_cbmc_annotations (bool): True iff any CBMC annotations in the source
+                code should be uncommented.
 
         Returns:
             str: The source code for this function, optionally including documentation comments and
@@ -98,8 +98,8 @@ class ParsecFunction:
         func_lines[-1] = func_lines[-1][: self.end_col]
         func_lines[0] = func_lines[0][self.start_col - 1 :]
 
-        if uncomment_cbmc_annotations:
-            func_lines = [line.replace(CBMC_COMMENT_PREFIX, "") for line in func_lines]
+        if should_uncomment_cbmc_annotations:
+            func_lines = uncomment_cbmc_annotations(func_lines)
 
         source_code = "".join(func_lines)
 

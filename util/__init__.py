@@ -15,5 +15,5 @@ __all__ = [
     "extract_function",
     "copy_file_to_folder",
     "insert_lines_at_beginning",
-    "overwrite_file"
+    "overwrite_file",
 ]
