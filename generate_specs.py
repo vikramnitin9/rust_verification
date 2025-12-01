@@ -16,8 +16,11 @@ from loguru import logger
 from specifications import LlmSpecificationGenerator
 from util import (
     ParsecResult,
+    copy_file_to_folder,
     extract_function,
     function_util,
+    insert_lines_at_beginning,
+    overwrite_file,
 )
 from verification import (
     CbmcVerificationClient,
@@ -71,8 +74,9 @@ def main() -> None:
     args = parser.parse_args()
 
     input_file_path = Path(args.file)
-    output_file_path = _copy_input_file_to_output_file(input_file_path)
-    _insert_default_headers(output_file_path)
+    output_file_path = copy_file_to_folder(input_file_path, "specs")
+    header_lines = [f"#include <{header}>" for header in DEFAULT_HEADERS_IN_OUTPUT]
+    insert_lines_at_beginning(header_lines, output_file_path)
 
     parsec_result = ParsecResult(output_file_path)
     recursive_funcs = parsec_result.get_names_of_recursive_functions()
@@ -139,14 +143,13 @@ def main() -> None:
             logger.success(f"Verification succeeded for '{func_name}'")
             verified_functions.append(func_name)
             # Update the ParsecResult and output file
-            function_util.update_parsec_result(
+            _update_with_verified_function(
                 func_name,
                 function_with_candidate_specs,
+                file_with_candidate_specs,
                 parsec_result_without_direct_recursive_functions,
+                output_file_path,
             )
-            verified_file_content = file_with_candidate_specs.read_text(encoding="utf-8")
-            _overwrite_file(verified_file_content, output_file_path)
-            file_with_candidate_specs.unlink()
             continue
         logger.warning(
             f"Verification failed for '{func_name}'; attempting to repair the generated specs"
@@ -181,15 +184,13 @@ def main() -> None:
             if isinstance(verification_result, Success):
                 logger.success(f"Verification succeeded for '{func_name}'")
                 verified_functions.append(func_name)
-                # Update the ParsecResult and output file
-                function_util.update_parsec_result(
+                _update_with_verified_function(
                     func_name,
                     function_with_candidate_specs,
+                    file_with_candidate_specs,
                     parsec_result_without_direct_recursive_functions,
+                    output_file_path,
                 )
-                verified_file_content = file_with_candidate_specs.read_text(encoding="utf-8")
-                _overwrite_file(verified_file_content, output_file_path)
-                file_with_candidate_specs.unlink()
                 break
             logger.warning(f"Verification failed for '{func_name}'; on repair attempt {n + 1}")
 
@@ -210,43 +211,26 @@ def recover_from_failure() -> None:
     """Implement recovery logic."""
 
 
-def _copy_input_file_to_output_file(input_file_path: Path) -> Path:
-    """Copy the initial input file to the output file, where spec generation should occur.
+def _update_with_verified_function(
+    function_name: str,
+    function_with_verified_specs: str,
+    path_to_file_with_verified_specs: Path,
+    parsec_result: ParsecResult,
+    path_to_verified_output: Path,
+) -> None:
+    """Update the Parsec result and the verified output file with the newly-verified function.
 
     Args:
-        input_file_path (Path): The path to the initial C program for which to generate specs.
-
-    Returns:
-        Path: The path to the output location of the C program with generated specs.
+        function_name (str): The name of the newly-verified function.
+        function_with_verified_specs (str): The source code of the newly-verified function.
+        path_to_file_with_verified_specs (Path): The path to the file with the newly-verified specs.
+        parsec_result (ParsecResult): The parsec result to update.
+        path_to_verified_output (Path): The path to the verified output file.
     """
-    output_folder = Path("specs")
-    output_folder.mkdir(exist_ok=True)
-    output_file_path = output_folder / input_file_path.name
-
-    input_file_content = input_file_path.read_text(encoding="utf-8")
-    output_file_path.write_text(input_file_content, encoding="utf-8")
-    return output_file_path
-
-
-def _insert_default_headers(file_path: Path) -> None:
-    """Insert default headers (DEFAULT_HEADERS_IN_OUTPUT) into the file at `file_path`.
-
-    Some of the LLM-generated specifications use functions that are defined in header files
-    that are not imported in the source code. This function performs a best-effort attempt
-    to include some that are commonly used.
-
-    Args:
-        file_path (Path): The path to the file to update with default headers.
-    """
-    file_content = file_path.read_text(encoding="utf-8")
-    program_lines = [line.strip() for line in file_content.splitlines()]
-    for header in DEFAULT_HEADERS_IN_OUTPUT:
-        header_line = f"#include <{header}>"
-        if header_line not in program_lines:
-            # TODO: The ParseC result should ideally expose the imports in a file, mitigating the
-            # need for the brittle string matching that is currently done.
-            file_content = f"{header_line}\n" + file_content
-    file_path.write_text(file_content, encoding="utf-8")
+    function_util.update_parsec_result(function_name, function_with_verified_specs, parsec_result)
+    verified_file_content = path_to_file_with_verified_specs.read_text(encoding="utf-8")
+    overwrite_file(verified_file_content, path_to_verified_output)
+    path_to_file_with_verified_specs.unlink()
 
 
 def _write_conversation_log(conversation_log: dict[str, list[LlmGenerateVerifyIteration]]) -> None:
@@ -296,10 +280,6 @@ def _save_functions_with_specs(parsec_result: ParsecResult, output_file_path: Pa
     result_file = output_file_path.with_suffix("")
     with Path(f"{result_file}-specified-functions.pkl").open("wb") as f:
         pkl.dump(functions_with_specs, f)
-
-
-def _overwrite_file(content: str, path: Path) -> None:
-    Path(path).write_text(content, encoding="utf-8")
 
 
 if __name__ == "__main__":
