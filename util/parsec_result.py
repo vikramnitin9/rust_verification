@@ -87,8 +87,7 @@ class ParsecResult:
         tmp_file_with_commented_out_cbmc_annotations.write_text(
             file_lines_with_commented_out_annotations
         )
-        res = ParsecResult(tmp_file_with_commented_out_cbmc_annotations)
-        return res
+        return ParsecResult(tmp_file_with_commented_out_cbmc_annotations)
 
     def copy(self, remove_self_edges_in_call_graph: bool = False) -> ParsecResult:
         """Return a copy of this ParsecResult, optionally removing its call graph's self-edges.
