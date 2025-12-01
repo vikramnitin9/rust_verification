@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import tree_sitter_c as tsc
-from tree_sitter import Language, Parser, Query, QueryCursor  # type: ignore[attr-defined]
+from tree_sitter import Language, Parser, Query, QueryCursor
 
 from .parsec_result import ParsecResult
 from .specifications import FunctionSpecification
