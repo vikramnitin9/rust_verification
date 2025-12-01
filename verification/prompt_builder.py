@@ -63,7 +63,9 @@ class PromptBuilder:
         return PromptBuilder.SPECIFICATION_REPAIR_PROMPT_TEMPLATE.safe_substitute(
             function_name=function.name,
             function_implementation=function.get_source_code(
-                include_documentation_comments=True, include_line_numbers=True
+                include_documentation_comments=True,
+                include_line_numbers=True,
+                uncomment_cbmc_annotations=True,
             ),
             failure_lines="\n".join(lines_involving_failure),
             stderr=verification_failure.stderr,

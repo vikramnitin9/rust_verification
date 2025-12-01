@@ -146,22 +146,23 @@ def main() -> None:
             )
             verified_file_content = file_with_candidate_specs.read_text(encoding="utf-8")
             _overwrite_file(verified_file_content, output_file_path)
+            file_with_candidate_specs.unlink()
             continue
         logger.warning(
             f"Verification failed for '{func_name}'; attempting to repair the generated specs"
         )
 
         for n in range(args.num_repair):
-            # Try to repair specifications for verification.
-            # TODO: use the temporary file here to build the prompt.
             llm_invocation_result = specification_generator.repair_specifications(
                 func_name,
                 verification_result,
                 conversation,
             )
-            _update_parsec_result_and_output_file(
-                llm_invocation_result.responses[0],
+            # Create a temporary file with the candidate specs.
+            function_with_candidate_specs = extract_function(llm_invocation_result.responses[0])
+            file_with_candidate_specs = function_util.get_file_with_updated_function(
                 func_name,
+                function_with_candidate_specs,
                 parsec_result_without_direct_recursive_functions,
                 output_file_path,
             )
@@ -169,7 +170,7 @@ def main() -> None:
                 function_name=func_name,
                 names_of_verified_functions=verified_functions,
                 names_of_trusted_functions=[],
-                file_path=output_file_path,
+                file_path=file_with_candidate_specs,
             )
             if args.save_conversation:
                 conversation_log[func_name].append(
@@ -178,12 +179,18 @@ def main() -> None:
                     )
                 )
             if isinstance(verification_result, Success):
-                logger.success(
-                    f"Verification succeeded for '{func_name}' after "
-                    f"{n + 1}/{args.num_repair} repair attempt(s)"
-                )
+                logger.success(f"Verification succeeded for '{func_name}'")
                 verified_functions.append(func_name)
-                break  # Move on to the next function to generate specs and verify.
+                # Update the ParsecResult and output file
+                function_util.update_parsec_result(
+                    func_name,
+                    function_with_candidate_specs,
+                    parsec_result_without_direct_recursive_functions,
+                )
+                verified_file_content = file_with_candidate_specs.read_text(encoding="utf-8")
+                _overwrite_file(verified_file_content, output_file_path)
+                file_with_candidate_specs.unlink()
+                break
             logger.warning(f"Verification failed for '{func_name}'; on repair attempt {n + 1}")
 
         if func_name not in verified_functions:
@@ -201,29 +208,6 @@ def main() -> None:
 
 def recover_from_failure() -> None:
     """Implement recovery logic."""
-
-
-def _update_parsec_result_and_output_file(
-    llm_response: str, function_name: str, parsec_result: ParsecResult, output_file: Path
-) -> str:
-    """Update the ParseC result and output file with the function with specifications.
-
-    Note: The return value of this function will be used in functions in future commits.
-
-    Args:
-        llm_response (str): The response from the LLM.
-        function_name (str): The name of the function that should be updated in the ParseC result
-            and output file.
-        parsec_result (ParsecResult): The ParseC result to update.
-        output_file (Path): The path to the output file to update.
-
-    Returns:
-        str: The contents of the updated file.
-    """
-    updated_function_content = extract_function(llm_response)
-    return function_util.update_function_declaration(
-        function_name, updated_function_content, parsec_result, output_file
-    )
 
 
 def _copy_input_file_to_output_file(input_file_path: Path) -> Path:

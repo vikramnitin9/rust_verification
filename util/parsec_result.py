@@ -13,6 +13,7 @@ from typing import Any
 import networkx as nx
 from loguru import logger
 
+from util import text_util
 from util.parsec_function import ParsecFunction
 
 
@@ -58,6 +59,36 @@ class ParsecResult:
                 self.call_graph.add_node(func_name)
                 for callee_name in func.callee_names:
                     self.call_graph.add_edge(func_name, callee_name)
+
+    @staticmethod
+    def parse_source_with_cbmc_annotations(
+        path_to_file_with_cbmc_annotations: Path,
+    ) -> ParsecResult:
+        """Create an instance of ParsecResult by parsing a .c file with CBMC annotations.
+
+        Parsec relies on an LLVM parser, which does not admit C programs with CBMC annotations.
+        A workaround is to comment-out the CBMC annotations.
+
+        Args:
+            path_to_file_with_cbmc_annotations (Path): The path to the file with CBMC annotations.
+
+        Returns:
+            ParsecResult: The ParsecResult.
+        """
+        content_of_file_with_cbmc_annotations = path_to_file_with_cbmc_annotations.read_text(
+            encoding="utf-8"
+        ).splitlines()
+        file_lines_with_commented_out_annotations = "\n".join(
+            text_util.comment_out_cbmc_annotations(content_of_file_with_cbmc_annotations)
+        )
+        tmp_file_with_commented_out_cbmc_annotations = Path(
+            f"{path_to_file_with_cbmc_annotations.with_suffix('')}-cbmc-commented-out{path_to_file_with_cbmc_annotations.suffix}"
+        )
+        tmp_file_with_commented_out_cbmc_annotations.write_text(
+            file_lines_with_commented_out_annotations
+        )
+        res = ParsecResult(tmp_file_with_commented_out_cbmc_annotations)
+        return res
 
     def copy(self, remove_self_edges_in_call_graph: bool = False) -> ParsecResult:
         """Return a copy of this ParsecResult, optionally removing its call graph's self-edges.
