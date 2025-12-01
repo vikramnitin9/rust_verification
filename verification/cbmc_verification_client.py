@@ -5,14 +5,13 @@ from pathlib import Path
 
 from loguru import logger
 
-from .verification_client import VerificationClient, setup_verification
+from .verification_client import VerificationClient
 from .verification_result import Failure, Success
 
 
 class CbmcVerificationClient(VerificationClient):
     """Client for verifying source code via CBMC."""
 
-    @setup_verification
     def verify(
         self,
         function_name: str,

@@ -1,3 +1,5 @@
+# ruff: noqa
+# TODO: temporary.
 # """Module to represent generated specifications."""
 
 # from collections import deque

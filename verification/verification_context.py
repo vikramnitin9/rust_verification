@@ -8,6 +8,8 @@ from util import ParsecResult
 
 @dataclass
 class VerificationContext:
+    # ruff: noqa
+    # TODO: document me.
     name_of_function_to_verify: str
     src_of_function_to_verify: str
     parsec_analysis: ParsecResult
