@@ -102,20 +102,23 @@ def get_source_code_with_specs(
 
 
 def get_file_with_updated_function(
-    function_name: str, updated_function_impl: str, parsec_result: ParsecResult, original_src: Path
+    function_name: str,
+    updated_function_declaration: str,
+    parsec_result: ParsecResult,
+    original_src: Path,
 ) -> Path:
-    """Return a path to a new file containing a function with an updated implementation.
+    """Return a path to a new file containing a function with an updated declaration.
 
     Args:
-        function_name (str): The name of the function with an updated implementation.
-        updated_function_impl (str): The implementation of the updated function.
+        function_name (str): The name of the function with an updated declaration.
+        updated_function_declaration (str): The updated function declaration.
         parsec_result (ParsecResult): The ParsecResult.
         original_src (Path): The path to the original file with the original function
-            implementation.
+            declaration.
 
     Raises:
-        RuntimeError: Raised when a definition for the function with the updated implementation
-            cannot be found in the ParsecResult.
+        RuntimeError: Raised when the original declaration for the function with the updated
+            declaration is missing from the ParsecResult.
 
     Returns:
         Path: The path to the new file.
@@ -125,7 +128,7 @@ def get_file_with_updated_function(
         msg = f"Could not find definition for function '{function_name}' to update"
         raise RuntimeError(msg)
     file_content_with_candidate_specs = _insert_updated_function_declaration(
-        original_function, updated_function_impl, original_src
+        original_function, updated_function_declaration, original_src
     )
     tmp_file = Path(_get_temporary_file_name(function_name, original_src))
     tmp_file.parent.mkdir(exist_ok=True, parents=True)
