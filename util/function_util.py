@@ -6,6 +6,7 @@ from pathlib import Path
 import tree_sitter_c as tsc
 from tree_sitter import Language, Parser, Query, QueryCursor
 
+from .parsec_function import ParsecFunction
 from .parsec_result import ParsecResult
 from .specifications import FunctionSpecification
 
@@ -123,19 +124,9 @@ def get_file_with_updated_function(
     if not original_function:
         msg = f"Could not find definition for function '{function_name}' to update"
         raise RuntimeError(msg)
-    prev_start_line = original_function.start_line
-    prev_start_col = original_function.start_col
-    prev_end_line = original_function.end_line
-    prev_end_col = original_function.end_col
-
-    # Use `with` and `readlines()` here to enable line-by-line file reading.
-    with Path(original_src).open(encoding="utf-8") as f:
-        lines = f.readlines()
-
-    before = [*lines[: prev_start_line - 1], *[lines[prev_start_line - 1][: prev_start_col - 1]]]
-    after = [*lines[prev_end_line - 1][prev_end_col:], *lines[prev_end_line:]]
-    file_content_with_candidate_specs = "".join([*before, updated_function_impl, *after])
-
+    file_content_with_candidate_specs = _insert_updated_function_declaration(
+        original_function, updated_function_impl, original_src
+    )
     tmp_file = Path(_get_temporary_file_name(function_name, original_src))
     tmp_file.parent.mkdir(exist_ok=True, parents=True)
     tmp_file.write_text(file_content_with_candidate_specs, encoding="utf-8")
@@ -217,20 +208,17 @@ def update_function_declaration(
     if not function:
         msg = f"Could not find definition for function '{function_name}' to update"
         raise RuntimeError(msg)
+
+    # Update the actual source code.
+    new_contents = _insert_updated_function_declaration(function, updated_function_content, file)
+    Path(file).write_text(new_contents, encoding="utf-8")
+
     start_line = function.start_line
     start_col = function.start_col
     end_line = function.end_line
     end_col = function.end_col
 
-    # Use `with` and `readlines()` here to enable line-by-line file reading.
-    with Path(file).open(encoding="utf-8") as f:
-        lines = f.readlines()
-
-    before = [*lines[: start_line - 1], *[lines[start_line - 1][: start_col - 1]]]
-    after = [*lines[end_line - 1][end_col:], *lines[end_line:]]
-    new_contents = "".join([*before, updated_function_content, *after])
-
-    # Update the line/col info for this function.
+    # Update the line/col info for this function in the Parsec Result.
     function_len = len(updated_function_content.splitlines())
     new_end_line = start_line + function_len - 1
     new_end_col = (
@@ -258,7 +246,6 @@ def update_function_declaration(
         elif other_func.end_line == end_line and other_func.end_col >= end_col:
             other_func.end_col += new_end_col - end_col
 
-    Path(file).write_text(new_contents, encoding="utf-8")
     return new_contents
 
 
@@ -289,3 +276,30 @@ def _get_temporary_file_name(function_name: str, src: Path) -> str:
     path_to_src_no_ext = src.with_suffix("")
     ext = src.suffix
     return f"{path_to_src_no_ext}-{function_name}-candidate-specs-{now_ts}{ext}"
+
+
+def _insert_updated_function_declaration(
+    function: ParsecFunction, updated_function_declaration: str, path_to_src: Path
+) -> str:
+    """Return contents of the file where the function is defined with its new declaration.
+
+    Args:
+        function (ParsecFunction): The function with a new declaration.
+        updated_function_declaration (str): The updated function declaration.
+        path_to_src (Path): The path to the source code.
+
+    Returns:
+        str: The contents of the file where the function is defined with its new declaration.
+    """
+    start_line = function.start_line
+    start_col = function.start_col
+    end_line = function.end_line
+    end_col = function.end_col
+
+    # Use `with` and `readlines()` here to enable line-by-line file reading.
+    with Path(path_to_src).open(encoding="utf-8") as f:
+        lines = f.readlines()
+
+    before = [*lines[: start_line - 1], *[lines[start_line - 1][: start_col - 1]]]
+    after = [*lines[end_line - 1][end_col:], *lines[end_line:]]
+    return "".join([*before, updated_function_declaration, *after])
