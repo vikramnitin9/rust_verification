@@ -58,7 +58,11 @@ class CbmcVerificationClient(VerificationClient):
             )
             if result.returncode == 0:
                 return Success()
-            return Failure(stdout=result.stdout, stderr=result.stderr)
+            return Failure(
+                source=file_path,
+                stdout=result.stdout,
+                stderr=result.stderr,
+            )
         except Exception as e:
             msg = f"Error running command for function {function_name}: {e}"
             raise RuntimeError(msg) from e

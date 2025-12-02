@@ -1,5 +1,7 @@
 """Utilities for manipulating text."""
 
+CBMC_COMMENT_PREFIX = "// CBMC_ANNOTATION: "
+
 
 def prepend_line_numbers(lines: list[str], start: int, end: int) -> list[tuple[str, str]]:
     """Return a list of tuples of line numbers with lines.
@@ -54,7 +56,7 @@ def comment_out_cbmc_annotations(lines: list[str]) -> list[str]:
             in_spec = True
 
         if in_spec:
-            result.append(f"// {line}")
+            result.append(f"{CBMC_COMMENT_PREFIX}{line}")
 
             # Count parentheses to determine when spec ends
             for char in line:
@@ -69,3 +71,18 @@ def comment_out_cbmc_annotations(lines: list[str]) -> list[str]:
             result.append(line)
 
     return result
+
+
+def uncomment_cbmc_annotations(lines: list[str]) -> list[str]:
+    """Remove CBMC_COMMENT_PREFIX in each line.
+
+    Args:
+        lines (list[str]): The lines in which to remove the CBMC_COMMENT_PREFIX.
+
+    Returns:
+        list[str]: The lines with CBMC_COMMENT_PREFIX removed
+    """
+    return [
+        line.replace(CBMC_COMMENT_PREFIX, "") if line.startswith(CBMC_COMMENT_PREFIX) else line
+        for line in lines
+    ]
