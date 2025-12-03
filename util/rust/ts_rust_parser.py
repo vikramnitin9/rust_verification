@@ -88,6 +88,9 @@ class TsRustParser:
         Args:
             parameter_node (Node): The tree-sitter parameter node.
 
+        Raises:
+            ValueError: Raised when the parameter node is malformed.
+
         Returns:
             tuple[str, RustTypeWrapper]: A tuple comprising the name of a Rust function parameter
                 and its type.
@@ -112,8 +115,9 @@ class TsRustParser:
             type_node (Node): The tree-sitter type node.
 
         Raises:
-            RuntimeError: Raised when the tree-sitter type node is malformed. This should never
+            ValueError: Raised when the tree-sitter type node is malformed. This should never
                 happen.
+            RuntimeError: Raised when an unsupported type is passed in.
 
         Returns:
             RustTypeWrapper: The RustTypeWrapper parsed from a tree-sitter type node.

@@ -35,9 +35,10 @@ class RustTypeWrapper:
     def to_argument(self, name: str) -> str:
         """Return the given name as if it is an argument to a function.
 
-        This returns either:
-            The name itself, or
-            The name prefixed by "&mut " for a mutable reference.
+        This returns either the:
+            "name" itself, or
+            "&name" for a reference type,
+            "&mut name" for a mutable reference.
 
         Args:
             name (str): The name to express as an argument to a function.
