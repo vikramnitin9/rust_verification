@@ -64,7 +64,10 @@ class CbmcVerificationClient(VerificationClient):
                 text=result.stdout, suffix="FAILURE"
             )
             return Failure(
-                stdout=result.stdout, stderr=result.stderr, num_failures=len(lines_with_failure)
+                source=file_path,
+                stdout=result.stdout,
+                stderr=result.stderr,
+                num_failures=len(lines_with_failure),
             )
         except Exception as e:
             msg = f"Error running command for function {function_name}: {e}"
