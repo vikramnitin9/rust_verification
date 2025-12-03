@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import argparse
+import heapq
 import json
 import pickle as pkl
 import time
@@ -13,7 +14,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from specifications import LlmSpecificationGenerator
+from specifications import LlmSpecificationGenerator, SpecifiedFunctionSample
 from util import (
     ParsecResult,
     copy_file_to_folder,
@@ -79,7 +80,6 @@ def main() -> None:
     insert_lines_at_beginning(header_lines, output_file_path)
 
     parsec_result = ParsecResult(output_file_path)
-
     # Get a list of functions in reverse topological order.
     func_ordering = parsec_result.copy(
         remove_self_edges_in_call_graph=True
@@ -91,6 +91,7 @@ def main() -> None:
     verifier: VerificationClient = CbmcVerificationClient()
 
     for func_name in func_ordering:
+        print(output_file_path)
         conversation = [{"role": "system", "content": DEFAULT_SYSTEM_PROMPT}]
 
         logger.info(f"Processing function {func_name}...")
@@ -107,105 +108,77 @@ def main() -> None:
             args.model_temperature,
         )
 
-        # Create a temporary file with the candidate specs.
-        function_with_candidate_specs = extract_function(llm_invocation_result.responses[0])
-        file_with_candidate_specs = function_util.get_file_with_updated_function(
-            func_name,
-            function_with_candidate_specs,
-            parsec_result,
-            output_file_path,
+        # Create specified function samples for each LLM response.
+        specified_function_samples = SpecifiedFunctionSample.get_specified_function_samples(
+            func_name, llm_invocation_result, parsec_result, output_file_path
         )
-        # If the function is recursive, accept the generated specs and continue.
-        if function_to_verify.is_direct_recursive():
-            logger.info(
-                f"Generated specs for direct-recursive function '{func_name}', "
-                "its specifications will be trusted"
-            )
-            trusted_functions.append(func_name)
-            _update_with_verified_function(
-                func_name,
-                function_with_candidate_specs,
-                file_with_candidate_specs,
-                parsec_result,
-                output_file_path,
-            )
-            if args.save_conversation:
-                conversation_log[func_name].append(
-                    LlmGenerateVerifyIteration(func_name, llm_invocation_result, Success())
-                )
-            continue
+        # Keep track of the failing samples, ordered the number of failures.
+        failing_samples: list[tuple[int, int, SpecifiedFunctionSample]] = []
 
-        verification_result = verifier.verify(
-            function_name=func_name,
-            names_of_verified_functions=verified_functions,
-            names_of_trusted_functions=trusted_functions,
-            file_path=file_with_candidate_specs,
-        )
-        if args.save_conversation:
-            conversation_log[func_name].append(
-                LlmGenerateVerifyIteration(func_name, llm_invocation_result, verification_result)
-            )
+        # TODO: What if the function is recursive? Which of the generated specs do we trust/write?
 
-        if isinstance(verification_result, Success):
-            logger.success(f"Verification succeeded for '{func_name}'")
-            verified_functions.append(func_name)
-            # Update the ParsecResult and output file
-            _update_with_verified_function(
-                func_name,
-                function_with_candidate_specs,
-                file_with_candidate_specs,
-                parsec_result,
-                output_file_path,
-            )
-            continue
-        logger.warning(
-            f"Verification failed for '{func_name}'; attempting to repair the generated specs"
-        )
-
-        for n in range(args.num_repair):
-            llm_invocation_result = specification_generator.repair_specifications(
-                func_name,
-                verification_result,
-                conversation,
-            )
-            # Create a temporary file with the candidate specs.
-            function_with_candidate_specs = extract_function(llm_invocation_result.responses[0])
-            file_with_candidate_specs = function_util.get_file_with_updated_function(
-                func_name,
-                function_with_candidate_specs,
-                parsec_result,
-                output_file_path,
-            )
+        # Check if any of the samples verify before moving on to repair.
+        for i, sample in enumerate(specified_function_samples):
             verification_result = verifier.verify(
                 function_name=func_name,
                 names_of_verified_functions=verified_functions,
                 names_of_trusted_functions=trusted_functions,
-                file_path=file_with_candidate_specs,
+                file_path=sample.path_to_file,
             )
-            if args.save_conversation:
-                conversation_log[func_name].append(
-                    LlmGenerateVerifyIteration(
-                        func_name, llm_invocation_result, verification_result
-                    )
-                )
-            if isinstance(verification_result, Success):
-                logger.success(f"Verification succeeded for '{func_name}'")
+            sample.verification_result = verification_result
+            if isinstance(sample.verification_result, Success):
+                logger.success(f"Verification succeeded for '{func_name}' for sample {i + 1}")
                 verified_functions.append(func_name)
+                # Update the ParsecResult and output file with the verified function.
                 _update_with_verified_function(
                     func_name,
-                    function_with_candidate_specs,
-                    file_with_candidate_specs,
+                    sample.specified_function,
+                    sample.path_to_file,
                     parsec_result,
                     output_file_path,
                 )
                 break
-            logger.warning(f"Verification failed for '{func_name}'; on repair attempt {n + 1}")
+            # Order the samples by the number of failures reported.
+            heapq.heappush(failing_samples, (sample.verification_result.num_failures, i, sample))
 
-        if func_name not in verified_functions:
-            logger.warning(
-                f"{func_name} failed to verify after {args.num_repair} repair attempt(s)"
+        if not failing_samples:
+            continue
+
+        # Perform repair.
+        logger.warning(f"Verification failed for '{func_name}' for all samples, attempting repair.")
+
+        is_repair_successful = False
+        while failing_samples:
+            _, _, failing_sample = heapq.heappop(failing_samples)
+            repaired_specification = _get_repaired_specification(
+                failing_sample,
+                specification_generator,
+                verifier,
+                conversation,
+                parsec_result,
+                args.num_repair,
+                verified_functions,
+                trusted_functions,
+                conversation_log,
+                args.save_conversation,
             )
+            if repaired_specification:
+                logger.success(f"Verification succeeded for '{func_name}'")
+                verified_functions.append(func_name)
+                # Update the ParsecResult and output file
+                _update_with_verified_function(
+                    func_name,
+                    repaired_specification.specified_function,
+                    repaired_specification.path_to_file,
+                    parsec_result,
+                    output_file_path,
+                )
+                is_repair_successful = True
+                break
+
+        if not is_repair_successful:
             recover_from_failure()
+
     if args.save_conversation:
         _write_conversation_log(conversation_log)
 
@@ -214,6 +187,63 @@ def main() -> None:
 
 def recover_from_failure() -> None:
     """Implement recovery logic."""
+
+
+def _get_repaired_specification(
+    failing_function_sample: SpecifiedFunctionSample,
+    specification_generator: LlmSpecificationGenerator,
+    verification_client: VerificationClient,
+    conversation: list[dict[str, str]],
+    parsec_result: ParsecResult,
+    num_repair_iterations: int,
+    verified_functions: list[str],
+    trusted_functions: list[str],
+    conversation_log: dict[str, list[LlmGenerateVerifyIteration]],
+    should_save_conversation: bool,
+) -> SpecifiedFunctionSample | None:
+    sample_to_repair = failing_function_sample
+    for _ in range(num_repair_iterations):
+        name_of_function_under_repair = sample_to_repair.function_name
+        if not sample_to_repair.verification_result:
+            raise ValueError("A repaired sample did not have an associated verification result")
+
+        llm_invocation_result = specification_generator.repair_specifications(
+            name_of_function_under_repair,
+            sample_to_repair.verification_result,
+            conversation,
+        )
+        # Create a temporary file with the candidate specs.
+        function_with_repaired_specs = extract_function(llm_invocation_result.responses[0])
+        file_with_repaired_specs = function_util.get_file_with_updated_function(
+            name_of_function_under_repair,
+            function_with_repaired_specs,
+            parsec_result,
+            sample_to_repair.path_to_file,
+        )
+        verification_result = verification_client.verify(
+            function_name=name_of_function_under_repair,
+            names_of_verified_functions=verified_functions,
+            names_of_trusted_functions=trusted_functions,
+            file_path=file_with_repaired_specs,
+        )
+        if should_save_conversation:
+            conversation_log[name_of_function_under_repair].append(
+                LlmGenerateVerifyIteration(
+                    failing_function_sample.function_name,
+                    llm_invocation_result,
+                    verification_result,
+                )
+            )
+        repair_sample = SpecifiedFunctionSample(
+            name_of_function_under_repair,
+            function_with_repaired_specs,
+            file_with_repaired_specs,
+            verification_result,
+        )
+        if repair_sample.is_verified():
+            return repair_sample
+        sample_to_repair = repair_sample
+    return None
 
 
 def _update_with_verified_function(
