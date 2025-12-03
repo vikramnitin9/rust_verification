@@ -79,36 +79,22 @@ def main() -> None:
     insert_lines_at_beginning(header_lines, output_file_path)
 
     parsec_result = ParsecResult(output_file_path)
-    recursive_funcs = parsec_result.get_names_of_recursive_functions()
-    parsec_result_without_direct_recursive_functions = parsec_result.copy(
-        remove_self_edges_in_call_graph=True
-    )
 
     # Get a list of functions in reverse topological order.
-    func_ordering = (
-        parsec_result_without_direct_recursive_functions.get_function_names_in_topological_order(
-            reverse_order=True
-        )
-    )
+    func_ordering = parsec_result.copy(
+        remove_self_edges_in_call_graph=True
+    ).get_function_names_in_topological_order(reverse_order=True)
     verified_functions: list[str] = []
+    trusted_functions: list[str] = []
     conversation_log: dict[str, list[LlmGenerateVerifyIteration]] = defaultdict(list)
-    specification_generator = LlmSpecificationGenerator(
-        MODEL, parsec_result_without_direct_recursive_functions
-    )
+    specification_generator = LlmSpecificationGenerator(MODEL, parsec_result)
     verifier: VerificationClient = CbmcVerificationClient()
 
     for func_name in func_ordering:
         conversation = [{"role": "system", "content": DEFAULT_SYSTEM_PROMPT}]
-        if func_name in recursive_funcs:
-            logger.info(
-                f"Skipping self-recursive function {func_name} because of CBMC bugs/limitations."
-            )
-            continue
 
         logger.info(f"Processing function {func_name}...")
-        function_to_verify = parsec_result_without_direct_recursive_functions.get_function(
-            func_name
-        )
+        function_to_verify = parsec_result.get_function(func_name)
         if not function_to_verify:
             msg = f"Failed to find function '{func_name}' to verify"
             raise RuntimeError(msg)
@@ -118,20 +104,41 @@ def main() -> None:
             func_name,
             conversation,
             args.num_specification_generation_samples,
-            temperature=args.model_temperature,
+            args.model_temperature,
         )
+
         # Create a temporary file with the candidate specs.
         function_with_candidate_specs = extract_function(llm_invocation_result.responses[0])
         file_with_candidate_specs = function_util.get_file_with_updated_function(
             func_name,
             function_with_candidate_specs,
-            parsec_result_without_direct_recursive_functions,
+            parsec_result,
             output_file_path,
         )
+        # If the function is recursive, accept the generated specs and continue.
+        if function_to_verify.is_direct_recursive():
+            logger.info(
+                f"Generated specs for direct-recursive function '{func_name}', "
+                "its specifications will be trusted"
+            )
+            trusted_functions.append(func_name)
+            _update_with_verified_function(
+                func_name,
+                function_with_candidate_specs,
+                file_with_candidate_specs,
+                parsec_result,
+                output_file_path,
+            )
+            if args.save_conversation:
+                conversation_log[func_name].append(
+                    LlmGenerateVerifyIteration(func_name, llm_invocation_result, Success())
+                )
+            continue
+
         verification_result = verifier.verify(
             function_name=func_name,
             names_of_verified_functions=verified_functions,
-            names_of_trusted_functions=[],
+            names_of_trusted_functions=trusted_functions,
             file_path=file_with_candidate_specs,
         )
         if args.save_conversation:
@@ -147,7 +154,7 @@ def main() -> None:
                 func_name,
                 function_with_candidate_specs,
                 file_with_candidate_specs,
-                parsec_result_without_direct_recursive_functions,
+                parsec_result,
                 output_file_path,
             )
             continue
@@ -166,13 +173,13 @@ def main() -> None:
             file_with_candidate_specs = function_util.get_file_with_updated_function(
                 func_name,
                 function_with_candidate_specs,
-                parsec_result_without_direct_recursive_functions,
+                parsec_result,
                 output_file_path,
             )
             verification_result = verifier.verify(
                 function_name=func_name,
                 names_of_verified_functions=verified_functions,
-                names_of_trusted_functions=[],
+                names_of_trusted_functions=trusted_functions,
                 file_path=file_with_candidate_specs,
             )
             if args.save_conversation:
@@ -188,7 +195,7 @@ def main() -> None:
                     func_name,
                     function_with_candidate_specs,
                     file_with_candidate_specs,
-                    parsec_result_without_direct_recursive_functions,
+                    parsec_result,
                     output_file_path,
                 )
                 break
@@ -202,9 +209,7 @@ def main() -> None:
     if args.save_conversation:
         _write_conversation_log(conversation_log)
 
-        _save_functions_with_specs(
-            parsec_result_without_direct_recursive_functions, output_file_path
-        )
+    _save_functions_with_specs(parsec_result, output_file_path)
 
 
 def recover_from_failure() -> None:
