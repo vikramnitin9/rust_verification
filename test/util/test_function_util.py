@@ -2,7 +2,7 @@ import os
 import pytest
 import shutil
 
-from util import function_util, ParsecResult
+from util import function_util, ParsecResult, FunctionSpecification
 from pathlib import Path
 
 
@@ -138,59 +138,100 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
         file_containing_function
     ).read_text(encoding="utf-8")
 
+def test_get_signature_simple() -> None:
+    src = """int main(int* a, int* b)\n{\n    printf("test")\n    return 0;\n}"""
+    (signature, body) = function_util.get_signature_and_body(src, lang="c")
 
-# def test_update_function_declaration_at_middle(copy_file, remove_file) -> None:
-#     file_containing_function = copy_file(
-#         "test/data/function_util/update_function_declaration/swap_middle.c"
-#     )
-#     path_to_expected_updated_file = (
-#         "test/data/function_util/update_function_declaration/swap_middle_with_specs.c"
-#     )
-#     updated_function = """void swap(int* a, int* b)
-# __CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))
-# __CPROVER_requires(__CPROVER_is_fresh(b, sizeof(int)))
-# __CPROVER_ensures(*a == __CPROVER_old(*b))
-# __CPROVER_ensures(*b == __CPROVER_old(*a))
-# {
-#     int t = *a;
-#     *a = *b;
-#     *b = t;
-# }"""
+    assert signature == "int main(int* a, int* b)"
+    assert body == """{\n    printf("test")\n    return 0;\n}"""
 
-#     parsec_result = ParsecResult(file_containing_function)
-#     function_util.update_function_declaration(
-#         "swap", updated_function, parsec_result, file_containing_function
-#     )
+def test_get_function_signature() -> None:
+    src = """static void
+    swap(
+        int* a, int* b)
+{
+    int t = *a;
+    *a = *b;
+    *b = t;
+}"""
 
-#     assert Path(path_to_expected_updated_file).read_text(encoding="utf-8") == Path(
-#         file_containing_function
-#     ).read_text(encoding="utf-8")
-#     remove_file(file_containing_function)
+    (signature, body) = function_util.get_signature_and_body(src, lang="c")
+    assert signature == "static void\n    swap(\n        int* a, int* b)"
+    assert body == "{\n    int t = *a;\n    *a = *b;\n    *b = t;\n}"
 
-# def test_update_function_declaration_at_bottom(copy_file, remove_file) -> None:
-#     file_containing_function = copy_file(
-#         "test/data/function_util/update_function_declaration/swap_bottom.c"
-#     )
-#     path_to_expected_updated_file = (
-#         "test/data/function_util/update_function_declaration/swap_bottom_with_specs.c"
-#     )
-#     updated_function = """void swap(int* a, int* b)
-# __CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))
-# __CPROVER_requires(__CPROVER_is_fresh(b, sizeof(int)))
-# __CPROVER_ensures(*a == __CPROVER_old(*b))
-# __CPROVER_ensures(*b == __CPROVER_old(*a))
-# {
-#     int t = *a;
-#     *a = *b;
-#     *b = t;
-# }"""
+def test_get_source_code_with_specs() -> None:
+    path_to_swap_no_specs = Path("test/data/function_util/no_specs.c")
+    swap_specs = FunctionSpecification(preconditions=[
+        "__CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))",
+        "__CPROVER_requires(__CPROVER_is_fresh(b, sizeof(int)))"],
+        postconditions=[
+        "__CPROVER_ensures(*a == __CPROVER_old(*b))",
+        "__CPROVER_ensures(*b == __CPROVER_old(*a))",
+        ])
+    swap_with_specs = function_util.get_source_code_with_specs("swap", swap_specs, ParsecResult(file_path=Path(path_to_swap_no_specs)))
+    assert swap_with_specs == """void swap(int* a, int* b)
+__CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))
+__CPROVER_requires(__CPROVER_is_fresh(b, sizeof(int)))
+__CPROVER_ensures(*a == __CPROVER_old(*b))
+__CPROVER_ensures(*b == __CPROVER_old(*a))
+{
+    int t = *a;
+    *a = *b;
+    *b = t;
+}"""
 
-#     parsec_result = ParsecResult(file_containing_function)
-#     function_util.update_function_declaration(
-#         "swap", updated_function, parsec_result, file_containing_function
-#     )
+def test_update_function_declaration_at_middle(copy_file, remove_file) -> None:
+    file_containing_function = copy_file(
+        "test/data/function_util/update_function_declaration/swap_middle.c"
+    )
+    path_to_expected_updated_file = (
+        "test/data/function_util/update_function_declaration/swap_middle_with_specs.c"
+    )
+    updated_function = """void swap(int* a, int* b)
+__CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))
+__CPROVER_requires(__CPROVER_is_fresh(b, sizeof(int)))
+__CPROVER_ensures(*a == __CPROVER_old(*b))
+__CPROVER_ensures(*b == __CPROVER_old(*a))
+{
+    int t = *a;
+    *a = *b;
+    *b = t;
+}"""
 
-#     assert Path(path_to_expected_updated_file).read_text(encoding="utf-8") == Path(
-#         file_containing_function
-#     ).read_text(encoding="utf-8")
-#     remove_file(file_containing_function)
+    parsec_result = ParsecResult(file_containing_function)
+    function_util.update_function_declaration(
+        "swap", updated_function, parsec_result, file_containing_function
+    )
+
+    assert Path(path_to_expected_updated_file).read_text(encoding="utf-8") == Path(
+        file_containing_function
+    ).read_text(encoding="utf-8")
+    remove_file(file_containing_function)
+
+def test_update_function_declaration_at_bottom(copy_file, remove_file) -> None:
+    file_containing_function = copy_file(
+        "test/data/function_util/update_function_declaration/swap_bottom.c"
+    )
+    path_to_expected_updated_file = (
+        "test/data/function_util/update_function_declaration/swap_bottom_with_specs.c"
+    )
+    updated_function = """void swap(int* a, int* b)
+__CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))
+__CPROVER_requires(__CPROVER_is_fresh(b, sizeof(int)))
+__CPROVER_ensures(*a == __CPROVER_old(*b))
+__CPROVER_ensures(*b == __CPROVER_old(*a))
+{
+    int t = *a;
+    *a = *b;
+    *b = t;
+}"""
+
+    parsec_result = ParsecResult(file_containing_function)
+    function_util.update_function_declaration(
+        "swap", updated_function, parsec_result, file_containing_function
+    )
+
+    assert Path(path_to_expected_updated_file).read_text(encoding="utf-8") == Path(
+        file_containing_function
+    ).read_text(encoding="utf-8")
+    remove_file(file_containing_function)
