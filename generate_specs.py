@@ -129,6 +129,10 @@ def main() -> None:
                 parsec_result,
                 output_file_path,
             )
+            if args.save_conversation:
+                conversation_log[func_name].append(
+                    LlmGenerateVerifyIteration(func_name, llm_invocation_result, Success())
+                )
             continue
 
         verification_result = verifier.verify(
