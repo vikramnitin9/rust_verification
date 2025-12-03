@@ -106,14 +106,6 @@ def main() -> None:
             args.num_specification_generation_samples,
             args.model_temperature,
         )
-        # Attempt to verify the generated specifications for the function, if applicable.
-        if function_to_verify.is_direct_recursive():
-            logger.info(
-                f"Generated specs for direct-recursive function '{func_name}', "
-                "its specifications will be trusted"
-            )
-            trusted_functions.append(func_name)
-            continue
 
         # Create a temporary file with the candidate specs.
         function_with_candidate_specs = extract_function(llm_invocation_result.responses[0])
@@ -123,7 +115,22 @@ def main() -> None:
             parsec_result,
             output_file_path,
         )
-        # Attempt to verify the generated specifications for the function.
+        # If the function is recursive, accept the generated specs and continue.
+        if function_to_verify.is_direct_recursive():
+            logger.info(
+                f"Generated specs for direct-recursive function '{func_name}', "
+                "its specifications will be trusted"
+            )
+            trusted_functions.append(func_name)
+            _update_with_verified_function(
+                func_name,
+                function_with_candidate_specs,
+                file_with_candidate_specs,
+                parsec_result,
+                output_file_path,
+            )
+            continue
+
         verification_result = verifier.verify(
             function_name=func_name,
             names_of_verified_functions=verified_functions,
