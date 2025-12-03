@@ -205,7 +205,7 @@ def main() -> None:
     if args.save_conversation:
         _write_conversation_log(conversation_log)
 
-        _save_functions_with_specs(parsec_result, output_file_path)
+    _save_functions_with_specs(parsec_result, output_file_path)
 
 
 def recover_from_failure() -> None:
