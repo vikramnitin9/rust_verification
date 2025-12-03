@@ -40,6 +40,8 @@ class TsRustParser:
     def _collect_nodes_of_type(self, root_node: Node, typ: str) -> list[Node]:
         """Return nodes under the root node that match the given type.
 
+        Note: This will also include nested nodes (e.g., nested functions).
+
         Args:
             root_node (Node): The node under which to search.
             typ (str): The type of nodes to collect.
