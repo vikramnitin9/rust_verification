@@ -258,3 +258,17 @@ def test_is_direct_recursive_is_true() -> None:
             "callees": [{"name": "recursive_function"}],
     })
     assert function.is_direct_recursive()
+def test_is_direct_recursive_is_false() -> None:
+    function = ParsecFunction({
+            "name": "a",
+            "num_args": 1,
+            "returnType": "int",
+            "signature": "int a(int x)",
+            "filename": "test/data/callgraph/simple.c",
+            "startLine": 8,
+            "endLine": 13,
+            "startCol": 1,
+            "endCol": 28,
+            "callees": [],
+    })
+    assert not function.is_direct_recursive()
