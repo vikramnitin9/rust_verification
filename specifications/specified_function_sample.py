@@ -1,9 +1,10 @@
 """Class to represent a specified function candidate/sample generated for verification."""
 
+import shutil
 from collections.abc import Iterator
 from pathlib import Path
 
-from util import ParsecResult, extract_function, function_util
+from util import ParsecFunction, ParsecResult, extract_function, file_util, function_util
 from verification import Success, VerificationResult
 
 from .llm_invocation_result import LlmInvocationResult
@@ -23,7 +24,9 @@ class SpecifiedFunctionSample:
     function_name: str
     specified_function: str
     path_to_file: Path
+    parsec_result: ParsecResult
     verification_result: VerificationResult | None = None
+    parent_sample: "SpecifiedFunctionSample | None" = None
 
     def __init__(
         self,
@@ -35,6 +38,7 @@ class SpecifiedFunctionSample:
         self.function_name = function_name
         self.specified_function = specified_function
         self.path_to_file = path_to_file
+        self.parsec_result = ParsecResult.parse_source_with_cbmc_annotations(path_to_file)
         self.verification_result = verification_result
 
     def __iter__(self) -> Iterator[str | Path]:
@@ -44,6 +48,25 @@ class SpecifiedFunctionSample:
             Iterator[(str, str)]: An iterator for this specified function sample.
         """
         return iter((self.specified_function, self.path_to_file))
+
+    def get_parsec_representation(self) -> ParsecFunction:
+        """Return the Parsec representation of this specified function sample.
+
+        Raises:
+            ValueError: Raised when the function is missing from the Parsec result.
+
+        Returns:
+            ParsecFunction: The Parsec representation of this specified function sample.
+        """
+        parsec_function = self.parsec_result.get_function(self.function_name)
+        if not parsec_function:
+            msg = f"'{self.function_name}' missing from Parsec Result"
+            raise ValueError(msg)
+        return parsec_function
+
+    def delete_temporary_files(self) -> None:
+        """Delete the temporary candidate files associated with this function sample."""
+        shutil.rmtree(self.path_to_file.parent)
 
     def is_verified(self) -> bool:
         """Return True iff the specified function successfully verifies.
@@ -76,10 +99,20 @@ class SpecifiedFunctionSample:
                 response.
         """
         samples = []
-        for sample in llm_invocation_result.responses:
+        for i, sample in enumerate(llm_invocation_result.responses):
             candidate_function = extract_function(sample)
+            path_to_directory = file_util.get_directory_name_for_generated_code(
+                path_to_file, function_name
+            )
+            path_to_candidate_file = (
+                "specs" / path_to_directory / f"sample_{i + 1}" / f"sample{path_to_file.suffix}"
+            )
             path_to_candidate_file = function_util.get_file_with_updated_function(
-                function_name, candidate_function, parsec_result, path_to_file
+                function_name,
+                candidate_function,
+                parsec_result,
+                original_src=path_to_file,
+                path_to_candidate_file=path_to_candidate_file,
             )
             samples.append(
                 SpecifiedFunctionSample(function_name, candidate_function, path_to_candidate_file)

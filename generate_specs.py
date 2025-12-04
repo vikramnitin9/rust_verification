@@ -91,7 +91,6 @@ def main() -> None:
     verifier: VerificationClient = CbmcVerificationClient()
 
     for func_name in func_ordering:
-        print(output_file_path)
         conversation = [{"role": "system", "content": DEFAULT_SYSTEM_PROMPT}]
 
         logger.info(f"Processing function {func_name}...")
@@ -141,7 +140,11 @@ def main() -> None:
             # Order the samples by the number of failures reported.
             heapq.heappush(failing_samples, (sample.verification_result.num_failures, i, sample))
 
-        if not failing_samples:
+        if any(
+            isinstance(sample.verification_result, Success) for sample in specified_function_samples
+        ):
+            for sample in specified_function_samples:
+                sample.delete_temporary_files()
             continue
 
         # Perform repair.
@@ -155,7 +158,6 @@ def main() -> None:
                 specification_generator,
                 verifier,
                 conversation,
-                parsec_result,
                 args.num_repair,
                 verified_functions,
                 trusted_functions,
@@ -177,6 +179,10 @@ def main() -> None:
                 break
 
         if not is_repair_successful:
+            logger.warning(
+                f"Function '{func_name}' failed to verify after repairing "
+                f"{args.num_specification_generation_samples} samples"
+            )
             recover_from_failure()
 
     if args.save_conversation:
@@ -194,7 +200,6 @@ def _get_repaired_specification(
     specification_generator: LlmSpecificationGenerator,
     verification_client: VerificationClient,
     conversation: list[dict[str, str]],
-    parsec_result: ParsecResult,
     num_repair_iterations: int,
     verified_functions: list[str],
     trusted_functions: list[str],
@@ -202,23 +207,27 @@ def _get_repaired_specification(
     should_save_conversation: bool,
 ) -> SpecifiedFunctionSample | None:
     sample_to_repair = failing_function_sample
-    for _ in range(num_repair_iterations):
+    for i in range(num_repair_iterations):
         name_of_function_under_repair = sample_to_repair.function_name
         if not sample_to_repair.verification_result:
             raise ValueError("A repaired sample did not have an associated verification result")
 
         llm_invocation_result = specification_generator.repair_specifications(
-            name_of_function_under_repair,
-            sample_to_repair.verification_result,
+            sample_to_repair,
             conversation,
         )
         # Create a temporary file with the candidate specs.
         function_with_repaired_specs = extract_function(llm_invocation_result.responses[0])
+        path_to_repaired_spec = (
+            sample_to_repair.path_to_file.parent
+            / f"repair_{i + 1}{sample_to_repair.path_to_file.suffix}"
+        )
         file_with_repaired_specs = function_util.get_file_with_updated_function(
             name_of_function_under_repair,
             function_with_repaired_specs,
-            parsec_result,
+            sample_to_repair.parsec_result,
             sample_to_repair.path_to_file,
+            path_to_repaired_spec,
         )
         verification_result = verification_client.verify(
             function_name=name_of_function_under_repair,

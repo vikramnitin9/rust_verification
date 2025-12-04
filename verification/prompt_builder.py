@@ -36,6 +36,7 @@ class PromptBuilder:
         prompt = PromptBuilder.SPECIFICATION_GENERATION_PROMPT_TEMPLATE.replace(
             PromptBuilder.SOURCE_PLACEHOLDER, source_code
         )
+        print(prompt)
 
         callee_context = ""
         if callees := parsec_result.get_callees(function):
@@ -45,34 +46,28 @@ class PromptBuilder:
 
         return prompt.replace(PromptBuilder.CALLEE_CONTEXT_PLACEHOLDER, callee_context)
 
-    def specification_repair_prompt(self, function_name: str, verification_failure: Failure) -> str:
+    def specification_repair_prompt(
+        self, failing_function: ParsecFunction, verification_failure: Failure
+    ) -> str:
         """Return a prompt directing the model to repair a faulty specification.
 
         Args:
-            function_name (str): The name of the function that does not verify.
+            failing_function (ParsecFunction): The function that does not verify.
             verification_failure (Failure): The failed result of verifying the function.
 
         Returns:
             str: A prompt directing the model to repair a faulty specification.
         """
-        parsec_result_for_candidate_file = ParsecResult.parse_source_with_cbmc_annotations(
-            verification_failure.source
-        )
-        function = parsec_result_for_candidate_file.get_function(function_name)
-        if not function:
-            msg = f"'{function_name}' was missing from the Parsec result"
-            raise RuntimeError(msg)
         lines_involving_failure = [
             line for line in verification_failure.stdout.splitlines() if "FAILURE" in line
         ]
-        candidate_function_source_code = function.get_source_code(
+        candidate_function_source_code = failing_function.get_source_code(
             include_documentation_comments=True,
             include_line_numbers=True,
             should_uncomment_cbmc_annotations=True,
         )
-        parsec_result_for_candidate_file.file_path.unlink()
         return PromptBuilder.SPECIFICATION_REPAIR_PROMPT_TEMPLATE.safe_substitute(
-            function_name=function.name,
+            function_name=failing_function.name,
             function_implementation=candidate_function_source_code,
             failure_lines="\n".join(lines_involving_failure),
             stderr=verification_failure.stderr,

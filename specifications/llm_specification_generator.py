@@ -2,7 +2,7 @@
 
 from models import LLMGen, ModelError, get_llm_generation_with_model
 from util import ParsecResult
-from verification import Failure, PromptBuilder, VerificationResult
+from verification import Failure, PromptBuilder
 
 from .llm_invocation_result import LlmInvocationResult
 
@@ -71,15 +71,14 @@ class LlmSpecificationGenerator:
 
     def repair_specifications(
         self,
-        function_name: str,
-        verification_result: VerificationResult,
+        failing_function_sample,
         conversation: list[dict[str, str]],
     ) -> LlmInvocationResult:
         """Repair the specifications for the function with the given name.
 
         Args:
-            function_name (str): The function for which to repair specifications.
-            verification_result (VerificationResult): The result of a verifier run.
+            failing_function_sample (SpecifiedFunctionSample): The sample with the function with
+                failing specifications to repair.
             conversation (list[dict[str, str]]): The LLM conversation, so far.
 
         Raises:
@@ -89,13 +88,17 @@ class LlmSpecificationGenerator:
         Returns:
             LlmInvocationResult: The prompt used to invoke an LLM and its response.
         """
-        if not isinstance(verification_result, Failure):
+        if not isinstance(failing_function_sample.verification_result, Failure):
             msg = "Repairing a specification that verifies successfully is not required"
             raise TypeError(msg)
 
+        failing_function = failing_function_sample.get_parsec_representation()
+        if not failing_function:
+            raise RuntimeError()
         repair_prompt = self._prompt_builder.specification_repair_prompt(
-            function_name, verification_result
+            failing_function, failing_function_sample.verification_result
         )
+        print(repair_prompt)
         repair_message = {"role": "user", "content": repair_prompt}
         conversation.append(repair_message)
 
@@ -103,5 +106,5 @@ class LlmSpecificationGenerator:
             response = self._model.gen(conversation, top_k=1, temperature=0.0)
             return LlmInvocationResult(repair_prompt, response)
         except ModelError as e:
-            msg = f"Error during specification repair for '{function_name}': {e}"
+            msg = f"Error during specification repair for '{failing_function.name}': {e}"
             raise RuntimeError(msg) from e
