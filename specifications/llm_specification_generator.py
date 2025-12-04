@@ -5,6 +5,7 @@ from util import ParsecResult
 from verification import Failure, PromptBuilder
 
 from .llm_invocation_result import LlmInvocationResult
+from .specified_function_sample import SpecifiedFunctionSample
 
 
 class LlmSpecificationGenerator:
@@ -71,7 +72,7 @@ class LlmSpecificationGenerator:
 
     def repair_specifications(
         self,
-        failing_function_sample,
+        failing_function_sample: SpecifiedFunctionSample,
         conversation: list[dict[str, str]],
     ) -> LlmInvocationResult:
         """Repair the specifications for the function with the given name.
@@ -98,7 +99,6 @@ class LlmSpecificationGenerator:
         repair_prompt = self._prompt_builder.specification_repair_prompt(
             failing_function, failing_function_sample.verification_result
         )
-        print(repair_prompt)
         repair_message = {"role": "user", "content": repair_prompt}
         conversation.append(repair_message)
 

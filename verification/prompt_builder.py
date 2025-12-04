@@ -36,7 +36,6 @@ class PromptBuilder:
         prompt = PromptBuilder.SPECIFICATION_GENERATION_PROMPT_TEMPLATE.replace(
             PromptBuilder.SOURCE_PLACEHOLDER, source_code
         )
-        print(prompt)
 
         callee_context = ""
         if callees := parsec_result.get_callees(function):
