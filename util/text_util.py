@@ -86,3 +86,16 @@ def uncomment_cbmc_annotations(lines: list[str]) -> list[str]:
         line.replace(CBMC_COMMENT_PREFIX, "") if line.startswith(CBMC_COMMENT_PREFIX) else line
         for line in lines
     ]
+
+
+def count_lines_with_suffix(text: str, suffix: str) -> int:
+    """Return the number of lines ending with the suffix in text.
+
+    Args:
+        text (str): The text to count suffix in.
+        suffix (str): The suffix to look for.
+
+    Returns:
+        int: The number of lines ending with the suffix in text.
+    """
+    return sum(1 for line in text.splitlines() if line.endswith(suffix))

@@ -5,6 +5,8 @@ from pathlib import Path
 
 from loguru import logger
 
+from util import text_util
+
 from .verification_client import VerificationClient
 from .verification_result import Failure, Success
 
@@ -58,10 +60,12 @@ class CbmcVerificationClient(VerificationClient):
             )
             if result.returncode == 0:
                 return Success()
+            num_failures = text_util.count_lines_with_suffix(result.stdout, suffix="FAILURE")
             return Failure(
                 source=file_path,
                 stdout=result.stdout,
                 stderr=result.stderr,
+                num_failures=num_failures,
             )
         except Exception as e:
             msg = f"Error running command for function {function_name}: {e}"

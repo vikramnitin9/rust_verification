@@ -27,3 +27,4 @@ class Failure(VerificationResult):
     source: Path
     stdout: str
     stderr: str
+    num_failures: int

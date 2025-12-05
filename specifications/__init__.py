@@ -1,4 +1,5 @@
 from .llm_specification_generator import LlmSpecificationGenerator
 from .llm_invocation_result import LlmInvocationResult
+from .specified_function_sample import SpecifiedFunctionSample
 
-__all__ = ["LlmSpecificationGenerator", "LlmInvocationResult"]
+__all__ = ["LlmSpecificationGenerator", "LlmInvocationResult", "SpecifiedFunctionSample"]
