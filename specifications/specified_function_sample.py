@@ -69,7 +69,7 @@ class SpecifiedFunctionSample:
         parent_dir = self.path_to_file.parent
         if "specs" not in parent_dir.parts:
             raise ValueError(
-                "Aborting temporary file deletion; 'spec' folder not found in temporary file path"
+                "Aborting temporary file deletion; 'specs' folder not found in temporary file path"
             )
         shutil.rmtree(self.path_to_file.parent)
 

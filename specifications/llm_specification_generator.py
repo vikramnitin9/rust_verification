@@ -65,6 +65,8 @@ class LlmSpecificationGenerator:
 
         try:
             response = self._model.gen(conversation, top_k=num_samples, temperature=temperature)
+            if len(response) < 1:
+                raise RuntimeError("Model failed to return a response for specification generation")
             return LlmInvocationResult(specification_generation_prompt, response)
         except ModelError as e:
             msg = f"Error during specification generation for '{function_name}': {e}"
@@ -105,6 +107,8 @@ class LlmSpecificationGenerator:
 
         try:
             response = self._model.gen(conversation, top_k=1, temperature=0.0)
+            if len(response) < 1:
+                raise RuntimeError("Model failed to return a response for specification generation")
             return LlmInvocationResult(repair_prompt, response)
         except ModelError as e:
             msg = f"Error during specification repair for '{failing_function.name}': {e}"
