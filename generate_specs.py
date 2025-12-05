@@ -210,7 +210,7 @@ def _get_repaired_specification(
     for i in range(num_repair_iterations):
         name_of_function_under_repair = sample_to_repair.function_name
         if not sample_to_repair.verification_result:
-            raise ValueError("A repaired sample did not have an associated verification result")
+            raise ValueError("Sample under repair is missing a verification result")
 
         llm_invocation_result = specification_generator.repair_specifications(
             sample_to_repair,

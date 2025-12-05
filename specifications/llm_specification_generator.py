@@ -95,7 +95,8 @@ class LlmSpecificationGenerator:
 
         failing_function = failing_function_sample.get_parsec_representation()
         if not failing_function:
-            raise RuntimeError()
+            msg = f"Function '{failing_function_sample.function_name}' is missing from Parsec data"
+            raise RuntimeError(msg)
         repair_prompt = self._prompt_builder.specification_repair_prompt(
             failing_function, failing_function_sample.verification_result
         )

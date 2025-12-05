@@ -105,7 +105,10 @@ class SpecifiedFunctionSample:
                 path_to_file, function_name
             )
             path_to_candidate_file = (
-                "specs" / path_to_directory / f"sample_{i + 1}" / f"sample{path_to_file.suffix}"
+                Path("specs")
+                / path_to_directory
+                / Path(f"sample_{i + 1}")
+                / Path(f"sample{path_to_file.suffix}")
             )
             path_to_candidate_file = function_util.get_file_with_updated_function(
                 function_name,
