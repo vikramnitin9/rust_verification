@@ -147,6 +147,22 @@ def main() -> None:
                 sample.delete_temporary_files()
             continue
 
+        if function_to_verify.is_direct_recursive():
+            # Trust the generated specification, continue on to other functions.
+            logger.debug(f"'{func_name}' is direct recursive, its specifications will be trusted")
+            trusted_functions.append(func_name)
+            _, _, sample_with_fewest_failures = heapq.heappop(failing_samples)
+            _update_with_verified_function(
+                func_name,
+                sample_with_fewest_failures.specified_function,
+                sample_with_fewest_failures.path_to_file,
+                parsec_result,
+                output_file_path,
+            )
+            for sample in specified_function_samples:
+                sample.delete_temporary_files()
+            continue
+
         # Perform repair.
         logger.warning(f"Verification failed for '{func_name}' for all samples, attempting repair.")
 
