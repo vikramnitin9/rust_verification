@@ -80,8 +80,8 @@ class LlmSpecificationGenerator:
         """Repair the specifications for the function with the given name.
 
         Args:
-            failing_function_sample (SpecifiedFunctionSample): The sample with the function with
-                failing specifications to repair.
+            failing_function_sample (SpecifiedFunctionSample): A function sample with failing
+                specifications to repair.
             conversation (list[dict[str, str]]): The LLM conversation, so far.
 
         Raises:
@@ -92,7 +92,10 @@ class LlmSpecificationGenerator:
             LlmInvocationResult: The prompt used to invoke an LLM and its response.
         """
         if not isinstance(failing_function_sample.verification_result, Failure):
-            msg = "Repairing a specification that verifies successfully is not required"
+            msg = (
+                "repair_specifications expects the verification result of a sample to be a Failure"
+                f" but got {type(failing_function_sample.verification_result)}"
+            )
             raise TypeError(msg)
 
         failing_function = failing_function_sample.get_parsec_representation()
@@ -108,7 +111,7 @@ class LlmSpecificationGenerator:
         try:
             response = self._model.gen(conversation, top_k=1, temperature=0.0)
             if len(response) < 1:
-                raise RuntimeError("Model failed to return a response for specification generation")
+                raise RuntimeError("Model failed to return a response for specification repair")
             return LlmInvocationResult(repair_prompt, response)
         except ModelError as e:
             msg = f"Error during specification repair for '{failing_function.name}': {e}"
