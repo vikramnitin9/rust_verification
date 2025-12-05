@@ -60,14 +60,12 @@ class CbmcVerificationClient(VerificationClient):
             )
             if result.returncode == 0:
                 return Success()
-            lines_with_failure = text_util.get_lines_with_suffix(
-                text=result.stdout, suffix="FAILURE"
-            )
+            num_failures = text_util.count_lines_with_suffix(result.stdout, suffix="FAILURE")
             return Failure(
                 source=file_path,
                 stdout=result.stdout,
                 stderr=result.stderr,
-                num_failures=len(lines_with_failure),
+                num_failures=num_failures,
             )
         except Exception as e:
             msg = f"Error running command for function {function_name}: {e}"

@@ -13,8 +13,7 @@ class FailureRecoveryPolicy(str, Enum):
     """Represent failure recovery policies."""
 
     GIVE_UP = "GIVE_UP"
-    BACKTRACK = "BACKTRACK"
-    KEEP_GOING = "KEEP_GOING"
+    BACKTRACK_TO_CALLEES = "BACKTRACK_TO_CALLEES"
 
 
 @dataclass(frozen=True)
@@ -22,12 +21,12 @@ class VerificationFailureRecoveryPolicyClassification:
     """Represent an LLM-based classification of a verification failure.
 
     Attributes:
-        policy (FailureRecoveryPolicy): The failure recovery policy.
         reasoning (str): The reasoning produced by the model for the policy it selected.
+        policy (FailureRecoveryPolicy): The failure recovery policy.
     """
 
-    policy: FailureRecoveryPolicy
     reasoning: str
+    policy: FailureRecoveryPolicy
 
 
 class FailureRecoveryOracle:

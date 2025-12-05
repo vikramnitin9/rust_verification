@@ -106,6 +106,7 @@ def get_file_with_updated_function(
     updated_function_declaration: str,
     parsec_result: ParsecResult,
     original_src: Path,
+    path_to_candidate_file: Path,
 ) -> Path:
     """Return a path to a new file containing a function with an updated declaration.
 
@@ -115,6 +116,8 @@ def get_file_with_updated_function(
         parsec_result (ParsecResult): The ParsecResult.
         original_src (Path): The path to the original file with the original function
             declaration.
+        path_to_candidate_file (Path): The path to the file where the updated function should be
+            written.
 
     Raises:
         RuntimeError: Raised when the original declaration for the function with the updated
@@ -130,10 +133,9 @@ def get_file_with_updated_function(
     file_content_with_candidate_specs = _insert_updated_function_declaration(
         original_function, updated_function_declaration, original_src
     )
-    tmp_file = Path(_get_temporary_file_name(function_name, original_src))
-    tmp_file.parent.mkdir(exist_ok=True, parents=True)
-    tmp_file.write_text(file_content_with_candidate_specs, encoding="utf-8")
-    return tmp_file
+    path_to_candidate_file.parent.mkdir(exist_ok=True, parents=True)
+    path_to_candidate_file.write_text(file_content_with_candidate_specs, encoding="utf-8")
+    return path_to_candidate_file
 
 
 def update_parsec_result(

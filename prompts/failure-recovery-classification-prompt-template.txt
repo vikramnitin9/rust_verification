@@ -13,8 +13,8 @@ Classify the next step to take for handling this failure, choose from:
 
     GIVE_UP: When CBMC is insufficiently expressive to prove the implementation of $function_name
              satisfies the current specification.
-    BACKTRACK: When the specification might be consistent with $function_name, but necessarily with
-             a callee's contract.
+    BACKTRACK_TO_CALLEES: When the specification might be consistent with $function_name, but not
+        necessarily with a callee's contract.
 
 Your response should comprise your reasoning process and the next step you take for handling
 the failure. Specifically, state the reasoning first and follow up with the next step, i.e.,
