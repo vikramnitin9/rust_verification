@@ -11,8 +11,9 @@ from typing import cast
 
 from loguru import logger
 
-from translation import CBMCAst, CBMCToKani, KaniProofHarness, Parser, ToAst
+from translation import CBMCAst, CBMCToKani, KaniProofHarness, Parser, ToAst, TranslationError
 from util import FunctionSpecification, ParsecFunction
+from util.rust import RustFunction, RustParser, TsRustParser
 from verification import KaniVerificationContext
 
 
@@ -29,17 +30,28 @@ def main() -> None:
         "list of ParsecFunction objects with specifications to translate.",
     )
 
+    parser.add_argument(
+        "--rust-file",
+        required=True,
+        help="Path to the Rust (.rs) file compiled from the source C program.",
+    )
+
     args = parser.parse_args()
 
     path_to_functions = Path(args.functions)
     with path_to_functions.open("rb") as f:
-        data = [cast("ParsecFunction", d) for d in pkl.load(f)]
-        functions = {f.name: f for f in data}
+        c_functions = [cast("ParsecFunction", d) for d in pkl.load(f)]
 
-    if not functions:
+    if not c_functions:
         msg = f"{path_to_functions} contained no valid functions."
         raise RuntimeError(msg)
 
+    rust_parser: RustParser = TsRustParser()
+    candidate_rust_functions = rust_parser.get_functions_defined_in_file(args.rust_file)
+
+    _check_translation_preconditions(
+        c_functions=c_functions, rust_function_name_to_function=candidate_rust_functions
+    )
     logger.debug(f"Starting specification translation for functions in: '{path_to_functions}'")
 
     cbmc_parser: Parser[CBMCAst] = Parser(
@@ -50,10 +62,11 @@ def main() -> None:
     functions_to_verification_contexts: dict[str, KaniVerificationContext] = {}
     translator = CBMCToKani(parser=cbmc_parser)
 
-    for function_name, function in functions.items():
-        specs = _translate_specifications(translator, function)
-        proof_harness = KaniProofHarness(function)
-        functions_to_verification_contexts[function_name] = KaniVerificationContext(
+    for c_function in c_functions:
+        specs = _translate_specifications(translator, c_function)
+        rust_candidate = candidate_rust_functions[c_function.name]
+        proof_harness = KaniProofHarness(rust_candidate, specs)
+        functions_to_verification_contexts[c_function.name] = KaniVerificationContext(
             specification=specs, proof_harness=proof_harness
         )
 
@@ -97,6 +110,41 @@ def _save_translated_specifications(
             name: asdict(specs) for name, specs in functions_to_verification_contexts.items()
         }
         f.write(json.dumps(data_to_write, indent=4))
+
+
+def _check_translation_preconditions(
+    c_functions: list[ParsecFunction], rust_function_name_to_function: dict[str, RustFunction]
+) -> None:
+    """Check preconditions that must be met for specification translation.
+
+    Args:
+        c_functions (list[ParsecFunction]): The C functions for which to translate specifications.
+        rust_function_name_to_function (dict[str, RustFunction]): A map of candidate Rust functions
+            (i.e., translated from the C functions).
+
+    The following preconditions must be met for specification translation to occur:
+
+    1. There exists a 1:1 mapping from a C function to a Rust function.
+    2. Each Rust function must maintain the same signature of its C equivalent, i.e., equivalent
+       return type, function name, argument list.
+
+    The current implementation checks only (1).
+
+    Raises:
+        TranslationError: Raised when the first precondition is not satisfied.
+    """
+    if len(c_functions) != len(rust_function_name_to_function):
+        msg = (
+            f"Mismatch between C functions ({len(c_functions)}) "
+            f"and Rust functions ({len(rust_function_name_to_function)})"
+        )
+        raise TranslationError(msg)
+    if {f.name for f in c_functions} != set(rust_function_name_to_function.keys()):
+        c_funcs = ", ".join(f.name for f in c_functions)
+        rust_funcs = ", ".join(fn_name for fn_name in rust_function_name_to_function)
+        msg = f"Mismatch between C functions ({c_funcs}) and Rust functions ({rust_funcs})"
+        raise TranslationError(msg)
+    # TODO: additional check(s) on the parameter names and types is necessary for a complete check.
 
 
 if __name__ == "__main__":
