@@ -15,7 +15,12 @@ from pathlib import Path
 
 from loguru import logger
 
-from specifications import FailureRecoveryOracle, LlmSpecificationGenerator, SpecifiedFunctionSample
+from specifications import (
+    FailureRecoveryOracle,
+    FailureRecoveryPolicy,
+    LlmSpecificationGenerator,
+    SpecifiedFunctionSample,
+)
 from util import (
     ParsecResult,
     copy_file_to_folder,
@@ -131,7 +136,7 @@ def main() -> None:
                 logger.success(f"Verification succeeded for '{func_name}' for sample {i + 1}")
                 verified_functions.append(func_name)
                 # Update the ParsecResult and output file with the verified function.
-                _update_with_verified_function(
+                _update_with_specified_function(
                     func_name,
                     sample.specified_function,
                     sample.path_to_file,
@@ -153,7 +158,7 @@ def main() -> None:
             logger.debug(f"'{func_name}' is direct recursive, its specifications will be trusted")
             trusted_functions.append(func_name)
             _, _, sample_with_fewest_failures = heapq.heappop(failing_samples)
-            _update_with_verified_function(
+            _update_with_specified_function(
                 func_name,
                 sample_with_fewest_failures.specified_function,
                 sample_with_fewest_failures.path_to_file,
@@ -188,7 +193,7 @@ def main() -> None:
                 logger.success(f"Verification succeeded for '{func_name}'")
                 verified_functions.append(func_name)
                 # Update the ParsecResult and output file
-                _update_with_verified_function(
+                _update_with_specified_function(
                     func_name,
                     repaired_specification.specified_function,
                     repaired_specification.path_to_file,
@@ -208,7 +213,7 @@ def main() -> None:
             f"for {args.num_specification_generation_samples} samples"
         )
         recover_from_failure(
-            func_name, parsec_result, [sample for _, _, sample in failing_samples_copy]
+            func_name, parsec_result, failing_samples_copy, trusted_functions, output_file_path
         )
 
     if args.save_conversation:
@@ -220,13 +225,39 @@ def main() -> None:
 def recover_from_failure(
     function_name: str,
     parsec_result: ParsecResult,
-    failing_samples: list[SpecifiedFunctionSample],
+    failing_samples: list[tuple[int, int, SpecifiedFunctionSample]],
+    trusted_functions: list[str],
+    output_file_path: Path,
 ) -> None:
-    """Implement recovery logic."""
+    """Implement recovery strategy when the generate/repair loop for a function fails.
+
+    Args:
+        function_name (str): The name of the function to determine a recovery policy for.
+        parsec_result (ParsecResult): The Parsec result.
+        failing_samples (list[tuple[int, int, SpecifiedFunctionSample]]): The min-heap of failing
+            specification samples for the function.
+        trusted_functions (list[str]): The list of trusted function names.
+        output_file_path (Path): The path to the output file.
+    """
     logger.debug(f"Determining failure recovery policy for '{function_name}'")
     failure_recovery_oracle = FailureRecoveryOracle(MODEL, parsec_result)
-    policy = failure_recovery_oracle.determine_recovery_policy(function_name, failing_samples)
-    print(f"POLICY = {policy}")
+    failure_recovery_classification = failure_recovery_oracle.determine_recovery_policy(
+        function_name, [sample for _, _, sample in failing_samples]
+    )
+    match failure_recovery_classification.policy:
+        case FailureRecoveryPolicy.GIVE_UP:
+            trusted_functions.append(function_name)
+            _, _, sample_with_fewest_failures = heapq.heappop(failing_samples)
+            _update_with_specified_function(
+                function_name,
+                sample_with_fewest_failures.specified_function,
+                sample_with_fewest_failures.path_to_file,
+                parsec_result,
+                output_file_path,
+            )
+        case FailureRecoveryPolicy.BACKTRACK_TO_CALLEES:
+            # TODO: Implement me.
+            pass
 
 
 def _get_repaired_specification(
@@ -289,26 +320,26 @@ def _get_repaired_specification(
     return None
 
 
-def _update_with_verified_function(
+def _update_with_specified_function(
     function_name: str,
-    function_with_verified_specs: str,
-    path_to_file_with_verified_specs: Path,
+    function_with_specs: str,
+    path_to_file_with_specs: Path,
     parsec_result: ParsecResult,
     path_to_verified_output: Path,
 ) -> None:
-    """Update the Parsec result and the verified output file with the newly-verified function.
+    """Update the Parsec result and the verified output file with the function with specs.
 
     Args:
-        function_name (str): The name of the newly-verified function.
-        function_with_verified_specs (str): The source code of the newly-verified function.
-        path_to_file_with_verified_specs (Path): The path to the file with the newly-verified specs.
+        function_name (str): The name of the function with specs.
+        function_with_specs (str): The source code of the function with specs.
+        path_to_file_with_specs (Path): The path to the file with the function with specs.
         parsec_result (ParsecResult): The parsec result to update.
-        path_to_verified_output (Path): The path to the verified output file.
+        path_to_verified_output (Path): The path to the output file.
     """
-    function_util.update_parsec_result(function_name, function_with_verified_specs, parsec_result)
-    verified_file_content = path_to_file_with_verified_specs.read_text(encoding="utf-8")
+    function_util.update_parsec_result(function_name, function_with_specs, parsec_result)
+    verified_file_content = path_to_file_with_specs.read_text(encoding="utf-8")
     overwrite_file(verified_file_content, path_to_verified_output)
-    path_to_file_with_verified_specs.unlink()
+    path_to_file_with_specs.unlink()
 
 
 def _write_conversation_log(conversation_log: dict[str, list[LlmGenerateVerifyIteration]]) -> None:
