@@ -243,7 +243,7 @@ def recover_from_failure(
         function_name, [sample for _, _, sample in failing_samples]
     )
     match failure_recovery_classification.policy:
-        case FailureRecoveryPolicy.GIVE_UP:
+        case FailureRecoveryPolicy.ASSUME_SPEC:
             trusted_functions.append(function_name)
             _, _, sample_with_fewest_failures = heapq.heappop(failing_samples)
             _update_with_specified_function(

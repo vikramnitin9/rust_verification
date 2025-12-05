@@ -13,7 +13,7 @@ from .specified_function_sample import SpecifiedFunctionSample
 class FailureRecoveryPolicy(str, Enum):
     """Represent failure recovery policies."""
 
-    GIVE_UP = "GIVE_UP"
+    ASSUME_SPEC = "ASSUME_SPEC"
     BACKTRACK_TO_CALLEES = "BACKTRACK_TO_CALLEES"
 
 
