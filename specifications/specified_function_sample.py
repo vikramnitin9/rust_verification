@@ -17,6 +17,7 @@ class SpecifiedFunctionSample:
         function_name (str): The name of the function.
         specified_function (str): The implementation in source code of the specified function.
         path_to_file (Path): The path to the file in which this function is declared.
+        parsec_result (ParsecResult): The Parsec result for this function sample.
         verification_result (VerificationResult | None): The result of verifying this function.
 
     """
@@ -26,7 +27,6 @@ class SpecifiedFunctionSample:
     path_to_file: Path
     parsec_result: ParsecResult
     verification_result: VerificationResult | None = None
-    parent_sample: "SpecifiedFunctionSample | None" = None
 
     def __init__(
         self,
@@ -66,6 +66,11 @@ class SpecifiedFunctionSample:
 
     def delete_temporary_files(self) -> None:
         """Delete the temporary candidate files associated with this function sample."""
+        parent_dir = self.path_to_file.parent
+        if "specs" not in parent_dir.parts:
+            raise ValueError(
+                "Aborting temporary file deletion; 'spec' folder not found in temporary file path"
+            )
         shutil.rmtree(self.path_to_file.parent)
 
     def is_verified(self) -> bool:

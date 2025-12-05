@@ -178,12 +178,16 @@ def main() -> None:
                 is_repair_successful = True
                 break
 
-        if not is_repair_successful:
-            logger.warning(
-                f"Function '{func_name}' failed to verify after repairing "
-                f"{args.num_specification_generation_samples} samples"
-            )
-            recover_from_failure()
+        if is_repair_successful:
+            for sample in specified_function_samples:
+                sample.delete_temporary_files()
+            continue
+
+        logger.warning(
+            f"Function '{func_name}' failed to verify after {args.num_repair} repair attempts "
+            f"for {args.num_specification_generation_samples} samples"
+        )
+        recover_from_failure()
 
     if args.save_conversation:
         _write_conversation_log(conversation_log)
