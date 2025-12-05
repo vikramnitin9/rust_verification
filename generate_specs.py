@@ -114,8 +114,6 @@ def main() -> None:
         # Keep track of the failing samples, ordered the number of failures.
         failing_samples: list[tuple[int, int, SpecifiedFunctionSample]] = []
 
-        # TODO: What if the function is recursive? Which of the generated specs do we trust/write?
-
         # Check if any of the samples verify before moving on to repair.
         for i, sample in enumerate(specified_function_samples):
             verification_result = verifier.verify(
@@ -226,27 +224,27 @@ def _get_repaired_specification(
     conversation_log: dict[str, list[LlmGenerateVerifyIteration]],
     should_save_conversation: bool,
 ) -> SpecifiedFunctionSample | None:
-    sample_to_repair = failing_function_sample
+    sample_under_repair = failing_function_sample
     for i in range(num_repair_iterations):
-        name_of_function_under_repair = sample_to_repair.function_name
-        if not sample_to_repair.verification_result:
+        name_of_function_under_repair = sample_under_repair.function_name
+        if not sample_under_repair.verification_result:
             raise ValueError("Sample under repair is missing a verification result")
 
         llm_invocation_result = specification_generator.repair_specifications(
-            sample_to_repair,
+            sample_under_repair,
             conversation,
         )
         # Create a temporary file with the candidate specs.
         function_with_repaired_specs = extract_function(llm_invocation_result.responses[0])
         path_to_repaired_spec = (
-            sample_to_repair.path_to_file.parent
-            / f"repair_{i + 1}{sample_to_repair.path_to_file.suffix}"
+            sample_under_repair.path_to_file.parent
+            / f"repair_{i + 1}{sample_under_repair.path_to_file.suffix}"
         )
         file_with_repaired_specs = function_util.get_file_with_updated_function(
             name_of_function_under_repair,
             function_with_repaired_specs,
-            sample_to_repair.parsec_result,
-            sample_to_repair.path_to_file,
+            sample_under_repair.parsec_result,
+            sample_under_repair.path_to_file,
             path_to_repaired_spec,
         )
         verification_result = verification_client.verify(
@@ -263,15 +261,15 @@ def _get_repaired_specification(
                     verification_result,
                 )
             )
-        repair_sample = SpecifiedFunctionSample(
+        latest_repair_sample = SpecifiedFunctionSample(
             name_of_function_under_repair,
             function_with_repaired_specs,
             file_with_repaired_specs,
             verification_result,
         )
-        if repair_sample.is_verified():
-            return repair_sample
-        sample_to_repair = repair_sample
+        if latest_repair_sample.is_verified():
+            return latest_repair_sample
+        sample_under_repair = latest_repair_sample
     return None
 
 
