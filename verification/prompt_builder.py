@@ -5,8 +5,7 @@ from string import Template
 
 from util import ParsecFunction, ParsecResult, text_util
 
-from .llm_generate_verify_iteration import LlmGenerateVerifyIteration
-from .verification_result import Failure
+from .verification_result import Failure, VerificationResult
 
 
 class PromptBuilder:
@@ -77,28 +76,22 @@ class PromptBuilder:
         )
 
     def failure_recovery_classification_prompt(
-        self, function: ParsecFunction, failed_iteration: LlmGenerateVerifyIteration
+        self, function: ParsecFunction, verification_result: VerificationResult
     ) -> str:
-        """Return a prompt directing the model to classify a verification failure.
+        """Return a prompt directing the model to classify a verification failure for a function.
 
         Args:
             function (str): The function that does not verify.
-            failed_iteration (LlmGenerateVerifyIteration): The failed specification generation
-                iteration.
+            verification_result (VerificationResult): The verification result for the function.
 
         Returns:
             str: A prompt directing the model to classify a verification failure.
         """
-        if not isinstance(failed_iteration.verification_result, Failure):
-            msg = (
-                f"Unable to create a failure recovery classification prompt for "
-                f"'{failed_iteration}'"
-            )
+        if not isinstance(verification_result, Failure):
+            msg = f"Unable to create a failure recovery classification prompt for '{function.name}'"
             raise TypeError(msg)
         explicit_failure_lines = "\n".join(
-            text_util.get_lines_with_suffix(
-                failed_iteration.verification_result.stdout, suffix="FAILURE"
-            )
+            text_util.get_lines_with_suffix(verification_result.stdout, suffix="FAILURE")
         )
         return PromptBuilder.FAILURE_RECOVERY_CLASSIFICATION_PROMPT_TEMPLATE.substitute(
             function_name=function.name,
@@ -106,7 +99,7 @@ class PromptBuilder:
                 include_documentation_comments=True, include_line_numbers=True
             ),
             failure_lines=explicit_failure_lines,
-            stderr=failed_iteration.verification_result.stderr,
+            stderr=verification_result.stderr,
         )
 
     def _get_callee_specs(self, caller: str, callees_with_specs: list[ParsecFunction]) -> str:

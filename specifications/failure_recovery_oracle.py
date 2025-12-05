@@ -1,12 +1,13 @@
 """Class for an LLM-based oracle to determine failure recovery policies for specifications."""
 
-import operator
 from dataclasses import dataclass
 from enum import Enum
 
 from models import LLMGen, get_llm_generation_with_model
 from util import ParsecResult, text_util
-from verification import Failure, LlmGenerateVerifyIteration, PromptBuilder
+from verification import PromptBuilder
+
+from .specified_function_sample import SpecifiedFunctionSample
 
 
 class FailureRecoveryPolicy(str, Enum):
@@ -48,7 +49,7 @@ class FailureRecoveryOracle:
         self._prompt_builder = PromptBuilder()
 
     def determine_recovery_policy(
-        self, function_name: str, iterations: list[LlmGenerateVerifyIteration]
+        self, function_name: str, failing_specification_samples: list[SpecifiedFunctionSample]
     ) -> VerificationFailureRecoveryPolicyClassification:
         """Return the recovery policy decided by the LLM for the function that fails to verify.
 
@@ -64,54 +65,28 @@ class FailureRecoveryOracle:
 
         Args:
             function_name (str): The name of the function that fails to verify.
-            iterations (list[LlmGenerateVerifyIteration]): The list of specifications generated for
-                the function, all of which fail to verify.
+            failing_specification_samples (list[LlmGenerateVerifyIteration]): The list of specified
+                function samples that fail to verify.
 
         Returns:
             VerificationFailureRecoveryPolicyClassification: The recovery policy classification.
         """
-        failed_iterations: list[tuple[LlmGenerateVerifyIteration, int]] = (
-            self._get_failed_iterations(function_name, iterations)
+        sample_with_fewest_errors = min(
+            failing_specification_samples, key=lambda sample: sample.get_num_verification_failures()
         )
-        iteration_with_fewest_errors, _ = min(failed_iterations, key=operator.itemgetter(1))
-        if function := self._parsec_result.get_function(function_name):
-            verification_failure_classification_prompt = (
-                self._prompt_builder.failure_recovery_classification_prompt(
-                    function, iteration_with_fewest_errors
-                )
+        parsec_function_for_sample = sample_with_fewest_errors.get_parsec_representation()
+        if not sample_with_fewest_errors.verification_result:
+            msg = f"'{function_name}' did not have a verification result"
+            raise ValueError(msg)
+        verification_failure_classification_prompt = (
+            self._prompt_builder.failure_recovery_classification_prompt(
+                parsec_function_for_sample, sample_with_fewest_errors.verification_result
             )
-            conversation = [{"role": "user", "content": verification_failure_classification_prompt}]
-            response = self._model.gen(messages=conversation, temperature=0.0, top_k=1)[0]
-            return self._parse_classification_response(response)
-        msg = f"'{function_name}' was missing from the ParseC result"
-        raise RuntimeError(msg)
+        )
 
-    def _get_failed_iterations(
-        self, function_name: str, iterations: list[LlmGenerateVerifyIteration]
-    ) -> list[tuple[LlmGenerateVerifyIteration, int]]:
-        """Return a tuple of failed iterations and the number of errors produced by CBMC for them.
-
-        Args:
-            function_name (str): The name of the function that failed to verify.
-            iterations (list[LlmGenerateVerifyIteration]): The failed iterations of specification
-                generation.
-
-        Raises:
-            RuntimeError: Raised when there is a successful specification generation iteration.
-
-        Returns:
-            list[tuple[LlmGenerateVerifyIteration, int]]: A tuple of failed iterations and the
-                number of errors produced by CBMC for them.
-        """
-        failed_iterations: list[tuple[LlmGenerateVerifyIteration, int]] = [
-            (iteration, iteration.verification_result.num_failures)
-            for iteration in iterations
-            if isinstance(iteration.verification_result, Failure)
-        ]
-        if len(failed_iterations) != len(iterations):
-            msg = f"'{function_name}' had a successfully verifying specification"
-            raise RuntimeError(msg)
-        return failed_iterations
+        conversation = [{"role": "user", "content": verification_failure_classification_prompt}]
+        response = self._model.gen(messages=conversation, temperature=0.0, top_k=1)[0]
+        return self._parse_classification_response(response)
 
     def _parse_classification_response(
         self, llm_response: str
@@ -128,5 +103,5 @@ class FailureRecoveryOracle:
         next_step = text_util.get_value_of_field_with_key(llm_response, key="next_step")
         reasoning = text_util.get_value_of_field_with_key(llm_response, key="reasoning")
         return VerificationFailureRecoveryPolicyClassification(
-            policy=FailureRecoveryPolicy[next_step], reasoning=reasoning
+            reasoning=reasoning, policy=FailureRecoveryPolicy[next_step]
         )

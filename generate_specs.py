@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import heapq
 import json
 import pickle as pkl
@@ -150,6 +151,9 @@ def main() -> None:
         # Perform repair.
         logger.warning(f"Verification failed for '{func_name}' for all samples, attempting repair.")
 
+        # Keep a copy of the failing samples in case failure recovery is necessary.
+        failing_samples_copy = copy.deepcopy(failing_samples)
+
         is_repair_successful = False
         while failing_samples:
             _, _, failing_sample = heapq.heappop(failing_samples)
@@ -187,7 +191,9 @@ def main() -> None:
             f"Function '{func_name}' failed to verify after {args.num_repair} repair attempts "
             f"for {args.num_specification_generation_samples} samples"
         )
-        recover_from_failure(func_name, parsec_result, conversation_log[func_name])
+        recover_from_failure(
+            func_name, parsec_result, [sample for _, _, sample in failing_samples_copy]
+        )
 
     if args.save_conversation:
         _write_conversation_log(conversation_log)
@@ -198,11 +204,13 @@ def main() -> None:
 def recover_from_failure(
     function_name: str,
     parsec_result: ParsecResult,
-    generate_repair_iterations: list[LlmGenerateVerifyIteration],
+    failing_samples: list[SpecifiedFunctionSample],
 ) -> None:
     """Implement recovery logic."""
+    logger.debug(f"Determining failure recovery policy for '{function_name}'")
     failure_recovery_oracle = FailureRecoveryOracle(MODEL, parsec_result)
-    failure_recovery_oracle.determine_recovery_policy(function_name, generate_repair_iterations)
+    policy = failure_recovery_oracle.determine_recovery_policy(function_name, failing_samples)
+    print(f"POLICY = {policy}")
 
 
 def _get_repaired_specification(
