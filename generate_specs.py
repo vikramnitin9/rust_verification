@@ -164,7 +164,7 @@ def main() -> None:
         # Perform repair.
         logger.warning(f"Verification failed for '{func_name}' for all samples, attempting repair.")
 
-        is_repair_successful = False
+        repaired_specification: SpecifiedFunctionSample | None = None
         while failing_samples:
             _, _, failing_sample = heapq.heappop(failing_samples)
             repaired_specification = _get_repaired_specification(
@@ -189,10 +189,9 @@ def main() -> None:
                     parsec_result,
                     output_file_path,
                 )
-                is_repair_successful = True
                 break
 
-        if is_repair_successful:
+        if repaired_specification:
             for sample in specified_function_samples:
                 sample.delete_temporary_files()
             continue
