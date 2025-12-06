@@ -24,7 +24,7 @@ Your response should comprise your reasoning process and the next step you take 
 the failure. Specifically, state the reasoning first and follow up with the classification, i.e.,
 
 {
-    "reasoning": ...,
+    "reasoning": "<YOUR_REASONING>",
     "classification": {
         "action": ...,
         "callee_for_backtracking": ...
@@ -35,7 +35,7 @@ For example, if you choose that assuming the specification is the best course of
 response should be:
 
 {
-    "reasoning": <YOUR REASONING>,
+    "reasoning": "<YOUR REASONING>",
     "classification": {
         "action": "ASSUME_SPEC",
         "callee_for_backtracking": null
@@ -45,9 +45,9 @@ response should be:
 Here is an example response for backtracking:
 
 {
-    "reasoning": <YOUR REASONING>,
+    "reasoning": "<YOUR REASONING>",
     "classification": {
-        "action": "BACKTRACK_TO_CALLEES",
+        "action": "BACKTRACK_TO_CALLEE",
         "callee_for_backtracking": <THE CALLEE TO BACKTRACK TO>
     }
 }

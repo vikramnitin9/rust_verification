@@ -2,6 +2,7 @@
 
 import json
 from json import JSONDecodeError
+from typing import Any, cast
 
 CBMC_COMMENT_PREFIX = "// CBMC_ANNOTATION: "
 
@@ -48,6 +49,32 @@ def get_lines_with_suffix(text: str, suffix: str) -> list[str]:
     return [line for line in lines if line.endswith(suffix)]
 
 
+def get_dict_from_json(json_text: str) -> dict[str, Any]:
+    """Return a dictionary parsed from a string representation of a JSON object.
+
+    Args:
+        json_text (str): A string representation of a JSON object.
+
+    Raises:
+        RuntimeError: Raised when the string or JSON cannot be parsed.
+
+    Returns:
+        dict[str, Any]: A dictionary parsed from a string representation of a JSON object.
+    """
+    json_text = json_text.strip()
+    if json_text.startswith("```json") or json_text.endswith("```"):
+        # The LLM likely did not follow instructions to return just the plain object.
+        json_text = json_text.strip().removeprefix("```json").removesuffix("```")
+    try:
+        return cast("dict[str, Any]", json.loads(json_text))
+    except JSONDecodeError as je:
+        msg = f"The LLM failed to return a valid JSON object: {json_text}, error = {je}"
+        raise RuntimeError(msg) from je
+    except (TypeError, ValueError) as e:
+        msg = f"Error while casting an LLM response to a dictionary type: {e}"
+        raise RuntimeError(msg) from e
+
+
 def get_value_of_field_with_key(json_text: str, key: str) -> str:
     """Return the value of the field in the text mapping to the key.
 
@@ -62,12 +89,8 @@ def get_value_of_field_with_key(json_text: str, key: str) -> str:
     Returns:
         str: The value of the field in the text mapping to the key.
     """
-    json_text = json_text.strip()
-    if json_text.startswith("```json") or json_text.endswith("```"):
-        # The LLM likely did not follow instructions to return just the plain object.
-        json_text = json_text.strip().removeprefix("```json").removesuffix("```")
     try:
-        return str(json.loads(json_text)[key])
+        return str(get_dict_from_json(json_text=json_text)[key])
     except JSONDecodeError as je:
         msg = f"The LLM failed to return a valid JSON object: {json_text}, error = {je}"
         raise RuntimeError(msg) from je

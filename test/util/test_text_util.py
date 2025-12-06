@@ -1,5 +1,7 @@
 from util import text_util
 
+import pytest
+
 def test_get_text_with_prefix_no_results():
     text = """
     Test
@@ -255,3 +257,24 @@ def test_count_suffix_matches() -> None:
         ** 5 of 69 failed (4 iterations)
         VERIFICATION FAILED"""
     assert 5 == text_util.count_lines_with_suffix(text, suffix="FAILURE")
+
+def test_get_dict_from_json_no_nesting() -> None:
+    json_text = '{ "foo": "bar", "baz": "test" }'
+    assert text_util.get_dict_from_json(json_text=json_text) == {
+        "foo": "bar",
+        "baz": "test"
+    }
+
+def test_get_dict_from_json_error() -> None:
+    json_text = '"foo": "bar", "baz": "test"'
+    with pytest.raises(RuntimeError):
+        text_util.get_dict_from_json(json_text=json_text)
+
+def test_get_dict_from_json_has_nesting() -> None:
+    json_text = '{ "foo": "bar", "baz": { "nested_key": "nested_value" } }'
+    assert text_util.get_dict_from_json(json_text=json_text) == {
+        "foo": "bar",
+        "baz": {
+            "nested_key": "nested_value"
+        }
+    }

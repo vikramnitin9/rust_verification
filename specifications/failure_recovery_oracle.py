@@ -1,10 +1,10 @@
 """Class for an LLM-based oracle to determine failure recovery policies for specifications."""
 
 from models import LLMGen, get_llm_generation_with_model
-from util import ParsecResult
+from util import ParsecResult, text_util
 from verification import PromptBuilder
 
-from .failure_recovery_policy import FailureRecoveryPolicy
+from .failure_recovery_policy import AssumeSpec, BacktrackToCallee, FailureRecoveryPolicy
 from .specified_function_sample import SpecifiedFunctionSample
 
 
@@ -69,8 +69,32 @@ class FailureRecoveryOracle:
         return self._parse_classification_response(response)
 
     def _parse_classification_response(self, llm_response: str) -> FailureRecoveryPolicy:
-        """TODO: Document me."""
-        # reasoning = text_util.get_value_of_field_with_key(llm_response, key="reasoning")
-        # classification = text_util.get_value_of_field_with_key(llm_response, key="next_step")
-        # TODO: Finish implementing me.
-        raise NotImplementedError()
+        """Return a failure recovery policy parsed from an LLM response.
+
+        Args:
+            llm_response (str): The LLM response from which to parse a recovery policy.
+
+        Raises:
+            RuntimeError: Raised when the LLM response is malformed or does not match the schema
+                provided in `failure-recovery-classification-prompt-template.txt`.
+
+        Returns:
+            FailureRecoveryPolicy: A failure recovery policy parsed from an LLM response.
+        """
+        response_dict = text_util.get_dict_from_json(llm_response)
+        reasoning = response_dict.get("reasoning")
+        classification_data = response_dict.get("classification")
+        if not (classification_data and reasoning):
+            msg = "The model failed to provide a complete failure recovery policy"
+            raise RuntimeError(msg)
+        match classification_data.get("action"):
+            case "ASSUME_SPEC":
+                return AssumeSpec(reasoning)
+            case "BACKTRACK_TO_CALLEE":
+                callee_to_backtrack_to = classification_data.get("callee_for_backtracking")
+                if not callee_to_backtrack_to:
+                    raise RuntimeError("The model failed to specify a callee for backtracking")
+                return BacktrackToCallee(reasoning, callee_to_backtrack_to)
+            case _:
+                msg = "The model failed to provide a complete failure recovery policy"
+                raise RuntimeError(msg)
