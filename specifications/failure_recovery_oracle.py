@@ -1,33 +1,11 @@
 """Class for an LLM-based oracle to determine failure recovery policies for specifications."""
 
-from dataclasses import dataclass
-from enum import Enum
-
 from models import LLMGen, get_llm_generation_with_model
-from util import ParsecResult, text_util
+from util import ParsecResult
 from verification import PromptBuilder
 
+from .failure_recovery_policy import FailureRecoveryPolicy
 from .specified_function_sample import SpecifiedFunctionSample
-
-
-class FailureRecoveryPolicy(str, Enum):
-    """Represent failure recovery policies."""
-
-    ASSUME_SPEC = "ASSUME_SPEC"
-    BACKTRACK_TO_CALLEES = "BACKTRACK_TO_CALLEES"
-
-
-@dataclass(frozen=True)
-class VerificationFailureRecoveryPolicyClassification:
-    """Represent an LLM-based classification of a verification failure.
-
-    Attributes:
-        reasoning (str): The reasoning produced by the model for the policy it selected.
-        policy (FailureRecoveryPolicy): The failure recovery policy.
-    """
-
-    reasoning: str
-    policy: FailureRecoveryPolicy
 
 
 class FailureRecoveryOracle:
@@ -50,7 +28,7 @@ class FailureRecoveryOracle:
 
     def determine_recovery_policy(
         self, function_name: str, failing_specification_samples: list[SpecifiedFunctionSample]
-    ) -> VerificationFailureRecoveryPolicyClassification:
+    ) -> FailureRecoveryPolicy:
         """Return the recovery policy decided by the LLM for the function that fails to verify.
 
         An LLM acts as an oracle to determine the next step for a function that fails to verify
@@ -69,7 +47,7 @@ class FailureRecoveryOracle:
                 function samples that fail to verify.
 
         Returns:
-            VerificationFailureRecoveryPolicyClassification: The recovery policy classification.
+            FailureRecoveryPolicy: The recovery policy classification.
         """
         sample_with_fewest_errors = min(
             failing_specification_samples, key=lambda sample: sample.get_num_verification_failures()
@@ -80,7 +58,9 @@ class FailureRecoveryOracle:
             raise ValueError(msg)
         verification_failure_classification_prompt = (
             self._prompt_builder.failure_recovery_classification_prompt(
-                parsec_function_for_sample, sample_with_fewest_errors.verification_result
+                parsec_function_for_sample,
+                sample_with_fewest_errors.verification_result,
+                self._parsec_result,
             )
         )
 
@@ -88,20 +68,9 @@ class FailureRecoveryOracle:
         response = self._model.gen(messages=conversation, temperature=0.0, top_k=1)[0]
         return self._parse_classification_response(response)
 
-    def _parse_classification_response(
-        self, llm_response: str
-    ) -> VerificationFailureRecoveryPolicyClassification:
-        """Return a verification failure classification parsed from an LLM response.
-
-        Args:
-            llm_response (str): The LLM response from which to parse a verification failure.
-
-        Returns:
-            VerificationFailureClassification: A verification failure classification parsed from an
-                LLM response.
-        """
-        next_step = text_util.get_value_of_field_with_key(llm_response, key="next_step")
-        reasoning = text_util.get_value_of_field_with_key(llm_response, key="reasoning")
-        return VerificationFailureRecoveryPolicyClassification(
-            reasoning=reasoning, policy=FailureRecoveryPolicy[next_step]
-        )
+    def _parse_classification_response(self, llm_response: str) -> FailureRecoveryPolicy:
+        """TODO: Document me."""
+        # reasoning = text_util.get_value_of_field_with_key(llm_response, key="reasoning")
+        # classification = text_util.get_value_of_field_with_key(llm_response, key="next_step")
+        # TODO: Finish implementing me.
+        raise NotImplementedError()

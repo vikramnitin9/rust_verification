@@ -16,8 +16,9 @@ from pathlib import Path
 from loguru import logger
 
 from specifications import (
+    AssumeSpec,
+    BacktrackToCallee,
     FailureRecoveryOracle,
-    FailureRecoveryPolicy,
     LlmSpecificationGenerator,
     SpecifiedFunctionSample,
 )
@@ -239,11 +240,11 @@ def recover_from_failure(
     """
     logger.debug(f"Determining failure recovery policy for '{function_name}'")
     failure_recovery_oracle = FailureRecoveryOracle(MODEL, parsec_result)
-    failure_recovery_classification = failure_recovery_oracle.determine_recovery_policy(
+    failure_recovery_policy = failure_recovery_oracle.determine_recovery_policy(
         function_name, [sample for _, _, sample in failing_samples]
     )
-    match failure_recovery_classification.policy:
-        case FailureRecoveryPolicy.ASSUME_SPEC:
+    match failure_recovery_policy:
+        case AssumeSpec(_):
             trusted_functions.append(function_name)
             _, _, sample_with_fewest_failures = heapq.heappop(failing_samples)
             _update_with_specified_function(
@@ -253,7 +254,7 @@ def recover_from_failure(
                 parsec_result,
                 output_file_path,
             )
-        case FailureRecoveryPolicy.BACKTRACK_TO_CALLEES:
+        case BacktrackToCallee(_, _):
             # TODO: Implement me.
             pass
 

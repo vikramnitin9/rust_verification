@@ -76,13 +76,17 @@ class PromptBuilder:
         )
 
     def failure_recovery_classification_prompt(
-        self, function: ParsecFunction, verification_result: VerificationResult
+        self,
+        function: ParsecFunction,
+        verification_result: VerificationResult,
+        parsec_result: ParsecResult,
     ) -> str:
         """Return a prompt directing the model to classify a verification failure for a function.
 
         Args:
             function (str): The function that does not verify.
             verification_result (VerificationResult): The verification result for the function.
+            parsec_result (ParsecResult): The Parsec result.
 
         Returns:
             str: A prompt directing the model to classify a verification failure.
@@ -93,11 +97,18 @@ class PromptBuilder:
         explicit_failure_lines = "\n".join(
             text_util.get_lines_with_suffix(verification_result.stdout, suffix="FAILURE")
         )
+        callees_with_specs = [
+            callee for callee in parsec_result.get_callees(function) if callee.is_specified()
+        ]
+        callee_specs = (
+            self._get_callee_specs(function.name, callees_with_specs) if callees_with_specs else ""
+        )
         return PromptBuilder.FAILURE_RECOVERY_CLASSIFICATION_PROMPT_TEMPLATE.substitute(
             function_name=function.name,
             function_with_specifications=function.get_source_code(
                 include_documentation_comments=True, include_line_numbers=True
             ),
+            callees_for_function_with_specifications=callee_specs,
             failure_lines=explicit_failure_lines,
             stderr=verification_result.stderr,
         )
