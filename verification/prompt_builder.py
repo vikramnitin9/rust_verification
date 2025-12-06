@@ -3,9 +3,9 @@
 from pathlib import Path
 from string import Template
 
-from util import ParsecFunction, ParsecResult
+from util import ParsecFunction, ParsecResult, text_util
 
-from .verification_result import Failure
+from .verification_result import Failure, VerificationResult
 
 
 class PromptBuilder:
@@ -16,6 +16,9 @@ class PromptBuilder:
     ).read_text()
     SPECIFICATION_REPAIR_PROMPT_TEMPLATE = Template(
         Path("./prompts/repair-specifications-prompt-template.txt").read_text()
+    )
+    FAILURE_RECOVERY_CLASSIFICATION_PROMPT_TEMPLATE = Template(
+        Path("./prompts/failure-recovery-classification-prompt-template.txt").read_text()
     )
     SOURCE_PLACEHOLDER = "<<SOURCE>>"
     CALLEE_CONTEXT_PLACEHOLDER = "<<CALLEE_CONTEXT>>"
@@ -45,37 +48,69 @@ class PromptBuilder:
 
         return prompt.replace(PromptBuilder.CALLEE_CONTEXT_PLACEHOLDER, callee_context)
 
-    def specification_repair_prompt(self, function_name: str, verification_failure: Failure) -> str:
+    def specification_repair_prompt(
+        self, failing_function: ParsecFunction, verification_failure: Failure
+    ) -> str:
         """Return a prompt directing the model to repair a faulty specification.
 
         Args:
-            function_name (str): The name of the function that does not verify.
+            failing_function (ParsecFunction): The function that does not verify.
             verification_failure (Failure): The failed result of verifying the function.
 
         Returns:
             str: A prompt directing the model to repair a faulty specification.
         """
-        parsec_result_for_candidate_file = ParsecResult.parse_source_with_cbmc_annotations(
-            verification_failure.source
-        )
-        function = parsec_result_for_candidate_file.get_function(function_name)
-        if not function:
-            msg = f"'{function_name}' was missing from the Parsec result"
-            raise RuntimeError(msg)
         lines_involving_failure = [
             line for line in verification_failure.stdout.splitlines() if "FAILURE" in line
         ]
-        candidate_function_source_code = function.get_source_code(
+        candidate_function_source_code = failing_function.get_source_code(
             include_documentation_comments=True,
             include_line_numbers=True,
             should_uncomment_cbmc_annotations=True,
         )
-        parsec_result_for_candidate_file.file_path.unlink()
         return PromptBuilder.SPECIFICATION_REPAIR_PROMPT_TEMPLATE.safe_substitute(
-            function_name=function.name,
+            function_name=failing_function.name,
             function_implementation=candidate_function_source_code,
             failure_lines="\n".join(lines_involving_failure),
             stderr=verification_failure.stderr,
+        )
+
+    def failure_recovery_classification_prompt(
+        self,
+        function: ParsecFunction,
+        verification_result: VerificationResult,
+        parsec_result: ParsecResult,
+    ) -> str:
+        """Return a prompt directing the model to classify a verification failure for a function.
+
+        Args:
+            function (str): The function that does not verify.
+            verification_result (VerificationResult): The verification result for the function.
+            parsec_result (ParsecResult): The Parsec result.
+
+        Returns:
+            str: A prompt directing the model to classify a verification failure.
+        """
+        if not isinstance(verification_result, Failure):
+            msg = f"Unable to create a failure recovery classification prompt for '{function.name}'"
+            raise TypeError(msg)
+        explicit_failure_lines = "\n".join(
+            text_util.get_lines_with_suffix(verification_result.stdout, suffix="FAILURE")
+        )
+        callees_with_specs = [
+            callee for callee in parsec_result.get_callees(function) if callee.is_specified()
+        ]
+        callee_specs = (
+            self._get_callee_specs(function.name, callees_with_specs) if callees_with_specs else ""
+        )
+        return PromptBuilder.FAILURE_RECOVERY_CLASSIFICATION_PROMPT_TEMPLATE.substitute(
+            function_name=function.name,
+            function_with_specifications=function.get_source_code(
+                include_documentation_comments=True, include_line_numbers=True
+            ),
+            callees_for_function_with_specifications=callee_specs,
+            failure_lines=explicit_failure_lines,
+            stderr=verification_result.stderr,
         )
 
     def _get_callee_specs(self, caller: str, callees_with_specs: list[ParsecFunction]) -> str:

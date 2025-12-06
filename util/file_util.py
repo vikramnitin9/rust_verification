@@ -48,3 +48,19 @@ def overwrite_file(content: str, path_to_file_to_overwrite: Path) -> None:
         path_to_file_to_overwrite (Path): The path to the file to overwrite.
     """
     path_to_file_to_overwrite.write_text(content, encoding="utf-8")
+
+
+def get_directory_name_for_generated_code(path_to_file: Path, function_name: str) -> Path:
+    """Return the directory name for generated code for the file and the function.
+
+    For example, the directory name for the path 'data/qsort.c' and the function 'partition'
+    should be "qsort/partition".
+
+    Args:
+        path_to_file (Path): The path to the file for which code is being generated.
+        function_name (str): The name of the function for which code is being generated.
+
+    Returns:
+        Path: The directory name for generated code for the file and function.
+    """
+    return path_to_file.stem / Path(function_name)

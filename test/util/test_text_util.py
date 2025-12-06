@@ -1,5 +1,31 @@
 from util import text_util
 
+import pytest
+
+def test_get_text_with_prefix_no_results():
+    text = """
+    Test
+    Hello
+    world
+    """
+    assert text_util.get_lines_with_suffix(text, suffix="no_suffix") == []
+
+def test_get_text_with_prefix_results():
+    text = """
+    this line ends with a suffix
+    prefix this line does not end with
+    suffix
+    """
+    assert text_util.get_lines_with_suffix(text, "suffix") == ["this line ends with a suffix", "suffix"]
+
+def test_get_text_with_prefix_whitespace():
+    text = """
+    this line ends with a suffix  
+    prefix this line does not end with
+    suffix     
+    """
+    assert text_util.get_lines_with_suffix(text, "suffix") == ["this line ends with a suffix", "suffix"]
+
 def test_comment_out_no_specs() -> None:
     lines = [
         "int partition(int arr[], int low, int high)\n",
@@ -196,3 +222,59 @@ def test_uncomment_cbmc_specs_multi_line_specs() -> None:
         "}\n"
     ]
     assert lines_with_specs == text_util.uncomment_cbmc_annotations(lines_with_commented_out_specs)
+
+def test_count_suffix_no_matches() -> None:
+    text = """/app/specs/qsort.c function swap
+        [swap.pointer_dereference.2] line 7 dereference failure: pointer invalid in *a: UNKNOWN
+        [swap.pointer_dereference.3] line 7 dereference failure: deallocated dynamic object in *a: UNKNOWN
+        [swap.pointer_dereference.4] line 7 dereference failure: dead object in *a: UNKNOWN
+        [swap.pointer_dereference.6] line 7 dereference failure: invalid integer address in *a: UNKNOWN
+        [swap.pointer_dereference.8] line 8 dereference failure: pointer invalid in *b: UNKNOWN
+        [swap.pointer_dereference.9] line 8 dereference failure: deallocated dynamic object in *b: UNKNOWN
+        [swap.pointer_dereference.10] line 8 dereference failure: dead object in *b: UNKNOWN
+        [swap.pointer_dereference.12] line 8 dereference failure: invalid integer address in *b: UNKNOWN
+
+        ** 0 of 69 failed (4 iterations)
+        VERIFICATION FAILED"""
+    assert 0 == text_util.count_lines_with_suffix(text, suffix="FAILURE")
+
+def test_count_suffix_matches() -> None:
+    text = """/app/specs/qsort.c function swap
+        [swap.pointer_dereference.1] line 7 dereference failure: pointer NULL in *a: FAILURE
+        [swap.pointer_dereference.2] line 7 dereference failure: pointer invalid in *a: UNKNOWN
+        [swap.pointer_dereference.3] line 7 dereference failure: deallocated dynamic object in *a: UNKNOWN
+        [swap.pointer_dereference.4] line 7 dereference failure: dead object in *a: UNKNOWN
+        [swap.pointer_dereference.5] line 7 dereference failure: pointer outside object bounds in *a: FAILURE
+        [swap.pointer_dereference.6] line 7 dereference failure: invalid integer address in *a: UNKNOWN
+        [swap.assigns.1] line 8 Check that *a is assignable: FAILURE
+        [swap.pointer_dereference.7] line 8 dereference failure: pointer NULL in *b: FAILURE
+        [swap.pointer_dereference.8] line 8 dereference failure: pointer invalid in *b: UNKNOWN
+        [swap.pointer_dereference.9] line 8 dereference failure: deallocated dynamic object in *b: UNKNOWN
+        [swap.pointer_dereference.10] line 8 dereference failure: dead object in *b: UNKNOWN
+        [swap.pointer_dereference.11] line 8 dereference failure: pointer outside object bounds in *b: FAILURE
+        [swap.pointer_dereference.12] line 8 dereference failure: invalid integer address in *b: UNKNOWN
+
+        ** 5 of 69 failed (4 iterations)
+        VERIFICATION FAILED"""
+    assert 5 == text_util.count_lines_with_suffix(text, suffix="FAILURE")
+
+def test_get_dict_from_json_no_nesting() -> None:
+    json_text = '{ "foo": "bar", "baz": "test" }'
+    assert text_util.get_dict_from_json(json_text=json_text) == {
+        "foo": "bar",
+        "baz": "test"
+    }
+
+def test_get_dict_from_json_error() -> None:
+    json_text = '"foo": "bar", "baz": "test"'
+    with pytest.raises(RuntimeError):
+        text_util.get_dict_from_json(json_text=json_text)
+
+def test_get_dict_from_json_has_nesting() -> None:
+    json_text = '{ "foo": "bar", "baz": { "nested_key": "nested_value" } }'
+    assert text_util.get_dict_from_json(json_text=json_text) == {
+        "foo": "bar",
+        "baz": {
+            "nested_key": "nested_value"
+        }
+    }
