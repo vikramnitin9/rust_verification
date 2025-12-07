@@ -1,0 +1,28 @@
+Your job is to re-generate specifications for $function_to_backtrack_to,
+which is a callee of $function_under_recovery.
+
+The reasoning for re-generating specifications for $function_to_backtrack_to is:
+
+$backtracking_reasoning
+
+Here is the implementation of $function_under_recovery with the specifications
+that are failing to verify:
+
+$function_under_recovery_implementation
+
+Now, could you re-write a "__CPROVER_requires" and "__CPROVER_ensures" contract for
+$function_to_backtrack_to? The current implementation is below:
+
+```c
+$function_to_backtrack_to_implementation
+```
+
+Remember to add the contracts ("__CPROVER_requires" and "__CPROVER_ensures") in the function header, not the function body.
+Give me the entire function with specifications in the format below:
+
+{ "function_with_specs": "<SOURCE CODE HERE>" }
+
+There is no need to delimit the format with tags, return the plain object and nothing else.
+Do not redefine any other functions; assume they are already available elsewhere in the program.
+Do not include any header files; assume that all necessary headers are already included.
+Do not include explanations.

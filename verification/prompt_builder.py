@@ -20,6 +20,9 @@ class PromptBuilder:
     FAILURE_RECOVERY_CLASSIFICATION_PROMPT_TEMPLATE = Template(
         Path("./prompts/failure-recovery-classification-prompt-template.txt").read_text()
     )
+    BACKTRACKING_PROMPT_TEMPLATE = Template(
+        Path("./prompts/backtracking-prompt-template.txt").read_text()
+    )
     SOURCE_PLACEHOLDER = "<<SOURCE>>"
     CALLEE_CONTEXT_PLACEHOLDER = "<<CALLEE_CONTEXT>>"
 
@@ -111,6 +114,38 @@ class PromptBuilder:
             callees_for_function_with_specifications=callee_specs,
             failure_lines=explicit_failure_lines,
             stderr=verification_result.stderr,
+        )
+
+    def backtracking_prompt(
+        self,
+        function_under_failure_recovery: ParsecFunction,
+        callee: ParsecFunction,
+        backtracking_reasoning: str,
+    ) -> str:
+        """Return the prompt used for backtracking.
+
+        TODO: Should the previously-generated specs be included in the backtracking prompt?
+
+        Args:
+            function_under_failure_recovery (ParsecFunction): The function for which to execute
+                callee specification backtracking.
+            callee (ParsecFunction): The callee for which to execute backtracking.
+            backtracking_reasoning (str): The reasoning provided by an LLM in an earlier
+                conversation for backtracking.
+
+        Returns:
+            str: The prompt used for backtracking.
+        """
+        return PromptBuilder.BACKTRACKING_PROMPT_TEMPLATE.substitute(
+            function_to_backtrack_to=callee.name,
+            function_under_recovery=function_under_failure_recovery.name,
+            backtracking_reasoning=backtracking_reasoning,
+            function_under_recovery_implementation=function_under_failure_recovery.get_source_code(
+                include_documentation_comments=True, should_uncomment_cbmc_annotations=True
+            ),
+            function_to_backtrack_to_implementation=callee.get_source_code(
+                include_documentation_comments=True, should_uncomment_cbmc_annotations=True
+            ),
         )
 
     def _get_callee_specs(self, caller: str, callees_with_specs: list[ParsecFunction]) -> str:

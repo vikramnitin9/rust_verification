@@ -1,7 +1,7 @@
 """Module for generating and repairing specifications via LLMs."""
 
 from models import LLMGen, ModelError, get_llm_generation_with_model
-from util import ParsecResult
+from util import ParsecFunction, ParsecResult
 from verification import Failure, PromptBuilder
 
 from .llm_invocation_result import LlmInvocationResult
@@ -115,4 +115,50 @@ class LlmSpecificationGenerator:
             return LlmInvocationResult(repair_prompt, response)
         except ModelError as e:
             msg = f"Error during specification repair for '{failing_function.name}': {e}"
+            raise RuntimeError(msg) from e
+
+    def backtrack_to_callee(
+        self,
+        function: ParsecFunction,
+        callee_name: str,
+        backtracking_reasoning: str,
+        conversation: list[dict[str, str]],
+    ) -> LlmInvocationResult:
+        """Return the result of backtracking (i.e., regenerating a callee's spec) for a function.
+
+        Args:
+            function (ParsecFunction): The function for which to execute backtracking.
+            callee_name (str): The callee for which to regenerate specifications.
+            backtracking_reasoning (str): The reasoning for backtracking.
+            conversation: list[dict[str, str]]: The LLM conversation, so far.
+
+        Raises:
+            ValueError: Raised when the callee is missing from the Parsec result.
+            RuntimeError: If the LLM does not return at least one result.
+
+        Returns:
+            LlmInvocationResult: The prompt used to invoke the LLM and its response.
+        """
+        callee = self._parsec_result.get_function(callee_name)
+        if not callee:
+            msg = (
+                f"Callee '{callee_name}' for function '{function.name}' "
+                "was missing from the Parsec result"
+            )
+            raise ValueError(msg)
+        backtracking_prompt = self._prompt_builder.backtracking_prompt(
+            function_under_failure_recovery=function,
+            callee=callee,
+            backtracking_reasoning=backtracking_reasoning,
+        )
+        try:
+            response = self._model.gen(conversation, top_k=1, temperature=0.0)
+            if len(response) < 1:
+                raise RuntimeError("Model failed to return a response for backtracking")
+            return LlmInvocationResult(backtracking_prompt, response)
+        except ModelError as e:
+            msg = (
+                f"Error during backtracking for function '{function.name}' and callee "
+                f"'{callee_name}': {e}"
+            )
             raise RuntimeError(msg) from e

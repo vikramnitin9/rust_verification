@@ -212,7 +212,15 @@ def main() -> None:
             f"for {args.num_specification_generation_samples} samples"
         )
         recover_from_failure(
-            func_name, parsec_result, failing_samples_copy, trusted_functions, output_file_path
+            func_name,
+            parsec_result,
+            failing_samples_copy,
+            specification_generator,
+            trusted_functions,
+            verified_functions,
+            verifier,
+            conversation,
+            output_file_path,
         )
 
     if args.save_conversation:
@@ -225,7 +233,11 @@ def recover_from_failure(
     function_name: str,
     parsec_result: ParsecResult,
     failing_samples: list[tuple[int, int, SpecifiedFunctionSample]],
+    llm_specification_generator: LlmSpecificationGenerator,
     trusted_functions: list[str],
+    verified_functions: list[str],
+    verifier: VerificationClient,
+    conversation: list[dict[str, str]],
     output_file_path: Path,
 ) -> None:
     """Implement recovery strategy when the generate/repair loop for a function fails.
@@ -235,7 +247,11 @@ def recover_from_failure(
         parsec_result (ParsecResult): The Parsec result.
         failing_samples (list[tuple[int, int, SpecifiedFunctionSample]]): The min-heap of failing
             specification samples for the function.
+        llm_specification_generator (LlmSpecificationGenerator): The LLM specification generator.
         trusted_functions (list[str]): The list of trusted function names.
+        verified_functions (list[str]): The list of verified function names.
+        verifier (VerificationClient): The verification client.
+        conversation (list[dict[str, str]]): The LLM conversation, so far.
         output_file_path (Path): The path to the output file.
     """
     logger.debug(f"Determining failure recovery policy for '{function_name}'")
@@ -243,10 +259,10 @@ def recover_from_failure(
     failure_recovery_policy = failure_recovery_oracle.determine_recovery_policy(
         function_name, [sample for _, _, sample in failing_samples]
     )
+    _, _, sample_with_fewest_failures = heapq.heappop(failing_samples)
     match failure_recovery_policy:
         case AssumeSpec(_):
             trusted_functions.append(function_name)
-            _, _, sample_with_fewest_failures = heapq.heappop(failing_samples)
             _update_with_specified_function(
                 function_name,
                 sample_with_fewest_failures.specified_function,
@@ -254,9 +270,18 @@ def recover_from_failure(
                 parsec_result,
                 output_file_path,
             )
-        case BacktrackToCallee(_, _):
-            # TODO: Implement me.
-            pass
+        case BacktrackToCallee(backtracking_reasoning, callee_to_backtrack_to):
+            backtracking_response = llm_specification_generator.backtrack_to_callee(
+                function=sample_with_fewest_failures.get_parsec_representation(),
+                callee_name=callee_to_backtrack_to,
+                backtracking_reasoning=backtracking_reasoning,
+                conversation=conversation,
+            )
+            regenerated_callee_specs = SpecifiedFunctionSample.get_specified_function_samples(
+                callee_to_backtrack_to, backtracking_response, parsec_result, output_file_path
+            )
+            # Collect the specs that verify from the regenerated callee specs.
+            # See if the function under failure recovery verifies with any of them.
 
 
 def _get_repaired_specification(
