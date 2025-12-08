@@ -61,3 +61,19 @@ The Kani specifications in `data/rust_qsort/main.rs` are incomplete and currentl
 ```sh
 make test
 ```
+
+## Debugging
+
+To debug a specification generation run (e.g., for `data/qsort.c`),
+  first run the following command:
+
+```sh
+% bash run.sh python -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 --wait-for-client ./generate_specs.py --file data/qsort.c
+```
+
+This effectively starts the container,
+  port-forwards it to 5678,
+  and suspends execution until the debugger is attached.
+
+Once you have executed the command above,
+  select "Python: Attach to Docker" from the "Run and Debug" sidebar.
