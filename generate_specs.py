@@ -297,8 +297,59 @@ def recover_from_failure(
                 # TODO: What should happen if none of the regenerated callee specs verify?
                 pass
             else:
-                # TODO: Try re-verifying the function under failure recovery with the specs.
-                pass
+                # Update the ParsecResult and output file with the verified callee specs.
+                logger.info(
+                    f"Successfully verified regenerated specs for callee '{callee_to_backtrack_to}'"
+                )
+                verified_callee = verifying_callee_specs[0]
+                _update_with_specified_function(
+                    callee_to_backtrack_to,
+                    verified_callee.specified_function,
+                    verified_callee.path_to_file,
+                    parsec_result,
+                    output_file_path,
+                )
+                verified_functions.append(callee_to_backtrack_to)
+
+                # Re-verify the original function with the updated callee specifications.
+                logger.info(
+                    f"Re-verifying '{function_name}' with updated callee '{callee_to_backtrack_to}' specs"
+                )
+                reverification_result = verifier.verify(
+                    function_name=function_name,
+                    names_of_verified_functions=verified_functions,
+                    names_of_trusted_functions=trusted_functions,
+                    file_path=sample_with_fewest_failures.path_to_file,
+                )
+
+                if isinstance(reverification_result, Success):
+                    logger.success(
+                        f"Re-verification succeeded for '{function_name}' after backtracking to '{callee_to_backtrack_to}'"
+                    )
+                    verified_functions.append(function_name)
+                    _update_with_specified_function(
+                        function_name,
+                        sample_with_fewest_failures.specified_function,
+                        sample_with_fewest_failures.path_to_file,
+                        parsec_result,
+                        output_file_path,
+                    )
+                else:
+                    logger.warning(
+                        f"Re-verification failed for '{function_name}' after backtracking, trusting the specification"
+                    )
+                    trusted_functions.append(function_name)
+                    _update_with_specified_function(
+                        function_name,
+                        sample_with_fewest_failures.specified_function,
+                        sample_with_fewest_failures.path_to_file,
+                        parsec_result,
+                        output_file_path,
+                    )
+
+                # Clean up temporary files for regenerated callee specs.
+                for callee_sample in regenerated_callee_with_specs:
+                    callee_sample.delete_temporary_files()
 
 
 def _get_repaired_specification(
