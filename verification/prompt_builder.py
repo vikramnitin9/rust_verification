@@ -103,15 +103,19 @@ class PromptBuilder:
         callees_with_specs = [
             callee for callee in parsec_result.get_callees(function) if callee.is_specified()
         ]
-        callee_specs = (
-            self._get_callee_specs(function.name, callees_with_specs) if callees_with_specs else ""
+        callee_declarations = (
+            self._get_callees_for_failure_recovery_prompt(function.name, callees_with_specs)
+            if callees_with_specs
+            else ""
         )
         return PromptBuilder.FAILURE_RECOVERY_CLASSIFICATION_PROMPT_TEMPLATE.substitute(
             function_name=function.name,
             function_with_specifications=function.get_source_code(
-                include_documentation_comments=True, include_line_numbers=True
+                include_documentation_comments=True,
+                include_line_numbers=True,
+                should_uncomment_cbmc_annotations=True,
             ),
-            callees_for_function_with_specifications=callee_specs,
+            callees_for_function_with_specifications=callee_declarations,
             failure_lines=explicit_failure_lines,
             stderr=verification_result.stderr,
         )
@@ -151,6 +155,9 @@ class PromptBuilder:
     def _get_callee_specs(self, caller: str, callees_with_specs: list[ParsecFunction]) -> str:
         """Return the callee specifications to add to a prompt.
 
+        Note: The source code of the callees is not included in the output. See
+        `_get_callees_for_failure_recovery_prompt` for a prompt component that includes source code.
+
         Args:
             caller (str): The caller function.
             callees_with_specs (list[ParsecFunction]): The list of callees with specifications.
@@ -160,3 +167,23 @@ class PromptBuilder:
         """
         callee_context = "\n".join(str(callee) for callee in callees_with_specs)
         return f"{caller} has the following callees:\n{callee_context}"
+
+    def _get_callees_for_failure_recovery_prompt(
+        self, caller: str, callees_with_specs: list[ParsecFunction]
+    ) -> str:
+        """Return the declaration (with CBMC annotations) of the caller's callees.
+
+        Args:
+            caller (str): The name of the caller function.
+            callees_with_specs (list[ParsecFunction]): The list of callees with specs.
+
+        Returns:
+            str: A string comprising the declaration of the caller's callees.
+        """
+        callee_component = "\n".join(
+            callee.get_source_code(
+                include_documentation_comments=True, should_uncomment_cbmc_annotations=True
+            )
+            for callee in callees_with_specs
+        )
+        return f"{caller} has the following callees:\n\n{callee_component}"

@@ -151,6 +151,8 @@ class LlmSpecificationGenerator:
             callee=callee,
             backtracking_reasoning=backtracking_reasoning,
         )
+        backtracking_message = {"role": "user", "content": backtracking_prompt}
+        conversation.append(backtracking_message)
         try:
             response = self._model.gen(conversation, top_k=1, temperature=0.0)
             if len(response) < 1:
