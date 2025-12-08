@@ -61,3 +61,41 @@ The Kani specifications in `data/rust_qsort/main.rs` are incomplete and currentl
 ```sh
 make test
 ```
+
+## Debugging
+
+Add the following to your `.vscode/launch.json` configuration,
+  or check that it already exists:
+
+```json
+{
+    "name": "Python: Attach to Docker",
+    "type": "debugpy",
+    "request": "attach",
+    "connect": {
+        "host": "localhost",
+        "port": 5678
+    },
+    "pathMappings": [
+        {
+            "localRoot": "${workspaceFolder}",
+            "remoteRoot": "/app"
+        }
+    ],
+    "justMyCode": true
+}
+```
+
+To debug a specification generation run (e.g., for `data/qsort.c`),
+  first run the following command:
+
+```sh
+% bash run.sh python -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 --wait-for-client ./generate_specs.py --file data/qsort.c
+```
+
+This effectively starts the container,
+  port-forwards it to 5678,
+  and suspends execution until the debugger is attached.
+
+Once you have executed the command above,
+  select "Python: Attach to Docker" from the "Run and Debug" sidebar.
