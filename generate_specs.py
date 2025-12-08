@@ -309,7 +309,12 @@ def recover_from_failure(
                     parsec_result,
                     output_file_path,
                 )
-                verified_functions.append(callee_to_backtrack_to)
+                # Remove callee from trusted_functions if present, since we now have verified specs
+                if callee_to_backtrack_to in trusted_functions:
+                    trusted_functions.remove(callee_to_backtrack_to)
+                # Add to verified_functions only if not already present
+                if callee_to_backtrack_to not in verified_functions:
+                    verified_functions.append(callee_to_backtrack_to)
 
                 # Re-verify the original function with the updated callee specifications.
                 logger.info(
@@ -326,7 +331,9 @@ def recover_from_failure(
                     logger.success(
                         f"Re-verification succeeded for '{function_name}' after backtracking to '{callee_to_backtrack_to}'"
                     )
-                    verified_functions.append(function_name)
+                    # Add to verified_functions only if not already present
+                    if function_name not in verified_functions:
+                        verified_functions.append(function_name)
                     _update_with_specified_function(
                         function_name,
                         sample_with_fewest_failures.specified_function,
@@ -338,7 +345,9 @@ def recover_from_failure(
                     logger.warning(
                         f"Re-verification failed for '{function_name}' after backtracking, trusting the specification"
                     )
-                    trusted_functions.append(function_name)
+                    # Add to trusted_functions only if not already present
+                    if function_name not in trusted_functions:
+                        trusted_functions.append(function_name)
                     _update_with_specified_function(
                         function_name,
                         sample_with_fewest_failures.specified_function,
