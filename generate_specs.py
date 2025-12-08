@@ -172,7 +172,7 @@ def main() -> None:
         logger.warning(f"Verification failed for '{func_name}' for all samples, attempting repair.")
 
         # Keep a copy of the failing samples in case failure recovery is necessary.
-        failing_samples_copy = copy.deepcopy(failing_samples)
+        failing_samples_copy = copy.copy(failing_samples)
 
         is_repair_successful = False
         while failing_samples:
@@ -277,11 +277,28 @@ def recover_from_failure(
                 backtracking_reasoning=backtracking_reasoning,
                 conversation=conversation,
             )
-            regenerated_callee_specs = SpecifiedFunctionSample.get_specified_function_samples(
+            regenerated_callee_with_specs = SpecifiedFunctionSample.get_specified_function_samples(
                 callee_to_backtrack_to, backtracking_response, parsec_result, output_file_path
             )
-            # Collect the specs that verify from the regenerated callee specs.
-            # See if the function under failure recovery verifies with any of them.
+            verifying_callee_specs: list[SpecifiedFunctionSample] = [
+                callee
+                for callee in regenerated_callee_with_specs
+                if isinstance(
+                    verifier.verify(
+                        callee.function_name,
+                        verified_functions,
+                        trusted_functions,
+                        callee.path_to_file,
+                    ),
+                    Success,
+                )
+            ]
+            if not verifying_callee_specs:
+                # TODO: What should happen if none of the regenerated callee specs verify?
+                pass
+            else:
+                # TODO: Try re-verifying the function under failure recovery with the specs.
+                pass
 
 
 def _get_repaired_specification(
