@@ -36,7 +36,7 @@ if docker info -f "{{println .SecurityOptions}}" | grep -q rootless; then
                            -v "$(pwd)/translate_specs.py:/app/translate_specs.py" \
                            cbmc:latest "${CMD[@]}"
 else
-    docker run --rm $INTERACTIVE -v "$(pwd)/data:/app/data" \
+    docker run --rm $INTERACTIVE -p 5678:5678 -v "$(pwd)/data:/app/data" \
                     -v "$(pwd)/analysis:/app/analysis" \
                     -v "$(pwd)/docs:/app/docs" \
                     -v "$(pwd)/models:/app/models" \
