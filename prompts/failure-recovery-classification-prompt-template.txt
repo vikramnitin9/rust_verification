@@ -3,13 +3,13 @@ for the function $function_name:
 
 $function_with_specifications
 
-$callees_for_function_with_specifications
-
 CBMC reports the following errors:
 
 $failure_lines
 
 $stderr
+
+$callees_for_function_with_specifications
 
 Classify the next step to take for handling this failure, choose from:
 
