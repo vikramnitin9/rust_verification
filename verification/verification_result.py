@@ -22,6 +22,7 @@ class Failure(VerificationResult):
         source (Path): The path to the file that failed to verify.
         stdout (str): The stdout output from an unsuccessful verification result.
         stderr (str): The stderr output from an unsuccessful verification result.
+        num_failures (int): The number of reported failures in an unsuccessful verification result.
     """
 
     source: Path

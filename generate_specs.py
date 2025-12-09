@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import heapq
 import json
 import pickle as pkl
@@ -14,7 +15,13 @@ from pathlib import Path
 
 from loguru import logger
 
-from specifications import LlmSpecificationGenerator, SpecifiedFunctionSample
+from specifications import (
+    AssumeSpec,
+    BacktrackToCallee,
+    FailureRecoveryOracle,
+    LlmSpecificationGenerator,
+    SpecifiedFunctionSample,
+)
 from util import (
     ParsecResult,
     copy_file_to_folder,
@@ -24,6 +31,7 @@ from util import (
     overwrite_file,
 )
 from verification import (
+    BacktrackingRecoveryHandler,
     CbmcVerificationClient,
     LlmGenerateVerifyIteration,
     Success,
@@ -114,6 +122,7 @@ def main() -> None:
         # Keep track of the failing samples, ordered the number of failures.
         failing_samples: list[tuple[int, int, SpecifiedFunctionSample]] = []
 
+        verified_sample: SpecifiedFunctionSample | None = None
         # Check if any of the samples verify before moving on to repair.
         for i, sample in enumerate(specified_function_samples):
             verification_result = verifier.verify(
@@ -127,20 +136,19 @@ def main() -> None:
                 logger.success(f"Verification succeeded for '{func_name}' for sample {i + 1}")
                 verified_functions.append(func_name)
                 # Update the ParsecResult and output file with the verified function.
-                _update_with_verified_function(
+                _update_with_specified_function(
                     func_name,
                     sample.specified_function,
                     sample.path_to_file,
                     parsec_result,
                     output_file_path,
                 )
+                verified_sample = sample
                 break
             # Order the samples by the number of failures reported.
             heapq.heappush(failing_samples, (sample.verification_result.num_failures, i, sample))
 
-        if any(
-            isinstance(sample.verification_result, Success) for sample in specified_function_samples
-        ):
+        if verified_sample:
             for sample in specified_function_samples:
                 sample.delete_temporary_files()
             continue
@@ -150,7 +158,7 @@ def main() -> None:
             logger.debug(f"'{func_name}' is direct recursive, its specifications will be trusted")
             trusted_functions.append(func_name)
             _, _, sample_with_fewest_failures = heapq.heappop(failing_samples)
-            _update_with_verified_function(
+            _update_with_specified_function(
                 func_name,
                 sample_with_fewest_failures.specified_function,
                 sample_with_fewest_failures.path_to_file,
@@ -165,6 +173,8 @@ def main() -> None:
         logger.warning(f"Verification failed for '{func_name}' for all samples, attempting repair.")
 
         repaired_specification: SpecifiedFunctionSample | None = None
+        # Keep a copy of the failing samples in case failure recovery is necessary.
+        failing_samples_copy = copy.copy(failing_samples)
         while failing_samples:
             _, _, failing_sample = heapq.heappop(failing_samples)
             repaired_specification = _get_repaired_specification(
@@ -182,7 +192,7 @@ def main() -> None:
                 logger.success(f"Verification succeeded for '{func_name}'")
                 verified_functions.append(func_name)
                 # Update the ParsecResult and output file
-                _update_with_verified_function(
+                _update_with_specified_function(
                     func_name,
                     repaired_specification.specified_function,
                     repaired_specification.path_to_file,
@@ -200,7 +210,17 @@ def main() -> None:
             f"Function '{func_name}' failed to verify after {args.num_repair} repair attempts "
             f"for {args.num_specification_generation_samples} samples"
         )
-        recover_from_failure()
+        recover_from_failure(
+            func_name,
+            parsec_result,
+            failing_samples_copy,
+            specification_generator,
+            trusted_functions,
+            verified_functions,
+            verifier,
+            conversation,
+            output_file_path,
+        )
 
     if args.save_conversation:
         _write_conversation_log(conversation_log)
@@ -208,8 +228,60 @@ def main() -> None:
     _save_functions_with_specs(parsec_result, output_file_path)
 
 
-def recover_from_failure() -> None:
-    """Implement recovery logic."""
+def recover_from_failure(
+    function_name: str,
+    parsec_result: ParsecResult,
+    failing_samples: list[tuple[int, int, SpecifiedFunctionSample]],
+    llm_specification_generator: LlmSpecificationGenerator,
+    trusted_functions: list[str],
+    verified_functions: list[str],
+    verifier: VerificationClient,
+    conversation: list[dict[str, str]],
+    output_file_path: Path,
+) -> None:
+    """Implement recovery strategy when the generate/repair loop for a function fails.
+
+    Args:
+        function_name (str): The name of the function to determine a recovery policy for.
+        parsec_result (ParsecResult): The Parsec result.
+        failing_samples (list[tuple[int, int, SpecifiedFunctionSample]]): The min-heap of failing
+            specification samples for the function.
+        llm_specification_generator (LlmSpecificationGenerator): The LLM specification generator.
+        trusted_functions (list[str]): The list of trusted function names.
+        verified_functions (list[str]): The list of verified function names.
+        verifier (VerificationClient): The verification client.
+        conversation (list[dict[str, str]]): The LLM conversation, so far.
+        output_file_path (Path): The path to the output file.
+    """
+    logger.debug(f"Determining failure recovery policy for '{function_name}'")
+    failure_recovery_oracle = FailureRecoveryOracle(MODEL, parsec_result)
+    failure_recovery_policy = failure_recovery_oracle.determine_recovery_policy(
+        function_name, [sample for _, _, sample in failing_samples]
+    )
+    _, _, sample_with_fewest_failures = heapq.heappop(failing_samples)
+    match failure_recovery_policy:
+        case AssumeSpec(_):
+            trusted_functions.append(function_name)
+            _update_with_specified_function(
+                function_name,
+                sample_with_fewest_failures.specified_function,
+                sample_with_fewest_failures.path_to_file,
+                parsec_result,
+                output_file_path,
+            )
+        case BacktrackToCallee(_, _) as backtracking_policy:
+            backtracking_handler = BacktrackingRecoveryHandler(
+                llm_specification_generator=llm_specification_generator, verifier=verifier
+            )
+            backtracking_handler.execute(
+                sample_under_recovery=sample_with_fewest_failures,
+                backtracking_policy=backtracking_policy,
+                conversation=conversation,
+                trusted_functions=trusted_functions,
+                verified_functions=verified_functions,
+                parsec_result=parsec_result,
+                output_file_path=output_file_path,
+            )
 
 
 def _get_repaired_specification(
@@ -272,26 +344,26 @@ def _get_repaired_specification(
     return None
 
 
-def _update_with_verified_function(
+def _update_with_specified_function(
     function_name: str,
-    function_with_verified_specs: str,
-    path_to_file_with_verified_specs: Path,
+    function_with_specs: str,
+    path_to_file_with_specs: Path,
     parsec_result: ParsecResult,
     path_to_verified_output: Path,
 ) -> None:
-    """Update the Parsec result and the verified output file with the newly-verified function.
+    """Update the Parsec result and the verified output file with the function with specs.
 
     Args:
-        function_name (str): The name of the newly-verified function.
-        function_with_verified_specs (str): The source code of the newly-verified function.
-        path_to_file_with_verified_specs (Path): The path to the file with the newly-verified specs.
+        function_name (str): The name of the function with specs.
+        function_with_specs (str): The source code of the function with specs.
+        path_to_file_with_specs (Path): The path to the file with the function with specs.
         parsec_result (ParsecResult): The parsec result to update.
-        path_to_verified_output (Path): The path to the verified output file.
+        path_to_verified_output (Path): The path to the output file.
     """
-    function_util.update_parsec_result(function_name, function_with_verified_specs, parsec_result)
-    verified_file_content = path_to_file_with_verified_specs.read_text(encoding="utf-8")
+    function_util.update_parsec_result(function_name, function_with_specs, parsec_result)
+    verified_file_content = path_to_file_with_specs.read_text(encoding="utf-8")
     overwrite_file(verified_file_content, path_to_verified_output)
-    path_to_file_with_verified_specs.unlink()
+    path_to_file_with_specs.unlink()
 
 
 def _write_conversation_log(conversation_log: dict[str, list[LlmGenerateVerifyIteration]]) -> None:

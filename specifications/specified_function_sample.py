@@ -5,7 +5,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 from util import ParsecFunction, ParsecResult, extract_function, file_util, function_util
-from verification import Success, VerificationResult
+from verification import Failure, Success, VerificationResult
 
 from .llm_invocation_result import LlmInvocationResult
 
@@ -80,6 +80,23 @@ class SpecifiedFunctionSample:
             bool: True iff the specified function successfully verifies.
         """
         return isinstance(self.verification_result, Success)
+
+    def get_num_verification_failures(self) -> int:
+        """Return the number of failures reported by CBMC in verifying the function for this sample.
+
+        Raises:
+            ValueError: Raised when this sample's verification result is not set.
+
+        Returns:
+            int: The number of failures reported by CBMC in verifying the function for this sample.
+        """
+        if not self.verification_result:
+            raise ValueError(
+                "Cannot get the number of verification failures if a sample has not been verified"
+            )
+        if isinstance(self.verification_result, Failure):
+            return self.verification_result.num_failures
+        return 0
 
     @staticmethod
     def get_specified_function_samples(

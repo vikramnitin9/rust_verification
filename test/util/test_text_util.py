@@ -1,5 +1,31 @@
 from util import text_util
 
+import pytest
+
+def test_get_text_with_prefix_no_results():
+    text = """
+    Test
+    Hello
+    world
+    """
+    assert text_util.get_lines_with_suffix(text, suffix="no_suffix") == []
+
+def test_get_text_with_prefix_results():
+    text = """
+    this line ends with a suffix
+    prefix this line does not end with
+    suffix
+    """
+    assert text_util.get_lines_with_suffix(text, "suffix") == ["this line ends with a suffix", "suffix"]
+
+def test_get_text_with_prefix_whitespace():
+    text = """
+    this line ends with a suffix  
+    prefix this line does not end with
+    suffix     
+    """
+    assert text_util.get_lines_with_suffix(text, "suffix") == ["this line ends with a suffix", "suffix"]
+
 def test_comment_out_no_specs() -> None:
     lines = [
         "int partition(int arr[], int low, int high)\n",
@@ -231,3 +257,24 @@ def test_count_suffix_matches() -> None:
         ** 5 of 69 failed (4 iterations)
         VERIFICATION FAILED"""
     assert 5 == text_util.count_lines_with_suffix(text, suffix="FAILURE")
+
+def test_get_dict_from_json_no_nesting() -> None:
+    json_text = '{ "foo": "bar", "baz": "test" }'
+    assert text_util.get_dict_from_json(json_text=json_text) == {
+        "foo": "bar",
+        "baz": "test"
+    }
+
+def test_get_dict_from_json_error() -> None:
+    json_text = '"foo": "bar", "baz": "test"'
+    with pytest.raises(RuntimeError):
+        text_util.get_dict_from_json(json_text=json_text)
+
+def test_get_dict_from_json_has_nesting() -> None:
+    json_text = '{ "foo": "bar", "baz": { "nested_key": "nested_value" } }'
+    assert text_util.get_dict_from_json(json_text=json_text) == {
+        "foo": "bar",
+        "baz": {
+            "nested_key": "nested_value"
+        }
+    }
