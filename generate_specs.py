@@ -31,6 +31,7 @@ from util import (
     overwrite_file,
 )
 from verification import (
+    BacktrackingRecoveryHandler,
     CbmcVerificationClient,
     LlmGenerateVerifyIteration,
     Success,
@@ -270,35 +271,19 @@ def recover_from_failure(
                 parsec_result,
                 output_file_path,
             )
-        case BacktrackToCallee(backtracking_reasoning, callee_to_backtrack_to):
-            backtracking_response = llm_specification_generator.backtrack_to_callee(
-                function=sample_with_fewest_failures.get_parsec_representation(),
-                callee_name=callee_to_backtrack_to,
-                backtracking_reasoning=backtracking_reasoning,
+        case BacktrackToCallee(_, _) as backtracking_policy:
+            backtracking_handler = BacktrackingRecoveryHandler(
+                llm_specification_generator=llm_specification_generator, verifier=verifier
+            )
+            backtracking_handler.execute(
+                sample_under_recovery=sample_with_fewest_failures,
+                backtracking_policy=backtracking_policy,
                 conversation=conversation,
+                trusted_functions=trusted_functions,
+                verified_functions=verified_functions,
+                parsec_result=parsec_result,
+                output_file_path=output_file_path,
             )
-            regenerated_callee_with_specs = SpecifiedFunctionSample.get_specified_function_samples(
-                callee_to_backtrack_to, backtracking_response, parsec_result, output_file_path
-            )
-            verifying_callee_specs: list[SpecifiedFunctionSample] = [
-                callee
-                for callee in regenerated_callee_with_specs
-                if isinstance(
-                    verifier.verify(
-                        callee.function_name,
-                        verified_functions,
-                        trusted_functions,
-                        callee.path_to_file,
-                    ),
-                    Success,
-                )
-            ]
-            if not verifying_callee_specs:
-                # TODO: What should happen if none of the regenerated callee specs verify?
-                pass
-            else:
-                # TODO: Try re-verifying the function under failure recovery with the specs.
-                pass
 
 
 def _get_repaired_specification(
