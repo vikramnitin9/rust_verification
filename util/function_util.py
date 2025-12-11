@@ -70,9 +70,9 @@ def get_signature_and_body(src: str, lang: str) -> tuple[str, str]:
 
     signature = src[definition_node.start_byte : body_node.start_byte].strip()
     if body_node is None:
-        raise Exception("error")
+        raise RuntimeError("error")
     if body_node.text is None:
-        raise Exception("error")
+        raise RuntimeError("error")
     body = body_node.text.decode(encoding="utf-8")
     return (signature, body)
 
