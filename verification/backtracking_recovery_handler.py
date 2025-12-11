@@ -36,19 +36,22 @@ class BacktrackingRecoveryHandler:
         parsec_result: ParsecResult,
         output_file_path: Path,
     ) -> None:
-        """TODO.
+        """Execute the backtracking strategy for a given candidate spec.
 
         Args:
-            candidate_under_recovery (SpecifiedFunctionSample): _description_
-            backtracking_policy (BacktrackToCallee): _description_
-            conversation (list[dict[str, str]]): _description_
-            trusted_functions (list[str]): _description_
-            verified_functions (list[str]): _description_
-            parsec_result (ParsecResult): _description_
-            output_file_path (Path): _description_
+            candidate_under_recovery (CandidateSpecification): The candidate spec for which to
+                execute backtracking.
+            backtracking_policy (BacktrackToCallee): The backtracking policy; comprises the
+                reasoning given for backtracking and the callee to backtrack to.
+            conversation (list[dict[str, str]]): The LLM conversation.
+            trusted_functions (list[str]): The list of trusted functions.
+            verified_functions (list[str]): The list of verified functions.
+            parsec_result (ParsecResult): The ParsecResult.
+            output_file_path (Path): The path to the output file, which comprises functions and
+                specifications that successfully verify.
 
         Raises:
-            NotImplementedError: _description_
+            NotImplementedError: TODO: temporary.
         """
         callee = backtracking_policy.callee_to_backtrack_to
         backtracking_response = self._llm_specification_generator.backtrack_to_callee(
