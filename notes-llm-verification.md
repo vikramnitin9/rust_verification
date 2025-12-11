@@ -19,11 +19,11 @@ parallel.
 
 
 Two integers parameterize the algorithm:
- * num_llm_samples: each call to `llm()` returns a list of this length.
-   As a general rule, after each call to `llm()`, a the list is heuristically pruned to reduce the exploration space.
- * num_repair_iterations: the number of times that the LLM tries to repair a specification, using feedback from running the verifier.
+ * `num_llm_samples`: each call to `llm()` returns a list of this length.
+   As a general rule, after each call to `llm()`, our algorithm heuristically prunes the returned list of samples to reduce the exploration space.
+ * `num_repair_iterations`: the number of times that the LLM tries to repair a specification, using feedback from running the verifier.
 The implementation also contains:
- * the model temperature, which cannot be set to 0 for sampling.
+ * the model temperature, which cannot be set to 0 for sampling/generating candidates.
 
 
 Data structures:
@@ -34,7 +34,7 @@ immutable class VerificationInput:
 * context: specifications provided to this verification run, created by calling `current_context()`.  It includes:
   * a spec for each of the function's callees
   * a spec for each global variable that the function uses
-  * optionally, facts about how the function is called, such as constraints on what values are passed to it.
+  * optionally, facts about how the function is called, such as what values are actually passed to it at call sites.  The algorithm might use these as preconditions, as opposed to the preconditions that an LLM would guess just by looking at the function's source code and comments.  (I admit this is a bit vague.)
 
 immutable class VerificationResult:
 
@@ -48,13 +48,13 @@ input, which includes the specifications of the callees and callers.
 
 Global data structures:
 
-* verifier_outputs:  Map[VerificationInput, VerificationResult].
+* `verifier_outputs`:  Map[VerificationInput, VerificationResult].
   A cache for efficiency.  Is only added to, never removed from.
   This cache eliminates the need to pass VerificationResults through the program,
   since they can just be looked up.
-* llm_cache: Map[LlmInput, LlmOutput]: for efficiency.  Is only added to, never removed from.
-  The input and output types are probably String.
-* proofstates_worklist:  set of ProofStates yet to be explored.
+* `llm_cache`: Map[LlmInput, List[LlmOutput]]: for efficiency.  Is only added to, never removed from.
+  The input type (the key) is probably String.  Each value in the map is a list of strings, with length `num_llm_samples`.
+* `proofstates_worklist`:  set of ProofStates yet to be explored.
   Trying to add an element that has ever been previously added has no effect.
   (We could imagine making this a priority queue if we have a good heuristic for ordering.)
 
@@ -150,7 +150,7 @@ repair_spec(fn, spec, proofstate) -> [Spec]:
   verified_specs = []  // ... unless some were verified, in which case return only them.
   current_specs = [spec]
   for i = 1 to num_repair_iterations:
-    next_specs = []
+    unverified_specs = []
     for spec in current_specs: 
       if spec in all_specs:
         // We have already seen this spec, so don't re-process it.
@@ -159,15 +159,14 @@ repair_spec(fn, spec, proofstate) -> [Spec]:
       vresult = call_verifier(fn, spec, proofstate) // e.g., CBMC
       if is_success(vresult):
         verified_specs += vresult
-        continue
-      next_specs += spec
-    specs = [*llm("repair the specification", fn, spec, vresult) for spec in next_specs]
-    // TODO: perhaps prune out duplicates, for efficiency.
+      else:
+        unverified_specs += spec
+    current_specs = [*llm("repair the specification", fn, spec, call_verifier(fn, spec, proofstate)) 
+                     for spec in unverified_specs]
   if verified_specs:
     return verified_specs:
   else:
     return all_specs
-
 
 // Calls a verification tool such as CBMC.
 // Input: the function, a specification, and context.
