@@ -2,6 +2,7 @@
 # Requires and Ensures Clauses
 
 ## Table of Contents
+
 - [Syntax](#syntax)
 - [Semantics](#semantics)
   - [Enforcement](#enforcement)
