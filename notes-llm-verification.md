@@ -73,7 +73,7 @@ Possible fields:
 * verified_functions: a list of functions that have been verified.
 * assumed_functions: a list of functions with unverified, but trusted, specifications.
 
-```pseoudocode
+```pseudocode
 // The entry point: Verify all the functions in a program.
 // Input: a program
 // Output: a specification for each function in the program
@@ -227,6 +227,7 @@ Currently this is hard-coded in `try_to_specify()`, which is the client of `gene
 However, it is not done for other LLM calls in `repair_spec()` and `choose_next_step()`.
 
 It would be better for the algorithm to apply sample-exploration more uniformly.
+
 * One way is to hard-code the other LLM uses, just as `generate_specs()` and its client `try_to_specify()` are.
 * Another way is to modify the algorithm to fork multiple processes, like so:
   * Rewrite the algorithm to treat each LLM query call as returning exactly one value.  (This actually simplifies `try_to_specify()` and its client `verify_program()`.
@@ -238,7 +239,9 @@ It would be better for the algorithm to apply sample-exploration more uniformly.
     This is similar to a process manager that prunes processes that have been superseded (that, is prune a process if some other process already solved the problem).
     A process manager would also prune processes that have run for too long.
 
-LocalWords:  workstack llm num VerificationInput VerificationResult boolean fn
+<!--
+LocalWords:  workstack llm num VerificationInput VerificationResult boolean fn doesn SQLite multithreading
 LocalWords:  VerificationResults LlmInput LlmOutput proofstates ProofStates ps
 LocalWords:  ProofState TODO f's vresult BacktrackInfo plaintext proofstate py
 LocalWords:  LlmSpecificationGenerator recomputation vinput
+-->
