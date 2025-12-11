@@ -4,8 +4,8 @@ from models import LLMGen, ModelError, get_llm_generation_with_model
 from util import ParsecFunction, ParsecResult
 from verification import Failure, PromptBuilder
 
+from .candidate_specification import CandidateSpecification
 from .llm_invocation_result import LlmInvocationResult
-from .specified_function_sample import SpecifiedFunctionSample
 
 
 class LlmSpecificationGenerator:
@@ -74,7 +74,7 @@ class LlmSpecificationGenerator:
 
     def repair_specifications(
         self,
-        failing_function_sample: SpecifiedFunctionSample,
+        failing_function_sample: CandidateSpecification,
         conversation: list[dict[str, str]],
     ) -> LlmInvocationResult:
         """Repair the specifications for the function with the given name.

@@ -4,8 +4,8 @@ from models import LLMGen, get_llm_generation_with_model
 from util import ParsecResult, text_util
 from verification import PromptBuilder
 
+from .candidate_specification import CandidateSpecification
 from .failure_recovery_policy import AssumeSpec, BacktrackToCallee, FailureRecoveryPolicy
-from .specified_function_sample import SpecifiedFunctionSample
 
 
 class FailureRecoveryOracle:
@@ -27,7 +27,7 @@ class FailureRecoveryOracle:
         self._prompt_builder = PromptBuilder()
 
     def determine_recovery_policy(
-        self, function_name: str, failing_specification_samples: list[SpecifiedFunctionSample]
+        self, function_name: str, failing_specification_samples: list[CandidateSpecification]
     ) -> FailureRecoveryPolicy:
         """Return the recovery policy decided by the LLM for the function that fails to verify.
 

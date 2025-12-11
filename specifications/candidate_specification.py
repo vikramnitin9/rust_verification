@@ -1,4 +1,4 @@
-"""Class to represent a specified function candidate/sample generated for verification."""
+"""Class to represent a specified function candidate generated for verification."""
 
 import shutil
 from collections.abc import Iterator
@@ -10,14 +10,14 @@ from verification import Failure, Success, VerificationResult
 from .llm_invocation_result import LlmInvocationResult
 
 
-class SpecifiedFunctionSample:
-    """Represent a specified function (i.e., a function with CBMC specifications).
+class CandidateSpecification:
+    """Represent a candidate spec for a function (i.e., a function with CBMC specifications).
 
     Attributes:
         function_name (str): The name of the function.
-        specified_function (str): The implementation in source code of the specified function.
-        path_to_file (Path): The path to the file in which this function is declared.
-        parsec_result (ParsecResult): The Parsec result for this function sample.
+        specified_function (str): The source code of the specified function.
+        path_to_file (Path): The path to the file in which this function is defined.
+        parsec_result (ParsecResult): The Parsec result for this candidate.
         verification_result (VerificationResult | None): The result of verifying this function.
 
     """
@@ -42,21 +42,21 @@ class SpecifiedFunctionSample:
         self.verification_result = verification_result
 
     def __iter__(self) -> Iterator[str | Path]:
-        """Return an iterator for this specified function sample.
+        """Return an iterator for this specification candidate.
 
         Returns:
-            Iterator[(str, str)]: An iterator for this specified function sample.
+            Iterator[(str, str)]: An iterator for this specification candidate.
         """
         return iter((self.specified_function, self.path_to_file))
 
     def get_parsec_representation(self) -> ParsecFunction:
-        """Return the Parsec representation of this specified function sample.
+        """Return the Parsec representation of this specification candidate.
 
         Raises:
             ValueError: Raised when the function is missing from the Parsec result.
 
         Returns:
-            ParsecFunction: The Parsec representation of this specified function sample.
+            ParsecFunction: The Parsec representation of this specification candidate.
         """
         parsec_function = self.parsec_result.get_function(self.function_name)
         if not parsec_function:
@@ -65,7 +65,7 @@ class SpecifiedFunctionSample:
         return parsec_function
 
     def delete_temporary_files(self) -> None:
-        """Delete the temporary candidate files associated with this function sample."""
+        """Delete the temporary candidate files associated with this function candidate."""
         parent_dir = self.path_to_file.parent
         if "specs" not in parent_dir.parts:
             raise ValueError(
@@ -82,55 +82,56 @@ class SpecifiedFunctionSample:
         return isinstance(self.verification_result, Success)
 
     def get_num_verification_failures(self) -> int:
-        """Return the number of failures reported by CBMC in verifying the function for this sample.
+        """Return the number of failures reported by CBMC in verifying this spec. candidate.
 
         Raises:
-            ValueError: Raised when this sample's verification result is not set.
+            ValueError: Raised when this candidate's verification result is not set.
 
         Returns:
-            int: The number of failures reported by CBMC in verifying the function for this sample.
+            int: The number of failures reported by CBMC in verifying this spec. candidate.
         """
         if not self.verification_result:
             raise ValueError(
-                "Cannot get the number of verification failures if a sample has not been verified"
+                "Cannot get the number of verification failures if a candidate has not been "
+                "verified"
             )
         if isinstance(self.verification_result, Failure):
             return self.verification_result.num_failures
         return 0
 
     @staticmethod
-    def get_specified_function_samples(
+    def get_specified_function_candidates(
         function_name: str,
         llm_invocation_result: LlmInvocationResult,
         parsec_result: ParsecResult,
         path_to_file: Path,
-    ) -> list["SpecifiedFunctionSample"]:
-        """Return specified function samples parsed from an LLM response.
+    ) -> list["CandidateSpecification"]:
+        """Return candidate specifications parsed from an LLM response.
 
         Note: The parsec_result and path_to_file are used to generate files where the
         candidate functions are inserted (keeping everything else unchanged).
 
         Args:
-            function_name (str): The name of the function for which samples are being generated.
+            function_name (str): The name of the function for which candidates are being generated.
             llm_invocation_result (LlmInvocationResult): The LLM response to parse.
             parsec_result (ParsecResult): The parsec result.
             path_to_file (Path): The path to the file where the function is defined.
 
         Returns:
-            list["SpecifiedFunctionSample"]: The specified function samples parsed from an LLM
+            list["CandidateSpecification"]: The candidate specifications parsed from an LLM
                 response.
         """
-        samples = []
-        for i, sample in enumerate(llm_invocation_result.responses):
-            candidate_function = extract_function(sample)
+        candidates = []
+        for i, candidate in enumerate(llm_invocation_result.responses):
+            candidate_function = extract_function(candidate)
             path_to_directory = file_util.get_directory_name_for_generated_code(
                 path_to_file, function_name
             )
             path_to_candidate_file = (
                 Path("specs")
                 / path_to_directory
-                / Path(f"sample_{i + 1}")
-                / Path(f"sample{path_to_file.suffix}")
+                / Path(f"candidate_{i + 1}")
+                / Path(f"candidate{path_to_file.suffix}")
             )
             path_to_candidate_file = function_util.get_file_with_updated_function(
                 function_name,
@@ -139,7 +140,7 @@ class SpecifiedFunctionSample:
                 original_src=path_to_file,
                 path_to_candidate_file=path_to_candidate_file,
             )
-            samples.append(
-                SpecifiedFunctionSample(function_name, candidate_function, path_to_candidate_file)
+            candidates.append(
+                CandidateSpecification(function_name, candidate_function, path_to_candidate_file)
             )
-        return samples
+        return candidates
