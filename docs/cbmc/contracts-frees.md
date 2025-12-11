@@ -6,13 +6,13 @@ A *frees clause* allows the user to specify a set of pointers that may be freed 
 
 The clause has the following syntax (square brackets denote optional expressions `[` `]`):
 
-```
+```c
 __CPROVER_frees([targets])
 ```
 
 Where `targets` has the following syntax:
 
-```
+```bnf
           targets ::= cond-target-group (';' cond-target-group)* ';'?
 cond-target-group ::= (condition ':' )? target (',' target)*
            target ::= lvalue-expr

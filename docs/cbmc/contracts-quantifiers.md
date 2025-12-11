@@ -1,11 +1,12 @@
 # Quantifiers
 
-### Table of Contents
+## Table of Contents
 
 * [Syntax](#syntax)
 * [Semantics](#semantics)
 * [Additional Resources](#additional-resources)
 
+<!-- pyml disable-next-line no-emphasis-as-heading -->
 *Back to Code Contracts User Documentation*
 
 ---

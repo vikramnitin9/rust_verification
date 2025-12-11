@@ -1,6 +1,6 @@
 # History Variables
 
-### Table of Contents
+## Table of Contents
 
 * [In Function Contracts](#in-function-contracts)
 
@@ -17,6 +17,7 @@
 
 ---
 
+<!-- pyml disable-next-line no-emphasis-as-heading -->
 *Back to Code Contracts User Documentation*
 
 ## In Function Contracts

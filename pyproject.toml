@@ -1,0 +1,24 @@
+[project]
+name = "rust-verification-fork-mernst-branch-code-style-2"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "dotenv>=0.9.9",
+    "lark>=1.3.1",
+    "litellm>=1.80.9",
+    "loguru>=0.7.3",
+    "networks>=0.3.7",
+    "networkx>=3.6.1",
+    "tree-sitter>=0.25.2",
+    "tree-sitter-c>=0.24.1",
+    "tree-sitter-rust>=0.24.0",
+]
+
+[dependency-groups]
+dev = [
+    "pymarkdownlnt>=0.9.33",
+    "pytest>=9.0.2",
+    "ty>=0.0.1a33",
+]

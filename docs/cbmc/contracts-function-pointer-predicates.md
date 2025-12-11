@@ -14,6 +14,9 @@
 
 ---
 
+<!-- pyml disable no-duplicate-heading -->
+
+<!-- pyml disable-next-line no-emphasis-as-heading -->
 *Back to Code Contracts User Documentation*
 
 ---
@@ -105,7 +108,7 @@ The function pointer restriction directive is needed to inform CBMC that we only
 
 We get the following analysis result:
 
-```
+```output
 ...
 
 fptr.c function arr_fun_contract
@@ -208,7 +211,7 @@ cbmc b.out
 
 And obtain the following results:
 
-```
+```output
 ...
 
 fptr.c function get_arr_fun
