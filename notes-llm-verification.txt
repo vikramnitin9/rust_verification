@@ -45,7 +45,7 @@ It doesn't make sense to say that a function specification in isolation is
 verified or not, because the verification result depends on the full verifier
 input, which includes the specifications of the callees and callers.
 
-Global data structures (each access to them must use locking):
+Global data structures:
 * verifier_outputs:  Map[VerificationInput, VerificationResult].
   A cache for efficiency.  Is only added to, never removed from.
   This cache eliminates the need to pass VerificationResults through the program,
@@ -55,6 +55,7 @@ Global data structures (each access to them must use locking):
 * proofstates_worklist:  set of ProofStates yet to be explored.
   Trying to add an element that has ever been previously added has no effect.
   (We could imagine making this a priority queue if we have a good heuristic for ordering.)
+Each access to a global data structure must use locking; or we could store them persistently, say using SQLite, which permits using multiprocessing rather than multithreading and could save time across multiple runs.
 
 class ProofState:
 * specs: Map[fn, spec]: the current specification (which may be a guess) for each function.
