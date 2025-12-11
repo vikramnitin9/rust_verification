@@ -29,23 +29,25 @@ The implementation also contains:
 Data structures:
 
 immutable class VerificationInput:
- * function
- * spec for function
- * context: specifications provided to this verification run, created by calling `current_context()`.  It includes:
-    * a spec for each of the function's callees
-    * a spec for each global variable that the function uses
-    * optionally, facts about how the function is called, such as constraints on what values are passed to it.
+* function
+* spec for function
+* context: specifications provided to this verification run, created by calling `current_context()`.  It includes:
+  * a spec for each of the function's callees
+  * a spec for each global variable that the function uses
+  * optionally, facts about how the function is called, such as constraints on what values are passed to it.
 
 immutable class VerificationResult:
- * input: VerificationInput
- * succeeded: boolean
- * failure_messages: String | None
+
+* input: VerificationInput
+* succeeded: boolean
+* failure_messages: String | None
 
 It doesn't make sense to say that a function specification in isolation is
 verified or not, because the verification result depends on the full verifier
 input, which includes the specifications of the callees and callers.
 
-Global data structures (each access to them must use locking):
+Global data structures:
+
 * verifier_outputs:  Map[VerificationInput, VerificationResult].
   A cache for efficiency.  Is only added to, never removed from.
   This cache eliminates the need to pass VerificationResults through the program,
@@ -56,6 +58,8 @@ Global data structures (each access to them must use locking):
   Trying to add an element that has ever been previously added has no effect.
   (We could imagine making this a priority queue if we have a good heuristic for ordering.)
 
+Each access to a global data structure must use locking; or we could store them persistently, say using SQLite, which permits using multiprocessing rather than multithreading and could save time across multiple runs.
+
 class ProofState:
 * specs: Map[fn, spec]: the current specification (which may be a guess) for each function.
 * workstack: Stack[(function, hints)]
@@ -65,12 +69,13 @@ Possible fields:
 * verified_functions: a list of functions that have been verified.
 * assumed_functions: a list of functions with unverified, but trusted, specifications.
 
-
+```
 // The entry point: Verify all the functions in a program.
 // Input: a program
 // Output: a specification for each function in the program
 verify_program(program) -> Map[Fn, Spec]:
-  initial_workstack: Stack[(function, hints)] = all functions in `program`, in reverse topological order (that is, children first), with empty hints.
+  initial_workstack: Stack[(function, hints)] = all functions in `program`, in reverse topological
+                                                order (that is, children first), with empty hints.
   initial_ps = ProofState(initial_workstack)
   global.proofstates_worklist.add(initial_ps)
   while global.proofstates_worklist not empty:
@@ -83,7 +88,7 @@ verify_program(program) -> Map[Fn, Spec]:
         return next_ps
       else:
         global.proofstates_worklist.add(next_ps)
-    
+
 
 // Given a ProofState, tries to verify the function at the top of the workstack.
 // This is the key unit of parallelism.
@@ -184,14 +189,6 @@ current_context(fn, proofstate) -> context:
   // Look up from proofstate's fields, such as `specs` or `verified_functions` and `assumed_functions`.
 
 
-// Suppose that, after creating a VerificationInput, the system changes some
-// specification in the context.  Then the old VerificationInput is no longer
-// applicable.  A call to `call_verifier()` will create a new VerificationInput
-// and the verifier will be re-run.  (This is one reason that verification
-// results are not passed around in the algorithm, but are re-computed -- to
-// avoid the bookkeeping of figuring out what has to be updated.)
-
-
 // Choose the next step for the overall algorithm: continue or backtrack.
 // Input: A function and a list of candidate specifications for it.
 // Output: A list of pairs of (specification, an indication of whether to backtrack).
@@ -211,6 +208,15 @@ choose_next_step(fn, candidate_specs: List[spec], proofstate) -> [(spec, backtra
       backtrack_info = llm("choose a callee to repair, and provide hints", fn, spec, vresult)
     result += (spec, backtrack_info)
   return result
+```
+
+
+Suppose that, after creating a VerificationInput, the system changes some
+specification in the context.  Then the old VerificationInput is no longer
+applicable.  A call to `call_verifier()` will create a new VerificationInput
+and the verifier will be re-run.  (This is one reason that verification
+results are not passed around in the algorithm, but are re-computed -- to
+avoid the bookkeeping of figuring out what has to be updated.)
 
 
 
