@@ -191,7 +191,7 @@ def main() -> None:
         # Keep a copy of the failing candidates in case failure recovery is necessary.
         failing_candidates_copy = copy.copy(failing_candidates)
         while failing_candidates:
-            failing_candidate = failing_candidates[0]
+            failing_candidate = failing_candidates.pop(0)
             repaired_specification = _repair_specification(
                 failing_candidate,
                 specification_generator,
