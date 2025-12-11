@@ -1,4 +1,4 @@
-.PHONY: default docker-build run test checks style-fix style-check python-style-fix python-style-check python-typecheck showvars
+.PHONY: default docker-build run test checks style-fix style-check python-style-fix python-style-check python-typecheck showvars tags
 
 default: test
 
@@ -26,6 +26,7 @@ dummy != git clone -q https://github.com/plume-lib/plume-scripts.git .plume-scri
 endif
 include .plume-scripts/code-style.mak
 
+# ${PYTHON_FILES} is defined by the above style checking.
 TAGS: tags
 tags:
 	etags ${PYTHON_FILES}
