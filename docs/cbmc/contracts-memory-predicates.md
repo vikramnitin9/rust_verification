@@ -12,8 +12,6 @@
 
   * [Limitations](#limitations)
 
-<!-- pyml disable no-duplicate-heading -->
-
 ---
 
 The built-in predicates discussed in this section are used to describe pointer properties in *requires clauses* and *ensures clauses*.
