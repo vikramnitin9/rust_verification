@@ -22,13 +22,13 @@ parallel.
 
 Two integers parameterize the algorithm:
 
- * `num_llm_samples`: each call to `llm()` returns a list of this length.
-   As a general rule, after each call to `llm()`, our algorithm heuristically prunes the returned list of samples to reduce the exploration space.
- * `num_repair_iterations`: the number of times that the LLM tries to repair a specification, using feedback from running the verifier.
+* `num_llm_samples`: each call to `llm()` returns a list of this length.
+  As a general rule, after each call to `llm()`, our algorithm heuristically prunes the returned list of samples to reduce the exploration space.
+* `num_repair_iterations`: the number of times that the LLM tries to repair a specification, using feedback from running the verifier.
 
 The implementation also contains:
 
- * the model temperature, which cannot be set to 0 for sampling/generating candidates.
+* the model temperature, which cannot be set to 0 for sampling/generating candidates.
 
 ## Data structures
 
