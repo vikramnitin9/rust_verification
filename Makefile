@@ -20,9 +20,7 @@ test:
 checks: style-fix style-check
 
 # Code style; defines `style-check` and `style-fix`.
-# SH_SCRIPTS_USER := dots/.aliases dots/.environment dots/.profile
-# BASH_SCRIPTS_USER := dots/.bashrc dots/.bash_profile
-# CODE_STYLE_EXCLUSIONS_USER := --exclude-dir apheleia --exclude-dir 'apheleia-*' --exclude-dir=mew --exclude=csail-athena-tickets.bash --exclude=conda-initialize.sh --exclude=addrfilter 
+CODE_STYLE_EXCLUSIONS_USER := --exclude-dir test --exclude __init__.py
 ifeq (,$(wildcard .plume-scripts))
 dummy != git clone -q https://github.com/plume-lib/plume-scripts.git .plume-scripts
 endif

@@ -20,7 +20,7 @@ class TransformerT(Protocol[T_co]):
         ...
 
 
-class Parser(Generic[T_co]):
+class Parser(Generic[T_co]):  # noqa: UP046
     """Lark-based parser for grammars.
 
     See Lark documentation for details: https://lark-parser.readthedocs.io/en/stable/
