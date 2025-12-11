@@ -1,29 +1,12 @@
-"""Module to represent verification results."""
+"""Class representing a verification result."""
 
 from dataclasses import dataclass
-from pathlib import Path
+
+from .verification_input import VerificationInput
 
 
 @dataclass(frozen=True)
 class VerificationResult:
-    """Represents a verifier result."""
-
-
-@dataclass(frozen=True)
-class Success(VerificationResult):
-    """Represents a successful verification result."""
-
-
-@dataclass(frozen=True)
-class Failure(VerificationResult):
-    """Represents an unsuccessful verification result.
-
-    Attributes:
-        source (Path): The path to the file that failed to verify.
-        stdout (str): The stdout output from an unsuccessful verification result.
-        stderr (str): The stderr output from an unsuccessful verification result.
-    """
-
-    source: Path
-    stdout: str
-    stderr: str
+    _input: VerificationInput
+    _succeeded: bool
+    _failure_messages: str | None
