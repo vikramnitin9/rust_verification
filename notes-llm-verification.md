@@ -1,11 +1,12 @@
-Algorithm for verifying a program using LLMs and a verifier (e.g., CBMC)
-
+# Algorithm for verifying a program using LLMs and a verifier (e.g., CBMC)
 
 Overall idea:  The algorithm verifies a program by verifying one function at a time, generally in reverse topological order.
 
 A "proof state" is a pair of:
- * a workstack of functions yet to be processed (in reverse topological order)
- * the current specification of every function
+
+* a workstack of functions yet to be processed (in reverse topological order)
+* the current specification of every function
+
 A "step" is an attempt to verify the function on the top of the workstack.
 A step converts one proof state into another.
 The resulting proof state might have a smaller workstack (if verification
@@ -17,16 +18,19 @@ stuck in one unproductive avenue.)  Therefore, each step actually yields a *set*
 of proof states.  The implementation explores all of these possibilities in
 parallel.
 
+## Parameters
 
 Two integers parameterize the algorithm:
- * num_llm_samples: each call to `llm()` returns a list of this length.
-   As a general rule, after each call to `llm()`, a the list is heuristically pruned to reduce the exploration space.
- * num_repair_iterations: the number of times that the LLM tries to repair a specification, using feedback from running the verifier.
+
+* `num_llm_samples`: each call to `llm()` returns a list of this length.
+   As a general rule, after each call to `llm()`, our algorithm heuristically prunes the returned list of samples to reduce the exploration space.
+* `num_repair_iterations`: the number of times that the LLM tries to repair a specification, using feedback from running the verifier.
+
 The implementation also contains:
- * the model temperature, which cannot be set to 0 for sampling.
 
+* the model temperature, which cannot be set to 0 for sampling/generating candidates.
 
-Data structures:
+## Data structures
 
 immutable class VerificationInput:
 * function
@@ -34,7 +38,7 @@ immutable class VerificationInput:
 * context: specifications provided to this verification run, created by calling `current_context()`.  It includes:
   * a spec for each of the function's callees
   * a spec for each global variable that the function uses
-  * optionally, facts about how the function is called, such as constraints on what values are passed to it.
+  * optionally, facts about how the function is called, such as what values are actually passed to it at call sites.  The algorithm might use these as preconditions, as opposed to the preconditions that an LLM would guess just by looking at the function's source code and comments.  (I admit this is a bit vague.)
 
 immutable class VerificationResult:
 
@@ -48,13 +52,13 @@ input, which includes the specifications of the callees and callers.
 
 Global data structures:
 
-* verifier_outputs:  Map[VerificationInput, VerificationResult].
+* `verifier_outputs`:  Map[VerificationInput, VerificationResult].
   A cache for efficiency.  Is only added to, never removed from.
   This cache eliminates the need to pass VerificationResults through the program,
   since they can just be looked up.
-* llm_cache: Map[LlmInput, LlmOutput]: for efficiency.  Is only added to, never removed from.
-  The input and output types are probably String.
-* proofstates_worklist:  set of ProofStates yet to be explored.
+* `llm_cache`: Map[LlmInput, List[LlmOutput]]: for efficiency.  Is only added to, never removed from.
+  The input type (the key) is probably String.  Each value in the map is a list of strings, with length `num_llm_samples`.
+* `proofstates_worklist`:  set of ProofStates yet to be explored.
   Trying to add an element that has ever been previously added has no effect.
   (We could imagine making this a priority queue if we have a good heuristic for ordering.)
 
@@ -69,7 +73,7 @@ Possible fields:
 * verified_functions: a list of functions that have been verified.
 * assumed_functions: a list of functions with unverified, but trusted, specifications.
 
-```
+```pseudocode
 // The entry point: Verify all the functions in a program.
 // Input: a program
 // Output: a specification for each function in the program
@@ -88,7 +92,6 @@ verify_program(program) -> Map[Fn, Spec]:
         return next_ps
       else:
         global.proofstates_worklist.add(next_ps)
-
 
 // Given a ProofState, tries to verify the function at the top of the workstack.
 // This is the key unit of parallelism.
@@ -112,7 +115,6 @@ step(ps: ProofState) -> List[ProofState]:
     result += next_ps
   return result
 
-
 // Generate a specification for a function.
 // Input: a function and hints about how to specify it.  The hints are non-empty only when backtracking.
 // Output: a list of potential specs for the function.  Some may verify and some may not verify.
@@ -124,7 +126,6 @@ try_to_specify(fn, hints) -> List[spec]:
   pruned_specs = prune_heuristically(fn, generated_specs)
   repaired_specs = [*repair_spec(fn, spec) for spec in pruned_specs]
   return repaired_specs
-
 
 // An LLM guesses a specification.
 // Input: a function and a hint.  The hint is plaintext.
@@ -140,7 +141,6 @@ generate_specs(fn, hint) -> List[spec]:
   specs = llm("guess the specification for", fn, proofstate, hint) // call the LLM
   return specs
 
-
 // Given a specification, iteratively repair it.
 // Input: a function and a specification.  The specification may or may not verify.
 // Output: a list of repaired specifications.  Each may or may not verify.
@@ -150,7 +150,7 @@ repair_spec(fn, spec, proofstate) -> [Spec]:
   verified_specs = []  // ... unless some were verified, in which case return only them.
   current_specs = [spec]
   for i = 1 to num_repair_iterations:
-    next_specs = []
+    unverified_specs = []
     for spec in current_specs: 
       if spec in all_specs:
         // We have already seen this spec, so don't re-process it.
@@ -159,15 +159,14 @@ repair_spec(fn, spec, proofstate) -> [Spec]:
       vresult = call_verifier(fn, spec, proofstate) // e.g., CBMC
       if is_success(vresult):
         verified_specs += vresult
-        continue
-      next_specs += spec
-    specs = [*llm("repair the specification", fn, spec, vresult) for spec in next_specs]
-    // TODO: perhaps prune out duplicates, for efficiency.
+      else:
+        unverified_specs += spec
+    current_specs = [*llm("repair the specification", fn, spec, call_verifier(fn, spec, proofstate)) 
+                     for spec in unverified_specs]
   if verified_specs:
     return verified_specs:
   else:
     return all_specs
-
 
 // Calls a verification tool such as CBMC.
 // Input: the function, a specification, and context.
@@ -182,12 +181,10 @@ call_verifier(fn, spec, proofstate) -> VerificationResult:
     global.verifier_outputs[vinput] = vresult
   return vresult
 
-
 // Input: A function
 // Output: the function's current verification context: the specs of callers and callees.
 current_context(fn, proofstate) -> context:
   // Look up from proofstate's fields, such as `specs` or `verified_functions` and `assumed_functions`.
-
 
 // Choose the next step for the overall algorithm: continue or backtrack.
 // Input: A function and a list of candidate specifications for it.
@@ -210,7 +207,6 @@ choose_next_step(fn, candidate_specs: List[spec], proofstate) -> [(spec, backtra
   return result
 ```
 
-
 Suppose that, after creating a VerificationInput, the system changes some
 specification in the context.  Then the old VerificationInput is no longer
 applicable.  A call to `call_verifier()` will create a new VerificationInput
@@ -218,15 +214,11 @@ and the verifier will be re-run.  (This is one reason that verification
 results are not passed around in the algorithm, but are re-computed -- to
 avoid the bookkeeping of figuring out what has to be updated.)
 
-
+## Parallelization
 
 Many for loops and list comprehensions (but not the for loop in `repair`) can be parallelized.
 
-
-
-===========================================================================
-
-OLD, NO LONGER RELEVANT:
+## OLD, NO LONGER RELEVANT
 
 More about forking processes:
 
@@ -235,6 +227,7 @@ Currently this is hard-coded in `try_to_specify()`, which is the client of `gene
 However, it is not done for other LLM calls in `repair_spec()` and `choose_next_step()`.
 
 It would be better for the algorithm to apply sample-exploration more uniformly.
+
 * One way is to hard-code the other LLM uses, just as `generate_specs()` and its client `try_to_specify()` are.
 * Another way is to modify the algorithm to fork multiple processes, like so:
   * Rewrite the algorithm to treat each LLM query call as returning exactly one value.  (This actually simplifies `try_to_specify()` and its client `verify_program()`.
@@ -246,7 +239,9 @@ It would be better for the algorithm to apply sample-exploration more uniformly.
     This is similar to a process manager that prunes processes that have been superseded (that, is prune a process if some other process already solved the problem).
     A process manager would also prune processes that have run for too long.
 
-LocalWords:  workstack llm num VerificationInput VerificationResult boolean fn
+<!--
+LocalWords:  workstack llm num VerificationInput VerificationResult boolean fn doesn SQLite multithreading
 LocalWords:  VerificationResults LlmInput LlmOutput proofstates ProofStates ps
 LocalWords:  ProofState TODO f's vresult BacktrackInfo plaintext proofstate py
 LocalWords:  LlmSpecificationGenerator recomputation vinput
+-->
