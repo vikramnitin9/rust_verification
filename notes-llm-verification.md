@@ -4,8 +4,8 @@ Overall idea:  The algorithm verifies a program by verifying one function at a t
 
 A "proof state" is a pair of:
 
- * a workstack of functions yet to be processed (in reverse topological order)
- * the current specification of every function
+* a workstack of functions yet to be processed (in reverse topological order)
+* the current specification of every function
 
 A "step" is an attempt to verify the function on the top of the workstack.
 A step converts one proof state into another.
@@ -22,13 +22,13 @@ parallel.
 
 Two integers parameterize the algorithm:
 
- * `num_llm_samples`: each call to `llm()` returns a list of this length.
+* `num_llm_samples`: each call to `llm()` returns a list of this length.
    As a general rule, after each call to `llm()`, our algorithm heuristically prunes the returned list of samples to reduce the exploration space.
- * `num_repair_iterations`: the number of times that the LLM tries to repair a specification, using feedback from running the verifier.
+* `num_repair_iterations`: the number of times that the LLM tries to repair a specification, using feedback from running the verifier.
 
 The implementation also contains:
 
- * the model temperature, which cannot be set to 0 for sampling/generating candidates.
+* the model temperature, which cannot be set to 0 for sampling/generating candidates.
 
 ## Data structures
 
