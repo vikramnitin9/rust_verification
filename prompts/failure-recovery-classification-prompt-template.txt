@@ -1,0 +1,53 @@
+The following is the specification with the fewest errors reported by CBMC
+for the function $function_name:
+
+$function_with_specifications
+
+CBMC reports the following errors:
+
+$failure_lines
+
+$stderr
+
+$callees_for_function_with_specifications
+
+Classify the next step to take for handling this failure, choose from:
+
+    ASSUME_SPEC: When CBMC is insufficiently expressive to prove the implementation of
+        $function_name satisfies the current specification.
+    BACKTRACK_TO_CALLEE: When the specification might be consistent with $function_name, but not
+        necessarily with a callee's contract. Choose the callee to backtrack to, taking their
+        specifications into account.
+
+
+Your response should comprise your reasoning process and the next step you take for handling
+the failure. Specifically, state the reasoning first and follow up with the classification, i.e.,
+
+{
+    "reasoning": "<YOUR_REASONING>",
+    "classification": {
+        "action": ...,
+        "callee_for_backtracking": ...
+    }
+}
+
+For example, if you choose that assuming the specification is the best course of action, your
+response should be:
+
+{
+    "reasoning": "<YOUR REASONING>",
+    "classification": {
+        "action": "ASSUME_SPEC",
+        "callee_for_backtracking": null
+    }
+}
+
+Here is an example response for backtracking:
+
+{
+    "reasoning": "<YOUR REASONING>",
+    "classification": {
+        "action": "BACKTRACK_TO_CALLEE",
+        "callee_for_backtracking": <THE CALLEE TO BACKTRACK TO>
+    }
+}

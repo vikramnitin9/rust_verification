@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import pickle as pkl
 import time
@@ -13,7 +14,13 @@ from pathlib import Path
 
 from loguru import logger
 
-from specifications import LlmSpecificationGenerator
+from specifications import (
+    AssumeSpec,
+    BacktrackToCallee,
+    CandidateSpecification,
+    FailureRecoveryOracle,
+    LlmSpecificationGenerator,
+)
 from util import (
     ParsecResult,
     copy_file_to_folder,
@@ -23,6 +30,7 @@ from util import (
     overwrite_file,
 )
 from verification import (
+    BacktrackingRecoveryHandler,
     CbmcVerificationClient,
     LlmGenerateVerifyIteration,
     Success,
@@ -38,7 +46,14 @@ DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="ut
 
 
 def main() -> None:
-    """Generate specifications for C functions using an LLM and verify them with CBMC."""
+    """Generate specifications for C functions using an LLM and verify them with CBMC.
+
+    For example, running the following command:
+
+        ./generate_specs.py --file data/qsort.c
+
+    Will output "specs/qsort.c", which is the version of the input file with CBMC annotations.
+    """
     parser = argparse.ArgumentParser(
         prog="generate_specs.py", description="Generate CBMC specifications for a C file."
     )
@@ -79,7 +94,6 @@ def main() -> None:
     insert_lines_at_beginning(header_lines, output_file_path)
 
     parsec_result = ParsecResult(output_file_path)
-
     # Get a list of functions in reverse topological order.
     func_ordering = parsec_result.copy(
         remove_self_edges_in_call_graph=True
@@ -107,135 +121,264 @@ def main() -> None:
             args.model_temperature,
         )
 
-        # Create a temporary file with the candidate specs.
-        function_with_candidate_specs = extract_function(llm_invocation_result.responses[0])
-        file_with_candidate_specs = function_util.get_file_with_updated_function(
-            func_name,
-            function_with_candidate_specs,
-            parsec_result,
-            output_file_path,
+        # Create specified function candidates for each LLM response.
+        specified_function_candidates = CandidateSpecification.get_specified_function_candidates(
+            func_name, llm_invocation_result, parsec_result, output_file_path
         )
-        # If the function is recursive, accept the generated specs and continue.
-        if function_to_verify.is_direct_recursive():
-            logger.info(
-                f"Generated specs for direct-recursive function '{func_name}', "
-                "its specifications will be trusted"
-            )
-            trusted_functions.append(func_name)
-            _update_with_verified_function(
-                func_name,
-                function_with_candidate_specs,
-                file_with_candidate_specs,
-                parsec_result,
-                output_file_path,
-            )
-            if args.save_conversation:
-                conversation_log[func_name].append(
-                    LlmGenerateVerifyIteration(func_name, llm_invocation_result, Success())
-                )
-            continue
+        # Keep track of the failing candidates.
+        failing_candidates: list[CandidateSpecification] = []
 
-        verification_result = verifier.verify(
-            function_name=func_name,
-            names_of_verified_functions=verified_functions,
-            names_of_trusted_functions=trusted_functions,
-            file_path=file_with_candidate_specs,
-        )
-        if args.save_conversation:
-            conversation_log[func_name].append(
-                LlmGenerateVerifyIteration(func_name, llm_invocation_result, verification_result)
-            )
-
-        if isinstance(verification_result, Success):
-            logger.success(f"Verification succeeded for '{func_name}'")
-            verified_functions.append(func_name)
-            # Update the ParsecResult and output file
-            _update_with_verified_function(
-                func_name,
-                function_with_candidate_specs,
-                file_with_candidate_specs,
-                parsec_result,
-                output_file_path,
-            )
-            continue
-        logger.warning(
-            f"Verification failed for '{func_name}'; attempting to repair the generated specs"
-        )
-
-        for n in range(args.num_repair):
-            llm_invocation_result = specification_generator.repair_specifications(
-                func_name,
-                verification_result,
-                conversation,
-            )
-            # Create a temporary file with the candidate specs.
-            function_with_candidate_specs = extract_function(llm_invocation_result.responses[0])
-            file_with_candidate_specs = function_util.get_file_with_updated_function(
-                func_name,
-                function_with_candidate_specs,
-                parsec_result,
-                output_file_path,
-            )
-            verification_result = verifier.verify(
+        verified_candidate: CandidateSpecification | None = None
+        # Check if any of the candidates verify before moving on to repair.
+        for i, candidate in enumerate(specified_function_candidates):
+            candidate.verification_result = verifier.verify(
                 function_name=func_name,
                 names_of_verified_functions=verified_functions,
                 names_of_trusted_functions=trusted_functions,
-                file_path=file_with_candidate_specs,
+                file_path=candidate.path_to_file,
             )
-            if args.save_conversation:
-                conversation_log[func_name].append(
-                    LlmGenerateVerifyIteration(
-                        func_name, llm_invocation_result, verification_result
-                    )
-                )
-            if isinstance(verification_result, Success):
-                logger.success(f"Verification succeeded for '{func_name}'")
+            if isinstance(candidate.verification_result, Success):
+                logger.success(f"Verification succeeded for '{func_name}' for candidate {i + 1}")
                 verified_functions.append(func_name)
-                _update_with_verified_function(
+                # Update the ParsecResult and output file with the verified function.
+                _update_with_specified_function(
                     func_name,
-                    function_with_candidate_specs,
-                    file_with_candidate_specs,
+                    candidate.specified_function,
+                    candidate.path_to_file,
+                    parsec_result,
+                    output_file_path,
+                )
+                verified_candidate = candidate
+                break
+            failing_candidates.append(candidate)
+
+        if verified_candidate:
+            for candidate in specified_function_candidates:
+                candidate.delete_temporary_files()
+            continue
+
+        # Order the candidates by the number of failures reported by CBMC.
+        failing_candidates.sort(key=lambda candidate: candidate.get_num_verification_failures())
+
+        # `func_name` is a string, which encodes no information about the call graph.
+        # Use `function_to_verify` instead.
+        if function_to_verify.is_direct_recursive():
+            # Trust the generated specification, continue on to other functions.
+            logger.debug(
+                f"'{function_to_verify.name}' "
+                "is direct recursive, its specifications will be trusted"
+            )
+            trusted_functions.append(function_to_verify.name)
+            candidate_with_fewest_failures = failing_candidates[0]
+            _update_with_specified_function(
+                function_to_verify.name,
+                candidate_with_fewest_failures.specified_function,
+                candidate_with_fewest_failures.path_to_file,
+                parsec_result,
+                output_file_path,
+            )
+            for candidate in specified_function_candidates:
+                candidate.delete_temporary_files()
+            continue
+
+        # Perform repair.
+        logger.warning(
+            f"Verification failed for '{function_to_verify.name}' "
+            "for all candidates, attempting repair."
+        )
+
+        repaired_specification: CandidateSpecification | None = None
+        # Keep a copy of the failing candidates in case failure recovery is necessary.
+        failing_candidates_copy = copy.copy(failing_candidates)
+        while failing_candidates:
+            failing_candidate = failing_candidates.pop(0)
+            repaired_specification = _repair_specification(
+                failing_candidate,
+                specification_generator,
+                verifier,
+                conversation,
+                args.num_repair,
+                verified_functions,
+                trusted_functions,
+                conversation_log,
+                args.save_conversation,
+            )
+            if repaired_specification:
+                logger.success(f"Verification succeeded for '{function_to_verify.name}'")
+                verified_functions.append(function_to_verify.name)
+                # Update the ParsecResult and output file
+                _update_with_specified_function(
+                    function_to_verify.name,
+                    repaired_specification.specified_function,
+                    repaired_specification.path_to_file,
                     parsec_result,
                     output_file_path,
                 )
                 break
-            logger.warning(f"Verification failed for '{func_name}'; on repair attempt {n + 1}")
 
-        if func_name not in verified_functions:
-            logger.warning(
-                f"{func_name} failed to verify after {args.num_repair} repair attempt(s)"
-            )
-            recover_from_failure()
+        if repaired_specification:
+            for candidate in specified_function_candidates:
+                candidate.delete_temporary_files()
+            continue
+
+        logger.warning(
+            f"Function '{function_to_verify.name}' failed to verify after {args.num_repair} repair "
+            f"attempts for {args.num_specification_generation_samples} samples"
+        )
+        recover_from_failure(
+            func_name,
+            parsec_result,
+            failing_candidates_copy,
+            specification_generator,
+            trusted_functions,
+            verified_functions,
+            verifier,
+            conversation,
+            output_file_path,
+        )
+
     if args.save_conversation:
         _write_conversation_log(conversation_log)
 
     _save_functions_with_specs(parsec_result, output_file_path)
 
 
-def recover_from_failure() -> None:
-    """Implement recovery logic."""
-
-
-def _update_with_verified_function(
+def recover_from_failure(
     function_name: str,
-    function_with_verified_specs: str,
-    path_to_file_with_verified_specs: Path,
+    parsec_result: ParsecResult,
+    failing_candidates: list[CandidateSpecification],
+    llm_specification_generator: LlmSpecificationGenerator,
+    trusted_functions: list[str],
+    verified_functions: list[str],
+    verifier: VerificationClient,
+    conversation: list[dict[str, str]],
+    output_file_path: Path,
+) -> None:
+    """Implement recovery strategy when the generate/repair loop for a function fails.
+
+    Args:
+        function_name (str): The name of the function to determine a recovery policy for.
+        parsec_result (ParsecResult): The Parsec result.
+        failing_candidates (list[SpecifiedFunctionSample]): The candidate specs failing to verify.
+        llm_specification_generator (LlmSpecificationGenerator): The LLM specification generator.
+        trusted_functions (list[str]): The list of trusted function names.
+        verified_functions (list[str]): The list of verified function names.
+        verifier (VerificationClient): The verification client.
+        conversation (list[dict[str, str]]): The LLM conversation, so far.
+        output_file_path (Path): The path to the output file.
+    """
+    logger.debug(f"Determining failure recovery policy for '{function_name}'")
+    failure_recovery_oracle = FailureRecoveryOracle(MODEL, parsec_result)
+    failure_recovery_policy = failure_recovery_oracle.determine_recovery_policy(
+        function_name, failing_candidates
+    )
+    candidate_with_fewest_failures = failing_candidates[0]
+    match failure_recovery_policy:
+        case AssumeSpec(_):
+            trusted_functions.append(function_name)
+            _update_with_specified_function(
+                function_name,
+                candidate_with_fewest_failures.specified_function,
+                candidate_with_fewest_failures.path_to_file,
+                parsec_result,
+                output_file_path,
+            )
+        case BacktrackToCallee(_, _) as backtracking_policy:
+            backtracking_handler = BacktrackingRecoveryHandler(
+                llm_specification_generator=llm_specification_generator, verifier=verifier
+            )
+            backtracking_handler.execute(
+                candidate_under_recovery=candidate_with_fewest_failures,
+                backtracking_policy=backtracking_policy,
+                conversation=conversation,
+                trusted_functions=trusted_functions,
+                verified_functions=verified_functions,
+                parsec_result=parsec_result,
+                output_file_path=output_file_path,
+            )
+
+
+def _repair_specification(
+    failing_candidate_spec: CandidateSpecification,
+    specification_generator: LlmSpecificationGenerator,
+    verification_client: VerificationClient,
+    conversation: list[dict[str, str]],
+    num_repair_iterations: int,
+    verified_functions: list[str],
+    trusted_functions: list[str],
+    conversation_log: dict[str, list[LlmGenerateVerifyIteration]],
+    should_save_conversation: bool,
+) -> CandidateSpecification | None:
+    candidate_under_repair = failing_candidate_spec
+    for i in range(num_repair_iterations):
+        name_of_function_under_repair = candidate_under_repair.function_name
+        if not candidate_under_repair.verification_result:
+            raise ValueError("Sample under repair is missing a verification result")
+
+        llm_invocation_result = specification_generator.repair_specifications(
+            candidate_under_repair,
+            conversation,
+        )
+        # Create a temporary file with the candidate specs.
+        function_with_repaired_specs = extract_function(llm_invocation_result.responses[0])
+        path_to_repaired_spec = (
+            candidate_under_repair.path_to_file.parent
+            / f"repair_{i + 1}{candidate_under_repair.path_to_file.suffix}"
+        )
+        file_with_repaired_specs = function_util.get_file_with_updated_function(
+            name_of_function_under_repair,
+            function_with_repaired_specs,
+            candidate_under_repair.parsec_result,
+            candidate_under_repair.path_to_file,
+            path_to_repaired_spec,
+        )
+        verification_result = verification_client.verify(
+            function_name=name_of_function_under_repair,
+            names_of_verified_functions=verified_functions,
+            names_of_trusted_functions=trusted_functions,
+            file_path=file_with_repaired_specs,
+        )
+        if should_save_conversation:
+            conversation_log[name_of_function_under_repair].append(
+                LlmGenerateVerifyIteration(
+                    failing_candidate_spec.function_name,
+                    llm_invocation_result,
+                    verification_result,
+                )
+            )
+        latest_repair_iteration_result = CandidateSpecification(
+            name_of_function_under_repair,
+            function_with_repaired_specs,
+            file_with_repaired_specs,
+            verification_result,
+        )
+        if latest_repair_iteration_result.is_verified():
+            return latest_repair_iteration_result
+        candidate_under_repair = latest_repair_iteration_result
+    return None
+
+
+def _update_with_specified_function(
+    function_name: str,
+    function_with_specs: str,
+    path_to_file_with_specs: Path,
     parsec_result: ParsecResult,
     path_to_verified_output: Path,
 ) -> None:
-    """Update the Parsec result and the verified output file with the newly-verified function.
+    """Update the Parsec result and the verified output file with the function with specs.
 
     Args:
-        function_name (str): The name of the newly-verified function.
-        function_with_verified_specs (str): The source code of the newly-verified function.
-        path_to_file_with_verified_specs (Path): The path to the file with the newly-verified specs.
+        function_name (str): The name of the function with specs.
+        function_with_specs (str): The source code of the function with specs.
+        path_to_file_with_specs (Path): The path to the file with the function with specs.
         parsec_result (ParsecResult): The parsec result to update.
-        path_to_verified_output (Path): The path to the verified output file.
+        path_to_verified_output (Path): The path to the successfully verifying output file. The
+            output file is in the same format as the input file, but with CBMC annotations.
     """
-    function_util.update_parsec_result(function_name, function_with_verified_specs, parsec_result)
-    verified_file_content = path_to_file_with_verified_specs.read_text(encoding="utf-8")
+    function_util.update_parsec_result(function_name, function_with_specs, parsec_result)
+    verified_file_content = path_to_file_with_specs.read_text(encoding="utf-8")
     overwrite_file(verified_file_content, path_to_verified_output)
-    path_to_file_with_verified_specs.unlink()
+    path_to_file_with_specs.unlink()
 
 
 def _write_conversation_log(conversation_log: dict[str, list[LlmGenerateVerifyIteration]]) -> None:
@@ -271,6 +414,10 @@ def _get_path_to_conversation_log() -> Path:
 
 def _save_functions_with_specs(parsec_result: ParsecResult, output_file_path: Path) -> None:
     """Write functions from a ParseC result that have specifications to disk.
+
+    The format is a list of ParsecFunction objects. ParsecFunction objects that do not have
+    specification are omitted from the list. This should not occur, since each ParsecFunction has
+    a verified (or assumed) specification at the end of the specification generation process.
 
     This is needed for specification translation. Ideally, the specified functions would be read
     directly from the source file resulting directly from specification generation. However, CBMC
