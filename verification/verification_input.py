@@ -7,14 +7,14 @@ from util import FunctionSpecification, ParsecFunction
 
 @dataclass(frozen=True)
 class VerificationContext:
-    _callee_specs: dict[str, FunctionSpecification]
+    callee_specs: dict[str, FunctionSpecification]
     # I'm unsure if CBMC has a way to write specs for global variables.
-    _global_variable_specs: dict[str, str]
-    _hints: str = ""
+    global_variable_specs: dict[str, str]
+    hints: str = ""
 
 
 @dataclass(frozen=True)
 class VerificationInput:
-    _function: ParsecFunction
-    _specs: FunctionSpecification
-    _context: VerificationContext
+    function: ParsecFunction
+    spec: FunctionSpecification
+    context: VerificationContext

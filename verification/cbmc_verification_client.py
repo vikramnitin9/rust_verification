@@ -5,6 +5,10 @@ from pathlib import Path
 
 from loguru import logger
 
+from util.specifications import FunctionSpecification
+from verification.proof_state import ProofState
+from verification.verification_result import VerificationResult
+
 from .verification_client import VerificationClient
 from .verification_result import Failure, Success
 
@@ -66,3 +70,8 @@ class CbmcVerificationClient(VerificationClient):
         except Exception as e:
             msg = f"Error running command for function {function_name}: {e}"
             raise RuntimeError(msg) from e
+
+    def verify_function_with_spec(
+        self, function_name: str, spec: FunctionSpecification, proof_state: ProofState
+    ) -> VerificationResult:
+        raise NotImplementedError("Implement me")
