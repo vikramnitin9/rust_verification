@@ -57,7 +57,9 @@ Global data structures:
   This cache eliminates the need to pass VerificationResults through the program,
   since they can just be looked up.
 * `llm_cache`: Map[LlmInput, List[LlmOutput]]: for efficiency.  Is only added to, never removed from.
-  The input type (the key) is probably String.  Each value in the map is a list of strings, with length `num_llm_samples`.
+  * Cache responses for testing + in cases where we make the same call to the LLM (given that it's
+    the same LLM and not an "improved" model or the same call made some timeframe after the last
+    call).
 * `proofstates_worklist`:  set of ProofStates yet to be explored.
   Trying to add an element that has ever been previously added has no effect.
   (We could imagine making this a priority queue if we have a good heuristic for ordering.)
@@ -69,6 +71,8 @@ class ProofState:
 * workstack: Stack[(function, hints)]
   A stack of functions that need to be (re)processed.
   Each hint is text provided to the LLM to guide it.  I don't have a data structure (beyond string) in mind for it yet.
+  * A hint might comprise information such as "Please weaken/strengthen the postcondition" or
+  "this function is only ever called with non-null values", etc.
 Possible fields:
 * verified_functions: a list of functions that have been verified.
 * assumed_functions: a list of functions with unverified, but trusted, specifications.
@@ -82,7 +86,8 @@ verify_program(program) -> Map[Fn, Spec]:
                                                 order (that is, children first), with empty hints.
   initial_ps = ProofState(initial_workstack)
   global.proofstates_worklist.add(initial_ps)
-  while global.proofstates_worklist not empty:
+
+  while global.proofstates_worklist not empty or TIMEOUT_REACHED:
     ps = global.proofstates_worklist.remove_first()
     next_proofstates = step(ps)
     for next_ps in next_proofstates:
@@ -202,9 +207,13 @@ choose_next_step(fn, candidate_specs: List[spec], proofstate) -> [(spec, backtra
       // Also provide all the candidate specs, rather than just the one chosen by the heuristic?
       // Or choose a spec and provide backtracking hints in a single heuristic rather than separating them?
       // Or permit this LLM call to return a different spec from candidate_specs than the heuristic chose?
-      backtrack_info = llm("choose a callee to repair, and provide hints", fn, spec, vresult)
-    result += (spec, backtrack_info)
+      backtrack_infos = llm("choose a callee to repair, and provide hints", fn, spec, vresult)
+    result.append([(spec, backtrack_info) for backtrack_info in backtrack_infos])
   return result
+
+llm(...):
+  This is a function that calls the API we're using for LLMs, it should ideally use the cache
+  (if possible).
 ```
 
 Suppose that, after creating a VerificationInput, the system changes some
