@@ -24,7 +24,9 @@ DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS = 10
 DEFAULT_MODEL_TEMPERATURE = 1.0
 DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
 
-GLOBAL_WORKSTACKS = []
+type Workstack = list[tuple[ParsecFunction, str]]
+
+GLOBAL_PROOFSTATES: list[ProofState] = []
 
 
 def main() -> None:
@@ -70,7 +72,7 @@ def main() -> None:
     functions_in_reverse_topological_order = _get_functions_in_reverse_topological_order(
         parsec_result
     )
-    _verify_program(functions_in_reverse_topological_order)
+    _verify_program(functions_in_reverse_topological_order, specification_generator)
 
 
 if __name__ == "__main__":
@@ -97,6 +99,36 @@ def _get_functions_in_reverse_topological_order(
 def _verify_program(
     functions: list[ParsecFunction], specification_generator: LlmSpecificationGenerator
 ) -> dict[str, FunctionSpecification]:
-    initial_workstack: list[tuple[ParsecFunction, str]] = [(function, "") for function in functions]
+    initial_workstack: Workstack = [(function, "") for function in functions]
     initial_proof_state = ProofState(workstack=initial_workstack)
-    raise NotImplementedError("Implement me")
+
+    GLOBAL_PROOFSTATES.append(initial_proof_state)
+
+    while GLOBAL_PROOFSTATES:
+        proof_state = GLOBAL_PROOFSTATES.pop()
+        next_proofstates = _step(
+            proof_state=proof_state, specification_generator=specification_generator
+        )
+
+        for next_proofstate in next_proofstates:
+            if next_proofstate.is_workstack_empty():
+                return next_proofstate.get_specifications()
+            GLOBAL_PROOFSTATES.append(next_proofstate)
+
+    # We timed out or ran out of proof states to specify without finding one
+    # with an empty work stack.
+    raise RuntimeError()
+
+
+def _step(
+    proof_state: ProofState, specification_generator: LlmSpecificationGenerator
+) -> list[ProofState]:
+    function, hints = proof_state.peek_workstack()
+    specs_for_function: list[FunctionSpecification] = specification_generator.try_to_specify(
+        function=function, hints=hints
+    )
+    return []  # stub.
+
+
+def _choose_next_step(function: ParsecFunction, specs: list[FunctionSpecification]):
+    pass

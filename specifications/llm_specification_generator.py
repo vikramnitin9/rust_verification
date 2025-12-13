@@ -34,9 +34,7 @@ class LlmSpecificationGenerator:
         self._prompt_builder = PromptBuilder()
         self._num_specification_generation_candidates = num_specification_generation_candidates
 
-    def try_to_specify(
-        self, function: ParsecFunction, hints: str, proof_state: ProofState
-    ) -> list[VerificationResult]:
+    def try_to_specify(self, function: ParsecFunction, hints: str) -> list[FunctionSpecification]:
         # TODO: Somehow incorporate `hints` into the prompt.
         conversation = [{"role": "system", "content": self._system_prompt}]
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
@@ -54,13 +52,9 @@ class LlmSpecificationGenerator:
             candidate_specified_functions = [
                 extract_function(response) for response in model_responses
             ]
-            candidate_function_specs = [
+            return [
                 function_util.extract_specification(function.splitlines())
                 for function in candidate_specified_functions
-            ]
-            return [
-                self._verifier.verify_function_with_spec(function.name, candidate_spec, proof_state)
-                for candidate_spec in candidate_function_specs
             ]
 
         except ModelError as me:

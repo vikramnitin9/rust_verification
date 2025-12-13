@@ -27,3 +27,12 @@ class ProofState:
         self._workstack = workstack
         self._verified_functions = []
         self._assumed_functions = []
+
+    def peek_workstack(self) -> tuple[ParsecFunction, str]:
+        return self._workstack[-1]
+
+    def is_workstack_empty(self) -> bool:
+        return len(self._workstack) == 0
+
+    def get_specifications(self) -> dict[str, FunctionSpecification]:
+        return self._specs
