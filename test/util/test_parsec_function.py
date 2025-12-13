@@ -185,7 +185,7 @@ def test_get_comment_no_comments() -> None:
             "callees": [],
         }
     )
-    assert function.get_documentation_comments() is None
+    assert function.get_preceding_comments() is None
 
 
 def test_get_comment_double_slash() -> None:
@@ -204,7 +204,7 @@ def test_get_comment_double_slash() -> None:
         }
     )
     expected_comments = "// Double-slash comment\n// Again"
-    assert function.get_documentation_comments() == expected_comments
+    assert function.get_preceding_comments() == expected_comments
 
 
 def test_get_comment_multi_line() -> None:
@@ -223,7 +223,7 @@ def test_get_comment_multi_line() -> None:
         }
     )
     expected_comment = "/**\n* Brief description.\n*\n* @param a first parameter\n* @return if any return value\n*\n* Detailed description\n**/"
-    assert function.get_documentation_comments() == expected_comment
+    assert function.get_preceding_comments() == expected_comment
 
 
 def test_get_comment_multi_line_pathological() -> None:
@@ -242,10 +242,12 @@ def test_get_comment_multi_line_pathological() -> None:
         }
     )
     expected_comment = "/*\nTest\n\n\nDetailed description */"
-    assert function.get_documentation_comments() == expected_comment
+    assert function.get_preceding_comments() == expected_comment
+
 
 def test_is_direct_recursive_is_true() -> None:
-    function = ParsecFunction({
+    function = ParsecFunction(
+        {
             "name": "recursive_function",
             "num_args": 0,
             "returnType": "void",
@@ -256,10 +258,14 @@ def test_is_direct_recursive_is_true() -> None:
             "startCol": 1,
             "endCol": 25,
             "callees": [{"name": "recursive_function"}],
-    })
+        }
+    )
     assert function.is_direct_recursive()
+
+
 def test_is_direct_recursive_is_false() -> None:
-    function = ParsecFunction({
+    function = ParsecFunction(
+        {
             "name": "a",
             "num_args": 1,
             "returnType": "int",
@@ -270,5 +276,6 @@ def test_is_direct_recursive_is_false() -> None:
             "startCol": 1,
             "endCol": 28,
             "callees": [],
-    })
+        }
+    )
     assert not function.is_direct_recursive()

@@ -1,7 +1,6 @@
-from translation import CBMCToKani
-from translation import Parser, ToAst, CBMCAst
-
 import pytest
+
+from translation import CBMCAst, CBMCToKani, Parser, ToAst
 
 cbmc_parser: Parser[CBMCAst] = Parser(
     path_to_grammar_defn="translation/grammar/cbmc.txt",

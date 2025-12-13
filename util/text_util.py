@@ -7,7 +7,7 @@ def prepend_line_numbers(lines: list[str], start: int, end: int) -> list[tuple[s
     """Return a list of tuples of line numbers with lines.
 
     Args:
-        lines (list[str]): The lines to prepend line numbers to.
+        lines (list[str]): The lines that will get line numbers.
         start (int): The start of the line number range (inclusive).
         end (int): The end of the line number range (exclusive).
 
@@ -27,8 +27,8 @@ def prepend_line_numbers(lines: list[str], start: int, end: int) -> list[tuple[s
             f"Mismatch between length of lines ({len(lines)}) and "
             f"range of lines (start = {start}, end = {end})"
         )
-    line_number_padding = len(str(end))
-    return [(f"{str(n).ljust(line_number_padding)}", lines[n - start]) for n in range(start, end)]
+    line_number_width = len(str(end))
+    return [(f"{str(n).ljust(line_number_width)}", lines[n - start]) for n in range(start, end)]
 
 
 def comment_out_cbmc_annotations(lines: list[str]) -> list[str]:
@@ -39,7 +39,7 @@ def comment_out_cbmc_annotations(lines: list[str]) -> list[str]:
     Handles both single-line and multi-line specifications by tracking parentheses.
 
     Args:
-        lines (list[str]): The lines of source code to process.
+        lines (list[str]): The lines of C source code to process.
 
     Returns:
         list[str]: The lines with __CPROVER specifications commented out.
@@ -82,7 +82,4 @@ def uncomment_cbmc_annotations(lines: list[str]) -> list[str]:
     Returns:
         list[str]: The lines with CBMC_COMMENT_PREFIX removed
     """
-    return [
-        line.replace(CBMC_COMMENT_PREFIX, "") if line.startswith(CBMC_COMMENT_PREFIX) else line
-        for line in lines
-    ]
+    return [line.removeprefix(CBMC_COMMENT_PREFIX) for line in lines]

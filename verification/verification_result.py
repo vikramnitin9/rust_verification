@@ -19,7 +19,7 @@ class Failure(VerificationResult):
     """Represents an unsuccessful verification result.
 
     Attributes:
-        source (Path): The path to the file that failed to verify.
+        source (Path): The file that failed to verify.
         stdout (str): The stdout output from an unsuccessful verification result.
         stderr (str): The stderr output from an unsuccessful verification result.
     """

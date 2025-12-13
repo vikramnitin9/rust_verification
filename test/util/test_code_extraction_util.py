@@ -1,6 +1,6 @@
-from util import code_extraction_util
-
 import pytest
+
+from util import code_extraction_util
 
 
 def test_extract_function_invalid_json() -> None:
