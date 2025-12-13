@@ -95,11 +95,9 @@ def get_source_code_with_inserted_specs(
     Returns:
         str: The source code of a function with the specifications inserted.
     """
-    function = parsec_result.get_function(function_name=function_name):
+    function = parsec_result.get_function(function_name=function_name)
     (signature, body) = get_signature_and_body(function.get_source_code(), lang="c")
-    specs = "\n".join(
-        spec for spec in specifications.preconditions + specifications.postconditions
-    )
+    specs = "\n".join(spec for spec in specifications.preconditions + specifications.postconditions)
     return f"{signature}\n{specs}\n{body}"
 
 

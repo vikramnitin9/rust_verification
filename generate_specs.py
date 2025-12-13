@@ -17,9 +17,9 @@ from specifications import LlmSpecificationGenerator
 from util import (
     ParsecFile,
     copy_file_to_folder,
+    ensure_lines_at_beginning,
     extract_function,
     function_util,
-    ensure_lines_at_beginning,
 )
 from verification import (
     CbmcVerificationClient,
