@@ -113,7 +113,7 @@ class ParsecFunction:
             )
 
         if include_documentation_comments:
-            if documentation := self.get_documentation_comments():
+            if documentation := self.get_preceding_comments():
                 if include_line_numbers:
                     documentation_lines = documentation.splitlines()
                     documentation = "\n".join(
@@ -127,7 +127,7 @@ class ParsecFunction:
                 source_code = f"{documentation}\n{source_code}"
         return source_code
 
-    def get_documentation_comments(self) -> str | None:
+    def get_preceding_comments(self) -> str | None:
         """Return the content of lines immediately preceding this function (usually documentation).
 
         Returns:
