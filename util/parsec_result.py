@@ -127,13 +127,17 @@ class ParsecFile:
         Args:
             function_name (str): The name of the function for which to return the ParsecFunction.
 
+        Returns:
+            ParsecFunction: The ParsecFunction with the given name.
+
         Raises:
             RuntimeError: if no function with that name exists.
         """
-        result = get_function_or_none
+        result = self.get_function_or_none(function_name)
         if result is None:
-            msg = f"No function named '{func_name}' exists"
+            msg = f"No function named '{function_name}' exists"
             raise RuntimeError(msg)
+        return result
 
     def get_callees(self, function: ParsecFunction) -> list[ParsecFunction]:
         """Return the callees of the given function.

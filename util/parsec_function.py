@@ -4,8 +4,8 @@ import pathlib
 from dataclasses import dataclass, field
 from typing import Any
 
+from .function_specification import FunctionSpecification
 from .parsec_error import ParsecError
-from .specifications import FunctionSpecification
 from .text_util import prepend_line_numbers, uncomment_cbmc_annotations
 
 
@@ -165,7 +165,7 @@ class ParsecFunction:
             bool: True iff a line comprises a comment (or part of one).
         """
         stripped_line = line.strip()
-        comment_starts = ["//", "/*", "*"]
+        comment_starts = ("//", "/*", "*")
 
         if stripped_line.startswith(comment_starts):
             return True

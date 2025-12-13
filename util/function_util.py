@@ -6,9 +6,9 @@ from pathlib import Path
 import tree_sitter_c as tsc
 from tree_sitter import Language, Parser, Query, QueryCursor
 
+from .function_specification import FunctionSpecification
 from .parsec_function import ParsecFunction
 from .parsec_result import ParsecFile
-from .specifications import FunctionSpecification
 
 PRECONDITION_PREFIX = "__CPROVER_requires"
 POSTCONDITION_PREFIX = "__CPROVER_ensures"
@@ -89,9 +89,6 @@ def get_source_code_with_inserted_specs(
         specifications (FunctionSpecification): The specifications for the function.
         parsec_result (ParsecFile): The ParsecFile.
 
-    Raises:
-        RuntimeError: Raised when the function is missing from the ParsecFile.
-
     Returns:
         str: The source code of a function with the specifications inserted.
     """
@@ -116,15 +113,11 @@ def get_file_with_updated_function(
         original_src (Path): The path to the original file with the original function
             declaration.
 
-    Raises:
-        RuntimeError: Raised when the original declaration for the function with the updated
-            declaration is missing from the ParsecFile.
-
     Returns:
         Path: The path to the new file.
     """
     original_function = parsec_result.get_function(function_name)
-    file_content_with_candidate_specs = _insert_new_function_declaration(
+    file_content_with_candidate_specs = _replace_function_declaration(
         original_function, new_function_declaration, original_src
     )
     tmp_file = Path(_get_temporary_file_name(function_name, original_src))
@@ -142,9 +135,6 @@ def update_parsec_result(
         function_name (str): The function to update in the ParsecFile.
         updated_function_content (str): The updated function content.
         parsec_result (ParsecFile): The parsec result to update.
-
-    Raises:
-        RuntimeError: Raised when there is no function to update in the parsec result.
     """
     original_function = parsec_result.get_function(function_name)
     prev_start_line = original_function.start_line
@@ -195,16 +185,13 @@ def update_function_declaration(
         parsec_result (ParsecFile): The ParseC result containing function definitions.
         file (Path): The file that contains the function (and possibly other functions).
 
-    Raises:
-        RuntimeError: Raised when the function to be updated cannot be found.
-
     Returns:
         str: The contents of the file after updating the function declaration.
     """
     function = parsec_result.get_function(function_name)
 
     # Update the actual source code.
-    new_contents = _insert_new_function_declaration(function, updated_function_content, file)
+    new_contents = _replace_function_declaration(function, updated_function_content, file)
     Path(file).write_text(new_contents, encoding="utf-8")
 
     start_line = function.start_line
@@ -215,16 +202,16 @@ def update_function_declaration(
     # Update the line/col info for this function in the Parsec Result.
     function_lines = updated_function_content.splitlines()
     num_lines = len(function_lines)
-    new_end_line = start_line + function_len - 1
+    new_end_line = start_line + num_lines - 1
     new_end_col = (
-        len(function_lines[-1]) if function_len > 1 else start_col + len(updated_function_content)
+        len(function_lines[-1]) if num_lines > 1 else start_col + len(updated_function_content)
     )
     function.end_line = new_end_line
     function.end_col = new_end_col
     function.set_specifications(extract_specification(function_lines))
 
     # Update line/col info for other functions.
-    line_offset = function_len - (end_line - start_line + 1)
+    line_offset = num_lines - (end_line - start_line + 1)
     for other_func in parsec_result.functions.values():
         if other_func.name == function.name:
             continue
@@ -271,7 +258,7 @@ def _get_temporary_file_name(function_name: str, source_file: Path) -> str:
     return f"{path_to_src_no_ext}-{function_name}-candidate-specs-{now_ts}{ext}"
 
 
-def _insert_updated_function_declaration(
+def _replace_function_declaration(
     function: ParsecFunction, updated_function_declaration: str, path_to_src: Path
 ) -> str:
     """Return contents of the file where the function is defined with its new declaration.

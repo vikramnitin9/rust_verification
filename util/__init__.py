@@ -4,7 +4,7 @@ from .function_util import extract_specification
 from .parsec_error import ParsecError
 from .parsec_function import ParsecFunction
 from .parsec_result import ParsecFile
-from .specifications import FunctionSpecification
+from .function_specification import FunctionSpecification
 
 __all__ = [
     "FunctionSpecification",
