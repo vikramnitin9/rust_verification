@@ -77,6 +77,8 @@ Possible fields:
 * verified_functions: a list of functions that have been verified.
 * assumed_functions: a list of functions with unverified, but trusted, specifications.
 
+## Code
+
 ```pseudocode
 // The entry point: Verify all the functions in a program.
 // Input: a program
