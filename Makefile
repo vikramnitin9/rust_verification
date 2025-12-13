@@ -1,4 +1,4 @@
-.PHONY: default docker-build run test checks style-fix style-check python-style-fix python-style-check python-typecheck showvars
+.PHONY: default docker-build run test checks tags
 
 default: test
 
@@ -20,32 +20,14 @@ test:
 # Run all code style checks.
 checks: style-fix style-check
 
-# Code style.
-style-fix: python-style-fix
-style-check: python-style-check python-typecheck
-PYTHON_FILES:=$(shell find . \( -name ".git" -o -name ".venv" -o -name "test" \) -prune -o -name '*.py' -not -name '__init__.py' -print) $(shell grep -r -l --exclude-dir=.git --exclude-dir=.venv --exclude='*.py' --exclude='*~' --exclude='*.tar' --exclude-dir=test --exclude=gradlew --exclude=lcb_runner '^\#! \?\(/bin/\|/usr/bin/env \)python')
-python-style-fix:
-ifneq (${PYTHON_FILES},)
-	@ruff --version
-	@ruff format ${PYTHON_FILES}
-	@ruff -q check ${PYTHON_FILES} --fix
+# Code style; defines `style-check` and `style-fix`.
+CODE_STYLE_EXCLUSIONS_USER := --exclude-dir cbmc --exclude-dir test --exclude __init__.py
+ifeq (,$(wildcard .plume-scripts))
+dummy != git clone -q https://github.com/plume-lib/plume-scripts.git .plume-scripts
 endif
-python-style-check:
-ifneq (${PYTHON_FILES},)
-	@ruff --version
-	@ruff -q format --check ${PYTHON_FILES}
-	@ruff -q check ${PYTHON_FILES}
-endif
-python-typecheck:
-ifneq (${PYTHON_FILES},)
-	@mypy --version
-	@mypy --strict --install-types --non-interactive ${PYTHON_FILES} > /dev/null 2>&1 || true
-	mypy --strict --ignore-missing-imports ${PYTHON_FILES}
-endif
+include .plume-scripts/code-style.mak
 
+# ${PYTHON_FILES} is defined by the above style checking.
 TAGS: tags
 tags:
 	etags ${PYTHON_FILES}
-
-showvars:
-	@echo "PYTHON_FILES=${PYTHON_FILES}"

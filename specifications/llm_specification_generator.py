@@ -22,6 +22,7 @@ class LlmSpecificationGenerator:
     _prompt_builder: PromptBuilder
 
     def __init__(self, model: str, parsec_result: ParsecFile):
+        """Create a new LlmSpecificationGenerator."""
         self._model = get_llm_generation_with_model(model)
         self._parsec_result = parsec_result
         self._prompt_builder = PromptBuilder()

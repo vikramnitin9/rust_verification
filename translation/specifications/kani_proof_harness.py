@@ -42,6 +42,7 @@ class KaniProofHarness:
     _source_code: str
 
     def __init__(self, rust_candidate: RustFunction, spec: FunctionSpecification):
+        """Create a new KaniProofHarness."""
         self._rust_candidate = rust_candidate
         self._annotations = list(KANI_PROOF_ANNOS)
         self._assumed_exprs = [

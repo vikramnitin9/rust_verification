@@ -1,5 +1,6 @@
 from util import text_util
 
+
 def test_comment_out_no_specs() -> None:
     lines = [
         "int partition(int arr[], int low, int high)\n",
@@ -15,10 +16,11 @@ def test_comment_out_no_specs() -> None:
         "    }\n",
         "    swap(&arr[i + 1], &arr[high]);\n",
         "    return i + 1;\n",
-        "}\n"
+        "}\n",
     ]
     lines_with_commented_out_specs = text_util.comment_out_cbmc_annotations(lines)
     assert lines_with_commented_out_specs == lines
+
 
 def test_comment_out_cbmc_specs_multi_line_specs() -> None:
     lines = [
@@ -48,7 +50,7 @@ def test_comment_out_cbmc_specs_multi_line_specs() -> None:
         "    }\n",
         "    swap(&arr[i + 1], &arr[high]);\n",
         "    return i + 1;\n",
-        "}\n"
+        "}\n",
     ]
     lines_with_commented_out_specs = text_util.comment_out_cbmc_annotations(lines)
     assert lines_with_commented_out_specs == [
@@ -78,7 +80,7 @@ def test_comment_out_cbmc_specs_multi_line_specs() -> None:
         "    }\n",
         "    swap(&arr[i + 1], &arr[high]);\n",
         "    return i + 1;\n",
-        "}\n"
+        "}\n",
     ]
 
 
@@ -93,7 +95,7 @@ def test_comment_out_cbmc_specs_single_line_specs() -> None:
         "    int t = *a;\n",
         "    *a = *b;\n",
         "    *b = t;\n",
-        "}\n"
+        "}\n",
     ]
     lines_with_commented_out_specs = text_util.comment_out_cbmc_annotations(lines)
     assert lines_with_commented_out_specs == [
@@ -106,8 +108,9 @@ def test_comment_out_cbmc_specs_single_line_specs() -> None:
         "    int t = *a;\n",
         "    *a = *b;\n",
         "    *b = t;\n",
-        "}\n"
+        "}\n",
     ]
+
 
 def test_uncomment_cbmc_specs_single_line() -> None:
     lines_with_commented_out_specs = [
@@ -120,7 +123,7 @@ def test_uncomment_cbmc_specs_single_line() -> None:
         "    int t = *a;\n",
         "    *a = *b;\n",
         "    *b = t;\n",
-        "}\n"
+        "}\n",
     ]
     lines_with_specs = [
         "void swap(int* a, int* b) \n",
@@ -132,9 +135,10 @@ def test_uncomment_cbmc_specs_single_line() -> None:
         "    int t = *a;\n",
         "    *a = *b;\n",
         "    *b = t;\n",
-        "}\n"
+        "}\n",
     ]
     assert lines_with_specs == text_util.uncomment_cbmc_annotations(lines_with_commented_out_specs)
+
 
 def test_uncomment_cbmc_specs_multi_line_specs() -> None:
     lines_with_commented_out_specs = [
@@ -164,7 +168,7 @@ def test_uncomment_cbmc_specs_multi_line_specs() -> None:
         "    }\n",
         "    swap(&arr[i + 1], &arr[high]);\n",
         "    return i + 1;\n",
-        "}\n"
+        "}\n",
     ]
     lines_with_specs = [
         "int partition(int arr[], int low, int high)\n",
@@ -193,6 +197,6 @@ def test_uncomment_cbmc_specs_multi_line_specs() -> None:
         "    }\n",
         "    swap(&arr[i + 1], &arr[high]);\n",
         "    return i + 1;\n",
-        "}\n"
+        "}\n",
     ]
     assert lines_with_specs == text_util.uncomment_cbmc_annotations(lines_with_commented_out_specs)

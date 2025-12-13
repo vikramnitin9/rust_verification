@@ -34,7 +34,6 @@ python generate_specs.py --file data/qsort.c --save-conversation
 
 Which saves the conversation record to `logs/specifications`
 
-
 ## Step 2: Converting C (CProver) specifications to Rust (Kani)
 
 TODO

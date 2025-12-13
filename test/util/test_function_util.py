@@ -1,9 +1,12 @@
 import os
-import pytest
 import shutil
 
 from util import function_util, ParsecFile, FunctionSpecification
 from pathlib import Path
+
+import pytest
+
+from util import FunctionSpecification, ParsecFile, function_util
 
 
 def _get_file_lines(path_to_file: str) -> list[str]:
@@ -138,12 +141,14 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
         file_containing_function
     ).read_text(encoding="utf-8")
 
+
 def test_get_signature_simple() -> None:
     src = """int main(int* a, int* b)\n{\n    printf("test")\n    return 0;\n}"""
     (signature, body) = function_util.get_signature_and_body(src, lang="c")
 
     assert signature == "int main(int* a, int* b)"
     assert body == """{\n    printf("test")\n    return 0;\n}"""
+
 
 def test_get_function_signature() -> None:
     src = """static void
@@ -159,17 +164,25 @@ def test_get_function_signature() -> None:
     assert signature == "static void\n    swap(\n        int* a, int* b)"
     assert body == "{\n    int t = *a;\n    *a = *b;\n    *b = t;\n}"
 
+
 def test_get_source_code_with_inserted_specs() -> None:
     path_to_swap_no_specs = Path("test/data/function_util/no_specs.c")
-    swap_specs = FunctionSpecification(preconditions=[
-        "__CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))",
-        "__CPROVER_requires(__CPROVER_is_fresh(b, sizeof(int)))"],
+    swap_specs = FunctionSpecification(
+        preconditions=[
+            "__CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))",
+            "__CPROVER_requires(__CPROVER_is_fresh(b, sizeof(int)))",
+        ],
         postconditions=[
-        "__CPROVER_ensures(*a == __CPROVER_old(*b))",
-        "__CPROVER_ensures(*b == __CPROVER_old(*a))",
-        ])
-    swap_with_specs = function_util.get_source_code_with_inserted_specs("swap", swap_specs, ParsecFile(file_path=Path(path_to_swap_no_specs)))
-    assert swap_with_specs == """void swap(int* a, int* b)
+            "__CPROVER_ensures(*a == __CPROVER_old(*b))",
+            "__CPROVER_ensures(*b == __CPROVER_old(*a))",
+        ],
+    )
+    swap_with_specs = function_util.get_source_code_with_inserted_specs(
+        "swap", swap_specs, ParsecFile(file_path=Path(path_to_swap_no_specs))
+    )
+    assert (
+        swap_with_specs
+        == """void swap(int* a, int* b)
 __CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))
 __CPROVER_requires(__CPROVER_is_fresh(b, sizeof(int)))
 __CPROVER_ensures(*a == __CPROVER_old(*b))
@@ -179,6 +192,8 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     *a = *b;
     *b = t;
 }"""
+    )
+
 
 def test_update_function_declaration_at_middle(copy_file, remove_file) -> None:
     file_containing_function = copy_file(
@@ -207,6 +222,7 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
         file_containing_function
     ).read_text(encoding="utf-8")
     remove_file(file_containing_function)
+
 
 def test_update_function_declaration_at_bottom(copy_file, remove_file) -> None:
     file_containing_function = copy_file(
