@@ -129,6 +129,8 @@ def test_get_source_code_invalid_line_range() -> None:
 
 
 def test_get_source_code_on_one_line() -> None:
+    # MDE: I don't think this constructor should exist.  Instead, each test should parse the file
+    # and look up the function.  That will make this test file shorter and easier to read.
     one_line_function = ParsecFunction(
         {
             "name": "single_line_main",
