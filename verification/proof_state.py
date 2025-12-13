@@ -21,3 +21,9 @@ class ProofState:
     _workstack: list[tuple[ParsecFunction, str]]
     _verified_functions: list[str]
     _assumed_functions: list[str]
+
+    def __init__(self, workstack: list[tuple[ParsecFunction, str]]) -> None:
+        self._specs = {}
+        self._workstack = workstack
+        self._verified_functions = []
+        self._assumed_functions = []

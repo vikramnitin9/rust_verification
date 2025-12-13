@@ -7,6 +7,7 @@ from pathlib import Path
 
 from loguru import logger
 
+from specifications import LlmSpecificationGenerator
 from util import (
     FunctionSpecification,
     ParsecFunction,
@@ -14,6 +15,7 @@ from util import (
     copy_file_to_folder,
     insert_lines_at_beginning,
 )
+from verification import CbmcVerificationClient, ProofState, VerificationClient
 
 MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
@@ -21,6 +23,8 @@ DEFAULT_NUM_SPECIFICATION_CANDIDATES = 1
 DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS = 10
 DEFAULT_MODEL_TEMPERATURE = 1.0
 DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
+
+GLOBAL_WORKSTACKS = []
 
 
 def main() -> None:
@@ -54,8 +58,17 @@ def main() -> None:
     header_lines = [f"#include <{header}>" for header in DEFAULT_HEADERS_IN_OUTPUT]
     insert_lines_at_beginning(header_lines, output_file_path)
 
+    parsec_result = ParsecResult(input_file_path)
+    verifier: VerificationClient = CbmcVerificationClient()
+    specification_generator = LlmSpecificationGenerator(
+        MODEL,
+        system_prompt=DEFAULT_SYSTEM_PROMPT,
+        verifier=verifier,
+        num_specification_generation_candidates=args.num_specification_generation_candidates,
+    )
+
     functions_in_reverse_topological_order = _get_functions_in_reverse_topological_order(
-        input_file_path
+        parsec_result
     )
     _verify_program(functions_in_reverse_topological_order)
 
@@ -64,8 +77,9 @@ if __name__ == "__main__":
     main()
 
 
-def _get_functions_in_reverse_topological_order(input_file_path: Path) -> list[ParsecFunction]:
-    parsec_result = ParsecResult(input_file_path)
+def _get_functions_in_reverse_topological_order(
+    parsec_result: ParsecResult,
+) -> list[ParsecFunction]:
     # Get a list of functions in reverse topological order,
     # i.e., starting from the leaves of the call graph.
     function_names = parsec_result.copy(
@@ -80,5 +94,9 @@ def _get_functions_in_reverse_topological_order(input_file_path: Path) -> list[P
     return functions
 
 
-def _verify_program(functions: list[ParsecFunction]) -> dict[str, FunctionSpecification]:
+def _verify_program(
+    functions: list[ParsecFunction], specification_generator: LlmSpecificationGenerator
+) -> dict[str, FunctionSpecification]:
+    initial_workstack: list[tuple[ParsecFunction, str]] = [(function, "") for function in functions]
+    initial_proof_state = ProofState(workstack=initial_workstack)
     raise NotImplementedError("Implement me")
