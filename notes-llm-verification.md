@@ -57,6 +57,7 @@ Global data structures:
   This cache eliminates the need to pass VerificationResults through the program,
   since they can just be looked up.
 * `llm_cache`: Map[LlmInput, List[LlmOutput]]: for efficiency.  Is only added to, never removed from.
+  The input type (the key) is probably String.  Each value in the map is a list of strings, with length `num_llm_samples`.
   * Cache responses for testing + in cases where we make the same call to the LLM (given that it's
     the same LLM and not an "improved" model or the same call made some timeframe after the last
     call).
