@@ -109,7 +109,7 @@ verify_program(program) -> Map[Fn, Spec]:
 //   The output ProofState has a larger workstack (representing backtracking) if f was not successfully verified.
 step(ps: ProofState) -> List[ProofState]:
   (fn, hints) = ps.workstack.top();
-  specs_for_fn: [(spec, vresult)] = try_to_specify(fn, hints)
+  specs_for_fn: [spec] = try_to_specify(fn, hints)
   next_steps: [(spec, BacktrackInfo)] = choose_next_step(fn, specs_for_fn)
   result = []
   for (spec, backtrack_to) in next_steps:
