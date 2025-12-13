@@ -1,11 +1,8 @@
 import os
+import pytest
 import shutil
 
-from util import function_util, ParsecFile, FunctionSpecification
 from pathlib import Path
-
-import pytest
-
 from util import FunctionSpecification, ParsecFile, function_util
 
 
