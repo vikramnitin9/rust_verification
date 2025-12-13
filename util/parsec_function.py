@@ -38,6 +38,7 @@ class ParsecFunction:
     structs: list[Any] = field(default_factory=list)
 
     def __init__(self, raw_analysis: dict[str, Any]):
+        """Create a new ParsecFunction."""
         self.name = raw_analysis["name"]
         self.num_args = raw_analysis["num_args"]
         self.return_type = raw_analysis["returnType"]
