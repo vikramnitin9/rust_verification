@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 if [ -n "${CI:-}" ] || [ ! -t 0 ]; then
     echo "Running in a non-interactive environment"
     INTERACTIVE=""
@@ -17,7 +19,7 @@ if ! command -v docker &>/dev/null ; then
 fi
 
 if [ -z "$(docker images -q cbmc:latest 2> /dev/null)" ]; then
-  echo "$0: Building docker image "cbmc:latest"." >&2
+  echo "$0: Building docker image 'cbmc:latest'." >&2
   make docker-build
 fi
 
