@@ -1,4 +1,4 @@
-.PHONY: default docker-build run test checks tags
+.PHONY: default docker-build run test checks tags TAGS
 
 default: test
 
