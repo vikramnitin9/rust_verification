@@ -862,7 +862,7 @@ Remember to add the contracts ("__CPROVER_requires" and "__CPROVER_ensures") in 
 Give me the entire function with specifications in the format below:
 
 # MDE: I think it is important to give a few examples of input and output.  LLMs do much better
-# with few-shot prompting than they de in following an English description of a format.
+# with few-shot prompting than they do in following an English description of a format.
 
 { "function_with_specs": "<SOURCE CODE HERE>" }
 
