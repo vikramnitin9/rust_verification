@@ -19,6 +19,7 @@ class TsRustParser:
     _parser: Parser
 
     def __init__(self) -> None:
+        """Create a new TsRustParser."""
         rs_language = Language(tsrust.language())
         self._parser = Parser(rs_language)
 
