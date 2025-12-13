@@ -2,9 +2,9 @@
 
 if [ -n "${CI:-}" ] || [ ! -t 0 ]; then
   echo "Running in a non-interactive environment"
-  INTERACTIVE=""
+  INTERACTIVE=()
 else
-  INTERACTIVE="-it"
+  INTERACTIVE=(-it)
 fi
 
 if [ "$#" -gt 0 ]; then
@@ -27,7 +27,7 @@ fi
 # If so, run the container with root user to avoid permission issues with mounted volumes.
 if docker info -f "{{println .SecurityOptions}}" | grep -q rootless; then
   echo "Docker running in rootless mode"
-  docker run --rm $INTERACTIVE -u 0:0 -v "$(pwd)/data:/app/data" \
+  docker run --rm "${INTERACTIVE[@]}" -u 0:0 -v "$(pwd)/data:/app/data" \
     -v "$(pwd)/analysis:/app/analysis" \
     -v "$(pwd)/docs:/app/docs" \
     -v "$(pwd)/models:/app/models" \
@@ -43,7 +43,7 @@ if docker info -f "{{println .SecurityOptions}}" | grep -q rootless; then
     -v "$(pwd)/translate_specs.py:/app/translate_specs.py" \
     cbmc:latest "${CMD[@]}"
 else
-  docker run --rm $INTERACTIVE -p 5678:5678 -v "$(pwd)/data:/app/data" \
+  docker run --rm "${INTERACTIVE[@]}" -p 5678:5678 -v "$(pwd)/data:/app/data" \
     -v "$(pwd)/analysis:/app/analysis" \
     -v "$(pwd)/docs:/app/docs" \
     -v "$(pwd)/models:/app/models" \
