@@ -1,4 +1,4 @@
-.PHONY: default docker-build run test checks style-fix style-check python-style-fix python-style-check python-typecheck showvars tags
+.PHONY: default docker-build run test checks tags
 
 default: test
 

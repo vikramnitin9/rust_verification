@@ -1,6 +1,7 @@
 # Algorithm for verifying a program using LLMs and a verifier (e.g., CBMC)
 
-Overall idea:  The algorithm verifies a program by verifying one function at a time, generally in reverse topological order.
+Overall idea:  The algorithm verifies a program by verifying one function at a
+time, generally in reverse topological order.
 
 A "proof state" is a pair of:
 
@@ -23,8 +24,10 @@ parallel.
 Two integers parameterize the algorithm:
 
 * `num_llm_samples`: each call to `llm()` returns a list of this length.
-  As a general rule, after each call to `llm()`, our algorithm heuristically prunes the returned list of samples to reduce the exploration space.
-* `num_repair_iterations`: the number of times that the LLM tries to repair a specification, using feedback from running the verifier.
+  As a general rule, after each call to `llm()`, our algorithm heuristically
+  prunes the returned list of samples to reduce the exploration space.
+* `num_repair_iterations`: the number of times that the LLM tries to repair a
+  specification, using feedback from running the verifier.
 
 The implementation also contains:
 
@@ -35,10 +38,15 @@ The implementation also contains:
 immutable class VerificationInput:
 * function
 * spec for function
-* context: specifications provided to this verification run, created by calling `current_context()`.  It includes:
+* context: specifications provided to this verification run, created by calling
+  `current_context()`.  It includes:
   * a spec for each of the function's callees
   * a spec for each global variable that the function uses
-  * optionally, facts about how the function is called, such as what values are actually passed to it at call sites.  The algorithm might use these as preconditions, as opposed to the preconditions that an LLM would guess just by looking at the function's source code and comments.  (I admit this is a bit vague.)
+  * optionally, facts about how the function is called, such as what values are
+    actually passed to it at call sites.  The algorithm might use these as
+    preconditions, as opposed to the preconditions that an LLM would guess just
+    by looking at the function's source code and comments.  (I admit this is a
+    bit vague.)
 
 immutable class VerificationResult:
 
@@ -57,7 +65,8 @@ Global data structures:
   This cache eliminates the need to pass VerificationResults through the program,
   since they can just be looked up.
 * `llm_cache`: Map[LlmInput, List[LlmOutput]]: for efficiency.  Is only added to, never removed from.
-  The input type (the key) is probably String.  Each value in the map is a list of strings, with length `num_llm_samples`.
+  The input type (the key) is probably String.  Each value in the map is a list
+  of strings, with length `num_llm_samples`.
   * Cache responses for testing + in cases where we make the same call to the LLM (given that it's
     the same LLM and not an "improved" model or the same call made some timeframe after the last
     call).
@@ -65,13 +74,16 @@ Global data structures:
   Trying to add an element that has ever been previously added has no effect.
   (We could imagine making this a priority queue if we have a good heuristic for ordering.)
 
-Each access to a global data structure must use locking; or we could store them persistently, say using SQLite, which permits using multiprocessing rather than multithreading and could save time across multiple runs.
+Each access to a global data structure must use locking; or we could store them
+persistently, say using SQLite, which permits using multiprocessing rather than
+multithreading and could save time across multiple runs.
 
 class ProofState:
 * specs: Map[fn, spec]: the current specification (which may be a guess) for each function.
 * workstack: Stack[(function, hints)]
   A stack of functions that need to be (re)processed.
-  Each hint is text provided to the LLM to guide it.  I don't have a data structure (beyond string) in mind for it yet.
+  Each hint is text provided to the LLM to guide it.  I don't have a data
+  structure (beyond string) in mind for it yet.
   * A hint might comprise information such as "Please weaken/strengthen the postcondition" or
   "this function is only ever called with non-null values", etc.
 Possible fields:
@@ -159,7 +171,7 @@ repair_spec(fn, spec, proofstate) -> [Spec]:
   current_specs = [spec]
   for i = 1 to num_repair_iterations:
     unverified_specs = []
-    for spec in current_specs: 
+    for spec in current_specs:
       if spec in all_specs:
         // We have already seen this spec, so don't re-process it.
         continue
@@ -169,7 +181,7 @@ repair_spec(fn, spec, proofstate) -> [Spec]:
         verified_specs += vresult
       else:
         unverified_specs += spec
-    current_specs = [*llm("repair the specification", fn, spec, call_verifier(fn, spec, proofstate)) 
+    current_specs = [*llm("repair the specification", fn, spec, call_verifier(fn, spec, proofstate))
                      for spec in unverified_specs]
   if verified_specs:
     return verified_specs:
