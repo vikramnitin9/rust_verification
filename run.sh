@@ -20,7 +20,7 @@ fi
 
 if [ -z "$(docker images -q cbmc:latest 2> /dev/null)" ]; then
   echo "$0: Building docker image 'cbmc:latest'." >&2
-  make docker-build
+  make docker-build || exit $?
 fi
 
 # Check if Docker is rootless.
