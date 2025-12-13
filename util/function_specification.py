@@ -11,6 +11,7 @@ class FunctionSpecification:
     # MDE: What is the format of each string?  (I think maybe it's a CBMC macro as it would appear
     # in C source code.  But a reader would be forgiven for thinking that it is just the expression
     # part, especially since the preconditions and postconditions are separated.
+
     Attributes:
         # MDE: Why is this two lists?  I don't see anywhere in the code
         # that makes any distinction between them.

@@ -1,3 +1,6 @@
+# MDE: Add a shebang line indicating which shell should be used to run this.
+# In particular, is Posix `sh` adequate, or must one use `bash` instead?
+
 if [ -n "${CI:-}" ] || [ ! -t 0 ]; then
     echo "Running in a non-interactive environment"
     INTERACTIVE=""
