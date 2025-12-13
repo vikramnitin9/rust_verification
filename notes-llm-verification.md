@@ -227,6 +227,7 @@ avoid the bookkeeping of figuring out what has to be updated.)
 
 Many for loops and list comprehensions (but not the for loop in `repair`) can be parallelized.
 
+<!--
 ## OLD, NO LONGER RELEVANT
 
 More about forking processes:
@@ -247,6 +248,7 @@ It would be better for the algorithm to apply sample-exploration more uniformly.
     Whenever a process successfully completes a task (I'm not exactly sure what is the definition of "task" here), possibly prune all the siblings of this process that are still running, because they are no longer needed.
     This is similar to a process manager that prunes processes that have been superseded (that, is prune a process if some other process already solved the problem).
     A process manager would also prune processes that have run for too long.
+-->
 
 <!--
 LocalWords:  workstack llm num VerificationInput VerificationResult boolean fn doesn SQLite multithreading
