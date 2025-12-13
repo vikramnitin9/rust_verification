@@ -34,7 +34,6 @@ python generate_specs.py --file data/qsort.c --save-conversation
 
 Which saves the conversation record to `logs/specifications`
 
-
 ## Step 2: Converting C (CProver) specifications to Rust (Kani)
 
 TODO
@@ -99,3 +98,8 @@ This effectively starts the container,
 
 Once you have executed the command above,
   select "Python: Attach to Docker" from the "Run and Debug" sidebar.
+
+```text
+# MDE: This project should specify a license.
+# And it should specify exceptions, such as included code that has its own license.
+```

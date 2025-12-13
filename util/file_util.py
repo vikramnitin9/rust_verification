@@ -17,6 +17,7 @@ def copy_file_to_folder(input_file_path: Path, destination_folder_name: str) -> 
     output_folder.mkdir(parents=True, exist_ok=True)
     output_file_path = output_folder / input_file_path.name
 
+    # MDE: Why not use `shutil.copy()`?
     content = input_file_path.read_text(encoding="utf-8")
     output_file_path.write_text(content, encoding="utf-8")
 

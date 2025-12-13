@@ -52,3 +52,9 @@ __pycache__/
 
 # debug information files
 *.dwo
+
+# For style checking.
+.plume-scripts
+.markdownlint-cli2.yaml
+.pymarkdown
+.ruff.toml
