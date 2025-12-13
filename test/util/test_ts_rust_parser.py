@@ -1,6 +1,7 @@
-from util.rust import TsRustParser, RustFunction, RustParser, RustTypeWrapper
-
 import pytest
+
+from util.rust import RustFunction, RustParser, RustTypeWrapper, TsRustParser
+
 
 @pytest.fixture
 def ts_rust_parser() -> RustParser:
@@ -15,29 +16,26 @@ def test_parse_rust_qsort(ts_rust_parser: RustParser) -> None:
         RustFunction(name="main", param_to_type={}),
         RustFunction(
             name="swap",
-            param_to_type=
-                {
-                    "a": RustTypeWrapper("i32", is_mutable=True, is_reference=True),
-                    "b": RustTypeWrapper("i32", is_mutable=True, is_reference=True),
-                }
+            param_to_type={
+                "a": RustTypeWrapper("i32", is_mutable=True, is_reference=True),
+                "b": RustTypeWrapper("i32", is_mutable=True, is_reference=True),
+            },
         ),
         RustFunction(
             name="partition",
-            param_to_type=
-                {
-                    "arr": RustTypeWrapper("[i32]", is_mutable=True, is_reference=True),
-                    "low": RustTypeWrapper("usize", is_reference=False),
-                    "high": RustTypeWrapper("usize", is_reference=False),
-                }
+            param_to_type={
+                "arr": RustTypeWrapper("[i32]", is_mutable=True, is_reference=True),
+                "low": RustTypeWrapper("usize", is_reference=False),
+                "high": RustTypeWrapper("usize", is_reference=False),
+            },
         ),
         RustFunction(
             name="quickSort",
-            param_to_type=
-                {
-                    "arr": RustTypeWrapper("[i32]", is_mutable=True, is_reference=True),
-                    "low": RustTypeWrapper("usize", is_reference=False),
-                    "high": RustTypeWrapper("usize", is_reference=False),
-                }
+            param_to_type={
+                "arr": RustTypeWrapper("[i32]", is_mutable=True, is_reference=True),
+                "low": RustTypeWrapper("usize", is_reference=False),
+                "high": RustTypeWrapper("usize", is_reference=False),
+            },
         ),
     ]
     for expected_fn in expected_fns:
@@ -63,7 +61,6 @@ def test_parse_rust_parameter_type_binding_decls(ts_rust_parser: RustParser) -> 
             assert expected_decl == parsed_fn.param_to_type["a"].declaration(
                 variable_name="x", val="kani::any()"
             )
-            pass
         else:
             pytest.fail(f"Expected {fn_name} to be parsed")
 

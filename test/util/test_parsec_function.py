@@ -129,6 +129,8 @@ def test_get_source_code_invalid_line_range() -> None:
 
 
 def test_get_source_code_on_one_line() -> None:
+    # MDE: I don't think this constructor should exist.  Instead, each test should parse the file
+    # and look up the function.  That will make this test file shorter and easier to read.
     one_line_function = ParsecFunction(
         {
             "name": "single_line_main",
@@ -244,8 +246,10 @@ def test_get_comment_multi_line_pathological() -> None:
     expected_comment = "/*\nTest\n\n\nDetailed description */"
     assert function.get_documentation_comments() == expected_comment
 
+
 def test_is_direct_recursive_is_true() -> None:
-    function = ParsecFunction({
+    function = ParsecFunction(
+        {
             "name": "recursive_function",
             "num_args": 0,
             "returnType": "void",
@@ -256,10 +260,14 @@ def test_is_direct_recursive_is_true() -> None:
             "startCol": 1,
             "endCol": 25,
             "callees": [{"name": "recursive_function"}],
-    })
+        }
+    )
     assert function.is_direct_recursive()
+
+
 def test_is_direct_recursive_is_false() -> None:
-    function = ParsecFunction({
+    function = ParsecFunction(
+        {
             "name": "a",
             "num_args": 1,
             "returnType": "int",
@@ -270,5 +278,6 @@ def test_is_direct_recursive_is_false() -> None:
             "startCol": 1,
             "endCol": 28,
             "callees": [],
-    })
+        }
+    )
     assert not function.is_direct_recursive()
