@@ -81,6 +81,9 @@ def main() -> None:
     parsec_result = ParsecResult(output_file_path)
 
     # Get a list of functions in reverse topological order.
+    # MDE: Rather than forcing the client to remove the self edges, I suggest that
+    # `get_function_names_in_topological_order()` should remove them itself.  That makes the API
+    # cleaner and simpler to use.
     func_ordering = parsec_result.copy(
         remove_self_edges_in_call_graph=True
     ).get_function_names_in_topological_order(reverse_order=True)

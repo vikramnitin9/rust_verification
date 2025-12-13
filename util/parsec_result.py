@@ -27,15 +27,21 @@ class ParsecResult:
     ParseC is a LLVM/Clang-based tool to parse a C program (hence the name).
     It extracts functions, structures, etc. along with their inter-dependencies.
 
+    # MDE: This text is misleading, since the constructor below takes exactly one file as an
+    # argument.
     ParseC can be run on a single C file, or a project. In the case where it is run on a single C
     file, the `enums` and `files` fields will be empty.
 
     See: parsec/README.md for additional documentation.
+
     """
 
-    # The warning suppression below is required; nx.DiGraph does not expose subscriptable types.
+    # MDE: There should be a comment stating the type of the nodes in `call_graph`, even if the
+    # type-checker cannot utilize it.
+    # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
     call_graph: nx.DiGraph  # type: ignore[type-arg]
     file_path: Path
+    # MDE: What is the semantics of `enums`?  What are its elements?
     enums: list[Any] = field(default_factory=list)
     files: list[str] = field(default_factory=list)
     functions: dict[str, ParsecFunction] = field(default_factory=dict)
@@ -54,8 +60,9 @@ class ParsecResult:
             self.enums = parsec_analysis.get("enums", [])
             self.files = parsec_analysis.get("files", [])
             self.functions = {analysis.name: analysis for analysis in function_analyses}
-            # The warning suppression below is required;
-            # nx.DiGraph does not expose subscriptable types.
+            # MDE: There should be a comment stating the type of the nodes in `call_graph`, even
+            # if the type-checker cannot utilize it.
+            # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
             self.call_graph: nx.DiGraph = nx.DiGraph()  # type: ignore[type-arg]
             for func_name, func in self.functions.items():
                 self.call_graph.add_node(func_name)
@@ -93,6 +100,8 @@ class ParsecResult:
         return ParsecResult(tmp_file_with_commented_out_cbmc_annotations)
 
     def copy(self, remove_self_edges_in_call_graph: bool = False) -> ParsecResult:
+        # MDE: What is the purpose of removing self-edges?  To avoid an exception when computing the
+        # topological sort?
         """Return a copy of this ParsecResult, optionally removing its call graph's self-edges.
 
         Args:
@@ -182,6 +191,8 @@ class ParsecResult:
                 traversal.
         """
         func_names = [f for f in self.call_graph.nodes if f != ""]
+        # MDE: Write a comment explaining why this for loop is needed.  Why can't you just call
+        # `nx.dfs_postorder_nodes()` once, not passing in a `source` argument?
         visited: set[str] = set()
         result: list[str] = []
         for f in func_names:
@@ -194,6 +205,9 @@ class ParsecResult:
             result.reverse()
         return result
 
+    # MDE: Please document and discuss relationship to other functions with similar names.  Given
+    # that the JSON file is always read and parsed immediately after this function is called, I
+    # suggest that a cleaner abstraction would be a function that returns a JSON object.
     def _run_parsec(self, file_path: Path) -> Path:
         parsec_build_dir = os.environ.get("PARSEC_BUILD_DIR")
         if not parsec_build_dir:

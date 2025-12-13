@@ -10,9 +10,12 @@ from .text_util import prepend_line_numbers, uncomment_cbmc_annotations
 
 
 @dataclass
+# MDE: I would rename this to "CFunction", but the current name is also OK.
 class ParsecFunction:
     """Represents a C function as parsed by ParseC."""
 
+    # MDE: Cross-reference to the documentation of ParseC, so that a reader can understand the
+    # meaning of each of these fields.
     name: str
     num_args: int
     return_type: str
@@ -28,6 +31,7 @@ class ParsecFunction:
     arg_types: list[str] = field(default_factory=list)
     enums: list[Any] = field(default_factory=list)
     callee_names: list[str] = field(default_factory=list)
+    # MDE: Minor: I would name this `global_vars` rather than `llvm_globals`, which is not as clear.
     llvm_globals: list[Any] = field(
         default_factory=list
     )  # Cannot call this `globals` as it is a Python keyword.
@@ -103,6 +107,8 @@ class ParsecFunction:
 
         source_code = "".join(func_lines)
 
+        # MDE: This functionality feels independent of the rest of this function.  I suggest
+        # removing it from this method and instead putting it in a function of its own.
         if include_line_numbers:
             source_code = "\n".join(
                 f"{line}: {content}"
@@ -128,6 +134,9 @@ class ParsecFunction:
 
     def get_documentation_comments(self) -> str | None:
         """Return the content of lines immediately preceding this function (usually documentation).
+
+        # MDE: "the content of lines": which lines are included.
+        # MDE: "usually documentation": what is it when it isn't documentation?
 
         Returns:
             str | None: The documentation comments for this function or None if there are no
@@ -157,15 +166,22 @@ class ParsecFunction:
     def _is_comment(self, line: str) -> bool:
         """Return True iff a line comprises a comment (or part of one).
 
+        # MDE: It's impossible to know whether a line is part of a comment, without seeing the
+        # entire file in which the line appears.  Maybe this function is determining whether the
+        # given line starts a comment.
+
         Args:
             line (str): The line to check for a comment.
 
         Returns:
             bool: True iff a line comprises a comment (or part of one).
+
         """
         stripped_line = line.strip()
+        # MDE: A line starting with "*" could be part of a multiline multiplication expression.
         comment_start_delimiters = ["//", "/*", "*"]
 
+        # MDE: a comment can begin in the middle of a line rather than at the end of one.
         if any(stripped_line.startswith(delimit) for delimit in comment_start_delimiters):
             return True
 
@@ -186,6 +202,7 @@ class ParsecFunction:
         """
         return len(self.preconditions) > 0 or len(self.postconditions) > 0
 
+    # MDE: I would use "is_self_recursive" which is more common term (according to a Google search).
     def is_direct_recursive(self) -> bool:
         """Return True iff this function is direct recursive.
 
@@ -202,6 +219,8 @@ class ParsecFunction:
         """
         self.preconditions, self.postconditions = specifications
 
+    # MDE: Since this routine is for LLM prompting, give it a descriptive name rather than taking
+    # over the standard function used for debugging output.
     def __str__(self) -> str:
         """Return the string representation of this function.
 

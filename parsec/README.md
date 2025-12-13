@@ -1,5 +1,18 @@
 # ParseC
 
+```text
+# MDE: link to the ParseC project documentation.
+# MDE: Whenever your project incorporates other people's code, it is essential to say where it came
+# from.  Or, did you write all the code in this directory yourself?  If so, it needs to be
+# commented.  And the indentation needs to be made consistent (for example, do not use any tab
+# characters).
+# MDE: If this is written specifically as part of our project, that should be made clear.  Also
+# discuss the relationship to other things named "parsec" and "ParseC", such as
+# https://hackage.haskell.org/package/parsec and
+# https://parallaxsecond.github.io/parsec-book/parsec_service/build_run.html .
+# MDE: Also discuss the relationship to https://libclang.readthedocs.io/
+```
+
 ParseC is a LLVM/Clang-based tool to parse a C program (hence the name). It extracts functions, structures, etc. along with their inter-dependencies.
 
 ParseC is built as part of the [Docker image](Dockerfile) for this project. However, it can also be built and run independently.
@@ -48,6 +61,8 @@ parsec *.c
 The output of `parsec` is a single JSON file, `analysis.json`, created in the current working directory. The format of this file is described herein:
 
 ```json
+# MDE: it is essential to give the meaning of each field, and also the formats of strings.
+# Or, cross-reference to where that information is documented.
 {
   "files": [],
   "functions": [

@@ -47,14 +47,21 @@ def get_signature_and_body(src: str, lang: str) -> tuple[str, str]:
         lang (str): The language of the source function.
 
     Returns:
+        # MDE: In what format?  Is the function body surrounded by "{...}" or not?
         tuple[str, str]: The signature and the body of a function.
     """
     if lang != "c":
         msg = f"Unsupported language: {lang}"
         raise RuntimeError(msg)
+    # MDE: The next 5 variables can be global variables rather than re-computed every time that
+    # `get_signature_and_body()` is called.  Or, abstract out the next 5 statements into a function.
     ts_lang = Language(tsc.language())
     parser = Parser(ts_lang)
     tree = parser.parse(bytes(src, encoding="utf-8"))
+    # MDE: I think this statement binds the expressions `function.body` and `function.definition`.
+    # The latter is very similar to "function_definition" that appears elsewhere in the query.  I
+    # suggest rename the bound variables to something like "this_function_body" and
+    # "this_function_definition".
     query = Query(
         ts_lang,
         """
@@ -68,6 +75,9 @@ def get_signature_and_body(src: str, lang: str) -> tuple[str, str]:
     definition_node = captures["function.definition"][0]
     body_node = captures["function.body"][0]
 
+    # MDE: The signature may include comments.  Is that intentional?
+    # MDE: The next two lines are very different ways of obtaining similar parts of the function
+    # definition.  I suggest making them more similar, so readers won't wonder about the difference.
     signature = src[definition_node.start_byte : body_node.start_byte].strip()
     body = body_node.text.decode(encoding="utf-8")
     return (signature, body)
@@ -78,11 +88,14 @@ def get_source_code_with_specs(
 ) -> str:
     """Return the source code of a function with the specifications inserted.
 
+    # MDE: What is "the specified function declaration"?  No such was passed in.
     Note: This does *not* update the ParsecResult with the specified function declaration.
 
     Args:
         function_name (str): The name of the function for which to return the updated source code.
         specifications (FunctionSpecification): The specifications for the function.
+        # MDE: Neither the variable name nor the description is useful, because each one just
+        # repeats the type nearly verbatim.  Please improve the name and the documentation.
         parsec_result (ParsecResult): The ParsecResult.
 
     Raises:
@@ -111,14 +124,16 @@ def get_file_with_updated_function(
 
     Args:
         function_name (str): The name of the function with an updated declaration.
+        # MDE: What is the format?  Maybe this is the entire function definition in the C source
+        # code (in which case the term "declaration", which could refer to what goes in a header
+        # file, is a bit misleading).
         updated_function_declaration (str): The updated function declaration.
         parsec_result (ParsecResult): The ParsecResult.
         original_src (Path): The path to the original file with the original function
             declaration.
 
     Raises:
-        RuntimeError: Raised when the original declaration for the function with the updated
-            declaration is missing from the ParsecResult.
+        RuntimeError: Raised when the ParsecResult contains no function with the given name.
 
     Returns:
         Path: The path to the new file.
@@ -143,6 +158,9 @@ def update_parsec_result(
 
     Args:
         function_name (str): The function to update in the ParsecResult.
+        # MDE: Here is another description that is not helpful, because it's just the same as the
+        # variable name.  What is a "function content"?  Does it include specifications?  How does
+        # it relate to a function declaration or function definition?
         updated_function_content (str): The updated function content.
         parsec_result (ParsecResult): The parsec result to update.
 
@@ -195,6 +213,13 @@ def update_function_declaration(
 ) -> str:
     """Return the contents of the file after updating the function declaration.
 
+    # MDE: Where does the update occur?  I think in the ParsecResult.  Be explicit about that.
+    # Should this be a method of ParsecResult, since it updates that?
+
+    # MDE: The description above shows that this functon does two very different things:  it updates
+    # a function declaration and it returns the contents of a file.  Split this function into two
+    # functions, each of which does only one thing.
+
     Args:
         function_name (str): The name of the function to update.
         updated_function_content (str): The new contents of the function.
@@ -206,6 +231,7 @@ def update_function_declaration(
 
     Returns:
         str: The contents of the file after updating the function declaration.
+
     """
     function = parsec_result.get_function(function_name)
     if not function:
@@ -233,6 +259,7 @@ def update_function_declaration(
     function.end_col = new_end_col
     function.set_specifications(extract_specification(updated_function_content.splitlines()))
 
+    # MDE: Similar logic appears above.  Eliminate the duplication.
     # Update line/col info for other functions.
     line_offset = function_len - (end_line - start_line + 1)
     for other_func in parsec_result.functions.values():
@@ -262,6 +289,7 @@ def _get_spec_lines(i: int, lines: list[str]) -> str:
     Returns:
         str: The extracted specification.
     """
+    # MDE: Similar logic appears in file `test_util.py`.  Eliminate the duplication.
     curr_spec = ""
     open_parens = 0
     close_parens = 0
@@ -285,6 +313,8 @@ def _insert_updated_function_declaration(
     function: ParsecFunction, updated_function_declaration: str, path_to_src: Path
 ) -> str:
     """Return contents of the file where the function is defined with its new declaration.
+
+    # MDE: I don't understand the above description.  Please reword.
 
     Args:
         function (ParsecFunction): The function with a new declaration.

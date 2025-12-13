@@ -8,7 +8,14 @@ from dataclasses import dataclass
 class FunctionSpecification:
     """Represents the pre and postconditions of a function, if present.
 
+    # MDE: What is the format of each string?  (I think maybe it's a CBMC macro as it would appear
+    # in C source code.  But a reader would be forgiven for thinking that it is just the expression
+    # part, especially since the preconditions and postconditions are separated.
     Attributes:
+        # MDE: Why is this two lists?  I don't see anywhere in the code
+        # that makes any distinction between them.
+        # MDE: Should you document that it is an error for both to be empty?  Should the code test
+        # that?
         preconditions (list[str]): The preconditions of the function.
         postconditions (list[str]): The postconditions of the function.
     """
