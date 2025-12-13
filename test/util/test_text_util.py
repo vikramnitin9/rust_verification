@@ -2,7 +2,7 @@ from util import text_util
 
 
 def assert_comment_out_cbmc_annotations(commented: list[str]) -> None:
-    "Test that `comment_out_cbmc_annotations()` returns the given source code."
+    """Test that `comment_out_cbmc_annotations()` returns the given source code."""
     annotated = text_util.uncomment_cbmc_annotations(commented)
     actual = text_util.comment_out_cbmc_annotations(annotated)
     assert actual == commented
