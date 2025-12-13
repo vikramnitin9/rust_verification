@@ -23,7 +23,7 @@ class VerificationClient(Protocol):
             names_of_verified_functions (list[str]): The names of functions that have been verified.
             names_of_trusted_functions (list[str]): The names of functions whose specifications
                 should be trusted by the verifier.
-            file_path (Path): The path to the file in which the function to verify is defined.
+            file_path (Path): The file in which the function to verify is defined.
 
         Raises:
             RuntimeError: Raised when an error occurs in executing the verification command.

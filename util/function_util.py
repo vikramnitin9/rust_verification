@@ -7,7 +7,7 @@ import tree_sitter_c as tsc
 from tree_sitter import Language, Parser, Query, QueryCursor
 
 from .parsec_function import ParsecFunction
-from .parsec_result import ParsecResult
+from .parsec_result import ParsecFile
 from .specifications import FunctionSpecification
 
 PRECONDITION_PREFIX = "__CPROVER_requires"
@@ -37,14 +37,12 @@ def extract_specification(function_lines: list[str]) -> FunctionSpecification:
     )
 
 
-def get_signature_and_body(src: str, lang: str) -> tuple[str, str]:
+def get_signature_and_body(source_code: str, lang: str) -> tuple[str, str]:
     """Return the signature and body of a function.
 
-    The first element of the tuple comprises the signature, the second element comprises the body.
-
     Args:
-        src (str): The source code of the function.
-        lang (str): The language of the source function.
+        source_code (str): The source code of the function.
+        lang (str): The programming language in which the function is written.
 
     Returns:
         tuple[str, str]: The signature and the body of a function.
@@ -54,7 +52,9 @@ def get_signature_and_body(src: str, lang: str) -> tuple[str, str]:
         raise RuntimeError(msg)
     ts_lang = Language(tsc.language())
     parser = Parser(ts_lang)
-    tree = parser.parse(bytes(src, encoding="utf-8"))
+    tree = parser.parse(bytes(source_code, encoding="utf-8"))
+    # The query syntax is defined at
+    # https://tree-sitter.github.io/tree-sitter/using-parsers/queries/1-syntax.html .
     query = Query(
         ts_lang,
         """
@@ -68,67 +68,62 @@ def get_signature_and_body(src: str, lang: str) -> tuple[str, str]:
     definition_node = captures["function.definition"][0]
     body_node = captures["function.body"][0]
 
-    signature = src[definition_node.start_byte : body_node.start_byte].strip()
+    signature = source_code[definition_node.start_byte : body_node.start_byte].strip()
     body = body_node.text.decode(encoding="utf-8")
     return (signature, body)
 
 
-def get_source_code_with_specs(
-    function_name: str, specifications: FunctionSpecification, parsec_result: ParsecResult
+def get_source_code_with_inserted_specs(
+    function_name: str, specifications: FunctionSpecification, parsec_result: ParsecFile
 ) -> str:
     """Return the source code of a function with the specifications inserted.
 
-    Note: This does *not* update the ParsecResult with the specified function declaration.
+    Note: This does *not* update the ParsecFile with the specified function declaration.
 
     Args:
         function_name (str): The name of the function for which to return the updated source code.
         specifications (FunctionSpecification): The specifications for the function.
-        parsec_result (ParsecResult): The ParsecResult.
+        parsec_result (ParsecFile): The ParsecFile.
 
     Raises:
-        RuntimeError: Raised when the function is missing from the ParsecResult.
+        RuntimeError: Raised when the function is missing from the ParsecFile.
 
     Returns:
         str: The source code of a function with the specifications inserted.
     """
-    if function := parsec_result.get_function(function_name=function_name):
-        (signature, body) = get_signature_and_body(function.get_source_code(), lang="c")
-        specs = "\n".join(
-            spec for spec in specifications.preconditions + specifications.postconditions
-        )
-        return f"{signature}\n{specs}\n{body}"
-    msg = f"{function_name} missing from ParsecResult"
-    raise RuntimeError(msg)
+    function = parsec_result.get_function(function_name=function_name):
+    (signature, body) = get_signature_and_body(function.get_source_code(), lang="c")
+    specs = "\n".join(
+        spec for spec in specifications.preconditions + specifications.postconditions
+    )
+    return f"{signature}\n{specs}\n{body}"
 
 
 def get_file_with_updated_function(
     function_name: str,
-    updated_function_declaration: str,
-    parsec_result: ParsecResult,
+    new_function_declaration: str,
+    parsec_result: ParsecFile,
     original_src: Path,
 ) -> Path:
     """Return a path to a new file containing a function with an updated declaration.
 
     Args:
         function_name (str): The name of the function with an updated declaration.
-        updated_function_declaration (str): The updated function declaration.
-        parsec_result (ParsecResult): The ParsecResult.
+        new_function_declaration (str): The updated function declaration.
+        parsec_result (ParsecFile): The ParsecFile.
         original_src (Path): The path to the original file with the original function
             declaration.
 
     Raises:
         RuntimeError: Raised when the original declaration for the function with the updated
-            declaration is missing from the ParsecResult.
+            declaration is missing from the ParsecFile.
 
     Returns:
         Path: The path to the new file.
     """
     original_function = parsec_result.get_function(function_name)
-    if not original_function:
-        msg = f"Could not find definition for function '{function_name}' to update"
-        raise RuntimeError(msg)
-    file_content_with_candidate_specs = _insert_updated_function_declaration(
-        original_function, updated_function_declaration, original_src
+    file_content_with_candidate_specs = _insert_new_function_declaration(
+        original_function, new_function_declaration, original_src
     )
     tmp_file = Path(_get_temporary_file_name(function_name, original_src))
     tmp_file.parent.mkdir(exist_ok=True, parents=True)
@@ -137,22 +132,19 @@ def get_file_with_updated_function(
 
 
 def update_parsec_result(
-    function_name: str, updated_function_content: str, parsec_result: ParsecResult
+    function_name: str, updated_function_content: str, parsec_result: ParsecFile
 ) -> None:
-    """Update the entry for a function in the ParsecResult with its updated version.
+    """Update the entry for a function in the ParsecFile with its updated version.
 
     Args:
-        function_name (str): The function to update in the ParsecResult.
+        function_name (str): The function to update in the ParsecFile.
         updated_function_content (str): The updated function content.
-        parsec_result (ParsecResult): The parsec result to update.
+        parsec_result (ParsecFile): The parsec result to update.
 
     Raises:
         RuntimeError: Raised when there is no function to update in the parsec result.
     """
     original_function = parsec_result.get_function(function_name)
-    if not original_function:
-        msg = f"Could not find definition for function '{function_name}' to update"
-        raise RuntimeError(msg)
     prev_start_line = original_function.start_line
     prev_start_col = original_function.start_col
     prev_end_line = original_function.end_line
@@ -191,15 +183,15 @@ def update_parsec_result(
 
 
 def update_function_declaration(
-    function_name: str, updated_function_content: str, parsec_result: ParsecResult, file: Path
+    function_name: str, updated_function_content: str, parsec_result: ParsecFile, file: Path
 ) -> str:
     """Return the contents of the file after updating the function declaration.
 
     Args:
         function_name (str): The name of the function to update.
         updated_function_content (str): The new contents of the function.
-        parsec_result (ParsecResult): The ParseC result containing function definitions.
-        file (Path): The path to the file containing the function.
+        parsec_result (ParsecFile): The ParseC result containing function definitions.
+        file (Path): The file that contains the function (and possibly other functions).
 
     Raises:
         RuntimeError: Raised when the function to be updated cannot be found.
@@ -208,12 +200,9 @@ def update_function_declaration(
         str: The contents of the file after updating the function declaration.
     """
     function = parsec_result.get_function(function_name)
-    if not function:
-        msg = f"Could not find definition for function '{function_name}' to update"
-        raise RuntimeError(msg)
 
     # Update the actual source code.
-    new_contents = _insert_updated_function_declaration(function, updated_function_content, file)
+    new_contents = _insert_new_function_declaration(function, updated_function_content, file)
     Path(file).write_text(new_contents, encoding="utf-8")
 
     start_line = function.start_line
@@ -222,16 +211,15 @@ def update_function_declaration(
     end_col = function.end_col
 
     # Update the line/col info for this function in the Parsec Result.
-    function_len = len(updated_function_content.splitlines())
+    function_lines = updated_function_content.splitlines()
+    num_lines = len(function_lines)
     new_end_line = start_line + function_len - 1
     new_end_col = (
-        len(updated_function_content.splitlines()[-1])
-        if function_len > 1
-        else start_col + len(updated_function_content)
+        len(function_lines[-1]) if function_len > 1 else start_col + len(updated_function_content)
     )
     function.end_line = new_end_line
     function.end_col = new_end_col
-    function.set_specifications(extract_specification(updated_function_content.splitlines()))
+    function.set_specifications(extract_specification(function_lines))
 
     # Update line/col info for other functions.
     line_offset = function_len - (end_line - start_line + 1)
@@ -253,7 +241,7 @@ def update_function_declaration(
 
 
 def _get_spec_lines(i: int, lines: list[str]) -> str:
-    """Extract specifications from the lines of a function.
+    """Extract one specification from the lines of a function.
 
     Args:
         i (int): The starting line of the specification.
@@ -274,10 +262,10 @@ def _get_spec_lines(i: int, lines: list[str]) -> str:
     return curr_spec
 
 
-def _get_temporary_file_name(function_name: str, src: Path) -> str:
+def _get_temporary_file_name(function_name: str, source_file: Path) -> str:
     now_ts = int(time.time())
-    path_to_src_no_ext = src.with_suffix("")
-    ext = src.suffix
+    path_to_src_no_ext = source_file.with_suffix("")
+    ext = source_file.suffix
     return f"{path_to_src_no_ext}-{function_name}-candidate-specs-{now_ts}{ext}"
 
 

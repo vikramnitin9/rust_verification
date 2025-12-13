@@ -2,7 +2,7 @@ import os
 import pytest
 import shutil
 
-from util import function_util, ParsecResult, FunctionSpecification
+from util import function_util, ParsecFile, FunctionSpecification
 from pathlib import Path
 
 
@@ -129,7 +129,7 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     *b = t;
 }"""
 
-    parsec_result = ParsecResult(file_containing_function)
+    parsec_result = ParsecFile(file_containing_function)
     function_util.update_function_declaration(
         "swap", updated_function, parsec_result, file_containing_function
     )
@@ -159,7 +159,7 @@ def test_get_function_signature() -> None:
     assert signature == "static void\n    swap(\n        int* a, int* b)"
     assert body == "{\n    int t = *a;\n    *a = *b;\n    *b = t;\n}"
 
-def test_get_source_code_with_specs() -> None:
+def test_get_source_code_with_inserted_specs() -> None:
     path_to_swap_no_specs = Path("test/data/function_util/no_specs.c")
     swap_specs = FunctionSpecification(preconditions=[
         "__CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))",
@@ -168,7 +168,7 @@ def test_get_source_code_with_specs() -> None:
         "__CPROVER_ensures(*a == __CPROVER_old(*b))",
         "__CPROVER_ensures(*b == __CPROVER_old(*a))",
         ])
-    swap_with_specs = function_util.get_source_code_with_specs("swap", swap_specs, ParsecResult(file_path=Path(path_to_swap_no_specs)))
+    swap_with_specs = function_util.get_source_code_with_inserted_specs("swap", swap_specs, ParsecFile(file_path=Path(path_to_swap_no_specs)))
     assert swap_with_specs == """void swap(int* a, int* b)
 __CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))
 __CPROVER_requires(__CPROVER_is_fresh(b, sizeof(int)))
@@ -198,7 +198,7 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     *b = t;
 }"""
 
-    parsec_result = ParsecResult(file_containing_function)
+    parsec_result = ParsecFile(file_containing_function)
     function_util.update_function_declaration(
         "swap", updated_function, parsec_result, file_containing_function
     )
@@ -226,7 +226,7 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     *b = t;
 }"""
 
-    parsec_result = ParsecResult(file_containing_function)
+    parsec_result = ParsecFile(file_containing_function)
     function_util.update_function_declaration(
         "swap", updated_function, parsec_result, file_containing_function
     )

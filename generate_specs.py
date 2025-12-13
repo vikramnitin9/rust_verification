@@ -15,12 +15,11 @@ from loguru import logger
 
 from specifications import LlmSpecificationGenerator
 from util import (
-    ParsecResult,
+    ParsecFile,
     copy_file_to_folder,
     extract_function,
     function_util,
-    insert_lines_at_beginning,
-    overwrite_file,
+    ensure_lines_at_beginning,
 )
 from verification import (
     CbmcVerificationClient,
@@ -76,9 +75,9 @@ def main() -> None:
     input_file_path = Path(args.file)
     output_file_path = copy_file_to_folder(input_file_path, "specs")
     header_lines = [f"#include <{header}>" for header in DEFAULT_HEADERS_IN_OUTPUT]
-    insert_lines_at_beginning(header_lines, output_file_path)
+    ensure_lines_at_beginning(header_lines, output_file_path)
 
-    parsec_result = ParsecResult(output_file_path)
+    parsec_result = ParsecFile(output_file_path)
 
     # Get a list of functions in reverse topological order.
     func_ordering = parsec_result.copy(
@@ -95,9 +94,6 @@ def main() -> None:
 
         logger.info(f"Processing function {func_name}...")
         function_to_verify = parsec_result.get_function(func_name)
-        if not function_to_verify:
-            msg = f"Failed to find function '{func_name}' to verify"
-            raise RuntimeError(msg)
 
         # Generate the initial specifications for verification.
         llm_invocation_result = specification_generator.generate_specifications(
@@ -149,7 +145,7 @@ def main() -> None:
         if isinstance(verification_result, Success):
             logger.success(f"Verification succeeded for '{func_name}'")
             verified_functions.append(func_name)
-            # Update the ParsecResult and output file
+            # Update the ParsecFile and output file
             _update_with_verified_function(
                 func_name,
                 function_with_candidate_specs,
@@ -220,7 +216,7 @@ def _update_with_verified_function(
     function_name: str,
     function_with_verified_specs: str,
     path_to_file_with_verified_specs: Path,
-    parsec_result: ParsecResult,
+    parsec_result: ParsecFile,
     path_to_verified_output: Path,
 ) -> None:
     """Update the Parsec result and the verified output file with the newly-verified function.
@@ -228,13 +224,13 @@ def _update_with_verified_function(
     Args:
         function_name (str): The name of the newly-verified function.
         function_with_verified_specs (str): The source code of the newly-verified function.
-        path_to_file_with_verified_specs (Path): The path to the file with the newly-verified specs.
-        parsec_result (ParsecResult): The parsec result to update.
+        path_to_file_with_verified_specs (Path): The file with the newly-verified specs.
+        parsec_result (ParsecFile): The parsec result to update.
         path_to_verified_output (Path): The path to the verified output file.
     """
     function_util.update_parsec_result(function_name, function_with_verified_specs, parsec_result)
     verified_file_content = path_to_file_with_verified_specs.read_text(encoding="utf-8")
-    overwrite_file(verified_file_content, path_to_verified_output)
+    path_to_verified_output.write_text(verified_file_content, encoding="utf-8")
     path_to_file_with_verified_specs.unlink()
 
 
@@ -269,7 +265,7 @@ def _get_path_to_conversation_log() -> Path:
     return path_to_log
 
 
-def _save_functions_with_specs(parsec_result: ParsecResult, output_file_path: Path) -> None:
+def _save_functions_with_specs(parsec_result: ParsecFile, output_file_path: Path) -> None:
     """Write functions from a ParseC result that have specifications to disk.
 
     This is needed for specification translation. Ideally, the specified functions would be read
@@ -277,11 +273,10 @@ def _save_functions_with_specs(parsec_result: ParsecResult, output_file_path: Pa
     specifications are not legal C code, and are not able to be easily parsed (e.g., with ParseC).
 
     Args:
-        parsec_result (ParsecResult): The ParseC result in which to look for specified functions.
-        output_file_path (Path): The path to the file where the result of specification generation
-            is saved.
+        parsec_result (ParsecFile): The ParseC result in which to look for specified functions.
+        output_file_path (Path): The file where the result of specification generation is saved.
     """
-    functions_with_specs = [f for f in parsec_result.functions.values() if f.is_specified()]
+    functions_with_specs = [f for f in parsec_result.functions.values() if f.has_specification()]
     result_file = output_file_path.with_suffix("")
     with Path(f"{result_file}-specified-functions.pkl").open("wb") as f:
         pkl.dump(functions_with_specs, f)

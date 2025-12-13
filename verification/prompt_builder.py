@@ -3,7 +3,7 @@
 from pathlib import Path
 from string import Template
 
-from util import ParsecFunction, ParsecResult
+from util import ParsecFunction, ParsecFile
 
 from .verification_result import Failure
 
@@ -21,13 +21,13 @@ class PromptBuilder:
     CALLEE_CONTEXT_PLACEHOLDER = "<<CALLEE_CONTEXT>>"
 
     def specification_generation_prompt(
-        self, function: ParsecFunction, parsec_result: ParsecResult
+        self, function: ParsecFunction, parsec_result: ParsecFile
     ) -> str:
         """Return the prompt used for specification generation.
 
         Args:
             function (ParsecFunction): The function for which to generate specifications.
-            parsec_result (ParsecResult): The top-level ParseC result.
+            parsec_result (ParsecFile): The top-level ParseC result.
 
         Returns:
             str: The initial used for specification generation.
@@ -39,7 +39,7 @@ class PromptBuilder:
 
         callee_context = ""
         if callees := parsec_result.get_callees(function):
-            callees_with_specs = [callee for callee in callees if callee.is_specified()]
+            callees_with_specs = [callee for callee in callees if callee.has_specification()]
             if callees_with_specs:
                 callee_context = self._get_callee_specs(function.name, callees_with_specs)
 
@@ -55,13 +55,10 @@ class PromptBuilder:
         Returns:
             str: A prompt directing the model to repair a faulty specification.
         """
-        parsec_result_for_candidate_file = ParsecResult.parse_source_with_cbmc_annotations(
+        parsec_result_for_candidate_file = ParsecFile.parse_source_with_cbmc_annotations(
             verification_failure.source
         )
         function = parsec_result_for_candidate_file.get_function(function_name)
-        if not function:
-            msg = f"'{function_name}' was missing from the Parsec result"
-            raise RuntimeError(msg)
         lines_involving_failure = [
             line for line in verification_failure.stdout.splitlines() if "FAILURE" in line
         ]
