@@ -1,7 +1,7 @@
 litellm
 google-cloud-aiplatform>=1.38
 vertexai
-python_dotenv
+python-dotenv
 networkx
 pytest>=8.4.2
 lark>=1.3.0
