@@ -3,12 +3,16 @@
 # !/opt/miniconda3/bin/python
 
 import argparse
+import copy
 from pathlib import Path
 
 from loguru import logger
 
 from specifications import LlmSpecificationGenerator
 from util import (
+    AssumeSpec,
+    BacktrackStrategy,
+    BacktrackToCallee,
     FunctionSpecification,
     ParsecFunction,
     ParsecResult,
@@ -97,7 +101,9 @@ def _get_functions_in_reverse_topological_order(
 
 
 def _verify_program(
-    functions: list[ParsecFunction], specification_generator: LlmSpecificationGenerator
+    functions: list[ParsecFunction],
+    specification_generator: LlmSpecificationGenerator,
+    parsec_result: ParsecResult,
 ) -> dict[str, FunctionSpecification]:
     initial_workstack: Workstack = [(function, "") for function in functions]
     initial_proof_state = ProofState(workstack=initial_workstack)
@@ -107,7 +113,9 @@ def _verify_program(
     while GLOBAL_PROOFSTATES:
         proof_state = GLOBAL_PROOFSTATES.pop()
         next_proofstates = _step(
-            proof_state=proof_state, specification_generator=specification_generator
+            proof_state=proof_state,
+            specification_generator=specification_generator,
+            parsec_result=parsec_result,
         )
 
         for next_proofstate in next_proofstates:
@@ -121,14 +129,55 @@ def _verify_program(
 
 
 def _step(
-    proof_state: ProofState, specification_generator: LlmSpecificationGenerator
+    proof_state: ProofState,
+    specification_generator: LlmSpecificationGenerator,
+    parsec_result: ParsecResult,
 ) -> list[ProofState]:
     function, hints = proof_state.peek_workstack()
     specs_for_function: list[FunctionSpecification] = specification_generator.try_to_specify(
         function=function, hints=hints
     )
-    return []  # stub.
+    next_steps: list[tuple[FunctionSpecification, BacktrackStrategy]] = _choose_next_step(
+        function=function, candidate_specs=specs_for_function, proof_state=proof_state
+    )
+    result: list[ProofState] = []
+
+    for candidate_spec, backtrack_strategy in next_steps:
+        next_proof_state = copy.copy(proof_state)  # `copy.copy` returns a shallow copy.
+        next_proof_state.set_specification(function=function, spec=candidate_spec)
+        _update_proof_state(
+            function=function,
+            proof_state=next_proof_state,
+            backtrack_strategy=backtrack_strategy,
+            parsec_result=parsec_result,
+        )
+        result.append(next_proof_state)
+    return result
 
 
-def _choose_next_step(function: ParsecFunction, specs: list[FunctionSpecification]):
-    pass
+def _update_proof_state(
+    function: ParsecFunction,
+    proof_state: ProofState,
+    backtrack_strategy: BacktrackStrategy,
+    parsec_result: ParsecResult,
+) -> ProofState:
+    match backtrack_strategy:
+        case AssumeSpec(_):
+            proof_state.assume_function(function=function)
+        case BacktrackToCallee(_, callee_name):
+            if callee := parsec_result.get_function(callee_name):
+                proof_state.push_onto_workstack(function=callee)
+            else:
+                msg = f"{callee_name} was missing from the ParsecResult"
+                raise RuntimeError(msg)
+        case unsupported_strategy:
+            # This should never happen.
+            msg = f"Unsupported backtracking strategy: {unsupported_strategy}"
+            raise RuntimeError(msg)
+    return proof_state
+
+
+def _choose_next_step(
+    function: ParsecFunction, candidate_specs: list[FunctionSpecification], proof_state: ProofState
+) -> list[tuple[FunctionSpecification, BacktrackStrategy]]:
+    return []
