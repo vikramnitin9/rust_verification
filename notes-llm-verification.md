@@ -16,8 +16,8 @@ re-examination of a previously-considered function).
 
 Each LLM call returns multiple possibilities or "samples".  (This avoids getting
 stuck in one unproductive avenue.)  Therefore, each step actually yields a *set*
-of proof states.  The implementation explores all of these possibilities in
-parallel.
+of proof states.  The implementation explores these possibilities in parallel (a
+heuristic prunes or prioritizes the possibilities).
 
 ## Parameters
 
