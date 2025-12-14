@@ -1,5 +1,5 @@
 [project]
-name = "rust-verification-fork-mernst-branch-code-style-2"
+name = "rust-verification"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
