@@ -2,6 +2,7 @@
 
 from models import LLMGen, ModelError, get_llm_generation_with_model
 from util import (
+    BacktrackStrategy,
     FunctionSpecification,
     ParsecFunction,
     ParsecResult,
@@ -60,6 +61,27 @@ class LlmSpecificationGenerator:
         except ModelError as me:
             msg = f"Failed to generate specifications for '{function.name}'"
             raise RuntimeError(msg) from me
+
+    def choose_next_step(
+        self,
+        function: ParsecFunction,
+        candidate_specs: list[FunctionSpecification],
+        proof_state: ProofState,
+    ) -> list[tuple[FunctionSpecification, BacktrackStrategy]]:
+        # TODO: Actually perform some pruning here of the candidate specs first.
+        pruned_specs = candidate_specs
+        next_steps = []
+        for spec in pruned_specs:
+            vresult = self._verifier.verify_function_with_spec(
+                function_name=function.name, spec=spec, proof_state=proof_state
+            )
+            if not vresult.succeeded:
+                # TODO: Call an LLM and ask it for a list of callees to possibly backtrack to.
+                backtrack_strategies = []
+                next_steps.extend(
+                    (spec, backtrack_strategy) for backtrack_strategy in backtrack_strategies
+                )
+        return next_steps
 
     def _repair_spec(
         self,

@@ -76,7 +76,7 @@ def main() -> None:
     functions_in_reverse_topological_order = _get_functions_in_reverse_topological_order(
         parsec_result
     )
-    _verify_program(functions_in_reverse_topological_order, specification_generator)
+    _verify_program(functions_in_reverse_topological_order, specification_generator, parsec_result)
 
 
 if __name__ == "__main__":
@@ -164,6 +164,9 @@ def _update_proof_state(
     match backtrack_strategy:
         case AssumeSpec(_):
             proof_state.assume_function(function=function)
+            # INVARIANT: the top element of the proof state's workstack should be the function
+            # under specification generation + verification.
+            proof_state.pop_workstack()
         case BacktrackToCallee(_, callee_name):
             if callee := parsec_result.get_function(callee_name):
                 proof_state.push_onto_workstack(function=callee)

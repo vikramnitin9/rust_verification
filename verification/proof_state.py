@@ -45,6 +45,10 @@ class ProofState:
         """
         return self._workstack[-1]
 
+    def pop_workstack(self) -> None:
+        """Remove the top element of the workstack."""
+        self._workstack.pop()
+
     def is_workstack_empty(self) -> bool:
         """Return True iff this proof state's workstack is empty.
 
