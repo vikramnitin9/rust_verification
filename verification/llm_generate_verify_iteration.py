@@ -4,7 +4,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from specifications.llm_invocation_result import LlmInvocationResult
-from verification import Failure, Success
+
+from .verification_result import Failure, Success
 
 
 @dataclass(frozen=True)

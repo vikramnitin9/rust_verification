@@ -1,9 +1,10 @@
 import os
-import pytest
 import shutil
 
 from pathlib import Path
 from util import FunctionSpecification, ParsecFile, function_util
+
+import pytest
 
 
 def _get_file_lines(path_to_file: str) -> list[str]:

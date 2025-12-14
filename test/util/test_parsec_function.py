@@ -245,6 +245,7 @@ def test_get_comment_multi_line_pathological() -> None:
     assert function.get_preceding_comments() == expected_comment
 
 
+
 def test_is_direct_recursive_is_true() -> None:
     function = ParsecFunction(
         {
