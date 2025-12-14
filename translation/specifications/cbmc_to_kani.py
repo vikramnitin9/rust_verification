@@ -30,6 +30,7 @@ class CBMCToKani:
     parser: Parser[CBMCAst]
 
     def __init__(self, parser: Parser[CBMCAst]):
+        """Create a new CBMCToKani."""
         self.parser = parser
 
     def translate(self, cbmc_specs: list[str]) -> list[str]:
@@ -48,7 +49,7 @@ class CBMCToKani:
             try:
                 cbmc_ast = self.parser.parse(spec)
                 kani_specs.append(self._to_kani_str(cbmc_ast))
-            except UnexpectedToken as ut:  # noqa: PERF203
+            except UnexpectedToken as ut:
                 logger.error(f"Failed to parse: '{spec}' with error: '{ut}'")
                 continue
             except TranslationError as te:

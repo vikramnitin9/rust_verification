@@ -1,37 +1,39 @@
 from translation import KaniProofHarness
-from util.rust import RustFunction, RustTypeWrapper
 from util import FunctionSpecification
-
+from util.rust import RustFunction, RustTypeWrapper
 
 
 def test_kani_proof_harness_no_mut():
     harness = KaniProofHarness(
         RustFunction(
             name="add",
-            param_to_type=
-                {
-                    "a": RustTypeWrapper("i32", is_reference=False),
-                    "b": RustTypeWrapper("i32", is_reference=False),
-                }
+            param_to_type={
+                "a": RustTypeWrapper("i32", is_reference=False),
+                "b": RustTypeWrapper("i32", is_reference=False),
+            },
         ),
-        spec=FunctionSpecification(preconditions=["kani::requires(a < i32::MAX && b < i32::MAX)"], postconditions=[])
+        spec=FunctionSpecification(
+            preconditions=["kani::requires(a < i32::MAX && b < i32::MAX)"], postconditions=[]
+        ),
     )
     assert (
         str(harness)
         == """#[cfg(kani)]\n#[kani::proof]\nfn check_add() {\n    let a: i32 = kani::any();\n    let b: i32 = kani::any();\n\n    if a < i32::MAX && b < i32::MAX {\n        add(a, b);\n    }\n}"""
     )
 
+
 def test_kani_proof_harness_nested_parens_preconds():
     harness = KaniProofHarness(
         RustFunction(
             name="add",
-            param_to_type=
-                {
-                    "a": RustTypeWrapper("i32", is_reference=False),
-                    "b": RustTypeWrapper("i32", is_reference=False)
-                }
+            param_to_type={
+                "a": RustTypeWrapper("i32", is_reference=False),
+                "b": RustTypeWrapper("i32", is_reference=False),
+            },
         ),
-        spec=FunctionSpecification(preconditions=["kani::requires((a < i32::MAX) && (b < i32::MAX))"], postconditions=[])
+        spec=FunctionSpecification(
+            preconditions=["kani::requires((a < i32::MAX) && (b < i32::MAX))"], postconditions=[]
+        ),
     )
     assert (
         str(harness)
@@ -39,19 +41,16 @@ def test_kani_proof_harness_nested_parens_preconds():
     )
 
 
-
-
 def test_kani_proof_harness_swap():
     harness = KaniProofHarness(
         RustFunction(
             name="swap",
-            param_to_type=
-                {
-                    "a": RustTypeWrapper("i32", is_reference=True, is_mutable=True),
-                    "b": RustTypeWrapper("i32", is_reference=True, is_mutable=True),
-                }
+            param_to_type={
+                "a": RustTypeWrapper("i32", is_reference=True, is_mutable=True),
+                "b": RustTypeWrapper("i32", is_reference=True, is_mutable=True),
+            },
         ),
-        spec=FunctionSpecification(preconditions=[], postconditions=[])
+        spec=FunctionSpecification(preconditions=[], postconditions=[]),
     )
     assert (
         str(harness)

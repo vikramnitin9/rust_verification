@@ -15,15 +15,11 @@ jobs:
       uses: actions/setup-python@v6
       with:
         python-version: '3.14.0'
-    - run: python --version
-    - name: Install Python programs
-      run: |
-        pip install mypy
-        pipx install ruff
-        pipx ensurepath
     - name: Install shellcheck and checkbashisms
       run: |
         sudo apt -yqq update
         sudo apt install -yqq perltidy shfmt shellcheck devscripts
+    - name: Install uv
+      run: curl -LsSf https://astral.sh/uv/install.sh | sh
     - name: Check style
       run: make style-check

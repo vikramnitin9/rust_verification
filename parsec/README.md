@@ -7,6 +7,7 @@ ParseC is built as part of the [Docker image](Dockerfile) for this project. Howe
 ## Prerequisites
 
 ParseC is intended for use only with Linux. The following utilities and libraries are needed:
+
 - `build-essential`
 - `cmake`
 - `bear`
@@ -30,6 +31,7 @@ parsec hello.c
 ```
 
 To run it on a full project, you need a `compile_commands.json` compilation database for your project. This can be obtained in a few different ways:
+
 - If your project uses CMake, you can generate one automatically by setting [`CMAKE_EXPORT_COMPILE_COMMANDS`](https://cmake.org/cmake/help/latest/variable/CMAKE_EXPORT_COMPILE_COMMANDS.html).
 - If your project uses `make`, you can use the `bear` utility to generate a compilation database:
 
