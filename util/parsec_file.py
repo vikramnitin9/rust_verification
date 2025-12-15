@@ -18,10 +18,10 @@ from util.parsec_function import ParsecFunction
 
 
 @dataclass
-class ParsecResult:
+class ParsecFile:
     """Represents the top-level result obtained by running `parsec` on a C project (or file).
 
-    Note: The functions in a `ParsecResult` do not have specifications. This is due to the the fact
+    Note: The functions in a `ParsecFile` do not have specifications. This is due to the the fact
     that LLVM cannot parse CBMC specs, which are not instances of valid C grammar.
 
     ParseC is a LLVM/Clang-based tool to parse a C program (hence the name).
@@ -47,7 +47,7 @@ class ParsecResult:
     functions: dict[str, ParsecFunction] = field(default_factory=dict)
 
     def __init__(self, file_path: Path):
-        """Create an instance of ParsecResult from the file at `file_path`.
+        """Create an instance of ParsecFile from the file at `file_path`.
 
         Args:
             file_path (Path): The path to a JSON file written by ParseC.
@@ -72,17 +72,17 @@ class ParsecResult:
     @staticmethod
     def parse_source_with_cbmc_annotations(
         path_to_file_with_cbmc_annotations: Path,
-    ) -> ParsecResult:
-        """Create an instance of ParsecResult by parsing a .c file with CBMC annotations.
+    ) -> ParsecFile:
+        """Create an instance of ParsecFile by parsing a .c file with CBMC annotations.
 
         Parsec relies on an LLVM parser, which does not admit C programs with CBMC annotations.
         A workaround is to comment-out the CBMC annotations.
 
         Args:
-            path_to_file_with_cbmc_annotations (Path): The path to the file with CBMC annotations.
+            path_to_file_with_cbmc_annotations (Path): The file with CBMC annotations.
 
         Returns:
-            ParsecResult: The ParsecResult.
+            ParsecFile: The ParsecFile.
         """
         content_of_file_with_cbmc_annotations = path_to_file_with_cbmc_annotations.read_text(
             encoding="utf-8"
@@ -97,9 +97,9 @@ class ParsecResult:
             file_lines_with_commented_out_annotations,
             encoding="utf-8",
         )
-        return ParsecResult(tmp_file_with_commented_out_cbmc_annotations)
+        return ParsecFile(tmp_file_with_commented_out_cbmc_annotations)
 
-    def copy(self, remove_self_edges_in_call_graph: bool = False) -> ParsecResult:
+    def copy(self, *, remove_self_edges_in_call_graph: bool = False) -> ParsecFile:
         # MDE: What is the purpose of removing self-edges?  To avoid an exception when computing the
         # topological sort?
         """Return a copy of this ParsecResult, optionally removing its call graph's self-edges.
@@ -109,15 +109,15 @@ class ParsecResult:
                 should be removed. Defaults to False.
 
         Returns:
-            ParsecResult: A copy of this ParsecResult.
+            ParsecFile: A copy of this ParsecFile.
         """
-        parsec_result_copy = copy.deepcopy(self)
+        parsec_file_copy = copy.deepcopy(self)
         if remove_self_edges_in_call_graph:
             self_edges = nx.selfloop_edges(self.call_graph)
-            parsec_result_copy.call_graph.remove_edges_from(self_edges)
-        return parsec_result_copy
+            parsec_file_copy.call_graph.remove_edges_from(self_edges)
+        return parsec_file_copy
 
-    def get_function(self, function_name: str) -> ParsecFunction | None:
+    def get_function_or_none(self, function_name: str) -> ParsecFunction | None:
         """Return the ParsecFunction representation for a function with the given name.
 
         Args:
@@ -128,6 +128,24 @@ class ParsecResult:
                 with that name exists.
         """
         return self.functions.get(function_name, None)
+
+    def get_function(self, function_name: str) -> ParsecFunction:
+        """Return the ParsecFunction representation for a function with the given name.
+
+        Args:
+            function_name (str): The name of the function for which to return the ParsecFunction.
+
+        Returns:
+            ParsecFunction: The ParsecFunction with the given name.
+
+        Raises:
+            RuntimeError: if no function with that name exists.
+        """
+        result = self.get_function_or_none(function_name)
+        if result is None:
+            msg = f"No function named '{function_name}' exists"
+            raise RuntimeError(msg)
+        return result
 
     def get_callees(self, function: ParsecFunction) -> list[ParsecFunction]:
         """Return the callees of the given function.
@@ -140,24 +158,24 @@ class ParsecResult:
         """
         callees: list[ParsecFunction] = []
         for callee_name in function.callee_names:
-            if callee_analysis := self.get_function(callee_name):
+            if callee_analysis := self.get_function_or_none(callee_name):
                 callees.append(callee_analysis)
             else:
                 logger.error(f"LLVM Analysis for callee function {callee_name} not found")
         return callees
 
     def get_names_of_recursive_functions(self) -> list[str]:
-        """Return the names of directly-recursive functions in this ParsecResult's call graph.
+        """Return the names of directly-recursive functions in this ParsecFile's call graph.
 
         Note: This does not detect mutually-recursive functions.
 
         Returns:
-            list[str]: The names of directly-recursive functions in this ParsecResult's call graph.
+            list[str]: The names of directly-recursive functions in this ParsecFile's call graph.
         """
         return [f for f in self.call_graph if self.call_graph.has_edge(f, f)]
 
     def get_function_names_in_topological_order(self, reverse_order: bool = False) -> list[str]:
-        """Return the function names in this ParsecResult's call graph in topological order.
+        """Return the function names in this ParsecFile's call graph in topological order.
 
         Args:
             reverse_order (bool, optional): True iff the topological ordering should be reversed.
@@ -181,13 +199,13 @@ class ParsecResult:
             return self._get_function_names_in_postorder_dfs(reverse_order=reverse_order)
 
     def _get_function_names_in_postorder_dfs(self, reverse_order: bool) -> list[str]:
-        """Return the function names in this ParsecResult's call graph collected via DFS traversal.
+        """Return the function names in this ParsecFile's call graph collected via DFS traversal.
 
         Args:
             reverse_order (bool): True iff the result of the DFS traversal should be reversed.
 
         Returns:
-            list[str]: The function names in this ParsecResult's call graph collected via a DFS
+            list[str]: The function names in this ParsecFile's call graph collected via a DFS
                 traversal.
         """
         func_names = [f for f in self.call_graph.nodes if f != ""]
@@ -216,7 +234,7 @@ class ParsecResult:
             cmd = f"{parsec_build_dir}/parsec --rename-main=false --add-instr=false {file_path}"
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
             if result.returncode != 0:
-                msg = f"Error running parsec: {result.stderr}"
+                msg = f"Error running parsec: {result.stderr} {result.stdout}"
                 raise Exception(msg)
         except subprocess.CalledProcessError as e:
             raise Exception("Error running parsec.") from e

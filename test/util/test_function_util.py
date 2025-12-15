@@ -1,10 +1,10 @@
 import os
 import shutil
+
 from pathlib import Path
+from util import FunctionSpecification, ParsecFile, function_util
 
 import pytest
-
-from util import FunctionSpecification, ParsecResult, function_util
 
 
 def _get_file_lines(path_to_file: str) -> list[str]:
@@ -130,9 +130,9 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     *b = t;
 }"""
 
-    parsec_result = ParsecResult(file_containing_function)
+    parsec_file = ParsecFile(file_containing_function)
     function_util.update_function_declaration(
-        "swap", updated_function, parsec_result, file_containing_function
+        "swap", updated_function, parsec_file, file_containing_function
     )
 
     assert Path(path_to_expected_updated_file).read_text(encoding="utf-8") == Path(
@@ -163,7 +163,7 @@ def test_get_function_signature() -> None:
     assert body == "{\n    int t = *a;\n    *a = *b;\n    *b = t;\n}"
 
 
-def test_get_source_code_with_specs() -> None:
+def test_get_source_code_with_inserted_specs() -> None:
     path_to_swap_no_specs = Path("test/data/function_util/no_specs.c")
     swap_specs = FunctionSpecification(
         preconditions=[
@@ -175,8 +175,8 @@ def test_get_source_code_with_specs() -> None:
             "__CPROVER_ensures(*b == __CPROVER_old(*a))",
         ],
     )
-    swap_with_specs = function_util.get_source_code_with_specs(
-        "swap", swap_specs, ParsecResult(file_path=Path(path_to_swap_no_specs))
+    swap_with_specs = function_util.get_source_code_with_inserted_specs(
+        "swap", swap_specs, ParsecFile(file_path=Path(path_to_swap_no_specs))
     )
     assert (
         swap_with_specs
@@ -211,9 +211,9 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     *b = t;
 }"""
 
-    parsec_result = ParsecResult(file_containing_function)
+    parsec_file = ParsecFile(file_containing_function)
     function_util.update_function_declaration(
-        "swap", updated_function, parsec_result, file_containing_function
+        "swap", updated_function, parsec_file, file_containing_function
     )
 
     assert Path(path_to_expected_updated_file).read_text(encoding="utf-8") == Path(
@@ -240,9 +240,9 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     *b = t;
 }"""
 
-    parsec_result = ParsecResult(file_containing_function)
+    parsec_file = ParsecFile(file_containing_function)
     function_util.update_function_declaration(
-        "swap", updated_function, parsec_result, file_containing_function
+        "swap", updated_function, parsec_file, file_containing_function
     )
 
     assert Path(path_to_expected_updated_file).read_text(encoding="utf-8") == Path(

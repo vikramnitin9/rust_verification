@@ -15,12 +15,11 @@ from loguru import logger
 
 from specifications import LlmSpecificationGenerator
 from util import (
-    ParsecResult,
+    ParsecFile,
     copy_file_to_folder,
+    ensure_lines_at_beginning,
     extract_function,
     function_util,
-    insert_lines_at_beginning,
-    overwrite_file,
 )
 from verification import (
     CbmcVerificationClient,
@@ -76,31 +75,28 @@ def main() -> None:
     input_file_path = Path(args.file)
     output_file_path = copy_file_to_folder(input_file_path, "specs")
     header_lines = [f"#include <{header}>" for header in DEFAULT_HEADERS_IN_OUTPUT]
-    insert_lines_at_beginning(header_lines, output_file_path)
+    ensure_lines_at_beginning(header_lines, output_file_path)
 
-    parsec_result = ParsecResult(output_file_path)
+    parsec_file = ParsecFile(output_file_path)
 
     # Get a list of functions in reverse topological order.
     # MDE: Rather than forcing the client to remove the self edges, I suggest that
     # `get_function_names_in_topological_order()` should remove them itself.  That makes the API
     # cleaner and simpler to use.
-    func_ordering = parsec_result.copy(
+    func_ordering = parsec_file.copy(
         remove_self_edges_in_call_graph=True
     ).get_function_names_in_topological_order(reverse_order=True)
     verified_functions: list[str] = []
     trusted_functions: list[str] = []
     conversation_log: dict[str, list[LlmGenerateVerifyIteration]] = defaultdict(list)
-    specification_generator = LlmSpecificationGenerator(MODEL, parsec_result)
+    specification_generator = LlmSpecificationGenerator(MODEL, parsec_file)
     verifier: VerificationClient = CbmcVerificationClient()
 
     for func_name in func_ordering:
         conversation = [{"role": "system", "content": DEFAULT_SYSTEM_PROMPT}]
 
         logger.info(f"Processing function {func_name}...")
-        function_to_verify = parsec_result.get_function(func_name)
-        if not function_to_verify:
-            msg = f"Failed to find function '{func_name}' to verify"
-            raise RuntimeError(msg)
+        function_to_verify = parsec_file.get_function(func_name)
 
         # Generate the initial specifications for verification.
         llm_invocation_result = specification_generator.generate_specifications(
@@ -115,7 +111,7 @@ def main() -> None:
         file_with_candidate_specs = function_util.get_file_with_updated_function(
             func_name,
             function_with_candidate_specs,
-            parsec_result,
+            parsec_file,
             output_file_path,
         )
         # If the function is recursive, accept the generated specs and continue.
@@ -129,7 +125,7 @@ def main() -> None:
                 func_name,
                 function_with_candidate_specs,
                 file_with_candidate_specs,
-                parsec_result,
+                parsec_file,
                 output_file_path,
             )
             if args.save_conversation:
@@ -152,12 +148,12 @@ def main() -> None:
         if isinstance(verification_result, Success):
             logger.success(f"Verification succeeded for '{func_name}'")
             verified_functions.append(func_name)
-            # Update the ParsecResult and output file
+            # Update the ParsecFile and output file
             _update_with_verified_function(
                 func_name,
                 function_with_candidate_specs,
                 file_with_candidate_specs,
-                parsec_result,
+                parsec_file,
                 output_file_path,
             )
             continue
@@ -176,7 +172,7 @@ def main() -> None:
             file_with_candidate_specs = function_util.get_file_with_updated_function(
                 func_name,
                 function_with_candidate_specs,
-                parsec_result,
+                parsec_file,
                 output_file_path,
             )
             verification_result = verifier.verify(
@@ -198,7 +194,7 @@ def main() -> None:
                     func_name,
                     function_with_candidate_specs,
                     file_with_candidate_specs,
-                    parsec_result,
+                    parsec_file,
                     output_file_path,
                 )
                 break
@@ -212,7 +208,7 @@ def main() -> None:
     if args.save_conversation:
         _write_conversation_log(conversation_log)
 
-    _save_functions_with_specs(parsec_result, output_file_path)
+    _save_functions_with_specs(parsec_file, output_file_path)
 
 
 def recover_from_failure() -> None:
@@ -223,21 +219,21 @@ def _update_with_verified_function(
     function_name: str,
     function_with_verified_specs: str,
     path_to_file_with_verified_specs: Path,
-    parsec_result: ParsecResult,
+    parsec_file: ParsecFile,
     path_to_verified_output: Path,
 ) -> None:
-    """Update the Parsec result and the verified output file with the newly-verified function.
+    """Update the Parsec file and the verified output file with the newly-verified function.
 
     Args:
         function_name (str): The name of the newly-verified function.
         function_with_verified_specs (str): The source code of the newly-verified function.
-        path_to_file_with_verified_specs (Path): The path to the file with the newly-verified specs.
-        parsec_result (ParsecResult): The parsec result to update.
+        path_to_file_with_verified_specs (Path): The file with the newly-verified specs.
+        parsec_file (ParsecFile): The parsec file to update.
         path_to_verified_output (Path): The path to the verified output file.
     """
-    function_util.update_parsec_result(function_name, function_with_verified_specs, parsec_result)
+    function_util.update_parsec_file(function_name, function_with_verified_specs, parsec_file)
     verified_file_content = path_to_file_with_verified_specs.read_text(encoding="utf-8")
-    overwrite_file(verified_file_content, path_to_verified_output)
+    path_to_verified_output.write_text(verified_file_content, encoding="utf-8")
     path_to_file_with_verified_specs.unlink()
 
 
@@ -272,19 +268,18 @@ def _get_path_to_conversation_log() -> Path:
     return path_to_log
 
 
-def _save_functions_with_specs(parsec_result: ParsecResult, output_file_path: Path) -> None:
-    """Write functions from a ParseC result that have specifications to disk.
+def _save_functions_with_specs(parsec_file: ParsecFile, output_file_path: Path) -> None:
+    """Write functions from a ParseC file that have specifications to disk.
 
     This is needed for specification translation. Ideally, the specified functions would be read
     directly from the source file resulting directly from specification generation. However, CBMC
     specifications are not legal C code, and are not able to be easily parsed (e.g., with ParseC).
 
     Args:
-        parsec_result (ParsecResult): The ParseC result in which to look for specified functions.
-        output_file_path (Path): The path to the file where the result of specification generation
-            is saved.
+        parsec_file (ParsecFile): The ParseC file in which to look for specified functions.
+        output_file_path (Path): The file where the result of specification generation is saved.
     """
-    functions_with_specs = [f for f in parsec_result.functions.values() if f.is_specified()]
+    functions_with_specs = [f for f in parsec_file.functions.values() if f.has_specification()]
     result_file = output_file_path.with_suffix("")
     with Path(f"{result_file}-specified-functions.pkl").open("wb") as f:
         pkl.dump(functions_with_specs, f)

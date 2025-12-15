@@ -4,8 +4,8 @@ import pathlib
 from dataclasses import dataclass, field
 from typing import Any
 
+from .function_specification import FunctionSpecification
 from .parsec_error import ParsecError
-from .specifications import FunctionSpecification
 from .text_util import prepend_line_numbers, uncomment_cbmc_annotations
 
 
@@ -21,9 +21,9 @@ class ParsecFunction:
     return_type: str
     signature: str
     file_name: str
-    start_line: int
+    start_line: int  # 1-indexed
     start_col: int
-    end_line: int
+    end_line: int  # 1-indexed
     end_col: int
     preconditions: list[str]
     postconditions: list[str]
@@ -99,7 +99,7 @@ class ParsecFunction:
 
         # Handle 1-based columns; end_col is inclusive
         func_lines = lines[self.start_line - 1 : self.end_line]
-        # Note that "end" comes before "beginning", in case they are on the same line.
+        # Handle "end" before "beginning", in case they are on the same line.
         func_lines[-1] = func_lines[-1][: self.end_col]
         func_lines[0] = func_lines[0][self.start_col - 1 :]
 
@@ -119,7 +119,7 @@ class ParsecFunction:
             )
 
         if include_documentation_comments:
-            if documentation := self.get_documentation_comments():
+            if documentation := self.get_preceding_comments():
                 if include_line_numbers:
                     documentation_lines = documentation.splitlines()
                     documentation = "\n".join(
@@ -133,7 +133,7 @@ class ParsecFunction:
                 source_code = f"{documentation}\n{source_code}"
         return source_code
 
-    def get_documentation_comments(self) -> str | None:
+    def get_preceding_comments(self) -> str | None:
         """Return the content of lines immediately preceding this function (usually documentation).
 
         # MDE: "the content of lines": which lines are included.
@@ -179,11 +179,17 @@ class ParsecFunction:
 
         """
         stripped_line = line.strip()
+<<<<<<< HEAD
         # MDE: A line starting with "*" could be part of a multiline multiplication expression.
         comment_start_delimiters = ["//", "/*", "*"]
 
         # MDE: a comment can begin in the middle of a line rather than at the end of one.
         if any(stripped_line.startswith(delimit) for delimit in comment_start_delimiters):
+=======
+        comment_starts = ("//", "/*", "*")
+
+        if stripped_line.startswith(comment_starts):
+>>>>>>> main
             return True
 
         if stripped_line.endswith("*/"):
@@ -195,7 +201,7 @@ class ParsecFunction:
 
         return False
 
-    def is_specified(self) -> bool:
+    def has_specification(self) -> bool:
         """Return True iff this function has pre- or post-conditions.
 
         Returns:
@@ -205,10 +211,10 @@ class ParsecFunction:
 
     # MDE: I would use "is_self_recursive" which is more common term (according to a Google search).
     def is_direct_recursive(self) -> bool:
-        """Return True iff this function is direct recursive.
+        """Return True iff this function is directly recursive.
 
         Returns:
-            bool: True iff this function is direct recursive.
+            bool: True iff this function is directly recursive.
         """
         return self.name in self.callee_names
 

@@ -6,9 +6,9 @@ from pathlib import Path
 import tree_sitter_c as tsc
 from tree_sitter import Language, Parser, Query, QueryCursor
 
+from .function_specification import FunctionSpecification
+from .parsec_file import ParsecFile
 from .parsec_function import ParsecFunction
-from .parsec_result import ParsecResult
-from .specifications import FunctionSpecification
 
 PRECONDITION_PREFIX = "__CPROVER_requires"
 POSTCONDITION_PREFIX = "__CPROVER_ensures"
@@ -37,14 +37,12 @@ def extract_specification(function_lines: list[str]) -> FunctionSpecification:
     )
 
 
-def get_signature_and_body(src: str, lang: str) -> tuple[str, str]:
+def get_signature_and_body(source_code: str, lang: str) -> tuple[str, str]:
     """Return the signature and body of a function.
 
-    The first element of the tuple comprises the signature, the second element comprises the body.
-
     Args:
-        src (str): The source code of the function.
-        lang (str): The language of the source function.
+        source_code (str): The source code of the function.
+        lang (str): The programming language in which the function is written.
 
     Returns:
         # MDE: In what format?  Is the function body surrounded by "{...}" or not?
@@ -57,11 +55,13 @@ def get_signature_and_body(src: str, lang: str) -> tuple[str, str]:
     # `get_signature_and_body()` is called.  Or, abstract out the next 5 statements into a function.
     ts_lang = Language(tsc.language())
     parser = Parser(ts_lang)
-    tree = parser.parse(bytes(src, encoding="utf-8"))
     # MDE: I think this statement binds the expressions `function.body` and `function.definition`.
     # The latter is very similar to "function_definition" that appears elsewhere in the query.  I
     # suggest rename the bound variables to something like "this_function_body" and
     # "this_function_definition".
+    tree = parser.parse(bytes(source_code, encoding="utf-8"))
+    # The query syntax is defined at
+    # https://tree-sitter.github.io/tree-sitter/using-parsers/queries/1-syntax.html .
     query = Query(
         ts_lang,
         """
@@ -78,7 +78,7 @@ def get_signature_and_body(src: str, lang: str) -> tuple[str, str]:
     # MDE: The signature may include comments.  Is that intentional?
     # MDE: The next two lines are very different ways of obtaining similar parts of the function
     # definition.  I suggest making them more similar, so readers won't wonder about the difference.
-    signature = src[definition_node.start_byte : body_node.start_byte].strip()
+    signature = source_code[definition_node.start_byte : body_node.start_byte].strip()
     if body_node is None:
         raise RuntimeError("error")
     if body_node.text is None:
@@ -87,67 +87,48 @@ def get_signature_and_body(src: str, lang: str) -> tuple[str, str]:
     return (signature, body)
 
 
-def get_source_code_with_specs(
-    function_name: str, specifications: FunctionSpecification, parsec_result: ParsecResult
+def get_source_code_with_inserted_specs(
+    function_name: str, specifications: FunctionSpecification, parsec_file: ParsecFile
 ) -> str:
     """Return the source code of a function with the specifications inserted.
 
-    # MDE: What is "the specified function declaration"?  No such was passed in.
-    Note: This does *not* update the ParsecResult with the specified function declaration.
+    Note: This does *not* update the ParsecFile with the specified function declaration.
 
     Args:
         function_name (str): The name of the function for which to return the updated source code.
         specifications (FunctionSpecification): The specifications for the function.
-        # MDE: Neither the variable name nor the description is useful, because each one just
-        # repeats the type nearly verbatim.  Please improve the name and the documentation.
-        parsec_result (ParsecResult): The ParsecResult.
-
-    Raises:
-        RuntimeError: Raised when the function is missing from the ParsecResult.
+        parsec_file (ParsecFile): The ParsecFile.
 
     Returns:
         str: The source code of a function with the specifications inserted.
     """
-    if function := parsec_result.get_function(function_name=function_name):
-        (signature, body) = get_signature_and_body(function.get_source_code(), lang="c")
-        specs = "\n".join(
-            spec for spec in specifications.preconditions + specifications.postconditions
-        )
-        return f"{signature}\n{specs}\n{body}"
-    msg = f"{function_name} missing from ParsecResult"
-    raise RuntimeError(msg)
+    function = parsec_file.get_function(function_name=function_name)
+    (signature, body) = get_signature_and_body(function.get_source_code(), lang="c")
+    specs = "\n".join(spec for spec in specifications.preconditions + specifications.postconditions)
+    return f"{signature}\n{specs}\n{body}"
 
 
 def get_file_with_updated_function(
     function_name: str,
-    updated_function_declaration: str,
-    parsec_result: ParsecResult,
+    new_function_declaration: str,
+    parsec_file: ParsecFile,
     original_src: Path,
 ) -> Path:
     """Return a path to a new file containing a function with an updated declaration.
 
     Args:
         function_name (str): The name of the function with an updated declaration.
-        # MDE: What is the format?  Maybe this is the entire function definition in the C source
-        # code (in which case the term "declaration", which could refer to what goes in a header
-        # file, is a bit misleading).
-        updated_function_declaration (str): The updated function declaration.
-        parsec_result (ParsecResult): The ParsecResult.
+        new_function_declaration (str): The updated function declaration.
+        parsec_file (ParsecFile): The ParsecFile.
         original_src (Path): The path to the original file with the original function
             declaration.
-
-    Raises:
-        RuntimeError: Raised when the ParsecResult contains no function with the given name.
 
     Returns:
         Path: The path to the new file.
     """
-    original_function = parsec_result.get_function(function_name)
-    if not original_function:
-        msg = f"Could not find definition for function '{function_name}' to update"
-        raise RuntimeError(msg)
-    file_content_with_candidate_specs = _insert_updated_function_declaration(
-        original_function, updated_function_declaration, original_src
+    original_function = parsec_file.get_function(function_name)
+    file_content_with_candidate_specs = _replace_function_declaration(
+        original_function, new_function_declaration, original_src
     )
     tmp_file = Path(_get_temporary_file_name(function_name, original_src))
     tmp_file.parent.mkdir(exist_ok=True, parents=True)
@@ -155,26 +136,17 @@ def get_file_with_updated_function(
     return tmp_file
 
 
-def update_parsec_result(
-    function_name: str, updated_function_content: str, parsec_result: ParsecResult
+def update_parsec_file(
+    function_name: str, updated_function_content: str, parsec_file: ParsecFile
 ) -> None:
-    """Update the entry for a function in the ParsecResult with its updated version.
+    """Update the entry for a function in the ParsecFile with its updated version.
 
     Args:
-        function_name (str): The function to update in the ParsecResult.
-        # MDE: Here is another description that is not helpful, because it's just the same as the
-        # variable name.  What is a "function content"?  Does it include specifications?  How does
-        # it relate to a function declaration or function definition?
+        function_name (str): The function to update in the ParsecFile.
         updated_function_content (str): The updated function content.
-        parsec_result (ParsecResult): The parsec result to update.
-
-    Raises:
-        RuntimeError: Raised when there is no function to update in the parsec result.
+        parsec_file (ParsecFile): The parsec file to update.
     """
-    original_function = parsec_result.get_function(function_name)
-    if not original_function:
-        msg = f"Could not find definition for function '{function_name}' to update"
-        raise RuntimeError(msg)
+    original_function = parsec_file.get_function(function_name)
     prev_start_line = original_function.start_line
     prev_start_col = original_function.start_col
     prev_end_line = original_function.end_line
@@ -196,7 +168,7 @@ def update_parsec_result(
 
     # Update line/col info for other functions.
     line_offset = function_len - (prev_end_line - prev_start_line + 1)
-    for other_func in parsec_result.functions.values():
+    for other_func in parsec_file.functions.values():
         if other_func.name == original_function.name:
             # We've already updated the original function.
             continue
@@ -213,37 +185,23 @@ def update_parsec_result(
 
 
 def update_function_declaration(
-    function_name: str, updated_function_content: str, parsec_result: ParsecResult, file: Path
+    function_name: str, updated_function_content: str, parsec_file: ParsecFile, file: Path
 ) -> str:
     """Return the contents of the file after updating the function declaration.
-
-    # MDE: Where does the update occur?  I think in the ParsecResult.  Be explicit about that.
-    # Should this be a method of ParsecResult, since it updates that?
-
-    # MDE: The description above shows that this functon does two very different things:  it updates
-    # a function declaration and it returns the contents of a file.  Split this function into two
-    # functions, each of which does only one thing.
 
     Args:
         function_name (str): The name of the function to update.
         updated_function_content (str): The new contents of the function.
-        parsec_result (ParsecResult): The ParseC result containing function definitions.
-        file (Path): The path to the file containing the function.
-
-    Raises:
-        RuntimeError: Raised when the function to be updated cannot be found.
+        parsec_file (ParsecFile): The ParseC file containing function definitions.
+        file (Path): The file that contains the function (and possibly other functions).
 
     Returns:
         str: The contents of the file after updating the function declaration.
-
     """
-    function = parsec_result.get_function(function_name)
-    if not function:
-        msg = f"Could not find definition for function '{function_name}' to update"
-        raise RuntimeError(msg)
+    function = parsec_file.get_function(function_name)
 
     # Update the actual source code.
-    new_contents = _insert_updated_function_declaration(function, updated_function_content, file)
+    new_contents = _replace_function_declaration(function, updated_function_content, file)
     Path(file).write_text(new_contents, encoding="utf-8")
 
     start_line = function.start_line
@@ -251,22 +209,20 @@ def update_function_declaration(
     end_line = function.end_line
     end_col = function.end_col
 
-    # Update the line/col info for this function in the Parsec Result.
-    function_len = len(updated_function_content.splitlines())
-    new_end_line = start_line + function_len - 1
+    # Update the line/col info for this function in the Parsec file.
+    function_lines = updated_function_content.splitlines()
+    num_lines = len(function_lines)
+    new_end_line = start_line + num_lines - 1
     new_end_col = (
-        len(updated_function_content.splitlines()[-1])
-        if function_len > 1
-        else start_col + len(updated_function_content)
+        len(function_lines[-1]) if num_lines > 1 else start_col + len(updated_function_content)
     )
     function.end_line = new_end_line
     function.end_col = new_end_col
-    function.set_specifications(extract_specification(updated_function_content.splitlines()))
+    function.set_specifications(extract_specification(function_lines))
 
-    # MDE: Similar logic appears above.  Eliminate the duplication.
     # Update line/col info for other functions.
-    line_offset = function_len - (end_line - start_line + 1)
-    for other_func in parsec_result.functions.values():
+    line_offset = num_lines - (end_line - start_line + 1)
+    for other_func in parsec_file.functions.values():
         if other_func.name == function.name:
             continue
         if other_func.start_line > end_line:
@@ -284,7 +240,7 @@ def update_function_declaration(
 
 
 def _get_spec_lines(i: int, lines: list[str]) -> str:
-    """Extract specifications from the lines of a function.
+    """Extract one specification from the lines of a function.
 
     Args:
         i (int): The starting line of the specification.
@@ -293,7 +249,6 @@ def _get_spec_lines(i: int, lines: list[str]) -> str:
     Returns:
         str: The extracted specification.
     """
-    # MDE: Similar logic appears in file `test_util.py`.  Eliminate the duplication.
     curr_spec = ""
     open_parens = 0
     close_parens = 0
@@ -306,19 +261,17 @@ def _get_spec_lines(i: int, lines: list[str]) -> str:
     return curr_spec
 
 
-def _get_temporary_file_name(function_name: str, src: Path) -> str:
+def _get_temporary_file_name(function_name: str, source_file: Path) -> str:
     now_ts = int(time.time())
-    path_to_src_no_ext = src.with_suffix("")
-    ext = src.suffix
+    path_to_src_no_ext = source_file.with_suffix("")
+    ext = source_file.suffix
     return f"{path_to_src_no_ext}-{function_name}-candidate-specs-{now_ts}{ext}"
 
 
-def _insert_updated_function_declaration(
+def _replace_function_declaration(
     function: ParsecFunction, updated_function_declaration: str, path_to_src: Path
 ) -> str:
     """Return contents of the file where the function is defined with its new declaration.
-
-    # MDE: I don't understand the above description.  Please reword.
 
     Args:
         function (ParsecFunction): The function with a new declaration.
