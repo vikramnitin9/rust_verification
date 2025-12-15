@@ -81,8 +81,7 @@ class LlmSpecificationGenerator:
             conversation (list[dict[str, str]]): The LLM conversation, so far.
 
         Raises:
-            RuntimeError: Raised when the function is missing from the ParseC file, or an error
-                occurs during specification repair.
+            RuntimeError: Raised when an error occurs during specification repair.
 
         Returns:
             LlmInvocationResult: The prompt used to invoke an LLM and its response.

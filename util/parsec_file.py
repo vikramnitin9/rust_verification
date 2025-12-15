@@ -93,7 +93,7 @@ class ParsecFile:
         )
         return ParsecFile(tmp_file_with_commented_out_cbmc_annotations)
 
-    def copy(self, remove_self_edges_in_call_graph: bool = False) -> ParsecFile:
+    def copy(self, *, remove_self_edges_in_call_graph: bool = False) -> ParsecFile:
         """Return a copy of this ParsecFile, optionally removing its call graph's self-edges.
 
         Args:
