@@ -99,24 +99,6 @@ class ParsecFile:
         )
         return ParsecFile(tmp_file_with_commented_out_cbmc_annotations)
 
-    def copy(self, *, remove_self_edges_in_call_graph: bool = False) -> ParsecFile:
-        # MDE: What is the purpose of removing self-edges?  To avoid an exception when computing the
-        # topological sort?
-        """Return a copy of this ParsecResult, optionally removing its call graph's self-edges.
-
-        Args:
-            remove_self_edges_in_call_graph (bool, optional): True iff the call graph's self-edges
-                should be removed. Defaults to False.
-
-        Returns:
-            ParsecFile: A copy of this ParsecFile.
-        """
-        parsec_file_copy = copy.deepcopy(self)
-        if remove_self_edges_in_call_graph:
-            self_edges = nx.selfloop_edges(self.call_graph)
-            parsec_file_copy.call_graph.remove_edges_from(self_edges)
-        return parsec_file_copy
-
     def get_function_or_none(self, function_name: str) -> ParsecFunction | None:
         """Return the ParsecFunction representation for a function with the given name.
 
@@ -182,12 +164,17 @@ class ParsecFile:
                 Defaults to False.
 
         Returns:
-            list[str]: The function names in this Parsec Result's call graph in topological order.
+            list[str]: The function names in this Parsec File's call graph in topological order.
         """
-        if not self.call_graph.nodes():
+        # Self-edges must be removed before computing the topological sort.
+        parsec_file_copy = copy.deepcopy(self)
+        self_edges = nx.selfloop_edges(self.call_graph)
+        parsec_file_copy.call_graph.remove_edges_from(self_edges)
+
+        if not parsec_file_copy.call_graph.nodes():
             return []
         try:
-            names_in_topological_order = list(nx.topological_sort(self.call_graph))
+            names_in_topological_order = list(nx.topological_sort(parsec_file_copy.call_graph))
             if reverse_order:
                 names_in_topological_order.reverse()
             return names_in_topological_order

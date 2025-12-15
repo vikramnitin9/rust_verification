@@ -80,12 +80,7 @@ def main() -> None:
     parsec_file = ParsecFile(output_file_path)
 
     # Get a list of functions in reverse topological order.
-    # MDE: Rather than forcing the client to remove the self edges, I suggest that
-    # `get_function_names_in_topological_order()` should remove them itself.  That makes the API
-    # cleaner and simpler to use.
-    func_ordering = parsec_file.copy(
-        remove_self_edges_in_call_graph=True
-    ).get_function_names_in_topological_order(reverse_order=True)
+    func_ordering = parsec_file.get_function_names_in_topological_order(reverse_order=True)
     verified_functions: list[str] = []
     trusted_functions: list[str] = []
     conversation_log: dict[str, list[LlmGenerateVerifyIteration]] = defaultdict(list)
@@ -115,7 +110,7 @@ def main() -> None:
             output_file_path,
         )
         # If the function is recursive, accept the generated specs and continue.
-        if function_to_verify.is_direct_recursive():
+        if function_to_verify.is_self_recursive():
             logger.info(
                 f"Generated specs for direct-recursive function '{func_name}', "
                 "its specifications will be trusted"

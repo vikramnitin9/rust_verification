@@ -203,12 +203,11 @@ class ParsecFunction:
         """
         return len(self.preconditions) > 0 or len(self.postconditions) > 0
 
-    # MDE: I would use "is_self_recursive" which is more common term (according to a Google search).
-    def is_direct_recursive(self) -> bool:
-        """Return True iff this function is direct recursive.
+    def is_self_recursive(self) -> bool:
+        """Return True iff this function is self-recursive.
 
         Returns:
-            bool: True iff this function is direct recursive.
+            bool: True iff this function is self-recursive.
         """
         return self.name in self.callee_names
 

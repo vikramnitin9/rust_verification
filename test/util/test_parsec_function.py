@@ -246,7 +246,7 @@ def test_get_comment_multi_line_pathological() -> None:
 
 
 
-def test_is_direct_recursive_is_true() -> None:
+def test_is_self_recursive_is_true() -> None:
     function = ParsecFunction(
         {
             "name": "recursive_function",
@@ -261,10 +261,10 @@ def test_is_direct_recursive_is_true() -> None:
             "callees": [{"name": "recursive_function"}],
         }
     )
-    assert function.is_direct_recursive()
+    assert function.is_self_recursive()
 
 
-def test_is_direct_recursive_is_false() -> None:
+def test_is_self_recursive_is_false() -> None:
     function = ParsecFunction(
         {
             "name": "a",
@@ -279,4 +279,4 @@ def test_is_direct_recursive_is_false() -> None:
             "callees": [],
         }
     )
-    assert not function.is_direct_recursive()
+    assert not function.is_self_recursive()
