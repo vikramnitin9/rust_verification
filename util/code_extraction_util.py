@@ -12,7 +12,7 @@ def extract_function(text: str) -> str:
     # MDE: Why not just ask for the specification?  Then the LLM is less likely to hallucinate a
     # change in the function's source code.
     # MDE: Why not make this more structured, such as separating the pre- and post-conditions?
-    # MDE:
+
         { "function_with_specs": "<SOURCE CODE>" }
 
     This function extracts the <SOURCE CODE> part.
