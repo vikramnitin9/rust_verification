@@ -21,9 +21,9 @@ class ParsecFunction:
     return_type: str
     signature: str
     file_name: str
-    start_line: int  # 1-indexed
+    start_line: int
     start_col: int
-    end_line: int  # 1-indexed
+    end_line: int
     end_col: int
     preconditions: list[str]
     postconditions: list[str]
@@ -99,7 +99,7 @@ class ParsecFunction:
 
         # Handle 1-based columns; end_col is inclusive
         func_lines = lines[self.start_line - 1 : self.end_line]
-        # Handle "end" before "beginning", in case they are on the same line.
+        # Note that "end" comes before "beginning", in case they are on the same line.
         func_lines[-1] = func_lines[-1][: self.end_col]
         func_lines[0] = func_lines[0][self.start_col - 1 :]
 
@@ -179,17 +179,11 @@ class ParsecFunction:
 
         """
         stripped_line = line.strip()
-<<<<<<< HEAD
         # MDE: A line starting with "*" could be part of a multiline multiplication expression.
         comment_start_delimiters = ["//", "/*", "*"]
 
         # MDE: a comment can begin in the middle of a line rather than at the end of one.
         if any(stripped_line.startswith(delimit) for delimit in comment_start_delimiters):
-=======
-        comment_starts = ("//", "/*", "*")
-
-        if stripped_line.startswith(comment_starts):
->>>>>>> main
             return True
 
         if stripped_line.endswith("*/"):
@@ -211,10 +205,10 @@ class ParsecFunction:
 
     # MDE: I would use "is_self_recursive" which is more common term (according to a Google search).
     def is_direct_recursive(self) -> bool:
-        """Return True iff this function is directly recursive.
+        """Return True iff this function is direct recursive.
 
         Returns:
-            bool: True iff this function is directly recursive.
+            bool: True iff this function is direct recursive.
         """
         return self.name in self.callee_names
 
