@@ -1,19 +1,20 @@
+---
 name: Test
-on: [push, pull_request]
+'on':
+  - push
+  - pull_request
 jobs:
   test:
     defaults:
       run:
-        shell: bash -l {0}
+        shell: 'bash -l {0}'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 1
           show-progress: false
-
       - name: Build Docker container
         run: make docker-build
-
       - name: Run tests
         run: make test
