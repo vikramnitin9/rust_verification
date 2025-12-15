@@ -49,7 +49,7 @@ class CBMCToKani:
             try:
                 cbmc_ast = self.parser.parse(spec)
                 kani_specs.append(self._to_kani_str(cbmc_ast))
-            except UnexpectedToken as ut:
+            except UnexpectedToken as ut:  # noqa: PERF203
                 logger.error(f"Failed to parse: '{spec}' with error: '{ut}'")
                 continue
             except TranslationError as te:
