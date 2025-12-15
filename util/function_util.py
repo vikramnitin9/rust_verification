@@ -13,6 +13,9 @@ from .parsec_function import ParsecFunction
 PRECONDITION_PREFIX = "__CPROVER_requires"
 POSTCONDITION_PREFIX = "__CPROVER_ensures"
 
+TREE_SITTER_LANG = Language(tsc.language())
+PARSER = Parser(TREE_SITTER_LANG)
+
 
 def extract_specification(function_lines: list[str]) -> FunctionSpecification | None:
     """Extract a FunctionSpecification from the lines of a function.
@@ -42,50 +45,57 @@ def extract_specification(function_lines: list[str]) -> FunctionSpecification | 
 def get_signature_and_body(source_code: str, lang: str) -> tuple[str, str]:
     """Return the signature and body of a function.
 
+    The first part of the tuple is the signature of the function and any comments that may appear
+    before the body. For example, given the function declaration:
+
+        int main() // This
+        // is a comment.
+        {
+            return 1;
+        }
+
+    The first element of the tuple comprises:
+
+        int main() // This
+        // is a comment.
+
+    The second element of the tuple is everything excluding the signature. For the example above,
+    the element comprises:
+
+        {
+            return 1;
+        }
+
+    The parens are included.
+
     Args:
         source_code (str): The source code of the function.
         lang (str): The programming language in which the function is written.
 
     Returns:
-        # MDE: In what format?  Is the function body surrounded by "{...}" or not?
         tuple[str, str]: The signature and the body of a function.
     """
     if lang != "c":
         msg = f"Unsupported language: {lang}"
         raise RuntimeError(msg)
-    # MDE: The next 5 variables can be global variables rather than re-computed every time that
-    # `get_signature_and_body()` is called.  Or, abstract out the next 5 statements into a function.
-    ts_lang = Language(tsc.language())
-    parser = Parser(ts_lang)
-    # MDE: I think this statement binds the expressions `function.body` and `function.definition`.
-    # The latter is very similar to "function_definition" that appears elsewhere in the query.  I
-    # suggest rename the bound variables to something like "this_function_body" and
-    # "this_function_definition".
-    tree = parser.parse(bytes(source_code, encoding="utf-8"))
+    tree = PARSER.parse(bytes(source_code, encoding="utf-8"))
     # The query syntax is defined at
     # https://tree-sitter.github.io/tree-sitter/using-parsers/queries/1-syntax.html .
     query = Query(
-        ts_lang,
+        TREE_SITTER_LANG,
         """
         (function_definition
-          body: (compound_statement) @function.body) @function.definition
+          body: (compound_statement) @this_function_body) @this_function_definition
         """,
     )
     query_cursor = QueryCursor(query)
     captures = query_cursor.captures(tree.root_node)
 
-    definition_node = captures["function.definition"][0]
-    body_node = captures["function.body"][0]
+    definition_node = captures["this_function_definition"][0]
+    body_node = captures["this_function_body"][0]
 
-    # MDE: The signature may include comments.  Is that intentional?
-    # MDE: The next two lines are very different ways of obtaining similar parts of the function
-    # definition.  I suggest making them more similar, so readers won't wonder about the difference.
     signature = source_code[definition_node.start_byte : body_node.start_byte].strip()
-    if body_node is None:
-        raise RuntimeError("error")
-    if body_node.text is None:
-        raise RuntimeError("error")
-    body = body_node.text.decode(encoding="utf-8")
+    body = source_code[body_node.start_byte : body_node.end_byte].strip()
     return (signature, body)
 
 
