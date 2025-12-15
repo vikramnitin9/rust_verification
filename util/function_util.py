@@ -134,7 +134,7 @@ def update_parsec_file(
     Args:
         function_name (str): The function to update in the ParsecFile.
         updated_function_content (str): The updated function content.
-        parsec_file (ParsecFile): The parsec result to update.
+        parsec_file (ParsecFile): The parsec file to update.
     """
     original_function = parsec_file.get_function(function_name)
     prev_start_line = original_function.start_line
@@ -182,7 +182,7 @@ def update_function_declaration(
     Args:
         function_name (str): The name of the function to update.
         updated_function_content (str): The new contents of the function.
-        parsec_file (ParsecFile): The ParseC result containing function definitions.
+        parsec_file (ParsecFile): The ParseC file containing function definitions.
         file (Path): The file that contains the function (and possibly other functions).
 
     Returns:
@@ -199,7 +199,7 @@ def update_function_declaration(
     end_line = function.end_line
     end_col = function.end_col
 
-    # Update the line/col info for this function in the Parsec Result.
+    # Update the line/col info for this function in the Parsec file.
     function_lines = updated_function_content.splitlines()
     num_lines = len(function_lines)
     new_end_line = start_line + num_lines - 1

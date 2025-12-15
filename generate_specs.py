@@ -273,7 +273,7 @@ def _save_functions_with_specs(parsec_file: ParsecFile, output_file_path: Path) 
     specifications are not legal C code, and are not able to be easily parsed (e.g., with ParseC).
 
     Args:
-        parsec_file (ParsecFile): The ParseC result in which to look for specified functions.
+        parsec_file (ParsecFile): The ParseC file in which to look for specified functions.
         output_file_path (Path): The file where the result of specification generation is saved.
     """
     functions_with_specs = [f for f in parsec_file.functions.values() if f.has_specification()]

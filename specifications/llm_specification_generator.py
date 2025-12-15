@@ -43,7 +43,7 @@ class LlmSpecificationGenerator:
             temperature (float): The temperature setting for the LLM. Defaults to 0.0.
 
         Raises:
-            RuntimeError: Raised when the function is missing from the ParseC result, or an error
+            RuntimeError: Raised when the function is missing from the ParseC file, or an error
                 occurs during specification generation.
 
         Returns:
@@ -81,7 +81,7 @@ class LlmSpecificationGenerator:
             conversation (list[dict[str, str]]): The LLM conversation, so far.
 
         Raises:
-            RuntimeError: Raised when the function is missing from the ParseC result, or an error
+            RuntimeError: Raised when the function is missing from the ParseC file, or an error
                 occurs during specification repair.
 
         Returns:
