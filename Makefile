@@ -6,6 +6,7 @@ default: test
 docker-build:
 	docker -l warn build --build-arg USER_ID=$(id -u) \
              --build-arg GROUP_ID=$(id -g) \
+             --progress=plain \
              -t cbmc:latest .
 
 # Run the container.
