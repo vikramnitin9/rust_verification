@@ -219,15 +219,38 @@ class ParsecFunction:
         """
         self.preconditions, self.postconditions = specifications
 
-    # MDE: Since this routine is for LLM prompting, give it a descriptive name rather than taking
-    # over the standard function used for debugging output.
-    def __str__(self) -> str:
-        """Return the string representation of this function.
+    def get_summary_for_prompt(self) -> str:
+        """Return the summary of this function as it appears in a prompt to an LLM.
 
-        This method is meant to be used to embed this function into a prompt for an LLM.
+        A summary for a function in an LLM prompt comprises its name, signature (which also includes
+        its name), and its pre and postconditions (if it has either).
+
+        For example, the C function below:
+
+        ```c
+        void swap(int* a, int* b)
+        __CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))
+        __CPROVER_requires(__CPROVER_is_fresh(b, sizeof(int)))
+        __CPROVER_ensures(*a == __CPROVER_old(*b))
+        __CPROVER_ensures(*b == __CPROVER_old(*a))
+        {
+            int t = *a;
+            *a = *b;
+            *b = t;
+        }
+        ```
+
+        Would have the following summary:
+
+        Function name: swap
+        Function signature: void swap(int* a, int* b)
+        Preconditions: __CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int))),
+            __CPROVER_requires(__CPROVER_is_fresh(b, sizeof(int)))
+        Postconditions: __CPROVER_ensures(*a == __CPROVER_old(*b)),
+            __CPROVER_ensures(*b == __CPROVER_old(*a))
 
         Returns:
-            str: The string representation of this function.
+            str: The summary of this function as it appears in a prompt to an LLM.
         """
         function_name_and_signature = (
             f"""\nFunction name: {self.name}\nFunction signature: {self.signature}\n"""

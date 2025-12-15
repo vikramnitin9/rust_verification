@@ -36,9 +36,8 @@ class ParsecFile:
 
     """
 
-    # MDE: There should be a comment stating the type of the nodes in `call_graph`, even if the
-    # type-checker cannot utilize it.
     # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
+    # NOTE: Each node in call_graph is of type `str`.
     call_graph: nx.DiGraph  # type: ignore[type-arg]
     file_path: Path
     # MDE: What is the semantics of `enums`?  What are its elements?
@@ -60,9 +59,8 @@ class ParsecFile:
             self.enums = parsec_analysis.get("enums", [])
             self.files = parsec_analysis.get("files", [])
             self.functions = {analysis.name: analysis for analysis in function_analyses}
-            # MDE: There should be a comment stating the type of the nodes in `call_graph`, even
-            # if the type-checker cannot utilize it.
             # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
+            # NOTE: Each node in call_graph is of type `str`.
             self.call_graph: nx.DiGraph = nx.DiGraph()  # type: ignore[type-arg]
             for func_name, func in self.functions.items():
                 self.call_graph.add_node(func_name)

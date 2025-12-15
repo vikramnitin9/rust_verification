@@ -85,5 +85,5 @@ class PromptBuilder:
         Returns:
             str: The callee specifications to add to a prompt.
         """
-        callee_context = "\n".join(str(callee) for callee in callees_with_specs)
+        callee_context = "\n".join(callee.get_summary_for_prompt() for callee in callees_with_specs)
         return f"{caller} has the following callees:\n{callee_context}"
