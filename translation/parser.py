@@ -1,7 +1,7 @@
 """Generic parsing utility class."""
 
 from pathlib import Path
-from typing import Generic, Protocol, TypeVar
+from typing import Protocol, TypeVar
 
 from lark import Lark, Tree
 
@@ -20,7 +20,7 @@ class TransformerT(Protocol[T_co]):
         ...
 
 
-class Parser(Generic[T_co]):  # noqa: UP046
+class Parser[T_co]:
     """Lark-based parser for grammars.
 
     See Lark documentation for details: https://lark-parser.readthedocs.io/en/stable/
