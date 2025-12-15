@@ -36,6 +36,7 @@ The implementation also contains:
 ## Data structures
 
 immutable class VerificationInput:
+
 * function
 * spec for function
 * context: specifications provided to this verification run, created by calling
@@ -79,6 +80,7 @@ persistently, say using SQLite, which permits using multiprocessing rather than
 multithreading and could save time across multiple runs.
 
 class ProofState:
+
 * specs: Map[fn, spec]: the current specification (which may be a guess) for each function.
 * workstack: Stack[(function, hints)]
   A stack of functions that need to be (re)processed.
