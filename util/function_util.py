@@ -14,14 +14,14 @@ PRECONDITION_PREFIX = "__CPROVER_requires"
 POSTCONDITION_PREFIX = "__CPROVER_ensures"
 
 
-def extract_specification(function_lines: list[str]) -> FunctionSpecification:
-    """Extract the lines of a function that map to a CBMC specification.
+def extract_specification(function_lines: list[str]) -> FunctionSpecification | None:
+    """Extract a FunctionSpecification from the lines of a function.
 
     Args:
-        function_lines (list[str]): The lines of a function, which includes a CBMC specification.
+        function_lines (list[str]): The lines of a function, which may include a CBMC specification.
 
     Returns:
-        FunctionSpecification: The specification parsed from the lines of a C function.
+        FunctionSpecification | None: The specification parsed from the lines of a C function.
     """
     stripped_lines = [line.strip() for line in function_lines]
     preconditions = []
@@ -31,10 +31,12 @@ def extract_specification(function_lines: list[str]) -> FunctionSpecification:
             preconditions.append(_get_spec_lines(i, stripped_lines))
         elif line.startswith(POSTCONDITION_PREFIX):
             postconditions.append(_get_spec_lines(i, stripped_lines))
-    return FunctionSpecification(
-        preconditions=preconditions,
-        postconditions=postconditions,
-    )
+    if preconditions or postconditions:
+        return FunctionSpecification(
+            preconditions=preconditions,
+            postconditions=postconditions,
+        )
+    return None
 
 
 def get_signature_and_body(source_code: str, lang: str) -> tuple[str, str]:
@@ -162,9 +164,9 @@ def update_parsec_file(
     )
     original_function.end_line = new_end_line
     original_function.end_col = new_end_col
-    original_function.set_specifications(
-        extract_specification(updated_function_content.splitlines())
-    )
+    spec = extract_specification(updated_function_content.splitlines())
+    if spec:
+        original_function.set_specifications(specifications=spec)
 
     # Update line/col info for other functions.
     line_offset = function_len - (prev_end_line - prev_start_line + 1)
@@ -218,7 +220,9 @@ def update_function_declaration(
     )
     function.end_line = new_end_line
     function.end_col = new_end_col
-    function.set_specifications(extract_specification(function_lines))
+    spec = extract_specification(function_lines)
+    if spec:
+        function.set_specifications(spec)
 
     # Update line/col info for other functions.
     line_offset = num_lines - (end_line - start_line + 1)

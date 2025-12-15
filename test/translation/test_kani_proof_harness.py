@@ -50,7 +50,8 @@ def test_kani_proof_harness_swap():
                 "b": RustTypeWrapper("i32", is_reference=True, is_mutable=True),
             },
         ),
-        spec=FunctionSpecification(preconditions=[], postconditions=[]),
+        # [ensures(|result| *a == old(*b) && *b == old(*a))] [modifies(a, b)]
+        spec=FunctionSpecification(preconditions=[], postconditions=["kani::ensures(|result| *a == old(*b) && *b == old(*all))","kani::modifies(a, b)"]),
     )
     assert (
         str(harness)

@@ -53,17 +53,13 @@ def test_extract_spec_no_spec() -> None:
     lines = _get_file_lines("test/data/function_util/no_specs.c")
 
     spec = function_util.extract_specification(lines)
-    assert spec.preconditions == [], (
-        f"Expected an empty set of preconditions, got {spec.preconditions}"
-    )
-    assert spec.postconditions == [], (
-        f"Expected an empty set of postconditions, got {spec.postconditions}"
-    )
+    assert spec is None, f"No specification(s) should be parsed from a function with no CBMC annotations"
 
 
 def test_extract_single_multi_line_spec() -> None:
     lines = _get_file_lines("test/data/function_util/single_multi_line_spec.c")
     spec = function_util.extract_specification(lines)
+    assert spec, f"Missing specifications from {lines}"
     assert spec.preconditions == ["__CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))"], (
         f"Unexpected preconditions: {spec.preconditions}"
     )
@@ -75,6 +71,7 @@ def test_extract_single_multi_line_spec() -> None:
 def test_extract_spec_multiple_single_line_specs() -> None:
     lines = _get_file_lines("test/data/function_util/multiple_single_line_specs.c")
     spec = function_util.extract_specification(lines)
+    assert spec, f"Missing specifications from {lines}"
     assert spec.preconditions == [
         "__CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))",
         "__CPROVER_requires(__CPROVER_is_fresh(b, sizeof(int)))",
@@ -88,6 +85,7 @@ def test_extract_spec_multiple_single_line_specs() -> None:
 def test_extract_spec_multiple_multi_line_specs() -> None:
     lines = _get_file_lines("test/data/function_util/multiple_multi_line_spec.c")
     spec = function_util.extract_specification(lines)
+    assert spec, f"Missing specifications from {lines}"
     assert spec.preconditions == [
         "__CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))",
         "__CPROVER_requires(__CPROVER_is_fresh(b, sizeof(int)))",
@@ -101,6 +99,7 @@ def test_extract_spec_multiple_multi_line_specs() -> None:
 def test_extract_multi_line_quantifiers() -> None:
     lines = _get_file_lines("test/data/function_util/quantifiers.c")
     spec = function_util.extract_specification(lines)
+    assert spec, f"Missing specifications from {lines}"
     assert spec.preconditions == [
         "__CPROVER_requires(low >= 0 && high >= low)",
         "__CPROVER_requires(__CPROVER_is_fresh(arr, (high + 1) * sizeof(int)))",

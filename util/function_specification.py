@@ -8,21 +8,26 @@ from dataclasses import dataclass
 class FunctionSpecification:
     """Represents the pre and postconditions of a function, if present.
 
-    # MDE: What is the format of each string?  (I think maybe it's a CBMC macro as it would appear
-    # in C source code.  But a reader would be forgiven for thinking that it is just the expression
-    # part, especially since the preconditions and postconditions are separated.
+    Both the pre and postconditions array comprise strings that are CBMC macros.
+
+    For example, a preconditions array may be: ["__CPROVER_requires(a < INT_MAX)"], while a
+    postconditions array might be: ["__CPROVER_ensures(*b == old(a))"].
 
     Attributes:
-        # MDE: Why is this two lists?  I don't see anywhere in the code
-        # that makes any distinction between them.
-        # MDE: Should you document that it is an error for both to be empty?  Should the code test
-        # that?
         preconditions (list[str]): The preconditions of the function.
         postconditions (list[str]): The postconditions of the function.
     """
 
     preconditions: list[str]
     postconditions: list[str]
+
+    def __init__(self, preconditions: list[str], postconditions: list[str]):
+        """Create a new FunctionSpecification."""
+        if not preconditions and not postconditions:
+            msg = "Both the pre and postconditions of a function specifications cannot be empty"
+            raise ValueError(msg)
+        self.preconditions = preconditions
+        self.postconditions = postconditions
 
     def __iter__(self) -> Iterator[list[str]]:
         """Return a singleton iterator that yields a list of this specification's clauses.
