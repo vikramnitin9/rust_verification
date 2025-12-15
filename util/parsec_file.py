@@ -168,7 +168,7 @@ class ParsecFile:
         """
         # Self-edges must be removed before computing the topological sort.
         parsec_file_copy = copy.deepcopy(self)
-        self_edges = nx.selfloop_edges(self.call_graph)
+        self_edges = nx.selfloop_edges(parsec_file_copy.call_graph)
         parsec_file_copy.call_graph.remove_edges_from(self_edges)
 
         if not parsec_file_copy.call_graph.nodes():
