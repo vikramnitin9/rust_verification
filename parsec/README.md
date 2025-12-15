@@ -1,6 +1,6 @@
 # ParseC
 
-ParseC is a LLVM/Clang-based tool to parse a C program (hence the name). It extracts functions, structures, etc. along with their inter-dependencies.
+ParseC is a LLVM/Clang-based tool to parse a C program. It extracts functions, structures, etc. along with their inter-dependencies.
 
 ParseC is built as part of the [Docker image](Dockerfile) for this project. However, it can also be built and run independently.
 

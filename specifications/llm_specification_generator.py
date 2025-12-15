@@ -1,7 +1,7 @@
 """Module for generating and repairing specifications via LLMs."""
 
 from models import LLMGen, ModelError, get_llm_generation_with_model
-from util import ParsecResult
+from util import ParsecFile
 from verification import Failure, PromptBuilder, VerificationResult
 
 from .llm_invocation_result import LlmInvocationResult
@@ -12,19 +12,19 @@ class LlmSpecificationGenerator:
 
     Attributes:
         _model (LLMGen): The model to use for specification generation and repair.
-        _parsec_result (ParsecResult): The ParseC result to use to obtain functions.
+        _parsec_file (ParsecFile): The ParseC file to use to obtain functions.
         _prompt_builder (PromptBuilder): Used in creating specification generation and repair
             prompts.
     """
 
     _model: LLMGen
-    _parsec_result: ParsecResult
+    _parsec_file: ParsecFile
     _prompt_builder: PromptBuilder
 
-    def __init__(self, model: str, parsec_result: ParsecResult):
+    def __init__(self, model: str, parsec_file: ParsecFile):
         """Create a new LlmSpecificationGenerator."""
         self._model = get_llm_generation_with_model(model)
-        self._parsec_result = parsec_result
+        self._parsec_file = parsec_file
         self._prompt_builder = PromptBuilder()
 
     def generate_specifications(
@@ -43,19 +43,16 @@ class LlmSpecificationGenerator:
             temperature (float): The temperature setting for the LLM. Defaults to 0.0.
 
         Raises:
-            RuntimeError: Raised when the function is missing from the ParseC result, or an error
+            RuntimeError: Raised when the function is missing from the ParseC file, or an error
                 occurs during specification generation.
 
         Returns:
             LlmInvocationResult: The prompt used to invoke an LLM and its response.
         """
-        function = self._parsec_result.get_function(function_name)
-        if not function:
-            msg = f"Function: '{function_name}' was missing from the ParseC result"
-            raise RuntimeError(msg)
+        function = self._parsec_file.get_function(function_name)
 
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
-            function, self._parsec_result
+            function, self._parsec_file
         )
         specification_generation_message = {
             "role": "user",
@@ -84,8 +81,7 @@ class LlmSpecificationGenerator:
             conversation (list[dict[str, str]]): The LLM conversation, so far.
 
         Raises:
-            RuntimeError: Raised when the function is missing from the ParseC result, or an error
-                occurs during specification repair.
+            RuntimeError: Raised when an error occurs during specification repair.
 
         Returns:
             LlmInvocationResult: The prompt used to invoke an LLM and its response.

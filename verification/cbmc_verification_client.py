@@ -27,7 +27,7 @@ class CbmcVerificationClient(VerificationClient):
                 with CBMC.
             names_of_trusted_functions (list[str]): The names of functions that are trusted by CBMC
                 (i.e., their specifications are trusted, not verified.)
-            file_path (Path): The path to the file in which the function to verify is defined.
+            file_path (Path): The file in which the function to verify is defined.
 
         Raises:
             RuntimeError: Raised when an error occurs in executing the verification command.

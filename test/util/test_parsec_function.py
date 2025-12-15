@@ -212,7 +212,7 @@ def test_get_comment_no_comments() -> None:
             "callees": [],
         }
     )
-    assert function.get_documentation_comments() is None
+    assert function.get_preceding_comments() is None
 
 
 def test_get_comment_double_slash() -> None:
@@ -234,7 +234,7 @@ def test_get_comment_double_slash() -> None:
         // Double-slash comment
         // Again
         """).rstrip()
-    assert function.get_documentation_comments() == expected_comments
+    assert function.get_preceding_comments() == expected_comments
 
 
 def test_get_comment_multi_line() -> None:
@@ -262,7 +262,7 @@ def test_get_comment_multi_line() -> None:
         * Detailed description
         **/
         """).rstrip()
-    assert function.get_documentation_comments() == expected_comment
+    assert function.get_preceding_comments() == expected_comment
 
 
 def test_get_comment_multi_line_pathological() -> None:
@@ -287,7 +287,7 @@ def test_get_comment_multi_line_pathological() -> None:
         
         Detailed description */
         """).rstrip()
-    assert function.get_documentation_comments() == expected_comment
+    assert function.get_preceding_comments() == expected_comment
 
 
 def test_is_direct_recursive_is_true() -> None:
