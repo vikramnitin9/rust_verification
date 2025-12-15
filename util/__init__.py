@@ -3,7 +3,7 @@ from .file_util import copy_file_to_folder, ensure_lines_at_beginning
 from .function_util import extract_specification
 from .parsec_error import ParsecError
 from .parsec_function import ParsecFunction
-from .parsec_result import ParsecFile
+from .parsec_file import ParsecFile
 from .function_specification import FunctionSpecification
 
 __all__ = [

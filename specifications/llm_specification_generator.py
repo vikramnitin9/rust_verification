@@ -12,19 +12,19 @@ class LlmSpecificationGenerator:
 
     Attributes:
         _model (LLMGen): The model to use for specification generation and repair.
-        _parsec_result (ParsecFile): The ParseC result to use to obtain functions.
+        _parsec_file (ParsecFile): The ParseC file to use to obtain functions.
         _prompt_builder (PromptBuilder): Used in creating specification generation and repair
             prompts.
     """
 
     _model: LLMGen
-    _parsec_result: ParsecFile
+    _parsec_file: ParsecFile
     _prompt_builder: PromptBuilder
 
-    def __init__(self, model: str, parsec_result: ParsecFile):
+    def __init__(self, model: str, parsec_file: ParsecFile):
         """Create a new LlmSpecificationGenerator."""
         self._model = get_llm_generation_with_model(model)
-        self._parsec_result = parsec_result
+        self._parsec_file = parsec_file
         self._prompt_builder = PromptBuilder()
 
     def generate_specifications(
@@ -49,10 +49,10 @@ class LlmSpecificationGenerator:
         Returns:
             LlmInvocationResult: The prompt used to invoke an LLM and its response.
         """
-        function = self._parsec_result.get_function(function_name)
+        function = self._parsec_file.get_function(function_name)
 
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
-            function, self._parsec_result
+            function, self._parsec_file
         )
         specification_generation_message = {
             "role": "user",

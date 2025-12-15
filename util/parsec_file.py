@@ -103,11 +103,11 @@ class ParsecFile:
         Returns:
             ParsecFile: A copy of this ParsecFile.
         """
-        parsec_result_copy = copy.deepcopy(self)
+        parsec_file_copy = copy.deepcopy(self)
         if remove_self_edges_in_call_graph:
             self_edges = nx.selfloop_edges(self.call_graph)
-            parsec_result_copy.call_graph.remove_edges_from(self_edges)
-        return parsec_result_copy
+            parsec_file_copy.call_graph.remove_edges_from(self_edges)
+        return parsec_file_copy
 
     def get_function_or_none(self, function_name: str) -> ParsecFunction | None:
         """Return the ParsecFunction representation for a function with the given name.
