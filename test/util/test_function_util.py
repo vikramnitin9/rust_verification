@@ -53,7 +53,9 @@ def test_extract_spec_no_spec() -> None:
     lines = _get_file_lines("test/data/function_util/no_specs.c")
 
     spec = function_util.extract_specification(lines)
-    assert spec is None, f"No specification(s) should be parsed from a function with no CBMC annotations"
+    assert spec is None, (
+        "No specification(s) should be parsed from a function with no CBMC annotations"
+    )
 
 
 def test_extract_single_multi_line_spec() -> None:
