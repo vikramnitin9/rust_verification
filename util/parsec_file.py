@@ -37,7 +37,7 @@ class ParsecFile:
     """
 
     # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
-    # NOTE: Each node in call_graph is of type `str`.
+    # NOTE: Each node in call_graph represents a function name and is of type `str`.
     call_graph: nx.DiGraph  # type: ignore[type-arg]
     file_path: Path
     # MDE: What is the semantics of `enums`?  What are its elements?
@@ -60,7 +60,7 @@ class ParsecFile:
             self.files = parsec_analysis.get("files", [])
             self.functions = {analysis.name: analysis for analysis in function_analyses}
             # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
-            # NOTE: Each node in call_graph is of type `str`.
+            # NOTE: Each node in call_graph represents a function name and is of type `str`.
             self.call_graph: nx.DiGraph = nx.DiGraph()  # type: ignore[type-arg]
             for func_name, func in self.functions.items():
                 self.call_graph.add_node(func_name)
@@ -165,14 +165,15 @@ class ParsecFile:
             list[str]: The function names in this Parsec File's call graph in topological order.
         """
         # Self-edges must be removed before computing the topological sort.
-        parsec_file_copy = copy.deepcopy(self)
-        self_edges = nx.selfloop_edges(parsec_file_copy.call_graph)
-        parsec_file_copy.call_graph.remove_edges_from(self_edges)
+        # Operate over a copy of the call graph to avoid modifying the original graph.
+        call_graph_copy = copy.copy(self.call_graph)
+        self_edges = nx.selfloop_edges(call_graph_copy)
+        call_graph_copy.remove_edges_from(self_edges)
 
-        if not parsec_file_copy.call_graph.nodes():
+        if not call_graph_copy.nodes():
             return []
         try:
-            names_in_topological_order = list(nx.topological_sort(parsec_file_copy.call_graph))
+            names_in_topological_order = list(nx.topological_sort(call_graph_copy))
             if reverse_order:
                 names_in_topological_order.reverse()
             return names_in_topological_order

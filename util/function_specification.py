@@ -21,10 +21,10 @@ class FunctionSpecification:
     preconditions: list[str]
     postconditions: list[str]
 
-    def __init__(self, preconditions: list[str], postconditions: list[str]):
+    def __init__(self, preconditions: list[str], postconditions: list[str]) -> None:
         """Create a new FunctionSpecification."""
         if not preconditions and not postconditions:
-            msg = "Both the pre and postconditions of a function specifications cannot be empty"
+            msg = "Both the pre and postconditions of a function specification cannot be empty"
             raise ValueError(msg)
         self.preconditions = preconditions
         self.postconditions = postconditions

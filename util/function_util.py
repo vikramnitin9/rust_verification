@@ -91,8 +91,12 @@ def get_signature_and_body(source_code: str, lang: str) -> tuple[str, str]:
     query_cursor = QueryCursor(query)
     captures = query_cursor.captures(tree.root_node)
 
-    definition_node = captures["this_function_definition"][0]
-    body_node = captures["this_function_body"][0]
+    try:
+        definition_node = captures["this_function_definition"][0]
+        body_node = captures["this_function_body"][0]
+    except (KeyError, IndexError) as e:
+        msg = f"Failed to parse a function definition from source code: {e}"
+        raise RuntimeError(e) from e
 
     signature = source_code[definition_node.start_byte : body_node.start_byte].strip()
     body = source_code[body_node.start_byte : body_node.end_byte].strip()
