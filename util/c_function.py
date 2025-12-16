@@ -10,7 +10,6 @@ from .text_util import prepend_line_numbers, uncomment_cbmc_annotations
 
 
 @dataclass
-# MDE: I would rename this to "CFunction", but the current name is also OK.
 class CFunction:
     """Represents a C function as parsed by ParseC."""
 

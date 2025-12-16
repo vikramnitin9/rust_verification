@@ -3,7 +3,7 @@
 from pathlib import Path
 from string import Template
 
-from util import ParsecFile, CFunction
+from util import CFunction, ParsecFile
 
 from .verification_result import Failure
 

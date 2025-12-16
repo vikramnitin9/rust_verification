@@ -6,9 +6,9 @@ from pathlib import Path
 import tree_sitter_c as tsc
 from tree_sitter import Language, Parser, Query, QueryCursor
 
+from .c_function import CFunction
 from .function_specification import FunctionSpecification
 from .parsec_file import ParsecFile
-from .c_function import CFunction
 
 PRECONDITION_PREFIX = "__CPROVER_requires"
 POSTCONDITION_PREFIX = "__CPROVER_ensures"

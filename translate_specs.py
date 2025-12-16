@@ -12,7 +12,7 @@ from typing import cast
 from loguru import logger
 
 from translation import CBMCAst, CBMCToKani, KaniProofHarness, Parser, ToAst, TranslationError
-from util import FunctionSpecification, CFunction
+from util import CFunction, FunctionSpecification
 from util.rust import RustFunction, RustParser, TsRustParser
 from verification import KaniVerificationContext
 
