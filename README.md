@@ -3,6 +3,12 @@
 Ensure your system has [all requirements](./REQUIREMENTS.md) installed before
   proceeding with the steps below.
 
+First initialize and update submodules:
+
+```sh
+git submodule update --init
+```
+
 To build the Docker container:
 
 ```sh
