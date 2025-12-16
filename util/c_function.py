@@ -30,8 +30,7 @@ class CFunction:
     arg_types: list[str] = field(default_factory=list)
     enums: list[Any] = field(default_factory=list)
     callee_names: list[str] = field(default_factory=list)
-    # MDE: Minor: I would name this `global_vars` rather than `llvm_globals`, which is not as clear.
-    llvm_globals: list[Any] = field(
+    global_vars: list[Any] = field(
         default_factory=list
     )  # Cannot call this `globals` as it is a Python keyword.
     structs: list[Any] = field(default_factory=list)
@@ -62,7 +61,7 @@ class CFunction:
                 msg = f"CFunction: {func} did not have a 'name' key"
                 raise ParsecError(msg)
             self.callee_names.append(func["name"])
-        self.llvm_globals = raw_analysis.get("globals", [])
+        self.global_vars = raw_analysis.get("globals", [])
         self.structs = raw_analysis.get("structs", [])
 
     def get_source_code(
@@ -154,7 +153,7 @@ class CFunction:
             curr_line = lines[i]
             if not multi_line_comment_seen and (not curr_line or curr_line.isspace()):
                 break
-            if self._is_comment(curr_line):
+            if self._is_line_starting_comment(curr_line):
                 multi_line_comment_seen = curr_line.endswith("*/") and "/*" not in curr_line
                 comments.append(curr_line)
             elif multi_line_comment_seen:
@@ -163,12 +162,15 @@ class CFunction:
         comments.reverse()  # Necessary since we walk the source file backwards from the definition.
         return "\n".join(comments) if comments else None
 
-    def _is_comment(self, line: str) -> bool:
-        """Return True iff a line comprises a comment (or part of one).
+    def _is_line_starting_comment(self, line: str) -> bool:
+        """Return True iff a line starts a comment.
 
-        # MDE: It's impossible to know whether a line is part of a comment, without seeing the
-        # entire file in which the line appears.  Maybe this function is determining whether the
-        # given line starts a comment.
+        See Mike's (lightly edited) note below for why we cannot use this as a general comment
+        detector:
+
+        "It's impossible to know whether a line is part of a comment, without seeing the entire
+        file in which the line appears. Maybe this function is determining whether the given line
+        starts a comment."
 
         Args:
             line (str): The line to check for a comment.
@@ -178,11 +180,15 @@ class CFunction:
 
         """
         stripped_line = line.strip()
-        # MDE: A line starting with "*" could be part of a multiline multiplication expression.
+        # Mike's note: A line starting with "*" could be part of a multiline multiplication
+        # expression.
         comment_starts = ("//", "/*", "*")
 
-        # MDE: a comment can begin in the middle of a line rather than at the end of one.
+        # Mike's note: a comment can begin in the middle of a line rather than at the end of one.
         if stripped_line.startswith(comment_starts):
+            # This is fine, since we're determining whether a line starts a comment.
+            # There is, however, the possibility of a false positive when a multi-line
+            # multiplication expression is encountered.
             return True
 
         if stripped_line.endswith("*/"):
