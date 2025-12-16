@@ -11,7 +11,7 @@ from .text_util import prepend_line_numbers, uncomment_cbmc_annotations
 
 @dataclass
 # MDE: I would rename this to "CFunction", but the current name is also OK.
-class ParsecFunction:
+class CFunction:
     """Represents a C function as parsed by ParseC."""
 
     # MDE: Cross-reference to the documentation of ParseC, so that a reader can understand the
@@ -38,7 +38,7 @@ class ParsecFunction:
     structs: list[Any] = field(default_factory=list)
 
     def __init__(self, raw_analysis: dict[str, Any]):
-        """Create a new ParsecFunction."""
+        """Create a new CFunction."""
         self.name = raw_analysis["name"]
         self.num_args = raw_analysis["num_args"]
         self.return_type = raw_analysis["returnType"]
@@ -55,12 +55,12 @@ class ParsecFunction:
         self.arg_types = raw_analysis.get("argTypes", [])
         self.enums = raw_analysis.get("enums", [])
         if "callees" not in raw_analysis:
-            msg = f"ParseC result: {raw_analysis} was missing a 'callees' key"
+            msg = f"ParseC file: {raw_analysis} was missing a 'callees' key"
             raise ParsecError(msg)
-        callees_of_parsec_function = raw_analysis["callees"]
-        for func in callees_of_parsec_function:
+        callees_in_parsec_analysis = raw_analysis["callees"]
+        for func in callees_in_parsec_analysis:
             if "name" not in func:
-                msg = f"ParseC function: {func} did not have a 'name' key"
+                msg = f"CFunction: {func} did not have a 'name' key"
                 raise ParsecError(msg)
             self.callee_names.append(func["name"])
         self.llvm_globals = raw_analysis.get("globals", [])

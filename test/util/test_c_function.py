@@ -1,10 +1,10 @@
 import pytest
 
-from util.parsec_function import ParsecFunction
+from util.c_function import CFunction
 
 
 def test_get_source_code() -> None:
-    qsort = ParsecFunction(
+    qsort = CFunction(
         {
             "name": "swap",
             "num_args": 2,
@@ -26,7 +26,7 @@ def test_get_source_code() -> None:
 
 
 def test_get_source_code_with_docs_double_slash() -> None:
-    fn = ParsecFunction(
+    fn = CFunction(
         {
             "name": "f1",
             "num_args": 0,
@@ -46,7 +46,7 @@ def test_get_source_code_with_docs_double_slash() -> None:
 
 
 def test_get_source_code_with_docs_multi_line() -> None:
-    fn = ParsecFunction(
+    fn = CFunction(
         {
             "name": "f1",
             "num_args": 0,
@@ -66,7 +66,7 @@ def test_get_source_code_with_docs_multi_line() -> None:
 
 
 def test_get_source_code_with_docs_multi_line_with_line_numbers() -> None:
-    fn = ParsecFunction(
+    fn = CFunction(
         {
             "name": "f1",
             "num_args": 0,
@@ -90,7 +90,7 @@ def test_get_source_code_with_docs_multi_line_with_line_numbers() -> None:
 
 
 def test_get_source_code_with_docs_inline_comment_above() -> None:
-    fn = ParsecFunction(
+    fn = CFunction(
         {
             "name": "f3",
             "num_args": 0,
@@ -110,7 +110,7 @@ def test_get_source_code_with_docs_inline_comment_above() -> None:
 
 
 def test_get_source_code_invalid_line_range() -> None:
-    nonexistent_function = ParsecFunction(
+    nonexistent_function = CFunction(
         {
             "name": "swap",
             "num_args": 2,
@@ -129,7 +129,7 @@ def test_get_source_code_invalid_line_range() -> None:
 
 
 def test_get_source_code_on_one_line() -> None:
-    one_line_function = ParsecFunction(
+    one_line_function = CFunction(
         {
             "name": "single_line_main",
             "num_args": 0,
@@ -149,7 +149,7 @@ def test_get_source_code_on_one_line() -> None:
 
 
 def test_get_source_code_at_end_of_file() -> None:
-    end_of_file_function = ParsecFunction(
+    end_of_file_function = CFunction(
         {
             "name": "fn_at_end",
             "num_args": 0,
@@ -171,7 +171,7 @@ def test_get_source_code_at_end_of_file() -> None:
 
 
 def test_get_comment_no_comments() -> None:
-    function = ParsecFunction(
+    function = CFunction(
         {
             "name": "f2",
             "num_args": 0,
@@ -189,7 +189,7 @@ def test_get_comment_no_comments() -> None:
 
 
 def test_get_comment_double_slash() -> None:
-    function = ParsecFunction(
+    function = CFunction(
         {
             "name": "f1",
             "num_args": 0,
@@ -208,7 +208,7 @@ def test_get_comment_double_slash() -> None:
 
 
 def test_get_comment_multi_line() -> None:
-    function = ParsecFunction(
+    function = CFunction(
         {
             "name": "f3",
             "num_args": 0,
@@ -227,7 +227,7 @@ def test_get_comment_multi_line() -> None:
 
 
 def test_get_comment_multi_line_pathological() -> None:
-    function = ParsecFunction(
+    function = CFunction(
         {
             "name": "f4",
             "num_args": 0,
@@ -247,7 +247,7 @@ def test_get_comment_multi_line_pathological() -> None:
 
 
 def test_is_self_recursive_is_true() -> None:
-    function = ParsecFunction(
+    function = CFunction(
         {
             "name": "recursive_function",
             "num_args": 0,
@@ -265,7 +265,7 @@ def test_is_self_recursive_is_true() -> None:
 
 
 def test_is_self_recursive_is_false() -> None:
-    function = ParsecFunction(
+    function = CFunction(
         {
             "name": "a",
             "num_args": 1,

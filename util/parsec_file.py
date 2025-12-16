@@ -14,7 +14,7 @@ import networkx as nx
 from loguru import logger
 
 from util import text_util
-from util.parsec_function import ParsecFunction
+from util.c_function import CFunction
 
 
 @dataclass
@@ -43,7 +43,7 @@ class ParsecFile:
     # MDE: What is the semantics of `enums`?  What are its elements?
     enums: list[Any] = field(default_factory=list)
     files: list[str] = field(default_factory=list)
-    functions: dict[str, ParsecFunction] = field(default_factory=dict)
+    functions: dict[str, CFunction] = field(default_factory=dict)
 
     def __init__(self, file_path: Path):
         """Create an instance of ParsecFile from the file at `file_path`.
@@ -55,7 +55,7 @@ class ParsecFile:
         analysis_result_file = self._run_parsec(file_path)
         with Path(analysis_result_file).open(encoding="utf-8") as f:
             parsec_analysis = json.load(f)
-            function_analyses = [ParsecFunction(f) for f in parsec_analysis.get("functions", [])]
+            function_analyses = [CFunction(f) for f in parsec_analysis.get("functions", [])]
             self.enums = parsec_analysis.get("enums", [])
             self.files = parsec_analysis.get("files", [])
             self.functions = {analysis.name: analysis for analysis in function_analyses}
@@ -97,26 +97,26 @@ class ParsecFile:
         )
         return ParsecFile(tmp_file_with_commented_out_cbmc_annotations)
 
-    def get_function_or_none(self, function_name: str) -> ParsecFunction | None:
-        """Return the ParsecFunction representation for a function with the given name.
+    def get_function_or_none(self, function_name: str) -> CFunction | None:
+        """Return the CFunction representation for a function with the given name.
 
         Args:
-            function_name (str): The name of the function for which to return the ParsecFunction.
+            function_name (str): The name of the function for which to return the CFunction.
 
         Returns:
-            ParsecFunction | None: The ParsecFunction with the given name, or None if no function
+            CFunction | None: The CFunction with the given name, or None if no function
                 with that name exists.
         """
         return self.functions.get(function_name, None)
 
-    def get_function(self, function_name: str) -> ParsecFunction:
-        """Return the ParsecFunction representation for a function with the given name.
+    def get_function(self, function_name: str) -> CFunction:
+        """Return the CFunction representation for a function with the given name.
 
         Args:
-            function_name (str): The name of the function for which to return the ParsecFunction.
+            function_name (str): The name of the function for which to return the CFunction.
 
         Returns:
-            ParsecFunction: The ParsecFunction with the given name.
+            CFunction: The CFunction with the given name.
 
         Raises:
             RuntimeError: if no function with that name exists.
@@ -127,16 +127,16 @@ class ParsecFile:
             raise RuntimeError(msg)
         return result
 
-    def get_callees(self, function: ParsecFunction) -> list[ParsecFunction]:
+    def get_callees(self, function: CFunction) -> list[CFunction]:
         """Return the callees of the given function.
 
         Args:
-            function (ParsecFunction): The function for which to return the callees.
+            function (CFunction): The function for which to return the callees.
 
         Returns:
-            list[ParsecFunction]: The callees of the given function.
+            list[CFunction]: The callees of the given function.
         """
-        callees: list[ParsecFunction] = []
+        callees: list[CFunction] = []
         for callee_name in function.callee_names:
             if callee_analysis := self.get_function_or_none(callee_name):
                 callees.append(callee_analysis)

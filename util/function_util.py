@@ -8,7 +8,7 @@ from tree_sitter import Language, Parser, Query, QueryCursor
 
 from .function_specification import FunctionSpecification
 from .parsec_file import ParsecFile
-from .parsec_function import ParsecFunction
+from .c_function import CFunction
 
 PRECONDITION_PREFIX = "__CPROVER_requires"
 POSTCONDITION_PREFIX = "__CPROVER_ensures"
@@ -287,12 +287,12 @@ def _get_temporary_file_name(function_name: str, source_file: Path) -> str:
 
 
 def _replace_function_declaration(
-    function: ParsecFunction, updated_function_declaration: str, path_to_src: Path
+    function: CFunction, updated_function_declaration: str, path_to_src: Path
 ) -> str:
     """Return contents of the file where the function is defined with its new declaration.
 
     Args:
-        function (ParsecFunction): The function with a new declaration.
+        function (CFunction): The function with a new declaration.
         updated_function_declaration (str): The updated function declaration.
         path_to_src (Path): The path to the source code.
 
