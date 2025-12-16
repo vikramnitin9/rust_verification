@@ -149,5 +149,5 @@ def test_is_direct_recursive_is_true() -> None:
 def test_is_direct_recursive_is_false() -> None:
     parsec_file = ParsecFile(Path("test/data/callgraph/simple.c"))
     expected_function = parsec_file.get_function_or_none("a")
-    assert expected_function, "Function 'a' should be declared in test/data/callgraph/direct_recursion.c"
+    assert expected_function, "Function 'a' should be declared in test/data/callgraph/simple.c"
     assert not expected_function.is_direct_recursive()
