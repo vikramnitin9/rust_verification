@@ -1,5 +1,7 @@
 import pytest
 
+from textwrap import dedent
+
 from util.parsec_function import ParsecFunction
 
 
@@ -18,11 +20,16 @@ def test_get_source_code() -> None:
             "callees": [],
         }
     )
-    extracted_func = qsort.get_source_code()
-    expected_extracted_func = (
-        "void swap(int* a, int* b)\n{\n    int t = *a;\n    *a = *b;\n    *b = t;\n}\n"
-    )
-    assert extracted_func == expected_extracted_func
+    source_code = qsort.get_source_code()
+    expected_source_code = dedent("""\
+        void swap(int* a, int* b)
+        {
+            int t = *a;
+            *a = *b;
+            *b = t;
+        }
+        """)
+    assert source_code == expected_source_code
 
 
 def test_get_source_code_with_docs_double_slash() -> None:
@@ -40,9 +47,13 @@ def test_get_source_code_with_docs_double_slash() -> None:
             "callees": [],
         }
     )
-    extracted_func = fn.get_source_code(include_documentation_comments=True)
-    expected_extracted_func = "// This is a documentation\n// Comment\nvoid f1() { }"
-    assert extracted_func == expected_extracted_func
+    source_code = fn.get_source_code(include_documentation_comments=True)
+    expected_source_code = dedent("""\
+        // This is a documentation
+        // Comment
+        void f1() { }
+        """).rstrip()
+    assert source_code == expected_source_code
 
 
 def test_get_source_code_with_docs_multi_line() -> None:
@@ -60,9 +71,17 @@ def test_get_source_code_with_docs_multi_line() -> None:
             "callees": [],
         }
     )
-    extracted_func = fn.get_source_code(include_documentation_comments=True)
-    expected_extracted_func = "/** this comment\nspans three\nlines\n */\nvoid f2()\n{\n}\n"
-    assert extracted_func == expected_extracted_func
+    source_code = fn.get_source_code(include_documentation_comments=True)
+    expected_source_code = dedent("""\
+        /** this comment
+        spans three
+        lines
+         */
+        void f2()
+        {
+        }
+        """)
+    assert source_code == expected_source_code
 
 
 def test_get_source_code_with_docs_multi_line_with_line_numbers() -> None:
@@ -80,13 +99,17 @@ def test_get_source_code_with_docs_multi_line_with_line_numbers() -> None:
             "callees": [],
         }
     )
-    extracted_func = fn.get_source_code(
-        include_documentation_comments=True, include_line_numbers=True
-    )
-    expected_extracted_func = (
-        "7 : /** this comment\n8 : spans three\n9 : lines\n10:  */\n11: void f2()\n12: {\n13: }"
-    )
-    assert extracted_func == expected_extracted_func
+    source_code = fn.get_source_code(include_documentation_comments=True, include_line_numbers=True)
+    expected_source_code = dedent("""\
+        7 : /** this comment
+        8 : spans three
+        9 : lines
+        10:  */
+        11: void f2()
+        12: {
+        13: }
+        """).rstrip()
+    assert source_code == expected_source_code
 
 
 def test_get_source_code_with_docs_inline_comment_above() -> None:
@@ -104,9 +127,9 @@ def test_get_source_code_with_docs_inline_comment_above() -> None:
             "callees": [],
         }
     )
-    extracted_func = fn.get_source_code(include_documentation_comments=True)
-    expected_extracted_func = "void f3() {}"
-    assert extracted_func == expected_extracted_func
+    source_code = fn.get_source_code(include_documentation_comments=True)
+    expected_source_code = "void f3() {}"
+    assert source_code == expected_source_code
 
 
 def test_get_source_code_invalid_line_range() -> None:
@@ -145,9 +168,9 @@ def test_get_source_code_on_one_line() -> None:
             "callees": [],
         }
     )
-    extracted_func = one_line_function.get_source_code()
-    expected_extracted_func = 'void single_line_main() { printf("Hello, world!"); }'
-    assert extracted_func == expected_extracted_func
+    source_code = one_line_function.get_source_code()
+    expected_source_code = 'void single_line_main() { printf("Hello, world!"); }'
+    assert source_code == expected_source_code
 
 
 def test_get_source_code_at_end_of_file() -> None:
@@ -165,11 +188,15 @@ def test_get_source_code_at_end_of_file() -> None:
             "callees": [],
         }
     )
-    extracted_func = end_of_file_function.get_source_code()
-    expected_extracted_func = (
-        'void fn_at_end()\n{\n    printf("This");\n    printf("Function is at the end");\n}'
-    )
-    assert extracted_func == expected_extracted_func
+    source_code = end_of_file_function.get_source_code()
+    expected_source_code = dedent("""\
+        void fn_at_end()
+        {
+            printf("This");
+            printf("Function is at the end");
+        }
+        """).rstrip()
+    assert source_code == expected_source_code
 
 
 def test_get_comment_no_comments() -> None:
@@ -205,7 +232,10 @@ def test_get_comment_double_slash() -> None:
             "callees": [],
         }
     )
-    expected_comments = "// Double-slash comment\n// Again"
+    expected_comments = dedent("""\
+        // Double-slash comment
+        // Again
+        """).rstrip()
     assert function.get_preceding_comments() == expected_comments
 
 
@@ -224,7 +254,16 @@ def test_get_comment_multi_line() -> None:
             "callees": [],
         }
     )
-    expected_comment = "/**\n* Brief description.\n*\n* @param a first parameter\n* @return if any return value\n*\n* Detailed description\n**/"
+    expected_comment = dedent("""\
+        /**
+        * Brief description.
+        *
+        * @param a first parameter
+        * @return if any return value
+        *
+        * Detailed description
+        **/
+        """).rstrip()
     assert function.get_preceding_comments() == expected_comment
 
 
@@ -243,9 +282,14 @@ def test_get_comment_multi_line_pathological() -> None:
             "callees": [],
         }
     )
-    expected_comment = "/*\nTest\n\n\nDetailed description */"
+    expected_comment = dedent("""\
+        /*
+        Test
+        
+        
+        Detailed description */
+        """).rstrip()
     assert function.get_preceding_comments() == expected_comment
-
 
 
 def test_is_direct_recursive_is_true() -> None:
