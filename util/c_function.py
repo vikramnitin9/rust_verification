@@ -105,37 +105,64 @@ class CFunction:
             func_lines = uncomment_cbmc_annotations(func_lines)
 
         source_code = "".join(func_lines)
+        documentation = self.get_preceding_lines_starting_with_comment_delimiters()
 
-        # MDE: This functionality feels independent of the rest of this function.  I suggest
-        # removing it from this method and instead putting it in a function of its own.
+        if include_documentation_comments and documentation:
+            source_code = f"{documentation}\n{source_code}"
+
         if include_line_numbers:
-            source_code = "\n".join(
-                f"{line}: {content}"
-                for line, content in prepend_line_numbers(
-                    source_code.splitlines(), self.start_line, self.end_line + 1
-                )
+            start_line_offset = (
+                len(documentation.splitlines())
+                if include_documentation_comments and documentation
+                else 0
+            )
+            source_code = self._add_line_numbers(
+                source_code=source_code, start_line_offset=start_line_offset
             )
 
-        if include_documentation_comments:
-            if documentation := self.get_preceding_comments():
-                if include_line_numbers:
-                    documentation_lines = documentation.splitlines()
-                    documentation = "\n".join(
-                        f"{line}: {content}"
-                        for line, content in prepend_line_numbers(
-                            documentation_lines,
-                            self.start_line - len(documentation_lines),
-                            self.start_line,
-                        )
-                    )
-                source_code = f"{documentation}\n{source_code}"
         return source_code
 
-    def get_preceding_comments(self) -> str | None:
-        """Return the content of lines immediately preceding this function (usually documentation).
+    def _add_line_numbers(self, source_code: str, start_line_offset: int) -> str:
+        """Return source code with line numbers prepended to each line.
 
-        # MDE: "the content of lines": which lines are included.
-        # MDE: "usually documentation": what is it when it isn't documentation?
+        The start_line_offset parameter is non-zero when there is preceding documentation that
+        should be included with the function.
+
+        Args:
+            source_code (str): The source code to which to prepend line numbers.
+            start_line_offset (int): The start line offset.
+
+        Returns:
+            str: The source code of the function with line numbers prepended.
+        """
+        return "\n".join(
+            f"{line}: {content}"
+            for line, content in prepend_line_numbers(
+                source_code.splitlines(), self.start_line - start_line_offset, self.end_line + 1
+            )
+        )
+
+    def get_preceding_lines_starting_with_comment_delimiters(self) -> str | None:
+        r"""Return the lines immediately preceding this function that start with comment delimiters.
+
+        For example, given the function:
+
+        // This is a comment
+        int f()
+        {
+            return 1;
+        }
+
+        Return "// This is a comment".
+
+        Additionally, given the function:
+
+        /**
+        * Hello, world!
+        */
+        int g()
+
+        Return "/**\n* Hello, world!\n*/".
 
         Returns:
             str | None: The documentation comments for this function or None if there are no
