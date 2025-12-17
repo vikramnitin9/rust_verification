@@ -197,7 +197,15 @@ def repair_spec(fn, specc, proofstate) -> List[SpecConversation]:
     for (spec, conversation) in unverified_speccs:
       vresult = call_verifier(fn, spec, proofstate) # this VerificationResult is a verification failure
       # Update the conversation history and pass the full history to the LLM.
-      new_conversation = conversation + [{"user": f"Verification error: {error}. Either repair the specification and return the repaired specification, or choose a callee that needs a stronger postcondition, and state in what way the callee needs to be stronger."}]
+      new_conversation = conversation + [
+        {
+          "role": "user",
+          "content": f"Verification error: {error}. Either (1) repair the specification
+          and return the repaired specification, or (2) choose a callee that needs a stronger
+          postcondition, state the reasoning for why this is the case, and return the
+          re-generated specification."
+        }
+      ]
       # TODO: At any point, the LLM should be allowed to either return a new spec or request to backtrack.
       responses = llm(new_conversation, fn, spec) # TODO: Why pass in `fn` and `spec`? They appear in the conversation.
       # Each response forks a new conversation history
