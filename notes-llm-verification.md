@@ -134,7 +134,6 @@ def step(proofstate: ProofState) -> List[ProofState]:
   """
   (fn, backtrack_hint) = proofstate.workstack.top();
   new_speccs: List[SpecConversation] = generate_and_repair_spec(fn, backtrack_hint)
-  # pruned_speccs: List[SpecConversation] = choose_next_step(fn, new_specs, proofstate)
   pruned_speccs = prune_heuristically(fn, candidate_speccs, proofstate)
 
   result = []
@@ -155,12 +154,14 @@ def generate_and_repair_spec(fn, backtrack_hint) -> List[SpecConversation]:
   Output: a list of potential specs for the function.  Some may verify and some may not verify.
   """
   generated_speccs = generate_speccs(fn, hint)
-  # Here is one example of a very simple heuristic for pruning:
-  #  * if any spec verifies, return a list containing only the specs that verify
-  #  * otherwise, return all the specs.
   pruned_specs = prune_heuristically(fn, generated_speccs)
   repaired_specs = [*repair_spec(fn, spec) for spec in pruned_specs]
   return repaired_specs
+
+def prune_heuristically(fn, speccs: List[SpecConversation]) -> List[SpecConversation]:
+  # Here is one example of a very simple heuristic for pruning:
+  #  * if any spec verifies, return a list containing only the specs that verify
+  #  * otherwise, return all the specs.
 
 def generate_speccs(fn, hint) -> List[SpecConversation]:
   """
@@ -237,31 +238,6 @@ def current_context(fn, proofstate) -> context:
   Output: the function's current verification context: the specs of callers and callees.
   """
   # Look up from proofstate's fields, such as `specs` or `verified_functions` and `assumed_functions`.
-
-# TODO: I think there is nothing to do here except the heuristic pruning,
-# because the conversation already contains the indication of whether to backtrack.
-# So this can be removed and the call to `prune_heuristically` can be moved into the caller.
-def choose_next_step(fn, candidate_speccs: List[SpecConversation], proofstate) -> List[SpecConversation]
-  """
-  Choose the next step for the overall algorithm: continue or backtrack.
-  Input: A function and a list of candidate specifications for it.
-  Output: A list of SpecConversation.  The conversation might indicate to backtrack.
-  Implementation note: The system currently returns a singleton list of the first specification that verifies.
-  """
-  pruned_specs = prune_heuristically(fn, candidate_speccs, proofstate)
-  result = []
-  for spec in pruned_specs:
-    vresult = call_verifier(fn, specc, proofstate)
-    if vresult.is_success:
-      result.append((fn, None))
-    else:
-      # Enhancement ideas:
-      # Also provide all the candidate specs, rather than just the one chosen by the heuristic?
-      # Or choose a spec and provide backtracking hints in a single heuristic rather than separating them?
-      # Or permit this LLM call to return a different spec from candidate_speccs than the heuristic chose?
-      backtrack_hints = llm("choose a callee to repair, and provide hints", fn, specc, vresult)
-      result += [(spec, backtrack_hint) for backtrack_hint in backtrack_hints]
-  return result
 
 def llm(...):
   This is a function that calls the API we're using for LLMs.  It should use a cache.
