@@ -120,6 +120,7 @@ def verify_program(program) -> List[Map[Fn, Spec]]:
         result.append(next_proofstate)
       else:
         global.proofstates_worklist.add(next_proofstate)
+  return result
 
 def step(proofstate: ProofState) -> List[ProofState]:
   """
@@ -133,9 +134,11 @@ def step(proofstate: ProofState) -> List[ProofState]:
   """
   (fn, backtrack_hint) = proofstate.workstack.top();
   new_speccs: List[SpecConversation] = generate_and_repair_spec(fn, backtrack_hint)
-  next_steps: List[SpecConversation] = choose_next_step(fn, new_specs, proofstate)
+  # pruned_speccs: List[SpecConversation] = choose_next_step(fn, new_specs, proofstate)
+  pruned_speccs = prune_heuristically(fn, candidate_speccs, proofstate)
+
   result = []
-  for specc in next_steps:
+  for specc in pruned_speccs:
     next_proofstate = proofstate.clone()
     next_proofstate.specs[fn] = specc.spec
     last_llm_response = specc.conversation.last_llm
@@ -199,10 +202,10 @@ def repair_spec(fn, specc, proofstate) -> List[SpecConversation]:
       new_conversation = conversation + [
         {
           "role": "user",
-          "content": f"Verification error: {error}. Either (1) repair the specification
-          and return the repaired specification, or (2) choose a callee that needs a stronger
-          postcondition, state the reasoning for why this is the case, and return the
-          re-generated specification."
+          "content": f"Verification error for {fn}: {error}. Either"
+          + " (1) Repair the specification for {fn}.  Return the repaired specification {fn}.  Or"
+          + " (2) choose a callee that needs a stronger specification."
+          + " State the reasoning for why this is the case, and return the word 'backtrack', the callee function, and its stronger specification."
         }
       ]
       # TODO: At any point, the LLM should be allowed to either return a new spec or request to backtrack.
@@ -233,37 +236,36 @@ def current_context(fn, proofstate) -> context:
   """
   Input: A function
   Output: the function's current verification context: the specs of callers and callees.
-  # Look up from proofstate's fields, such as `specs` or `verified_functions` and `assumed_functions`.
   """
+  # Look up from proofstate's fields, such as `specs` or `verified_functions` and `assumed_functions`.
 
 # TODO: I think there is nothing to do here except the heuristic pruning,
-# because the conversation already contains the indication of whther to backtrack.
+# because the conversation already contains the indication of whether to backtrack.
 # So this can be removed and the call to `prune_heuristically` can be moved into the caller.
-def choose_next_step(fn, candidate_specs: List[SpecConversation], proofstate) -> List[SpecConversation]
+def choose_next_step(fn, candidate_speccs: List[SpecConversation], proofstate) -> List[SpecConversation]
   """
   Choose the next step for the overall algorithm: continue or backtrack.
   Input: A function and a list of candidate specifications for it.
   Output: A list of SpecConversation.  The conversation might indicate to backtrack.
   Implementation note: The system currently returns a singleton list of the first specification that verifies.
   """
-
-  pruned_specs = prune_heuristically(fn, candidate_specs, proofstate)
+  pruned_specs = prune_heuristically(fn, candidate_speccs, proofstate)
   result = []
   for spec in pruned_specs:
     vresult = call_verifier(fn, specc, proofstate)
     if vresult.is_success:
-      backtrack_hints = [None]
+      result.append((fn, None))
     else:
       # Enhancement ideas:
       # Also provide all the candidate specs, rather than just the one chosen by the heuristic?
       # Or choose a spec and provide backtracking hints in a single heuristic rather than separating them?
-      # Or permit this LLM call to return a different spec from candidate_specs than the heuristic chose?
+      # Or permit this LLM call to return a different spec from candidate_speccs than the heuristic chose?
       backtrack_hints = llm("choose a callee to repair, and provide hints", fn, specc, vresult)
-    result.append([(spec, backtrack_hint) for backtrack_hint in backtrack_hints])
+      result += [(spec, backtrack_hint) for backtrack_hint in backtrack_hints]
   return result
 
 def llm(...):
-  This is a function that calls the API we're using for LLMs, it should use a cache.
+  This is a function that calls the API we're using for LLMs.  It should use a cache.
 ```
 
 Suppose that, after creating a VerificationInput, the system changes some
