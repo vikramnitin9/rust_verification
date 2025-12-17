@@ -204,11 +204,10 @@ def repair_spec(fn, specc, proofstate) -> List[SpecConversation]:
           "role": "user",
           "content": f"Verification error for {fn}: {error}. Either"
           + " (1) Repair the specification for {fn}.  Return the repaired specification {fn}.  Or"
-          + " (2) choose a callee that needs a stronger specification."
+          + " (2) Retain the current specification for {fn} and choose a callee that needs a stronger specification in order to make {fn} verify."
           + " State the reasoning for why this is the case, and return the word 'backtrack', the callee function, and its stronger specification."
         }
       ]
-      # TODO: At any point, the LLM should be allowed to either return a new spec or request to backtrack.
       responses = llm(new_conversation, fn, spec) # TODO: Why pass in `fn` and `spec`? They appear in the conversation.
       # Each response forks a new conversation history
       current_speccs += [(response, new_conversation + [{"assistant": response}]) for response in responses]
