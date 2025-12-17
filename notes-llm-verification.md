@@ -138,12 +138,11 @@ def step(proofstate: ProofState) -> List[ProofState]:
   for specc in next_steps:
     next_proofstate = proofstate.clone()
     next_proofstate.specs[fn] = specc.spec
-    backtrack_hints = specc.conversation.get_backtrack_hints()
-    if backtrack_hints == None:
+    last_llm_response = specc.conversation.last_llm
+    if last_llm_response contains "backtrack":
+      next_proofstate.workstack.push((last_llm_response.get_function(), last_llm_response))
+    else:
       next_proofstate.workstack.pop() # pop off fn
-    else
-      next_proofstate.workstack.push(backtrack_hints.function)
-    result.append(next_proofstate)
   return result
 
 def generate_and_repair_spec(fn, backtrack_hint) -> List[SpecConversation]:
