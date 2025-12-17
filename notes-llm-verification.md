@@ -132,7 +132,7 @@ def step(proofstate: ProofState) -> List[ProofState]:
     The output ProofState has a larger workstack (representing backtracking) if f was not successfully verified.
   """
   (fn, backtrack_hint) = proofstate.workstack.top();
-  new_speccs: List[SpecConversation] = generate_and_repair_specs(fn, backtrack_hint)
+  new_speccs: List[SpecConversation] = generate_and_repair_spec(fn, backtrack_hint)
   next_steps: List[SpecConversation] = choose_next_step(fn, new_specs, proofstate)
   result = []
   for specc in next_steps:
@@ -146,7 +146,7 @@ def step(proofstate: ProofState) -> List[ProofState]:
     result.append(next_proofstate)
   return result
 
-def generate_and_repair_specs(fn, backtrack_hint) -> List[SpecConversation]:
+def generate_and_repair_spec(fn, backtrack_hint) -> List[SpecConversation]:
   """
   Generate a specification for a function.
   Input: a function and hints about how to specify it.  The hints are non-empty only when backtracking.
@@ -284,14 +284,14 @@ Many for loops and list comprehensions (but not the for loop in `repair`) can be
 More about forking processes:
 
 At each point that the LLM is invoked, the algorithm could call the LLM multiple times and pursue each of the possibilities (possibly in parallel).
-Currently this is hard-coded in `generate_and_repair_specs()`, which is the client of `generate_speccs()` which calls the LLM to produce multiple results.
+Currently this is hard-coded in `generate_and_repair_spec()`, which is the client of `generate_speccs()` which calls the LLM to produce multiple results.
 However, it is not done for other LLM calls in `repair_spec()` and `choose_next_step()`.
 
 It would be better for the algorithm to apply sample-exploration more uniformly.
 
-* One way is to hard-code the other LLM uses, just as `generate_speccs()` and its client `generate_and_repair_specs()` are.
+* One way is to hard-code the other LLM uses, just as `generate_speccs()` and its client `generate_and_repair_spec()` are.
 * Another way is to modify the algorithm to fork multiple processes, like so:
-  * Rewrite the algorithm to treat each LLM query call as returning exactly one value.  (This actually simplifies `generate_and_repair_specs()` and its client `verify_program()`.
+  * Rewrite the algorithm to treat each LLM query call as returning exactly one value.  (This actually simplifies `generate_and_repair_spec()` and its client `verify_program()`.
   * Actually, each LLM query returns a list (which is different than the above rewriting).
     Fork N processes, one for for each element of the list.
     Each forked process has its own process state, which starts as a copy of the global variables and call stack.
