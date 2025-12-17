@@ -4,8 +4,8 @@ import subprocess
 from pathlib import Path
 
 from loguru import logger
-
 from util.specifications import FunctionSpecification
+
 from verification.proof_state import ProofState
 from verification.verification_result import VerificationResult
 

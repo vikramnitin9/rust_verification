@@ -43,3 +43,8 @@ class FunctionSpecification:
         is_preconditions_same = sorted(self.preconditions) == sorted(self.preconditions)
         is_postconditions_same = sorted(self.postconditions) == sorted(self.postconditions)
         return is_preconditions_same and is_postconditions_same
+
+    def get_prompt_str(self) -> str:
+        pres = ", ".join(self.preconditions)
+        posts = ", ".join(self.postconditions)
+        return f"Preconditions:\n{pres}\nPostconditions:\n{posts}"

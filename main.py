@@ -134,8 +134,8 @@ def _step(
     parsec_result: ParsecResult,
 ) -> list[ProofState]:
     function, hints = proof_state.peek_workstack()
-    specs_for_function: list[FunctionSpecification] = specification_generator.try_to_specify(
-        function=function, hints=hints
+    specs_for_function: list[FunctionSpecification] = specification_generator._generate_specs(
+        function=function, backtracking_hint=hints
     )
     next_steps: list[tuple[FunctionSpecification, BacktrackStrategy]] = _choose_next_step(
         function=function, candidate_specs=specs_for_function, proof_state=proof_state

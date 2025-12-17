@@ -6,12 +6,14 @@ from .parsec_error import ParsecError
 from .parsec_function import ParsecFunction
 from .parsec_file import ParsecFile
 from .function_specification import FunctionSpecification
+from .spec_conversation import SpecConversation
 
 __all__ = [
     "BacktrackStrategy",
     "ParsecFunction",
     "ParsecError",
     "FunctionSpecification",
+    "SpecConversation",
     "ParsecError",
     "ParsecFunction",
     "ParsecFile",

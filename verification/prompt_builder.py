@@ -5,7 +5,7 @@ from string import Template
 
 from util import ParsecFile, ParsecFunction
 
-from .verification_result import Failure
+from .verification_result import Failure, VerificationResult
 
 
 class PromptBuilder:
@@ -17,6 +17,7 @@ class PromptBuilder:
     SPECIFICATION_REPAIR_PROMPT_TEMPLATE = Template(
         Path("./prompts/repair-specifications-prompt-template.txt").read_text()
     )
+    BACKTRACKING_PROMPT_TEMPLATE = Template(Path("./prompts/backtracking-prompt.txt").read_text())
     SOURCE_PLACEHOLDER = "<<SOURCE>>"
     CALLEE_CONTEXT_PLACEHOLDER = "<<CALLEE_CONTEXT>>"
 
@@ -73,6 +74,27 @@ class PromptBuilder:
             function_implementation=candidate_function_source_code,
             failure_lines="\n".join(lines_involving_failure),
             stderr=verification_failure.stderr,
+        )
+
+    def backtracking_prompt(self, verification_result: VerificationResult) -> str:
+        function = verification_result.get_function()
+        source_code = function.get_source_code(include_line_numbers=True)
+        callee_context_for_prompt = ""
+        callees_to_specs = verification_result._input.get_callee_names_to_specs()
+        if callees_to_specs:
+            callee_summaries = [
+                f"Callee: {name}\n{spec.get_prompt_str()}"
+                for name, spec in callees_to_specs.items()
+            ]
+            callee_context_for_prompt = f"{function.name} has the following callees:" + "\n".join(
+                callee_summaries
+            )
+
+        return PromptBuilder.BACKTRACKING_PROMPT_TEMPLATE.substitute(
+            function_name=function.name,
+            source_code=source_code,
+            callee_context=callee_context_for_prompt if callee_context_for_prompt != "" else "",
+            failure_information=verification_result.failure_messages,
         )
 
     def _get_callee_specs(self, caller: str, callees_with_specs: list[ParsecFunction]) -> str:

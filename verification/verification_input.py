@@ -34,3 +34,6 @@ class VerificationInput:
     function: ParsecFunction
     spec: FunctionSpecification
     context: VerificationContext
+
+    def get_callee_names_to_specs(self) -> dict[str, FunctionSpecification]:
+        return self.context.callee_specs
