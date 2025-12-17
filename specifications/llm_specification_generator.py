@@ -4,8 +4,8 @@ from models import LLMGen, ModelError, get_llm_generation_with_model
 from util import (
     BacktrackStrategy,
     FunctionSpecification,
+    ParsecFile,
     ParsecFunction,
-    ParsecResult,
     extract_function,
     function_util,
 )
@@ -13,12 +13,20 @@ from verification import PromptBuilder, ProofState, VerificationClient, Verifica
 
 
 class LlmSpecificationGenerator:
-    """Class for LLM-driven specification generation and repair."""
+    """Class for LLM-driven specification generation and repair.
 
+    Attributes:
+        _model (LLMGen): The model to use for specification generation and repair.
+        _parsec_file (ParsecFile): The ParseC file to use to obtain functions.
+        _prompt_builder (PromptBuilder): Used in creating specification generation and repair
+            prompts.
+    """
+
+    _model: LLMGen
+    _parsec_file: ParsecFile
+    _prompt_builder: PromptBuilder
     _llm: LLMGen
     _verifier: VerificationClient
-    _prompt_builder: PromptBuilder
-    _parsec_result: ParsecResult
     _num_specification_generation_candidates: int
     _system_prompt: str
 
@@ -29,6 +37,7 @@ class LlmSpecificationGenerator:
         verifier: VerificationClient,
         num_specification_generation_candidates: int,
     ):
+        """Create a new LlmSpecificationGenerator."""
         self._llm = get_llm_generation_with_model(model)
         self._system_prompt = system_prompt
         self._verifier = verifier
@@ -39,7 +48,7 @@ class LlmSpecificationGenerator:
         # TODO: Somehow incorporate `hints` into the prompt.
         conversation = [{"role": "system", "content": self._system_prompt}]
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
-            function, self._parsec_result
+            function, self._parsec_file
         )
         specification_generation_message = {
             "role": "user",
@@ -68,6 +77,20 @@ class LlmSpecificationGenerator:
         candidate_specs: list[FunctionSpecification],
         proof_state: ProofState,
     ) -> list[tuple[FunctionSpecification, BacktrackStrategy]]:
+        """Placeholder for documentation.
+
+        TODO: Document me.
+
+        Args:
+            function (ParsecFunction): The function under specification generation/verification.
+            candidate_specs (list[FunctionSpecification]): The candidate specifications for the
+                function.
+            proof_state (ProofState): The proof state associated with the function.
+
+        Returns:
+            list[tuple[FunctionSpecification, BacktrackStrategy]]: A specifications and their
+                backtracking strategies.
+        """
         # TODO: Actually perform some pruning here of the candidate specs first.
         pruned_specs = candidate_specs
         next_steps = []
@@ -102,7 +125,6 @@ class LlmSpecificationGenerator:
                 observed_specs.append(current_spec)
                 vresult = self._verifier.verify_function_with_spec(function.name, spec, proof_state)
                 if vresult.succeeded:
-                    # TODO: Shouldn't we break here?
                     verified_specs.append(current_spec)
                 else:
                     unverified_spec_vresults.append(vresult)
@@ -110,7 +132,6 @@ class LlmSpecificationGenerator:
             current_specs.extend(
                 self._call_llm_for_repair(vresult) for vresult in unverified_spec_vresults
             )
-
         return verified_specs or observed_specs
 
     def _call_llm_for_repair(

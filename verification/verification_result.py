@@ -38,3 +38,19 @@ class VerificationResult:
                 result's input.
         """
         return self._input.spec
+
+
+class Failure(VerificationResult):
+    """Stub to make sure the build passes.
+
+    TODO: Remove me and replace all usages of me with `VerificationResult`.
+
+    """
+
+
+class Success(VerificationResult):
+    """Stub to make sure the build passes.
+
+    TODO: Remove me and replace all usages of me with `VerificationResult`.
+
+    """

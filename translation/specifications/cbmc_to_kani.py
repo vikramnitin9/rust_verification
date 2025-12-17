@@ -30,6 +30,7 @@ class CBMCToKani:
     parser: Parser[CBMCAst]
 
     def __init__(self, parser: Parser[CBMCAst]):
+        """Create a new CBMCToKani."""
         self.parser = parser
 
     def translate(self, cbmc_specs: list[str]) -> list[str]:
