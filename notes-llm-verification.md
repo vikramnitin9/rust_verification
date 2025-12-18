@@ -82,12 +82,16 @@ multithreading and could save time across multiple runs.
 class ProofState:
 
 * specs: Map[Function, Specification]: the current specification (which may be a guess) for each function.
-* workstack: Stack[(function, backtrack_hint)]
+* workstack: Stack[WorkItem]
   A stack of functions that need to be (re)processed.
   Each hint is text provided to the LLM to guide it.  I don't have a data
   structure (beyond string) in mind for it yet.
-  * A hint might comprise information such as "Please weaken/strengthen the postcondition" or
-  "this function is only ever called with non-null values", etc.
+  Example hints:
+  * "Please weaken/strengthen the postcondition"
+  * "This function is only ever called with non-null values",
+  Invariant:  all the pairs with a non-empty `backtrack_hint` are above all the pairs with None.
+  This is because every push onet the workstack has a non-None `backtrack_hint`.
+
 Possible fields:
 * verified_functions: a list of functions that have been verified.
 * assumed_functions: a list of functions with unverified, but trusted, specifications.
@@ -96,6 +100,11 @@ immutable class SpecConversation:
 
 * spec: Specification
 * conversation: a conversation history with an LLM, that led to the given spec
+
+immutable class WorkItem:
+
+* function: ParsecFunction
+* backtracking_hint: str
 
 ## Code
 
@@ -120,6 +129,7 @@ def verify_program(program) -> List[Map[Fn, Spec]]:
         result.append(next_proofstate)
       else:
         global.proofstates_worklist.add(next_proofstate)
+  return result
 
 def step(proofstate: ProofState) -> List[ProofState]:
   """
@@ -132,33 +142,35 @@ def step(proofstate: ProofState) -> List[ProofState]:
     The output ProofState has a larger workstack (representing backtracking) if f was not successfully verified.
   """
   (fn, backtrack_hint) = proofstate.workstack.top();
-  new_speccs: List[SpecConversation] = generate_and_repair_specs(fn, backtrack_hint)
-  next_steps: List[SpecConversation] = choose_next_step(fn, new_specs, proofstate)
+  new_speccs: List[SpecConversation] = generate_and_repair_spec(fn, backtrack_hint)
+  pruned_speccs = prune_heuristically(fn, candidate_speccs, proofstate)
+
   result = []
-  for specc in next_steps:
+  for specc in pruned_speccs:
     next_proofstate = proofstate.clone()
     next_proofstate.specs[fn] = specc.spec
-    backtrack_hints = specc.conversation.get_backtrack_hints()
-    if backtrack_hints == None:
+    last_llm_response = specc.conversation.last()
+    if last_llm_response contains "backtrack":
+      next_proofstate.workstack.push((last_llm_response.get_function(), last_llm_response))
+    else:
       next_proofstate.workstack.pop() # pop off fn
-    else
-      next_proofstate.workstack.push(backtrack_hints.function)
-    result.append(next_proofstate)
   return result
 
-def generate_and_repair_specs(fn, backtrack_hint) -> List[SpecConversation]:
+def generate_and_repair_spec(fn, backtrack_hint) -> List[SpecConversation]:
   """
   Generate a specification for a function.
   Input: a function and hints about how to specify it.  The hints are non-empty only when backtracking.
   Output: a list of potential specs for the function.  Some may verify and some may not verify.
   """
   generated_speccs = generate_speccs(fn, hint)
-  # Here is one example of a very simple heuristic for pruning:
-  #  * if any spec verifies, return a list containing only the specs that verify
-  #  * otherwise, return all the specs.
   pruned_specs = prune_heuristically(fn, generated_speccs)
   repaired_specs = [*repair_spec(fn, spec) for spec in pruned_specs]
   return repaired_specs
+
+def prune_heuristically(fn, speccs: List[SpecConversation]) -> List[SpecConversation]:
+  # Here is one example of a very simple heuristic for pruning:
+  #  * if any spec verifies, return a list containing only the specs that verify
+  #  * otherwise, return all the specs.
 
 def generate_speccs(fn, hint) -> List[SpecConversation]:
   """
@@ -200,13 +212,12 @@ def repair_spec(fn, specc, proofstate) -> List[SpecConversation]:
       new_conversation = conversation + [
         {
           "role": "user",
-          "content": f"Verification error: {error}. Either (1) repair the specification
-          and return the repaired specification, or (2) choose a callee that needs a stronger
-          postcondition, state the reasoning for why this is the case, and return the
-          re-generated specification."
+          "content": f"Verification error for {fn.name}: {error}. Either"
+          + " (1) Repair the specification for {fn.name}.  Return the repaired specification for {fn.name}.  Or"
+          + " (2) Retain the current specification for {fn.name} and choose a callee that needs a stronger specification in order to make {fn.name} verify."
+          + " State the reasoning for why this is the case, and return the word 'backtrack', the callee function, and its stronger specification."
         }
       ]
-      # TODO: At any point, the LLM should be allowed to either return a new spec or request to backtrack.
       responses = llm(new_conversation, fn, spec) # TODO: Why pass in `fn` and `spec`? They appear in the conversation.
       # Each response forks a new conversation history
       current_speccs += [(response, new_conversation + [{"assistant": response}]) for response in responses]
@@ -234,37 +245,11 @@ def current_context(fn, proofstate) -> context:
   """
   Input: A function
   Output: the function's current verification context: the specs of callers and callees.
+  """
   # Look up from proofstate's fields, such as `specs` or `verified_functions` and `assumed_functions`.
-  """
-
-# TODO: I think there is nothing to do here except the heuristic pruning,
-# because the conversation already contains the indication of whther to backtrack.
-# So this can be removed and the call to `prune_heuristically` can be moved into the caller.
-def choose_next_step(fn, candidate_specs: List[SpecConversation], proofstate) -> List[SpecConversation]
-  """
-  Choose the next step for the overall algorithm: continue or backtrack.
-  Input: A function and a list of candidate specifications for it.
-  Output: A list of SpecConversation.  The conversation might indicate to backtrack.
-  Implementation note: The system currently returns a singleton list of the first specification that verifies.
-  """
-
-  pruned_specs = prune_heuristically(fn, candidate_specs, proofstate)
-  result = []
-  for spec in pruned_specs:
-    vresult = call_verifier(fn, specc, proofstate)
-    if vresult.is_success:
-      backtrack_hints = [None]
-    else:
-      # Enhancement ideas:
-      # Also provide all the candidate specs, rather than just the one chosen by the heuristic?
-      # Or choose a spec and provide backtracking hints in a single heuristic rather than separating them?
-      # Or permit this LLM call to return a different spec from candidate_specs than the heuristic chose?
-      backtrack_hints = llm("choose a callee to repair, and provide hints", fn, specc, vresult)
-    result.append([(spec, backtrack_hint) for backtrack_hint in backtrack_hints])
-  return result
 
 def llm(...):
-  This is a function that calls the API we're using for LLMs, it should use a cache.
+  This is a function that calls the API we're using for LLMs.  It should use a cache.
 ```
 
 Suppose that, after creating a VerificationInput, the system changes some
@@ -284,14 +269,14 @@ Many for loops and list comprehensions (but not the for loop in `repair`) can be
 More about forking processes:
 
 At each point that the LLM is invoked, the algorithm could call the LLM multiple times and pursue each of the possibilities (possibly in parallel).
-Currently this is hard-coded in `generate_and_repair_specs()`, which is the client of `generate_speccs()` which calls the LLM to produce multiple results.
+Currently this is hard-coded in `generate_and_repair_spec()`, which is the client of `generate_speccs()` which calls the LLM to produce multiple results.
 However, it is not done for other LLM calls in `repair_spec()` and `choose_next_step()`.
 
 It would be better for the algorithm to apply sample-exploration more uniformly.
 
-* One way is to hard-code the other LLM uses, just as `generate_speccs()` and its client `generate_and_repair_specs()` are.
+* One way is to hard-code the other LLM uses, just as `generate_speccs()` and its client `generate_and_repair_spec()` are.
 * Another way is to modify the algorithm to fork multiple processes, like so:
-  * Rewrite the algorithm to treat each LLM query call as returning exactly one value.  (This actually simplifies `generate_and_repair_specs()` and its client `verify_program()`.
+  * Rewrite the algorithm to treat each LLM query call as returning exactly one value.  (This actually simplifies `generate_and_repair_spec()` and its client `verify_program()`.
   * Actually, each LLM query returns a list (which is different than the above rewriting).
     Fork N processes, one for for each element of the list.
     Each forked process has its own process state, which starts as a copy of the global variables and call stack.

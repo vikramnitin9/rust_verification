@@ -98,3 +98,15 @@ This effectively starts the container,
 
 Once you have executed the command above,
   select "Python: Attach to Docker" from the "Run and Debug" sidebar.
+
+## FAQs
+
+> My local runs of `make checks` are inconsistent with those on CI, what's going on?
+
+This is usually due to inconsistencies between your local development dependencies,
+  and those on GitHub CI.
+Run the following command (periodically, if the issue persists) to update your local dependencies:
+
+```sh
+% make plume-scripts-update
+```
