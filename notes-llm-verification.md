@@ -86,8 +86,12 @@ class ProofState:
   A stack of functions that need to be (re)processed.
   Each hint is text provided to the LLM to guide it.  I don't have a data
   structure (beyond string) in mind for it yet.
-  * A hint might comprise information such as "Please weaken/strengthen the postcondition" or
-  "this function is only ever called with non-null values", etc.
+  Example hints:
+  * "Please weaken/strengthen the postcondition"
+  * "This function is only ever called with non-null values",
+  Invariant:  all the pairs with a non-empty `backtrack_hint` are above all the pairs with None.
+  This is because every push onet the workstack has a non-None `backtrack_hint`.
+
 Possible fields:
 * verified_functions: a list of functions that have been verified.
 * assumed_functions: a list of functions with unverified, but trusted, specifications.
