@@ -1,4 +1,3 @@
-from .backtrack_strategy import BacktrackStrategy, AssumeSpec, BacktrackToCallee
 from .code_extraction_util import extract_function
 from .file_util import copy_file_to_folder, ensure_lines_at_beginning
 from .function_util import extract_specification
@@ -9,7 +8,6 @@ from .function_specification import FunctionSpecification
 from .spec_conversation import SpecConversation
 
 __all__ = [
-    "BacktrackStrategy",
     "ParsecFunction",
     "ParsecError",
     "FunctionSpecification",

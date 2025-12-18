@@ -10,16 +10,14 @@ from loguru import logger
 
 from specifications import LlmSpecificationGenerator
 from util import (
-    AssumeSpec,
-    BacktrackStrategy,
-    BacktrackToCallee,
     FunctionSpecification,
+    ParsecFile,
     ParsecFunction,
-    ParsecResult,
+    SpecConversation,
     copy_file_to_folder,
-    insert_lines_at_beginning,
+    ensure_lines_at_beginning,
 )
-from verification import CbmcVerificationClient, ProofState, VerificationClient
+from verification import CbmcVerificationClient, ProofState, VerificationClient, WorkStack
 
 MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
@@ -27,8 +25,6 @@ DEFAULT_NUM_SPECIFICATION_CANDIDATES = 1
 DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS = 10
 DEFAULT_MODEL_TEMPERATURE = 1.0
 DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
-
-type Workstack = list[tuple[ParsecFunction, str]]
 
 GLOBAL_PROOFSTATES: list[ProofState] = []
 
@@ -62,21 +58,22 @@ def main() -> None:
     input_file_path = Path(args.file)
     output_file_path = copy_file_to_folder(input_file_path, "specs")
     header_lines = [f"#include <{header}>" for header in DEFAULT_HEADERS_IN_OUTPUT]
-    insert_lines_at_beginning(header_lines, output_file_path)
+    ensure_lines_at_beginning(header_lines, output_file_path)
 
-    parsec_result = ParsecResult(input_file_path)
+    parsec_file = ParsecFile(input_file_path)
     verifier: VerificationClient = CbmcVerificationClient()
     specification_generator = LlmSpecificationGenerator(
         MODEL,
         system_prompt=DEFAULT_SYSTEM_PROMPT,
         verifier=verifier,
         num_specification_generation_candidates=args.num_specification_generation_candidates,
+        num_repair_iterations=args.num_specification_repair_iterations,
     )
 
     functions_in_reverse_topological_order = _get_functions_in_reverse_topological_order(
-        parsec_result
+        parsec_file
     )
-    _verify_program(functions_in_reverse_topological_order, specification_generator, parsec_result)
+    _verify_program(functions_in_reverse_topological_order, specification_generator, parsec_file)
 
 
 if __name__ == "__main__":
@@ -84,28 +81,28 @@ if __name__ == "__main__":
 
 
 def _get_functions_in_reverse_topological_order(
-    parsec_result: ParsecResult,
+    parsec_file: ParsecFile,
 ) -> list[ParsecFunction]:
     # Get a list of functions in reverse topological order,
     # i.e., starting from the leaves of the call graph.
-    function_names = parsec_result.copy(
+    function_names = parsec_file.copy(
         remove_self_edges_in_call_graph=True
     ).get_function_names_in_topological_order(reverse_order=True)
     functions: list[ParsecFunction] = []
     for function_name in function_names:
-        if function := parsec_result.get_function(function_name):
+        if function := parsec_file.get_function(function_name):
             functions.append(function)
         else:
-            logger.warning(f"Function '{function_name}' was missing from the ParsecResult")
+            logger.warning(f"Function '{function_name}' was missing from the ParsecFile")
     return functions
 
 
 def _verify_program(
     functions: list[ParsecFunction],
     specification_generator: LlmSpecificationGenerator,
-    parsec_result: ParsecResult,
+    parsec_file: ParsecFile,
 ) -> dict[str, FunctionSpecification]:
-    initial_workstack: Workstack = [(function, "") for function in functions]
+    initial_workstack: WorkStack = WorkStack([(function, "") for function in functions])
     initial_proof_state = ProofState(workstack=initial_workstack)
 
     GLOBAL_PROOFSTATES.append(initial_proof_state)
@@ -115,7 +112,7 @@ def _verify_program(
         next_proofstates = _step(
             proof_state=proof_state,
             specification_generator=specification_generator,
-            parsec_result=parsec_result,
+            parsec_file=parsec_file,
         )
 
         for next_proofstate in next_proofstates:
@@ -131,56 +128,34 @@ def _verify_program(
 def _step(
     proof_state: ProofState,
     specification_generator: LlmSpecificationGenerator,
-    parsec_result: ParsecResult,
+    parsec_file: ParsecFile,  # noqa: ARG001
 ) -> list[ProofState]:
-    function, hints = proof_state.peek_workstack()
-    specs_for_function: list[FunctionSpecification] = specification_generator._generate_specs(
-        function=function, backtracking_hint=hints
+    work_item = proof_state.peek_workstack()
+    spec_conversations_for_function: list[SpecConversation] = (
+        specification_generator.generate_and_repair_spec(
+            function=work_item.function,
+            backtracking_hint=work_item.backtracking_hint,
+            proof_state=proof_state,
+        )
     )
-    next_steps: list[tuple[FunctionSpecification, BacktrackStrategy]] = _choose_next_step(
-        function=function, candidate_specs=specs_for_function, proof_state=proof_state
-    )
+
+    # TODO: actually perform pruning, here.
+    pruned_spec_conversations_for_function = spec_conversations_for_function
+
     result: list[ProofState] = []
 
-    for candidate_spec, backtrack_strategy in next_steps:
+    for spec_conversation in pruned_spec_conversations_for_function:
         next_proof_state = copy.copy(proof_state)  # `copy.copy` returns a shallow copy.
-        next_proof_state.set_specification(function=function, spec=candidate_spec)
-        _update_proof_state(
-            function=function,
-            proof_state=next_proof_state,
-            backtrack_strategy=backtrack_strategy,
-            parsec_result=parsec_result,
+        next_proof_state.set_specification(
+            function=work_item.function, spec=spec_conversation.specification
         )
+        latest_llm_response = spec_conversation.get_latest_llm_response()
+        if "REGENERATE_CALLEE_SPEC" in latest_llm_response or "REPAIR_SPEC" in latest_llm_response:
+            next_proof_state.push_onto_workstack(
+                function=work_item.function, hint=latest_llm_response
+            )
+        else:
+            # No backtracking to consider.
+            next_proof_state.pop_workstack()
         result.append(next_proof_state)
     return result
-
-
-def _update_proof_state(
-    function: ParsecFunction,
-    proof_state: ProofState,
-    backtrack_strategy: BacktrackStrategy,
-    parsec_result: ParsecResult,
-) -> ProofState:
-    match backtrack_strategy:
-        case AssumeSpec(_):
-            proof_state.assume_function(function=function)
-            # INVARIANT: the top element of the proof state's workstack should be the function
-            # under specification generation + verification.
-            proof_state.pop_workstack()
-        case BacktrackToCallee(_, callee_name):
-            if callee := parsec_result.get_function(callee_name):
-                proof_state.push_onto_workstack(function=callee)
-            else:
-                msg = f"{callee_name} was missing from the ParsecResult"
-                raise RuntimeError(msg)
-        case unsupported_strategy:
-            # This should never happen.
-            msg = f"Unsupported backtracking strategy: {unsupported_strategy}"
-            raise RuntimeError(msg)
-    return proof_state
-
-
-def _choose_next_step(
-    function: ParsecFunction, candidate_specs: list[FunctionSpecification], proof_state: ProofState
-) -> list[tuple[FunctionSpecification, BacktrackStrategy]]:
-    return []

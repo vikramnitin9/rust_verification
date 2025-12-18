@@ -38,13 +38,18 @@ class FunctionSpecification:
         Returns:
             bool: True iff the other specification comprises the same pre and postconditions.
         """
-        if not isinstance(other, "FunctionSpecification"):
+        if not isinstance(other, FunctionSpecification):
             return False
         is_preconditions_same = sorted(self.preconditions) == sorted(self.preconditions)
         is_postconditions_same = sorted(self.postconditions) == sorted(self.postconditions)
         return is_preconditions_same and is_postconditions_same
 
     def get_prompt_str(self) -> str:
+        """Return this function specification as it is summarized in a prompt.
+
+        Returns:
+            str: This function specification as it is summarized in a prompt.
+        """
         pres = ", ".join(self.preconditions)
         posts = ", ".join(self.postconditions)
         return f"Preconditions:\n{pres}\nPostconditions:\n{posts}"

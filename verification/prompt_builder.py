@@ -5,7 +5,7 @@ from string import Template
 
 from util import ParsecFile, ParsecFunction
 
-from .verification_result import Failure, VerificationResult
+from .verification_result import VerificationResult
 
 
 class PromptBuilder:
@@ -46,41 +46,19 @@ class PromptBuilder:
 
         return prompt.replace(PromptBuilder.CALLEE_CONTEXT_PLACEHOLDER, callee_context)
 
-    def specification_repair_prompt(self, function_name: str, verification_failure: Failure) -> str:
-        """Return a prompt directing the model to repair a faulty specification.
+    def backtracking_prompt(self, verification_result: VerificationResult) -> str:
+        """TODO: document me.
 
         Args:
-            function_name (str): The name of the function that does not verify.
-            verification_failure (Failure): The failed result of verifying the function.
+            verification_result (VerificationResult): _description_
 
         Returns:
-            str: A prompt directing the model to repair a faulty specification.
+            str: _description_
         """
-        parsec_file_for_candidate_file = ParsecFile.parse_source_with_cbmc_annotations(
-            verification_failure.source
-        )
-        function = parsec_file_for_candidate_file.get_function(function_name)
-        lines_involving_failure = [
-            line for line in verification_failure.stdout.splitlines() if "FAILURE" in line
-        ]
-        candidate_function_source_code = function.get_source_code(
-            include_documentation_comments=True,
-            include_line_numbers=True,
-            should_uncomment_cbmc_annotations=True,
-        )
-        parsec_file_for_candidate_file.file_path.unlink()
-        return PromptBuilder.SPECIFICATION_REPAIR_PROMPT_TEMPLATE.safe_substitute(
-            function_name=function.name,
-            function_implementation=candidate_function_source_code,
-            failure_lines="\n".join(lines_involving_failure),
-            stderr=verification_failure.stderr,
-        )
-
-    def backtracking_prompt(self, verification_result: VerificationResult) -> str:
         function = verification_result.get_function()
         source_code = function.get_source_code(include_line_numbers=True)
         callee_context_for_prompt = ""
-        callees_to_specs = verification_result._input.get_callee_names_to_specs()
+        callees_to_specs = verification_result.verification_input.get_callee_names_to_specs()
         if callees_to_specs:
             callee_summaries = [
                 f"Callee: {name}\n{spec.get_prompt_str()}"

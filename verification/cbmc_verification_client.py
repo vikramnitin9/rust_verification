@@ -4,8 +4,8 @@ import subprocess
 from pathlib import Path
 
 from loguru import logger
-from util.specifications import FunctionSpecification
 
+from util import FunctionSpecification
 from verification.proof_state import ProofState
 from verification.verification_result import VerificationResult
 
@@ -74,4 +74,17 @@ class CbmcVerificationClient(VerificationClient):
     def verify_function_with_spec(
         self, function_name: str, spec: FunctionSpecification, proof_state: ProofState
     ) -> VerificationResult:
+        """TODO: document me.
+
+        Args:
+            function_name (str): _description_
+            spec (FunctionSpecification): _description_
+            proof_state (ProofState): _description_
+
+        Raises:
+            NotImplementedError: _description_
+
+        Returns:
+            VerificationResult: _description_
+        """
         raise NotImplementedError("Implement me")

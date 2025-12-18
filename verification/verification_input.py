@@ -36,4 +36,9 @@ class VerificationInput:
     context: VerificationContext
 
     def get_callee_names_to_specs(self) -> dict[str, FunctionSpecification]:
+        """Return a dictionary of callee names to their specifications.
+
+        Returns:
+            dict[str, FunctionSpecification]: A dictionary of callee names to their specifications.
+        """
         return self.context.callee_specs

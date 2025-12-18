@@ -2,7 +2,6 @@
 
 from models import LLMGen, ModelError, get_llm_generation_with_model
 from util import (
-    BacktrackStrategy,
     FunctionSpecification,
     ParsecFile,
     ParsecFunction,
@@ -52,6 +51,17 @@ class LlmSpecificationGenerator:
     def generate_and_repair_spec(
         self, function: ParsecFunction, backtracking_hint: str, proof_state: ProofState
     ) -> list[SpecConversation]:
+        """Return a list of potential specifications for the function.
+
+        Args:
+            function (ParsecFunction): The function for which to generate potential specs.
+            backtracking_hint (str): Hints to help guide spec generation. Only non-empty when
+                backtracking.
+            proof_state (ProofState): The proof state under which to generate specs.
+
+        Returns:
+            list[SpecConversation]: A list of potential specifications for the function.
+        """
         candidate_specs = self._generate_specs(
             function=function, backtracking_hint=backtracking_hint
         )
@@ -59,7 +69,7 @@ class LlmSpecificationGenerator:
         pruned_specs = candidate_specs
         repaired_specs = []
         for pruned_spec in pruned_specs:
-            repaired_specs.append(
+            repaired_specs.extend(
                 self._repair_spec(
                     function=function, spec_conversation=pruned_spec, proof_state=proof_state
                 )
@@ -67,7 +77,9 @@ class LlmSpecificationGenerator:
         return repaired_specs
 
     def _generate_specs(
-        self, function: ParsecFunction, backtracking_hint: str
+        self,
+        function: ParsecFunction,
+        backtracking_hint: str,  # noqa: ARG002
     ) -> list[SpecConversation]:
         # TODO: Somehow incorporate `backtracking_hint` into the prompt.
         conversation = [{"role": "system", "content": self._system_prompt}]
@@ -98,41 +110,6 @@ class LlmSpecificationGenerator:
         except ModelError as me:
             msg = f"Failed to generate specifications for '{function.name}'"
             raise RuntimeError(msg) from me
-
-    def choose_next_step(
-        self,
-        function: ParsecFunction,
-        candidate_specs: list[FunctionSpecification],
-        proof_state: ProofState,
-    ) -> list[tuple[FunctionSpecification, BacktrackStrategy]]:
-        """Placeholder for documentation.
-
-        TODO: Document me.
-
-        Args:
-            function (ParsecFunction): The function under specification generation/verification.
-            candidate_specs (list[FunctionSpecification]): The candidate specifications for the
-                function.
-            proof_state (ProofState): The proof state associated with the function.
-
-        Returns:
-            list[tuple[FunctionSpecification, BacktrackStrategy]]: A specifications and their
-                backtracking strategies.
-        """
-        # TODO: Actually perform some pruning here of the candidate specs first.
-        pruned_specs = candidate_specs
-        next_steps = []
-        for spec in pruned_specs:
-            vresult = self._verifier.verify_function_with_spec(
-                function_name=function.name, spec=spec, proof_state=proof_state
-            )
-            if not vresult.succeeded:
-                # TODO: Call an LLM and ask it for a list of callees to possibly backtrack to.
-                backtrack_strategies = []
-                next_steps.extend(
-                    (spec, backtrack_strategy) for backtrack_strategy in backtrack_strategies
-                )
-        return next_steps
 
     def _repair_spec(
         self,
@@ -168,7 +145,7 @@ class LlmSpecificationGenerator:
                     proof_state=proof_state,
                 )
                 conversation_updated_with_failure_information = (
-                    unverified_spec_conversation.add_message_to_conversation(
+                    unverified_spec_conversation.get_conversation_with_message_appended(
                         {
                             "user": self._prompt_builder.backtracking_prompt(
                                 verification_result=vresult
@@ -183,7 +160,7 @@ class LlmSpecificationGenerator:
                 current_spec_conversations += [
                     SpecConversation(
                         specification=specification,
-                        conversation=unverified_spec_conversation.add_message_to_conversation(
+                        conversation=unverified_spec_conversation.get_conversation_with_message_appended(
                             {"role": "assistant", "response": response}
                         ),
                     )
