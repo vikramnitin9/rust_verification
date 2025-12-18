@@ -144,7 +144,7 @@ def step(proofstate: ProofState) -> List[ProofState]:
   for specc in pruned_speccs:
     next_proofstate = proofstate.clone()
     next_proofstate.specs[fn] = specc.spec
-    last_llm_response = specc.conversation.last_llm
+    last_llm_response = specc.conversation.last()
     if last_llm_response contains "backtrack":
       next_proofstate.workstack.push((last_llm_response.get_function(), last_llm_response))
     else:
@@ -207,9 +207,9 @@ def repair_spec(fn, specc, proofstate) -> List[SpecConversation]:
       new_conversation = conversation + [
         {
           "role": "user",
-          "content": f"Verification error for {fn}: {error}. Either"
-          + " (1) Repair the specification for {fn}.  Return the repaired specification {fn}.  Or"
-          + " (2) Retain the current specification for {fn} and choose a callee that needs a stronger specification in order to make {fn} verify."
+          "content": f"Verification error for {fn.name}: {error}. Either"
+          + " (1) Repair the specification for {fn.name}.  Return the repaired specification for {fn.name}.  Or"
+          + " (2) Retain the current specification for {fn.name} and choose a callee that needs a stronger specification in order to make {fn.name} verify."
           + " State the reasoning for why this is the case, and return the word 'backtrack', the callee function, and its stronger specification."
         }
       ]
