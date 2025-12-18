@@ -1,16 +1,13 @@
 """Client for verifying source code via CBMC."""
 
-import subprocess
 from pathlib import Path
-
-from loguru import logger
 
 from util import FunctionSpecification
 from verification.proof_state import ProofState
 from verification.verification_result import VerificationResult
 
 from .verification_client import VerificationClient
-from .verification_result import Failure, Success
+from .verification_input import VerificationInput
 
 
 class CbmcVerificationClient(VerificationClient):
@@ -22,54 +19,19 @@ class CbmcVerificationClient(VerificationClient):
         names_of_verified_functions: list[str],
         names_of_trusted_functions: list[str],
         file_path: Path,
-    ) -> Success | Failure:
-        """Return the result of verifying the function named `function_name` with CBMC.
+    ) -> VerificationResult:
+        """TODO: document me.
 
         Args:
-            function_name (str): The name of the function to verify with CBMC.
-            names_of_verified_functions (list[str]): The names of functions that have been verified
-                with CBMC.
-            names_of_trusted_functions (list[str]): The names of functions that are trusted by CBMC
-                (i.e., their specifications are trusted, not verified.)
-            file_path (Path): The file in which the function to verify is defined.
-
-        Raises:
-            RuntimeError: Raised when an error occurs in executing the verification command.
+            function_name (str): _description_
+            names_of_verified_functions (list[str]): _description_
+            names_of_trusted_functions (list[str]): _description_
+            file_path (Path): _description_
 
         Returns:
-            Success | Failure: Success if the function successfully verifies, Failure if the
-                function does not verify.
+            VerificationResult: _description_
         """
-        replace_call_with_contract_args = "".join(
-            [
-                f"--replace-call-with-contract {f} "
-                for f in names_of_verified_functions + names_of_trusted_functions
-            ]
-        )
-        verification_command = (
-            f"goto-cc -o {function_name}.goto {file_path.absolute()} --function {function_name} && "
-            f"goto-instrument --partial-loops --unwind 5 {function_name}.goto {function_name}.goto "
-            f"&& goto-instrument {replace_call_with_contract_args} "
-            f"--enforce-contract {function_name} "
-            f"{function_name}.goto checking-{function_name}-contracts.goto && "
-            f"cbmc checking-{function_name}-contracts.goto --function {function_name} --depth 100"
-        )
-
-        try:
-            logger.debug(f"Running command: {verification_command}")
-            result = subprocess.run(
-                verification_command, shell=True, capture_output=True, text=True
-            )
-            if result.returncode == 0:
-                return Success()
-            return Failure(
-                source=file_path,
-                stdout=result.stdout,
-                stderr=result.stderr,
-            )
-        except Exception as e:
-            msg = f"Error running command for function {function_name}: {e}"
-            raise RuntimeError(msg) from e
+        raise NotImplementedError()
 
     def verify_function_with_spec(
         self, function_name: str, spec: FunctionSpecification, proof_state: ProofState
@@ -88,3 +50,35 @@ class CbmcVerificationClient(VerificationClient):
             VerificationResult: _description_
         """
         raise NotImplementedError("Implement me")
+
+    def _get_cbmc_verification_command(
+        self,
+        verification_input: VerificationInput,
+        path_to_file_to_verify: Path,
+        proof_state: ProofState,
+    ) -> str:
+        """Return the command used to verify a function in a file with CBMC.
+
+        Args:
+            verification_input (VerificationInput): The verification input.
+            path_to_file_to_verify (Path): The path to the file to verify.
+            proof_state (ProofState): The proof state to verify under.
+
+        Returns:
+            str: The command used to verify a function in a file with CBMC.
+        """
+        function_name = verification_input.function.name
+        replace_call_with_contract_args = "".join(
+            [
+                f"--replace-call-with-contract {f} "
+                for f in proof_state.get_assumed_functions() + proof_state.get_verified_functions()
+            ]
+        )
+        return (
+            f"goto-cc -o {function_name}.goto {path_to_file_to_verify} --function {function_name} && "  # noqa : E501
+            f"goto-instrument --partial-loops --unwind 5 {function_name}.goto {function_name}.goto "
+            f"&& goto-instrument {replace_call_with_contract_args} "
+            f"--enforce-contract {function_name} "
+            f"{function_name}.goto checking-{function_name}-contracts.goto && "
+            f"cbmc checking-{function_name}-contracts.goto --function {function_name} --depth 100"
+        )

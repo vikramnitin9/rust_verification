@@ -10,6 +10,7 @@ from loguru import logger
 
 from specifications import LlmSpecificationGenerator
 from util import (
+    BacktrackingStrategy,
     FunctionSpecification,
     ParsecFile,
     ParsecFunction,
@@ -66,7 +67,7 @@ def main() -> None:
         MODEL,
         system_prompt=DEFAULT_SYSTEM_PROMPT,
         verifier=verifier,
-        num_specification_generation_candidates=args.num_specification_generation_candidates,
+        num_specification_candidates=args.num_specification_generation_candidates,
         num_repair_iterations=args.num_specification_repair_iterations,
     )
 
@@ -150,12 +151,14 @@ def _step(
             function=work_item.function, spec=spec_conversation.specification
         )
         latest_llm_response = spec_conversation.get_latest_llm_response()
-        if "REGENERATE_CALLEE_SPEC" in latest_llm_response or "REPAIR_SPEC" in latest_llm_response:
+        if (
+            spec_conversation.backtracking_strategy == BacktrackingStrategy.REGENERATE_CALLEE_SPEC
+            or spec_conversation.backtracking_strategy == BacktrackingStrategy.REPAIR_SPEC
+        ):
             next_proof_state.push_onto_workstack(
                 function=work_item.function, hint=latest_llm_response
             )
         else:
             # No backtracking to consider.
             next_proof_state.pop_workstack()
-        result.append(next_proof_state)
     return result

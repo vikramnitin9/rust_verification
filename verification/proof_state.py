@@ -136,3 +136,27 @@ class ProofState:
             function (ParsecFunction): The function whose spec should be assumed.
         """
         self._assumed_functions.append(function.name)
+
+    def add_verified_function(self, function: ParsecFunction) -> None:
+        """Update this proof state's list of verified functions.
+
+        Args:
+            function (ParsecFunction): The function whose spec is verified.
+        """
+        self._verified_functions.append(function.name)
+
+    def get_verified_functions(self) -> list[str]:
+        """Return this proof state's verified functions.
+
+        Returns:
+            list[str]: This proof state's verified functions.
+        """
+        return self._verified_functions
+
+    def get_assumed_functions(self) -> list[str]:
+        """Return this proof state's assumed functions.
+
+        Returns:
+            list[str]: This proof state's assumed functions.
+        """
+        return self._assumed_functions

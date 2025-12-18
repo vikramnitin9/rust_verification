@@ -1,7 +1,10 @@
 """Module for generating and repairing specifications via LLMs."""
 
+import json
+
 from models import LLMGen, ModelError, get_llm_generation_with_model
 from util import (
+    BacktrackingStrategy,
     FunctionSpecification,
     ParsecFile,
     ParsecFunction,
@@ -27,7 +30,7 @@ class LlmSpecificationGenerator:
     _prompt_builder: PromptBuilder
     _llm: LLMGen
     _verifier: VerificationClient
-    _num_specification_generation_candidates: int
+    _num_specification_candidates: int
     _num_repair_iterations: int
     _num_repair_candidates: int
     _system_prompt: str
@@ -37,7 +40,7 @@ class LlmSpecificationGenerator:
         model: str,
         system_prompt: str,
         verifier: VerificationClient,
-        num_specification_generation_candidates: int,
+        num_specification_candidates: int,
         num_repair_iterations: int,
     ):
         """Create a new LlmSpecificationGenerator."""
@@ -45,7 +48,7 @@ class LlmSpecificationGenerator:
         self._system_prompt = system_prompt
         self._verifier = verifier
         self._prompt_builder = PromptBuilder()
-        self._num_specification_generation_candidates = num_specification_generation_candidates
+        self._num_specification_candidates = num_specification_candidates
         self._num_repair_iterations = num_repair_iterations
 
     def generate_and_repair_spec(
@@ -93,7 +96,7 @@ class LlmSpecificationGenerator:
         try:
             conversation.append(specification_generation_message)
             model_responses = self._llm.gen(
-                conversation, top_k=self._num_specification_generation_candidates, temperature=0.8
+                conversation, top_k=self._num_specification_candidates, temperature=0.8
             )
             candidate_specified_functions = [
                 extract_function(response) for response in model_responses
@@ -163,6 +166,7 @@ class LlmSpecificationGenerator:
                         conversation=unverified_spec_conversation.get_conversation_with_message_appended(
                             {"role": "assistant", "response": response}
                         ),
+                        backtracking_strategy=self._parse_backtracking_strategy(response),
                     )
                     for specification, response in model_responses.items()
                 ]
@@ -171,6 +175,20 @@ class LlmSpecificationGenerator:
     def _call_llm_for_repair(
         self, function: ParsecFunction, conversation: list[dict[str, str]]
     ) -> dict[FunctionSpecification, str]:
+        """Call an LLM for repairing a failing spec.
+
+        Args:
+            function (ParsecFunction): The function with the failing spec.
+            conversation (list[dict[str, str]]): The conversation for specification repair.
+
+        Raises:
+            RuntimeError: Raised when a failure occurs (e.g., API timeout) during a call to an LLM
+                for specification repair.
+
+        Returns:
+            dict[FunctionSpecification, str]: A map of repaired specifications and the raw response
+                from the LLM from which the repaired specification was extracted.
+        """
         try:
             responses = self._model.gen(
                 messages=conversation, top_k=self._num_repair_candidates, temperature=0.8
@@ -185,3 +203,38 @@ class LlmSpecificationGenerator:
         except ModelError as me:
             msg = f"Failed to repair specifications for '{function.name}'"
             raise RuntimeError(msg) from me
+
+    def _parse_backtracking_strategy(self, llm_response: str) -> BacktrackingStrategy:
+        """Parse a backtracking strategy from an LLM response.
+
+        An LLM is asked to select a backtracking strategy and include it in its response when it
+        is asked to repair a spec. This function parses the strategy to include in a
+        SpecConversation object.
+
+        Args:
+            llm_response (str): The LLM response from which to parse a backtracking strategy.
+
+        Raises:
+            RuntimeError: Raised when an error is encountered when parsing a backtracking strategy.
+
+        Returns:
+            BacktrackingStrategy: The backtracking strategy returned by the LLM in its response.
+        """
+        llm_response = llm_response.strip()
+        if llm_response.startswith("```json") or llm_response.endswith("```"):
+            # The LLM likely did not follow instructions to return just the plain object.
+            llm_response = llm_response.removeprefix("```json").removesuffix("```")
+        try:
+            return BacktrackingStrategy(json.loads(llm_response)["backtracking_strategy"])
+        except json.JSONDecodeError as je:
+            msg = f"The LLM failed to return a valid JSON object: {llm_response}, error = {je}"
+            raise RuntimeError(msg) from je
+        except KeyError as ke:
+            msg = (
+                "The LLM returned valid JSON, but was missing the 'backtracking_strategy' key: "
+                f"{llm_response}"
+            )
+            raise RuntimeError(msg) from ke
+        except ValueError as ve:
+            msg = f"The LLM likely returned an invalid backtracking strategy: {llm_response}"
+            raise RuntimeError(msg) from ve
