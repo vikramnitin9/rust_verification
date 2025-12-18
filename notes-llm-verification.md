@@ -82,7 +82,7 @@ multithreading and could save time across multiple runs.
 class ProofState:
 
 * specs: Map[Function, Specification]: the current specification (which may be a guess) for each function.
-* workstack: Stack[(function, backtrack_hint)]
+* workstack: Stack[WorkItem]
   A stack of functions that need to be (re)processed.
   Each hint is text provided to the LLM to guide it.  I don't have a data
   structure (beyond string) in mind for it yet.
@@ -100,6 +100,11 @@ immutable class SpecConversation:
 
 * spec: Specification
 * conversation: a conversation history with an LLM, that led to the given spec
+
+immutable class WorkItem:
+
+* function: ParsecFunction
+* backtracking_hint: str
 
 ## Code
 
