@@ -90,9 +90,10 @@ class ProofState:
   * "Please weaken/strengthen the postcondition"
   * "This function is only ever called with non-null values",
   Invariant:  all the pairs with a non-empty `backtrack_hint` are above all the pairs with None.
-  This is because every push onet the workstack has a non-None `backtrack_hint`.
+  This is because every push onto the workstack has a non-None `backtrack_hint`.
 
 Possible fields:
+
 * verified_functions: a list of functions that have been verified.
 * assumed_functions: a list of functions with unverified, but trusted, specifications.
 
@@ -100,6 +101,8 @@ immutable class SpecConversation:
 
 * spec: Specification
 * conversation: a conversation history with an LLM, that led to the given spec
+* backtracking_strategy: The backtracking strategy
+  associated with the spec.
 
 immutable class WorkItem:
 
@@ -169,8 +172,8 @@ def generate_and_repair_spec(fn, backtrack_hint) -> List[SpecConversation]:
 
 def prune_heuristically(fn, speccs: List[SpecConversation]) -> List[SpecConversation]:
   # Here is one example of a very simple heuristic for pruning:
-  #  * if any spec verifies, return a list containing only the specs that verify
-  #  * otherwise, return all the specs.
+  #  * If any spec verifies, return a list containing only the specs that verify.
+  #  * Otherwise, return all the specs.
 
 def generate_speccs(fn, hint) -> List[SpecConversation]:
   """
@@ -287,7 +290,7 @@ It would be better for the algorithm to apply sample-exploration more uniformly.
 -->
 
 <!--
-LocalWords:  workstack llm num VerificationInput VerificationResult boolean fn doesn SQLite multithreading
+LocalWords:  workstack llm num VerificationInput VerificationResult boolean fn doesn SQLite multithreading WorkItem
 LocalWords:  VerificationResults LlmInput LlmOutput proofstates ProofStates ps
 LocalWords:  ProofState TODO f's vresult BacktrackInfo plaintext proofstate py
 LocalWords:  LlmSpecificationGenerator recomputation vinput
