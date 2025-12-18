@@ -101,6 +101,8 @@ immutable class SpecConversation:
 
 * spec: Specification
 * conversation: a conversation history with an LLM, that led to the given spec
+* backtracking_strategy: The backtracking strategy
+  associated with the spec.
 
 immutable class WorkItem:
 
