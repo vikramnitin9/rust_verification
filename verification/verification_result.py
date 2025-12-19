@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from util import FunctionSpecification, ParsecFunction
+from util import CFunction, FunctionSpecification
 
 from .verification_input import VerificationInput
 
@@ -22,11 +22,11 @@ class VerificationResult:
     succeeded: bool
     failure_messages: str | None
 
-    def get_function(self) -> ParsecFunction:
+    def get_function(self) -> CFunction:
         """Return the function associated with this verification result's input.
 
         Returns:
-            ParsecFunction: The function associated with this verification result's input.
+            CFunction: The function associated with this verification result's input.
         """
         return self.verification_input.function
 

@@ -11,9 +11,9 @@ from loguru import logger
 from specifications import LlmSpecificationGenerator
 from util import (
     BacktrackingStrategy,
+    CFunction,
     FunctionSpecification,
     ParsecFile,
-    ParsecFunction,
     SpecConversation,
     copy_file_to_folder,
     ensure_lines_at_beginning,
@@ -91,13 +91,11 @@ if __name__ == "__main__":
 
 def _get_functions_in_reverse_topological_order(
     parsec_file: ParsecFile,
-) -> list[ParsecFunction]:
+) -> list[CFunction]:
     # Get a list of functions in reverse topological order,
     # i.e., starting from the leaves of the call graph.
-    function_names = parsec_file.copy(
-        remove_self_edges_in_call_graph=True
-    ).get_function_names_in_topological_order(reverse_order=True)
-    functions: list[ParsecFunction] = []
+    function_names = parsec_file.get_function_names_in_topological_order(reverse_order=True)
+    functions: list[CFunction] = []
     for function_name in function_names:
         if function := parsec_file.get_function(function_name):
             functions.append(function)
@@ -107,7 +105,7 @@ def _get_functions_in_reverse_topological_order(
 
 
 def _verify_program(
-    functions: list[ParsecFunction],
+    functions: list[CFunction],
     specification_generator: LlmSpecificationGenerator,
     parsec_file: ParsecFile,
 ) -> dict[str, FunctionSpecification]:

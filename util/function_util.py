@@ -6,22 +6,25 @@ from pathlib import Path
 import tree_sitter_c as tsc
 from tree_sitter import Language, Parser, Query, QueryCursor
 
+from .c_function import CFunction
 from .function_specification import FunctionSpecification
 from .parsec_file import ParsecFile
-from .parsec_function import ParsecFunction
 
 PRECONDITION_PREFIX = "__CPROVER_requires"
 POSTCONDITION_PREFIX = "__CPROVER_ensures"
 
+TREE_SITTER_LANG = Language(tsc.language())
+PARSER = Parser(TREE_SITTER_LANG)
 
-def extract_specification(function_lines: list[str]) -> FunctionSpecification:
-    """Extract the lines of a function that map to a CBMC specification.
+
+def extract_specification(function_lines: list[str]) -> FunctionSpecification | None:
+    """Extract a FunctionSpecification from the lines of a function.
 
     Args:
-        function_lines (list[str]): The lines of a function, which includes a CBMC specification.
+        function_lines (list[str]): The lines of a function, which may include a CBMC specification.
 
     Returns:
-        FunctionSpecification: The specification parsed from the lines of a C function.
+        FunctionSpecification | None: The specification parsed from the lines of a C function.
     """
     stripped_lines = [line.strip() for line in function_lines]
     preconditions = []
@@ -31,14 +34,39 @@ def extract_specification(function_lines: list[str]) -> FunctionSpecification:
             preconditions.append(_get_spec_lines(i, stripped_lines))
         elif line.startswith(POSTCONDITION_PREFIX):
             postconditions.append(_get_spec_lines(i, stripped_lines))
-    return FunctionSpecification(
-        preconditions=preconditions,
-        postconditions=postconditions,
-    )
+    if preconditions or postconditions:
+        return FunctionSpecification(
+            preconditions=preconditions,
+            postconditions=postconditions,
+        )
+    return None
 
 
 def get_signature_and_body(source_code: str, lang: str) -> tuple[str, str]:
     """Return the signature and body of a function.
+
+    The first part of the tuple is the signature of the function and any comments that may appear
+    before the body. For example, given the function declaration:
+
+        int main() // This
+        // is a comment.
+        {
+            return 1;
+        }
+
+    The first element of the tuple comprises:
+
+        int main() // This
+        // is a comment.
+
+    The second element of the tuple is everything excluding the signature. For the example above,
+    the element comprises:
+
+        {
+            return 1;
+        }
+
+    The parens are included.
 
     Args:
         source_code (str): The source code of the function.
@@ -50,30 +78,28 @@ def get_signature_and_body(source_code: str, lang: str) -> tuple[str, str]:
     if lang != "c":
         msg = f"Unsupported language: {lang}"
         raise RuntimeError(msg)
-    ts_lang = Language(tsc.language())
-    parser = Parser(ts_lang)
-    tree = parser.parse(bytes(source_code, encoding="utf-8"))
+    tree = PARSER.parse(bytes(source_code, encoding="utf-8"))
     # The query syntax is defined at
     # https://tree-sitter.github.io/tree-sitter/using-parsers/queries/1-syntax.html .
     query = Query(
-        ts_lang,
+        TREE_SITTER_LANG,
         """
         (function_definition
-          body: (compound_statement) @function.body) @function.definition
+          body: (compound_statement) @this_function_body) @this_function_definition
         """,
     )
     query_cursor = QueryCursor(query)
     captures = query_cursor.captures(tree.root_node)
 
-    definition_node = captures["function.definition"][0]
-    body_node = captures["function.body"][0]
+    try:
+        definition_node = captures["this_function_definition"][0]
+        body_node = captures["this_function_body"][0]
+    except (KeyError, IndexError) as e:
+        msg = f"Failed to parse a function definition from source code: {e}"
+        raise RuntimeError(e) from e
 
     signature = source_code[definition_node.start_byte : body_node.start_byte].strip()
-    if body_node is None:
-        raise RuntimeError("error")
-    if body_node.text is None:
-        raise RuntimeError("error")
-    body = body_node.text.decode(encoding="utf-8")
+    body = source_code[body_node.start_byte : body_node.end_byte].strip()
     return (signature, body)
 
 
@@ -152,9 +178,9 @@ def update_parsec_file(
     )
     original_function.end_line = new_end_line
     original_function.end_col = new_end_col
-    original_function.set_specifications(
-        extract_specification(updated_function_content.splitlines())
-    )
+    spec = extract_specification(updated_function_content.splitlines())
+    if spec:
+        original_function.set_specifications(specifications=spec)
 
     # Update line/col info for other functions.
     line_offset = function_len - (prev_end_line - prev_start_line + 1)
@@ -208,7 +234,9 @@ def update_function_declaration(
     )
     function.end_line = new_end_line
     function.end_col = new_end_col
-    function.set_specifications(extract_specification(function_lines))
+    spec = extract_specification(function_lines)
+    if spec:
+        function.set_specifications(spec)
 
     # Update line/col info for other functions.
     line_offset = num_lines - (end_line - start_line + 1)
@@ -259,12 +287,12 @@ def _get_temporary_file_name(function_name: str, source_file: Path) -> str:
 
 
 def _replace_function_declaration(
-    function: ParsecFunction, updated_function_declaration: str, path_to_src: Path
+    function: CFunction, updated_function_declaration: str, path_to_src: Path
 ) -> str:
     """Return contents of the file where the function is defined with its new declaration.
 
     Args:
-        function (ParsecFunction): The function with a new declaration.
+        function (CFunction): The function with a new declaration.
         updated_function_declaration (str): The updated function declaration.
         path_to_src (Path): The path to the source code.
 

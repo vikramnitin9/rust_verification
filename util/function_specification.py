@@ -4,9 +4,14 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 
 
-@dataclass(frozen=True)
+@dataclass
 class FunctionSpecification:
     """Represents the pre and postconditions of a function, if present.
+
+    Both the pre and postconditions array comprise strings that are CBMC macros.
+
+    For example, a preconditions array may be: ["__CPROVER_requires(a < INT_MAX)"], while a
+    postconditions array might be: ["__CPROVER_ensures(*b == old(a))"].
 
     Attributes:
         preconditions (list[str]): The preconditions of the function.
@@ -15,6 +20,14 @@ class FunctionSpecification:
 
     preconditions: list[str]
     postconditions: list[str]
+
+    def __init__(self, preconditions: list[str], postconditions: list[str]) -> None:
+        """Create a new FunctionSpecification."""
+        if not preconditions and not postconditions:
+            msg = "Both the pre and postconditions of a function specification cannot be empty"
+            raise ValueError(msg)
+        self.preconditions = preconditions
+        self.postconditions = postconditions
 
     def __iter__(self) -> Iterator[list[str]]:
         """Return a singleton iterator that yields a list of this specification's clauses.

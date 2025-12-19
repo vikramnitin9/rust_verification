@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from util import FunctionSpecification, ParsecFunction
+from util import CFunction, FunctionSpecification
 
 
 @dataclass(frozen=True)
@@ -41,13 +41,13 @@ class VerificationInput:
     """The input to a verifier.
 
     Attributes:
-        function (ParsecFunction): The function to be verified.
+        function (CFunction): The function to be verified.
         spec (FunctionSpecification): The spec for the function to be verified.
         context (VerificationContext): The context for the function to be verified.
         path_to_input_file (Path): The path to the file containing the function to be verified.
     """
 
-    function: ParsecFunction
+    function: CFunction
     spec: FunctionSpecification
     context: VerificationContext
     path_to_input_file: Path

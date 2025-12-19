@@ -5,9 +5,9 @@ import json
 from models import LLMGen, ModelError, get_llm_generation_with_model
 from util import (
     BacktrackingStrategy,
+    CFunction,
     FunctionSpecification,
     ParsecFile,
-    ParsecFunction,
     SpecConversation,
     extract_function,
     function_util,
@@ -52,12 +52,12 @@ class LlmSpecificationGenerator:
         self._num_repair_iterations = num_repair_iterations
 
     def generate_and_repair_spec(
-        self, function: ParsecFunction, backtracking_hint: str, proof_state: ProofState
+        self, function: CFunction, backtracking_hint: str, proof_state: ProofState
     ) -> list[SpecConversation]:
         """Return a list of potential specifications for the function.
 
         Args:
-            function (ParsecFunction): The function for which to generate potential specs.
+            function (CFunction): The function for which to generate potential specs.
             backtracking_hint (str): Hints to help guide spec generation. Only non-empty when
                 backtracking.
             proof_state (ProofState): The proof state under which to generate specs.
@@ -81,7 +81,7 @@ class LlmSpecificationGenerator:
 
     def _generate_specs(
         self,
-        function: ParsecFunction,
+        function: CFunction,
         backtracking_hint: str,  # noqa: ARG002
     ) -> list[SpecConversation]:
         # TODO: Somehow incorporate `backtracking_hint` into the prompt.
@@ -108,6 +108,7 @@ class LlmSpecificationGenerator:
             return [
                 SpecConversation(specification=candidate_spec, conversation=conversation)
                 for candidate_spec in candidate_specs
+                if candidate_spec
             ]
 
         except ModelError as me:
@@ -116,7 +117,7 @@ class LlmSpecificationGenerator:
 
     def _repair_spec(
         self,
-        function: ParsecFunction,
+        function: CFunction,
         spec_conversation: SpecConversation,
         proof_state: ProofState,
     ) -> list[SpecConversation]:
@@ -173,12 +174,12 @@ class LlmSpecificationGenerator:
         return verified_spec_conversations or observed_spec_conversations
 
     def _call_llm_for_repair(
-        self, function: ParsecFunction, conversation: list[dict[str, str]]
+        self, function: CFunction, conversation: list[dict[str, str]]
     ) -> dict[FunctionSpecification, str]:
         """Call an LLM for repairing a failing spec.
 
         Args:
-            function (ParsecFunction): The function with the failing spec.
+            function (CFunction): The function with the failing spec.
             conversation (list[dict[str, str]]): The conversation for specification repair.
 
         Raises:
@@ -196,10 +197,11 @@ class LlmSpecificationGenerator:
             candidate_repaired_functions_to_response = {
                 extract_function(response): response for response in responses
             }
-            return {
-                function_util.extract_specification(function.splitlines()): response
-                for function, response in candidate_repaired_functions_to_response.items()
-            }
+            repaired_specs_to_responses: dict[FunctionSpecification, str] = {}
+            for function_str, response in candidate_repaired_functions_to_response.items():
+                if repaired_spec := function_util.extract_specification(function_str.splitlines()):
+                    repaired_specs_to_responses[repaired_spec] = response
+            return repaired_specs_to_responses
         except ModelError as me:
             msg = f"Failed to repair specifications for '{function.name}'"
             raise RuntimeError(msg) from me

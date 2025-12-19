@@ -13,6 +13,8 @@ from .text_util import prepend_line_numbers, uncomment_cbmc_annotations
 class CFunction:
     """Represents a C function as parsed by ParseC."""
 
+    # MDE: Cross-reference to the documentation of ParseC, so that a reader can understand the
+    # meaning of each of these fields.
     name: str
     num_args: int
     return_type: str
@@ -28,7 +30,7 @@ class CFunction:
     arg_types: list[str] = field(default_factory=list)
     enums: list[Any] = field(default_factory=list)
     callee_names: list[str] = field(default_factory=list)
-    llvm_globals: list[Any] = field(
+    global_vars: list[Any] = field(
         default_factory=list
     )  # Cannot call this `globals` as it is a Python keyword.
     structs: list[Any] = field(default_factory=list)
@@ -51,15 +53,15 @@ class CFunction:
         self.arg_types = raw_analysis.get("argTypes", [])
         self.enums = raw_analysis.get("enums", [])
         if "callees" not in raw_analysis:
-            msg = f"ParseC result: {raw_analysis} was missing a 'callees' key"
+            msg = f"ParseC file: {raw_analysis} was missing a 'callees' key"
             raise ParsecError(msg)
-        callees_of_parsec_function = raw_analysis["callees"]
-        for func in callees_of_parsec_function:
+        callees_in_parsec_analysis = raw_analysis["callees"]
+        for func in callees_in_parsec_analysis:
             if "name" not in func:
-                msg = f"ParseC function: {func} did not have a 'name' key"
+                msg = f"CFunction: {func} did not have a 'name' key"
                 raise ParsecError(msg)
             self.callee_names.append(func["name"])
-        self.llvm_globals = raw_analysis.get("globals", [])
+        self.global_vars = raw_analysis.get("globals", [])
         self.structs = raw_analysis.get("structs", [])
 
     def get_source_code(
@@ -103,32 +105,64 @@ class CFunction:
             func_lines = uncomment_cbmc_annotations(func_lines)
 
         source_code = "".join(func_lines)
+        documentation = self.get_preceding_lines_starting_with_comment_delimiters()
+
+        if include_documentation_comments and documentation:
+            source_code = f"{documentation}\n{source_code}"
 
         if include_line_numbers:
-            source_code = "\n".join(
-                f"{line}: {content}"
-                for line, content in prepend_line_numbers(
-                    source_code.splitlines(), self.start_line, self.end_line + 1
-                )
+            start_line_offset = (
+                len(documentation.splitlines())
+                if include_documentation_comments and documentation
+                else 0
+            )
+            source_code = self._add_line_numbers(
+                source_code=source_code, start_line_offset=start_line_offset
             )
 
-        if include_documentation_comments:
-            if documentation := self.get_preceding_comments():
-                if include_line_numbers:
-                    documentation_lines = documentation.splitlines()
-                    documentation = "\n".join(
-                        f"{line}: {content}"
-                        for line, content in prepend_line_numbers(
-                            documentation_lines,
-                            self.start_line - len(documentation_lines),
-                            self.start_line,
-                        )
-                    )
-                source_code = f"{documentation}\n{source_code}"
         return source_code
 
-    def get_preceding_comments(self) -> str | None:
-        """Return the content of lines immediately preceding this function (usually documentation).
+    def _add_line_numbers(self, source_code: str, start_line_offset: int) -> str:
+        """Return source code with line numbers prepended to each line.
+
+        The start_line_offset parameter is non-zero when there is preceding documentation that
+        should be included with the function.
+
+        Args:
+            source_code (str): The source code to which to prepend line numbers.
+            start_line_offset (int): The start line offset.
+
+        Returns:
+            str: The source code of the function with line numbers prepended.
+        """
+        return "\n".join(
+            f"{line}: {content}"
+            for line, content in prepend_line_numbers(
+                source_code.splitlines(), self.start_line - start_line_offset, self.end_line + 1
+            )
+        )
+
+    def get_preceding_lines_starting_with_comment_delimiters(self) -> str | None:
+        r"""Return the lines immediately preceding this function that start with comment delimiters.
+
+        For example, given the function:
+
+        // This is a comment
+        int f()
+        {
+            return 1;
+        }
+
+        Return "// This is a comment".
+
+        Additionally, given the function:
+
+        /**
+        * Hello, world!
+        */
+        int g()
+
+        Return "/**\n* Hello, world!\n*/".
 
         Returns:
             str | None: The documentation comments for this function or None if there are no
@@ -145,7 +179,7 @@ class CFunction:
             curr_line = lines[i]
             if not multi_line_comment_seen and (not curr_line or curr_line.isspace()):
                 break
-            if self._is_comment(curr_line):
+            if self._is_line_starting_comment(curr_line):
                 multi_line_comment_seen = curr_line.endswith("*/") and "/*" not in curr_line
                 comments.append(curr_line)
             elif multi_line_comment_seen:
@@ -154,19 +188,33 @@ class CFunction:
         comments.reverse()  # Necessary since we walk the source file backwards from the definition.
         return "\n".join(comments) if comments else None
 
-    def _is_comment(self, line: str) -> bool:
-        """Return True iff a line comprises a comment (or part of one).
+    def _is_line_starting_comment(self, line: str) -> bool:
+        """Return True iff a line starts a comment.
+
+        See Mike's (lightly edited) note below for why we cannot use this as a general comment
+        detector:
+
+        "It's impossible to know whether a line is part of a comment, without seeing the entire
+        file in which the line appears. Maybe this function is determining whether the given line
+        starts a comment."
 
         Args:
             line (str): The line to check for a comment.
 
         Returns:
             bool: True iff a line comprises a comment (or part of one).
+
         """
         stripped_line = line.strip()
+        # Mike's note: A line starting with "*" could be part of a multiline multiplication
+        # expression.
         comment_starts = ("//", "/*", "*")
 
+        # Mike's note: a comment can begin in the middle of a line rather than at the end of one.
         if stripped_line.startswith(comment_starts):
+            # This is fine, since we're determining whether a line starts a comment.
+            # There is, however, the possibility of a false positive when a multi-line
+            # multiplication expression is encountered.
             return True
 
         if stripped_line.endswith("*/"):
@@ -186,11 +234,11 @@ class CFunction:
         """
         return len(self.preconditions) > 0 or len(self.postconditions) > 0
 
-    def is_direct_recursive(self) -> bool:
-        """Return True iff this function is directly recursive.
+    def is_self_recursive(self) -> bool:
+        """Return True iff this function is self-recursive.
 
         Returns:
-            bool: True iff this function is directly recursive.
+            bool: True iff this function is self-recursive.
         """
         return self.name in self.callee_names
 
@@ -202,13 +250,38 @@ class CFunction:
         """
         self.preconditions, self.postconditions = specifications
 
-    def __str__(self) -> str:
-        """Return the string representation of this function.
+    def get_summary_for_prompt(self) -> str:
+        """Return the summary of this function as it appears in a prompt to an LLM.
 
-        This method is meant to be used to embed this function into a prompt for an LLM.
+        A summary for a function in an LLM prompt comprises its name, signature (which also includes
+        its name), and its pre and postconditions (if it has either).
+
+        For example, the C function below:
+
+        ```c
+        void swap(int* a, int* b)
+        __CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))
+        __CPROVER_requires(__CPROVER_is_fresh(b, sizeof(int)))
+        __CPROVER_ensures(*a == __CPROVER_old(*b))
+        __CPROVER_ensures(*b == __CPROVER_old(*a))
+        {
+            int t = *a;
+            *a = *b;
+            *b = t;
+        }
+        ```
+
+        Would have the following summary:
+
+        Function name: swap
+        Function signature: void swap(int* a, int* b)
+        Preconditions: __CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int))),
+            __CPROVER_requires(__CPROVER_is_fresh(b, sizeof(int)))
+        Postconditions: __CPROVER_ensures(*a == __CPROVER_old(*b)),
+            __CPROVER_ensures(*b == __CPROVER_old(*a))
 
         Returns:
-            str: The string representation of this function.
+            str: The summary of this function as it appears in a prompt to an LLM.
         """
         function_name_and_signature = (
             f"""\nFunction name: {self.name}\nFunction signature: {self.signature}\n"""

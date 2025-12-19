@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from util import FunctionSpecification, ParsecFunction
+from util import CFunction, FunctionSpecification
 
 from .work_item import WorkItem
 
@@ -17,18 +17,18 @@ class WorkStack:
 
     work_items: list[WorkItem]
 
-    def __init__(self, functions_and_hints: list[tuple[ParsecFunction, str]]) -> None:
+    def __init__(self, functions_and_hints: list[tuple[CFunction, str]]) -> None:
         """Create a new WorkStack."""
         self.work_items = [
             WorkItem(function=function, backtracking_hint=hint)
             for function, hint in functions_and_hints
         ]
 
-    def push(self, function: ParsecFunction, backtracking_hint: str) -> None:
+    def push(self, function: CFunction, backtracking_hint: str) -> None:
         """Push the function and backtracking hint to this workstack.
 
         Args:
-            function (ParsecFunction): The function to process.
+            function (CFunction): The function to process.
             backtracking_hint (str): The hint for the function to process.
         """
         self.work_items.append(WorkItem(function=function, backtracking_hint=backtracking_hint))
@@ -83,11 +83,11 @@ class ProofState:
         self._verified_functions = []
         self._assumed_functions = []
 
-    def push_onto_workstack(self, function: ParsecFunction, hint: str = "") -> None:
+    def push_onto_workstack(self, function: CFunction, hint: str = "") -> None:
         """Push the given function and (optional) hint onto this proof state's workstack.
 
         Args:
-            function (ParsecFunction): The function to push onto this proof state's workstack.
+            function (CFunction): The function to push onto this proof state's workstack.
             hint (str, optional): The hint(s) for spec generation. Defaults to "".
         """
         self._workstack.push(function=function, backtracking_hint=hint)
@@ -120,28 +120,28 @@ class ProofState:
         """
         return self._specs
 
-    def set_specification(self, function: ParsecFunction, spec: FunctionSpecification) -> None:
+    def set_specification(self, function: CFunction, spec: FunctionSpecification) -> None:
         """Set this proof state's spec for a given function.
 
         Args:
-            function (ParsecFunction): The function whose specs to set.
+            function (CFunction): The function whose specs to set.
             spec (FunctionSpecification): The specs to set.
         """
         self._specs[function.name] = spec
 
-    def assume_function(self, function: ParsecFunction) -> None:
+    def assume_function(self, function: CFunction) -> None:
         """Update this proof state's list of functions with assumed specs.
 
         Args:
-            function (ParsecFunction): The function whose spec should be assumed.
+            function (CFunction): The function whose spec should be assumed.
         """
         self._assumed_functions.append(function.name)
 
-    def add_verified_function(self, function: ParsecFunction) -> None:
+    def add_verified_function(self, function: CFunction) -> None:
         """Update this proof state's list of verified functions.
 
         Args:
-            function (ParsecFunction): The function whose spec is verified.
+            function (CFunction): The function whose spec is verified.
         """
         self._verified_functions.append(function.name)
 

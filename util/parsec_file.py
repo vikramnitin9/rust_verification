@@ -14,7 +14,7 @@ import networkx as nx
 from loguru import logger
 
 from util import text_util
-from util.parsec_function import ParsecFunction
+from util.c_function import CFunction
 
 
 @dataclass
@@ -27,20 +27,23 @@ class ParsecFile:
     ParseC is a LLVM/Clang-based tool to parse a C program (hence the name).
     It extracts functions, structures, etc. along with their inter-dependencies.
 
+    # MDE: This text is misleading, since the constructor below takes exactly one file as an
+    # argument.
     ParseC can be run on a single C file, or a project. In the case where it is run on a single C
     file, the `enums` and `files` fields will be empty.
 
     See: parsec/README.md for additional documentation.
+
     """
 
-    # MDE: There should be a comment stating the type of the nodes in `call_graph`, even if the
-    # type-checker cannot utilize it.
     # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
+    # NOTE: Each node in call_graph represents a function name and is of type `str`.
     call_graph: nx.DiGraph  # type: ignore[type-arg]
     file_path: Path
+    # MDE: What is the semantics of `enums`?  What are its elements?
     enums: list[Any] = field(default_factory=list)
     files: list[str] = field(default_factory=list)
-    functions: dict[str, ParsecFunction] = field(default_factory=dict)
+    functions: dict[str, CFunction] = field(default_factory=dict)
 
     def __init__(self, file_path: Path):
         """Create an instance of ParsecFile from the file at `file_path`.
@@ -52,11 +55,12 @@ class ParsecFile:
         analysis_result_file = self._run_parsec(file_path)
         with Path(analysis_result_file).open(encoding="utf-8") as f:
             parsec_analysis = json.load(f)
-            function_analyses = [ParsecFunction(f) for f in parsec_analysis.get("functions", [])]
+            function_analyses = [CFunction(f) for f in parsec_analysis.get("functions", [])]
             self.enums = parsec_analysis.get("enums", [])
             self.files = parsec_analysis.get("files", [])
             self.functions = {analysis.name: analysis for analysis in function_analyses}
             # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
+            # NOTE: Each node in call_graph represents a function name and is of type `str`.
             self.call_graph: nx.DiGraph = nx.DiGraph()  # type: ignore[type-arg]
             for func_name, func in self.functions.items():
                 self.call_graph.add_node(func_name)
@@ -93,42 +97,26 @@ class ParsecFile:
         )
         return ParsecFile(tmp_file_with_commented_out_cbmc_annotations)
 
-    def copy(self, *, remove_self_edges_in_call_graph: bool = False) -> ParsecFile:
-        """Return a copy of this ParsecFile, optionally removing its call graph's self-edges.
+    def get_function_or_none(self, function_name: str) -> CFunction | None:
+        """Return the CFunction representation for a function with the given name.
 
         Args:
-            remove_self_edges_in_call_graph (bool, optional): True iff the call graph's self-edges
-                should be removed. Defaults to False.
+            function_name (str): The name of the function for which to return the CFunction.
 
         Returns:
-            ParsecFile: A copy of this ParsecFile.
-        """
-        parsec_file_copy = copy.deepcopy(self)
-        if remove_self_edges_in_call_graph:
-            self_edges = nx.selfloop_edges(self.call_graph)
-            parsec_file_copy.call_graph.remove_edges_from(self_edges)
-        return parsec_file_copy
-
-    def get_function_or_none(self, function_name: str) -> ParsecFunction | None:
-        """Return the ParsecFunction representation for a function with the given name.
-
-        Args:
-            function_name (str): The name of the function for which to return the ParsecFunction.
-
-        Returns:
-            ParsecFunction | None: The ParsecFunction with the given name, or None if no function
+            CFunction | None: The CFunction with the given name, or None if no function
                 with that name exists.
         """
         return self.functions.get(function_name, None)
 
-    def get_function(self, function_name: str) -> ParsecFunction:
-        """Return the ParsecFunction representation for a function with the given name.
+    def get_function(self, function_name: str) -> CFunction:
+        """Return the CFunction representation for a function with the given name.
 
         Args:
-            function_name (str): The name of the function for which to return the ParsecFunction.
+            function_name (str): The name of the function for which to return the CFunction.
 
         Returns:
-            ParsecFunction: The ParsecFunction with the given name.
+            CFunction: The CFunction with the given name.
 
         Raises:
             RuntimeError: if no function with that name exists.
@@ -139,16 +127,16 @@ class ParsecFile:
             raise RuntimeError(msg)
         return result
 
-    def get_callees(self, function: ParsecFunction) -> list[ParsecFunction]:
+    def get_callees(self, function: CFunction) -> list[CFunction]:
         """Return the callees of the given function.
 
         Args:
-            function (ParsecFunction): The function for which to return the callees.
+            function (CFunction): The function for which to return the callees.
 
         Returns:
-            list[ParsecFunction]: The callees of the given function.
+            list[CFunction]: The callees of the given function.
         """
-        callees: list[ParsecFunction] = []
+        callees: list[CFunction] = []
         for callee_name in function.callee_names:
             if callee_analysis := self.get_function_or_none(callee_name):
                 callees.append(callee_analysis)
@@ -174,12 +162,18 @@ class ParsecFile:
                 Defaults to False.
 
         Returns:
-            list[str]: The function names in this Parsec Result's call graph in topological order.
+            list[str]: The function names in this Parsec File's call graph in topological order.
         """
-        if not self.call_graph.nodes():
+        # Self-edges must be removed before computing the topological sort.
+        # Operate over a copy of the call graph to avoid modifying the original graph.
+        call_graph_copy = copy.copy(self.call_graph)
+        self_edges = nx.selfloop_edges(call_graph_copy)
+        call_graph_copy.remove_edges_from(self_edges)
+
+        if not call_graph_copy.nodes():
             return []
         try:
-            names_in_topological_order = list(nx.topological_sort(self.call_graph))
+            names_in_topological_order = list(nx.topological_sort(call_graph_copy))
             if reverse_order:
                 names_in_topological_order.reverse()
             return names_in_topological_order
@@ -201,6 +195,8 @@ class ParsecFile:
                 traversal.
         """
         func_names = [f for f in self.call_graph.nodes if f != ""]
+        # MDE: Write a comment explaining why this for loop is needed.  Why can't you just call
+        # `nx.dfs_postorder_nodes()` once, not passing in a `source` argument?
         visited: set[str] = set()
         result: list[str] = []
         for f in func_names:
@@ -213,6 +209,9 @@ class ParsecFile:
             result.reverse()
         return result
 
+    # MDE: Please document and discuss relationship to other functions with similar names.  Given
+    # that the JSON file is always read and parsed immediately after this function is called, I
+    # suggest that a cleaner abstraction would be a function that returns a JSON object.
     def _run_parsec(self, file_path: Path) -> Path:
         parsec_build_dir = os.environ.get("PARSEC_BUILD_DIR")
         if not parsec_build_dir:
