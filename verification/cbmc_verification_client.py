@@ -13,6 +13,12 @@ from .verification_input import VerificationInput
 class CbmcVerificationClient(VerificationClient):
     """Client for verifying source code via CBMC."""
 
+    _cache: dict[VerificationInput, VerificationResult]
+
+    def __init__(self, cache: dict[VerificationInput, VerificationResult]) -> None:
+        """Create a new CbmcVerificationClient."""
+        self._cache = cache
+
     def verify(
         self,
         function_name: str,

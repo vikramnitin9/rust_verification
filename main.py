@@ -18,7 +18,14 @@ from util import (
     copy_file_to_folder,
     ensure_lines_at_beginning,
 )
-from verification import CbmcVerificationClient, ProofState, VerificationClient, WorkStack
+from verification import (
+    CbmcVerificationClient,
+    ProofState,
+    VerificationClient,
+    VerificationInput,
+    VerificationResult,
+    WorkStack,
+)
 
 MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
@@ -28,6 +35,7 @@ DEFAULT_MODEL_TEMPERATURE = 1.0
 DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
 
 GLOBAL_PROOFSTATES: list[ProofState] = []
+VERIFIER_CACHE: dict[VerificationInput, VerificationResult] = {}
 
 
 def main() -> None:
@@ -62,7 +70,7 @@ def main() -> None:
     ensure_lines_at_beginning(header_lines, output_file_path)
 
     parsec_file = ParsecFile(input_file_path)
-    verifier: VerificationClient = CbmcVerificationClient()
+    verifier: VerificationClient = CbmcVerificationClient(VERIFIER_CACHE)
     specification_generator = LlmSpecificationGenerator(
         MODEL,
         system_prompt=DEFAULT_SYSTEM_PROMPT,
