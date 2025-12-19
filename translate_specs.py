@@ -105,11 +105,10 @@ def _save_translated_specifications(
         path_to_functions (Path): The path to the original functions file.
     """
     result_file = path_to_functions.with_suffix("")
-    with Path(f"{result_file}-translated-specs.json").open("w") as f:
-        data_to_write = {
-            name: asdict(specs) for name, specs in functions_to_verification_contexts.items()
-        }
-        f.write(json.dumps(data_to_write, indent=4))
+    data_to_write = {
+        name: asdict(specs) for name, specs in functions_to_verification_contexts.items()
+    }
+    Path(f"{result_file}-translated-specs.json").write_text(json.dumps(data_to_write, indent=4))
 
 
 def _check_translation_preconditions(
