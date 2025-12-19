@@ -90,13 +90,11 @@ class ParsecFile:
         Returns:
             ParsecFile: The ParsecFile.
         """
-        content_of_file_with_cbmc_annotations = (
-            path_to_file_with_cbmc_annotations.read_text(encoding="utf-8").splitlines()
-        )
+        content_of_file_with_cbmc_annotations = path_to_file_with_cbmc_annotations.read_text(
+            encoding="utf-8"
+        ).splitlines()
         file_lines_with_commented_out_annotations = "\n".join(
-            text_util.comment_out_cbmc_annotations(
-                content_of_file_with_cbmc_annotations
-            )
+            text_util.comment_out_cbmc_annotations(content_of_file_with_cbmc_annotations)
         )
         tmp_file_with_commented_out_cbmc_annotations = Path(
             f"{path_to_file_with_cbmc_annotations.with_suffix('')}-cbmc-commented-out{path_to_file_with_cbmc_annotations.suffix}"
@@ -151,9 +149,7 @@ class ParsecFile:
             if callee_analysis := self.get_function_or_none(callee_name):
                 callees.append(callee_analysis)
             else:
-                logger.error(
-                    f"LLVM Analysis for callee function {callee_name} not found"
-                )
+                logger.error(f"LLVM Analysis for callee function {callee_name} not found")
         return callees
 
     def get_names_of_recursive_functions(self) -> list[str]:
@@ -166,9 +162,7 @@ class ParsecFile:
         """
         return [f for f in self.call_graph if self.call_graph.has_edge(f, f)]
 
-    def get_function_names_in_topological_order(
-        self, reverse_order: bool = False
-    ) -> list[str]:
+    def get_function_names_in_topological_order(self, reverse_order: bool = False) -> list[str]:
         """Return the function names in this ParsecFile's call graph in topological order.
 
         Args:
@@ -196,9 +190,7 @@ class ParsecFile:
                 "Cycles detected in call graph: "
                 "Using postorder DFS traversal for function ordering."
             )
-            return self._get_function_names_in_postorder_dfs(
-                reverse_order=reverse_order
-            )
+            return self._get_function_names_in_postorder_dfs(reverse_order=reverse_order)
 
     def _get_function_names_in_postorder_dfs(self, reverse_order: bool) -> list[str]:
         """Return the function names in this ParsecFile's call graph collected via DFS traversal.
