@@ -39,15 +39,25 @@ immutable class VerificationInput:
 
 * function
 * spec for function
-* context: specifications provided to this verification run, created by calling
-  `current_context()`.  It includes:
-  * a spec for each of the function's callees
-  * a spec for each global variable that the function uses
-  * optionally, facts about how the function is called, such as what values are
-    actually passed to it at call sites.  The algorithm might use these as
-    preconditions, as opposed to the preconditions that an LLM would guess just
-    by looking at the function's source code and comments.  (I admit this is a
-    bit vague.)
+* context: Context
+
+Context (defined just below) represents specifications other relevant parts
+(other than the method under verification).  Each context is a subset of a
+ProofState, created by calling `current_context(fn, proofstate)`.  The program
+does not directly manipulate contexts; they are an internal detail of caching.
+They are used as keys for caching (rather than a ProofState) because they
+contain only the relevant parts of a ProofState, which reduces the number of
+possible keys and the likelihood of hitting in the cache.
+
+immutable class Context:
+
+* a spec for each of the function's callees.  Contains no specs for other functions in the program.
+* a spec for each global variable that the function uses
+* optionally, facts about how the function is called, such as what values are
+  actually passed to it at call sites.  The algorithm might use these as
+  preconditions, as opposed to the preconditions that an LLM would guess just
+  by looking at the function's source code and comments.  (I admit this is a
+  bit vague.)
 
 immutable class VerificationResult:
 
