@@ -134,8 +134,7 @@ class ParsecFunction:
             str | None: The documentation comments for this function or None if there are no
                 comments.
         """
-        with pathlib.Path(self.file_name).open(encoding="utf-8") as f:
-            lines = f.read().splitlines()
+        lines = pathlib.Path(self.file_name).read_text(encoding="utf-8").splitlines()
 
         # Function start/end lines are 1-indexed.
         # But the function signature could be on line 2 of the file, while a comment is on line 1.
