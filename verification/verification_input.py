@@ -76,9 +76,6 @@ class VerificationInput:
             return False
         self_file_content = self.path_to_input_file.read_text()
         other_file_content = other.path_to_input_file.read_text()
-        print(f"FUNC EQUAL? {self.function == other.function}")
-        print(f"SPEC EQUAL? {self.spec == other.spec}")
-        print(f"CONTEXT EQUAL? {self.context == other.context}")
         return (
             self.function == other.function
             and self.spec == other.spec
