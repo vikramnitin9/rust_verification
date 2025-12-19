@@ -4,7 +4,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(frozen=True)
 class FunctionSpecification:
     """Represents the pre and postconditions of a function, if present.
 
@@ -43,6 +43,16 @@ class FunctionSpecification:
         is_preconditions_same = sorted(self.preconditions) == sorted(self.preconditions)
         is_postconditions_same = sorted(self.postconditions) == sorted(self.postconditions)
         return is_preconditions_same and is_postconditions_same
+
+    def __hash__(self) -> int:
+        """Return this function specification's hash, based on its pre and postconditions.
+
+        Returns:
+            int: This function specification's hash, based on its pre and postconditions.
+        """
+        precondition_str = ",".join(sorted(self.preconditions))
+        postcondition_str = ",".join(sorted(self.postconditions))
+        return hash((precondition_str, postcondition_str))
 
     def get_prompt_str(self) -> str:
         """Return this function specification as it is summarized in a prompt.

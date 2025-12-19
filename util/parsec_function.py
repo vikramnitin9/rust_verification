@@ -9,7 +9,7 @@ from .parsec_error import ParsecError
 from .text_util import prepend_line_numbers, uncomment_cbmc_annotations
 
 
-@dataclass
+@dataclass(eq=False)
 class ParsecFunction:
     """Represents a C function as parsed by ParseC."""
 
@@ -220,3 +220,29 @@ class ParsecFunction:
             postconds_in_prompt = ", ".join(self.postconditions)
             function_name_and_signature += f"Postconditions: {postconds_in_prompt}\n"
         return function_name_and_signature
+
+    def __hash__(self) -> int:
+        """Return a hash based on this function's name, location, and file content.
+
+        Returns:
+            int: The hash based on this function's name, location, and file content.
+        """
+        self_file_content = pathlib.Path(self.file_name).read_text()
+        return hash((self.name, self_file_content, self.start_line, self.end_line))
+
+    def __eq__(self, other: object) -> bool:
+        """Return True iff this function is equivalent to another.
+
+        Returns:
+            bool: True iff this function is equivalent to another.
+        """
+        if not isinstance(other, ParsecFunction):
+            return False
+        self_file_content = pathlib.Path(self.file_name).read_text()
+        other_file_content = pathlib.Path(other.file_name).read_text()
+        return (
+            self.name == other.name
+            and self_file_content == other_file_content
+            and self.start_line == other.start_line
+            and self.end_line == other.end_line
+        )

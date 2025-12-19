@@ -1,6 +1,7 @@
 """Class representing an input to a verifier (e.g., CBMC)."""
 
 from dataclasses import dataclass
+from pathlib import Path
 
 from util import FunctionSpecification, ParsecFunction
 
@@ -20,6 +21,20 @@ class VerificationContext:
     global_variable_specs: dict[str, str]
     hints: str = ""
 
+    def __hash__(self) -> int:
+        """Return the hash for this verification context.
+
+        Returns:
+            int: The hash for this verification context.
+        """
+        return hash(
+            (
+                frozenset(self.callee_specs.items()),
+                frozenset(self.global_variable_specs.items()),
+                self.hints,
+            )
+        )
+
 
 @dataclass(frozen=True)
 class VerificationInput:
@@ -29,11 +44,13 @@ class VerificationInput:
         function (ParsecFunction): The function to be verified.
         spec (FunctionSpecification): The spec for the function to be verified.
         context (VerificationContext): The context for the function to be verified.
+        path_to_input_file (Path): The path to the file containing the function to be verified.
     """
 
     function: ParsecFunction
     spec: FunctionSpecification
     context: VerificationContext
+    path_to_input_file: Path
 
     def get_callee_names_to_specs(self) -> dict[str, FunctionSpecification]:
         """Return a dictionary of callee names to their specifications.
@@ -42,3 +59,38 @@ class VerificationInput:
             dict[str, FunctionSpecification]: A dictionary of callee names to their specifications.
         """
         return self.context.callee_specs
+
+    def __eq__(self, other) -> bool:
+        """Return True iff this input is equal to another.
+
+        Two verification inputs are equal iff they have the same function, specification, context,
+        and if the content of the files they are verifying are equal.
+
+        Args:
+            other (Any): An object to check equality for.
+
+        Returns:
+            bool: True iff this input is equal to another.
+        """
+        if not isinstance(other, VerificationInput):
+            return False
+        self_file_content = self.path_to_input_file.read_text()
+        other_file_content = other.path_to_input_file.read_text()
+        print(f"FUNC EQUAL? {self.function == other.function}")
+        print(f"SPEC EQUAL? {self.spec == other.spec}")
+        print(f"CONTEXT EQUAL? {self.context == other.context}")
+        return (
+            self.function == other.function
+            and self.spec == other.spec
+            and self.context == other.context
+            and self_file_content == other_file_content
+        )
+
+    def __hash__(self) -> int:
+        """Return the hash for this input.
+
+        Returns:
+            int: The has for this input.
+        """
+        file_content = self.path_to_input_file.read_text()
+        return hash((self.function, self.spec, file_content, self.context))
