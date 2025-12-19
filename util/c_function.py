@@ -11,10 +11,11 @@ from .text_util import prepend_line_numbers, uncomment_cbmc_annotations
 
 @dataclass
 class CFunction:
-    """Represents a C function as parsed by ParseC."""
+    """Represents a C function as parsed by ParseC.
+    For more details on these fields, see the ParseC documentation:
+    https://github.com/vikramnitin9/parsec/blob/main/README.md
+    """
 
-    # MDE: Cross-reference to the documentation of ParseC, so that a reader can understand the
-    # meaning of each of these fields.
     name: str
     num_args: int
     return_type: str
