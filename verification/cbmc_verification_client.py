@@ -1,12 +1,16 @@
 """Client for verifying source code via CBMC."""
 
+import subprocess
 from pathlib import Path
 
-from util import FunctionSpecification
+from loguru import logger
+
+from util import CFunction, FunctionSpecification, ParsecFile
 from verification.proof_state import ProofState
 from verification.verification_result import VerificationResult
 
 from .verification_client import VerificationClient
+from .verification_context_manager import VerificationContextManager
 from .verification_input import VerificationInput
 
 
@@ -14,48 +18,56 @@ class CbmcVerificationClient(VerificationClient):
     """Client for verifying source code via CBMC."""
 
     _cache: dict[VerificationInput, VerificationResult]
+    _context_manager: VerificationContextManager
 
     def __init__(self, cache: dict[VerificationInput, VerificationResult]) -> None:
         """Create a new CbmcVerificationClient."""
         self._cache = cache
+        self._context_manager = VerificationContextManager()
 
     def verify(
         self,
-        function_name: str,
-        names_of_verified_functions: list[str],
-        names_of_trusted_functions: list[str],
-        file_path: Path,
+        function: CFunction,
+        spec: FunctionSpecification,
+        proof_state: ProofState,
+        path_to_file: Path,
     ) -> VerificationResult:
-        """TODO: document me.
+        """Return the result of verifying the given function.
 
         Args:
-            function_name (str): _description_
-            names_of_verified_functions (list[str]): _description_
-            names_of_trusted_functions (list[str]): _description_
-            file_path (Path): _description_
+            function (CFunction): The function to verify.
+            spec (FunctionSpecification): The specification for the function to verify.
+            proof_state (ProofState): The proof state.
+            path_to_file (Path): The path to the file containing the function to verify.
 
         Returns:
-            VerificationResult: _description_
+            VerificationResult: The result of verifying the given function.
         """
-        raise NotImplementedError()
-
-    def verify_function_with_spec(
-        self, function_name: str, spec: FunctionSpecification, proof_state: ProofState
-    ) -> VerificationResult:
-        """TODO: document me.
-
-        Args:
-            function_name (str): _description_
-            spec (FunctionSpecification): _description_
-            proof_state (ProofState): _description_
-
-        Raises:
-            NotImplementedError: _description_
-
-        Returns:
-            VerificationResult: _description_
-        """
-        raise NotImplementedError("Implement me")
+        current_context = self._context_manager.current_context(
+            function=function, parsec_file=ParsecFile(path_to_file), proof_state=proof_state
+        )
+        vinput = VerificationInput(
+            function=function, spec=spec, context=current_context, path_to_input_file=path_to_file
+        )
+        if vinput not in self._cache:
+            vcommand = self._get_cbmc_verification_command(
+                vinput, path_to_file_to_verify=path_to_file, proof_state=proof_state
+            )
+            try:
+                logger.debug(f"Running command: {vcommand}")
+                result = subprocess.run(vcommand, shell=True, capture_output=True, text=True)
+                failure_messages = (
+                    None
+                    if result.returncode == 0
+                    else f"STDOUT: {result.stdout}\nSTDERR: {result.stderr}"
+                )
+                self._cache[vinput] = VerificationResult(
+                    vinput, succeeded=result.returncode == 0, failure_messages=failure_messages
+                )
+            except Exception as e:
+                msg = f"Error running command for function {function.name}: {e}"
+                raise RuntimeError(msg) from e
+        return self._cache[vinput]
 
     def _get_cbmc_verification_command(
         self,

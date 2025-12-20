@@ -135,7 +135,7 @@ def _verify_program(
 def _step(
     proof_state: ProofState,
     specification_generator: LlmSpecificationGenerator,
-    parsec_file: ParsecFile,  # noqa: ARG001
+    parsec_file: ParsecFile,
 ) -> list[ProofState]:
     work_item = proof_state.peek_workstack()
     spec_conversations_for_function: list[SpecConversation] = (
@@ -143,6 +143,7 @@ def _step(
             function=work_item.function,
             backtracking_hint=work_item.backtracking_hint,
             proof_state=proof_state,
+            parsec_file=parsec_file,
         )
     )
 

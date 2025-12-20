@@ -52,7 +52,11 @@ class LlmSpecificationGenerator:
         self._num_repair_iterations = num_repair_iterations
 
     def generate_and_repair_spec(
-        self, function: CFunction, backtracking_hint: str, proof_state: ProofState
+        self,
+        function: CFunction,
+        backtracking_hint: str,
+        proof_state: ProofState,
+        parsec_file: ParsecFile,
     ) -> list[SpecConversation]:
         """Return a list of potential specifications for the function.
 
@@ -61,6 +65,8 @@ class LlmSpecificationGenerator:
             backtracking_hint (str): Hints to help guide spec generation. Only non-empty when
                 backtracking.
             proof_state (ProofState): The proof state under which to generate specs.
+            parsec_file (ParsecFile): The ParsecFile containing the function for which to
+                generate and repair potential specs.
 
         Returns:
             list[SpecConversation]: A list of potential specifications for the function.
@@ -74,7 +80,10 @@ class LlmSpecificationGenerator:
         for pruned_spec in pruned_specs:
             repaired_specs.extend(
                 self._repair_spec(
-                    function=function, spec_conversation=pruned_spec, proof_state=proof_state
+                    function=function,
+                    spec_conversation=pruned_spec,
+                    proof_state=proof_state,
+                    parsec_file=parsec_file,
                 )
             )
         return repaired_specs
@@ -120,6 +129,7 @@ class LlmSpecificationGenerator:
         function: CFunction,
         spec_conversation: SpecConversation,
         proof_state: ProofState,
+        parsec_file: ParsecFile,
     ) -> list[SpecConversation]:
         observed_spec_conversations = []
         verified_spec_conversations = []
@@ -131,10 +141,13 @@ class LlmSpecificationGenerator:
                     continue
                 observed_spec_conversations.append(current_spec_conversation)
 
-                vresult = self._verifier.verify_function_with_spec(
-                    function_name=function.name,
+                # TODO: Create a separate file for each SpecConversation and pass it to the
+                # verifier.
+                vresult = self._verifier.verify(
+                    function=function,
                     spec=current_spec_conversation.specification,
                     proof_state=proof_state,
+                    path_to_file=parsec_file.file_path,
                 )
 
                 if vresult.succeeded:
@@ -143,10 +156,12 @@ class LlmSpecificationGenerator:
                     unverified_spec_conversations.append(current_spec_conversation)
 
             for unverified_spec_conversation in unverified_spec_conversations:
-                vresult = self._verifier.verify_function_with_spec(
-                    function_name=function.name,
+                # TODO: Use the same file(s) for the specs created beforehand.
+                vresult = self._verifier.verify(
+                    function=function,
                     spec=unverified_spec_conversation.specification,
                     proof_state=proof_state,
+                    path_to_file=parsec_file.file_path,
                 )
                 conversation_updated_with_failure_information = (
                     unverified_spec_conversation.get_conversation_with_message_appended(
