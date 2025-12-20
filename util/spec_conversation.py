@@ -1,12 +1,11 @@
 """Class to represent an LLM-generated specification and the conversation that led to it."""
 
-from dataclasses import dataclass
+from pathlib import Path
 
 from .backtracking_strategy import BacktrackingStrategy
 from .function_specification import FunctionSpecification
 
 
-@dataclass(frozen=True)
 class SpecConversation:
     """Class to represent an LLM-generated specification and the conversation that led to it.
 
@@ -21,7 +20,21 @@ class SpecConversation:
 
     specification: FunctionSpecification
     conversation: list[dict[str, str]]
-    backtracking_strategy: BacktrackingStrategy | None = None
+    backtracking_strategy: BacktrackingStrategy | None
+    path_to_file: Path | None
+
+    def __init__(
+        self,
+        specification: FunctionSpecification,
+        conversation: list[dict[str, str]],
+        backtracking_strategy: BacktrackingStrategy | None = None,
+        path_to_file: Path | None = None,
+    ) -> None:
+        """Create a new SpecConversation."""
+        self.specification = specification
+        self.conversation = conversation
+        self.backtracking_strategy = backtracking_strategy
+        self.path_to_file = path_to_file
 
     def get_conversation_with_message_appended(
         self, message: dict[str, str]

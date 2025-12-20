@@ -1,6 +1,7 @@
 """Module for generating and repairing specifications via LLMs."""
 
 import json
+from pathlib import Path
 
 from models import LLMGen, ModelError, get_llm_generation_with_model
 from util import (
@@ -143,11 +144,18 @@ class LlmSpecificationGenerator:
 
                 # TODO: Create a separate file for each SpecConversation and pass it to the
                 # verifier.
+                path_to_file_to_verify = self._get_path_to_file_to_verify(
+                    function=function,
+                    spec_conversation=current_spec_conversation,
+                    original_file_path=parsec_file.file_path,
+                )
+                current_spec_conversation.path_to_file = path_to_file_to_verify
+
                 vresult = self._verifier.verify(
                     function=function,
                     spec=current_spec_conversation.specification,
                     proof_state=proof_state,
-                    path_to_file=parsec_file.file_path,
+                    path_to_file=current_spec_conversation.path_to_file,
                 )
 
                 if vresult.succeeded:
@@ -156,12 +164,15 @@ class LlmSpecificationGenerator:
                     unverified_spec_conversations.append(current_spec_conversation)
 
             for unverified_spec_conversation in unverified_spec_conversations:
-                # TODO: Use the same file(s) for the specs created beforehand.
+                path_to_file_to_verify = unverified_spec_conversation.path_to_file
+                if not path_to_file_to_verify:
+                    msg = "A spec that failed to verify is missing the file in which it is declared"
+                    raise ValueError(msg)
                 vresult = self._verifier.verify(
                     function=function,
                     spec=unverified_spec_conversation.specification,
                     proof_state=proof_state,
-                    path_to_file=parsec_file.file_path,
+                    path_to_file=path_to_file_to_verify,
                 )
                 conversation_updated_with_failure_information = (
                     unverified_spec_conversation.get_conversation_with_message_appended(
@@ -255,3 +266,8 @@ class LlmSpecificationGenerator:
         except ValueError as ve:
             msg = f"The LLM likely returned an invalid backtracking strategy: {llm_response}"
             raise RuntimeError(msg) from ve
+
+    def _get_path_to_file_to_verify(
+        self, function: CFunction, spec_conversation: SpecConversation, original_file_path: Path
+    ) -> Path:
+        raise NotImplementedError()
