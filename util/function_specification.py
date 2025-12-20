@@ -26,8 +26,8 @@ class FunctionSpecification:
         if not preconditions and not postconditions:
             msg = "Both the pre and postconditions of a function specification cannot be empty"
             raise ValueError(msg)
-        self.preconditions = preconditions
-        self.postconditions = postconditions
+        self.preconditions = sorted(preconditions)
+        self.postconditions = sorted(postconditions)
 
     def __iter__(self) -> Iterator[list[str]]:
         """Return a singleton iterator that yields a list of this specification's clauses.
@@ -53,9 +53,10 @@ class FunctionSpecification:
         """
         if not isinstance(other, FunctionSpecification):
             return False
-        is_preconditions_same = sorted(self.preconditions) == sorted(self.preconditions)
-        is_postconditions_same = sorted(self.postconditions) == sorted(self.postconditions)
-        return is_preconditions_same and is_postconditions_same
+        return (
+            self.preconditions == other.preconditions
+            and self.postconditions == other.postconditions
+        )
 
     def __hash__(self) -> int:
         """Return this function specification's hash, based on its pre and postconditions.
@@ -63,8 +64,8 @@ class FunctionSpecification:
         Returns:
             int: This function specification's hash, based on its pre and postconditions.
         """
-        precondition_str = ",".join(sorted(self.preconditions))
-        postcondition_str = ",".join(sorted(self.postconditions))
+        precondition_str = ",".join(self.preconditions)
+        postcondition_str = ",".join(self.postconditions)
         return hash((precondition_str, postcondition_str))
 
     def get_prompt_str(self) -> str:

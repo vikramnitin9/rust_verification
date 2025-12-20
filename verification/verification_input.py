@@ -60,6 +60,14 @@ class VerificationInput:
         """
         return self.context.callee_specs
 
+    def get_file_content(self) -> str:
+        """Return the content of the file that is to be verified.
+
+        Returns:
+            str: The content of the file that is to be verified.
+        """
+        return self.path_to_input_file.read_text()
+
     def __eq__(self, other) -> bool:
         """Return True iff this input is equal to another.
 
@@ -74,20 +82,18 @@ class VerificationInput:
         """
         if not isinstance(other, VerificationInput):
             return False
-        self_file_content = self.path_to_input_file.read_text()
-        other_file_content = other.path_to_input_file.read_text()
         return (
             self.function == other.function
             and self.spec == other.spec
             and self.context == other.context
-            and self_file_content == other_file_content
+            and self.get_file_content() == other.get_file_content()
         )
 
     def __hash__(self) -> int:
-        """Return the hash for this input.
+        """Return the hash for this verification input.
 
         Returns:
-            int: The has for this input.
+            int: The hash for this verification input.
         """
-        file_content = self.path_to_input_file.read_text()
+        file_content = self.get_file_content()
         return hash((self.function, self.spec, file_content, self.context))
