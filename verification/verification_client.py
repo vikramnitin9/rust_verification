@@ -3,7 +3,10 @@
 from pathlib import Path
 from typing import Protocol
 
-from .verification_result import Failure, Success
+from util import CFunction, FunctionSpecification
+
+from .proof_state import ProofState
+from .verification_result import VerificationResult
 
 
 class VerificationClient(Protocol):
@@ -11,25 +14,20 @@ class VerificationClient(Protocol):
 
     def verify(
         self,
-        function_name: str,
-        names_of_verified_functions: list[str],
-        names_of_trusted_functions: list[str],
-        file_path: Path,
-    ) -> Success | Failure:
-        """Return the result of verifying the function named `function_name`.
+        function: CFunction,
+        spec: FunctionSpecification,
+        proof_state: ProofState,
+        path_to_file: Path,
+    ) -> VerificationResult:
+        """Return the result of verifying the given function.
 
         Args:
-            function_name (str): The name of the function to verify.
-            names_of_verified_functions (list[str]): The names of functions that have been verified.
-            names_of_trusted_functions (list[str]): The names of functions whose specifications
-                should be trusted by the verifier.
-            file_path (Path): The file in which the function to verify is defined.
-
-        Raises:
-            RuntimeError: Raised when an error occurs in executing the verification command.
+            function (CFunction): The function to verify.
+            spec (FunctionSpecification): The specification for the function to verify.
+            proof_state (ProofState): The proof state.
+            path_to_file (Path): The path to the file containing the function to verify.
 
         Returns:
-            Success | Failure: Success if the function successfully verifies, Failure if the
-                function does not verify.
+            VerificationResult: The result of verifying the given function.
         """
         ...

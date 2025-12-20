@@ -20,14 +20,16 @@ class LlmSpecificationGenerator:
     """Class for LLM-driven specification generation and repair.
 
     Attributes:
-        _model (LLMGen): The model to use for specification generation and repair.
-        _parsec_file (ParsecFile): The ParseC file to use to obtain functions.
+        _llm (LLMGen): The LLM to use for specification generation and repair.
         _prompt_builder (PromptBuilder): Used in creating specification generation and repair
             prompts.
+        _verifier (VerificationClient): The verification client to use.
+        _num_specification_candidates (int): Number of specification candidates to generate.
+        _num_repair_iterations (int): Number of repair iterations to attempt.
+        _num_repair_candidates (int): Number of repair candidates to generate.
+        _system_prompt (str): The system prompt for the LLM.
     """
 
-    _model: LLMGen
-    _parsec_file: ParsecFile
     _prompt_builder: PromptBuilder
     _llm: LLMGen
     _verifier: VerificationClient
@@ -73,7 +75,7 @@ class LlmSpecificationGenerator:
             list[SpecConversation]: A list of potential specifications for the function.
         """
         candidate_specs = self._generate_specs(
-            function=function, backtracking_hint=backtracking_hint
+            function=function, backtracking_hint=backtracking_hint, parsec_file=parsec_file
         )
         # TODO: Actually perform some pruning here of the candidate specs first.
         pruned_specs = candidate_specs
@@ -93,11 +95,12 @@ class LlmSpecificationGenerator:
         self,
         function: CFunction,
         backtracking_hint: str,  # noqa: ARG002
+        parsec_file: ParsecFile,
     ) -> list[SpecConversation]:
         # TODO: Somehow incorporate `backtracking_hint` into the prompt.
         conversation = [{"role": "system", "content": self._system_prompt}]
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
-            function, self._parsec_file
+            function, parsec_file
         )
         specification_generation_message = {
             "role": "user",
@@ -177,8 +180,10 @@ class LlmSpecificationGenerator:
                 conversation_updated_with_failure_information = (
                     unverified_spec_conversation.get_conversation_with_message_appended(
                         {
-                            "user": self._prompt_builder.backtracking_prompt(
-                                verification_result=vresult
+                            "role": "user",
+                            "content": self._prompt_builder.specification_repair_prompt(
+                                function_name=function.name,
+                                verification_failure=vresult,
                             )
                         }
                     )

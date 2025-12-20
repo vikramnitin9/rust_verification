@@ -14,8 +14,6 @@ __all__ = [
     "ParsecError",
     "FunctionSpecification",
     "SpecConversation",
-    "ParsecError",
-    "CFunction",
     "ParsecFile",
     "copy_file_to_folder",
     "extract_function",
