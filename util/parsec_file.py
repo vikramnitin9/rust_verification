@@ -31,7 +31,7 @@ class ParsecFile:
     It extracts functions, structures, etc. along with their inter-dependencies.
 
     Note that ParseC can be run on a single C file, or a project.
-    However, our current implementation of ParsecFile only supports running ParseC on a single C file.
+    However, our current implementation of ParsecFile only supports running ParseC on a single file.
     See https://github.com/vikramnitin9/rust_verification/issues/69
 
     """
@@ -209,7 +209,7 @@ class ParsecFile:
 
     # MDE: Please document and discuss relationship to other functions with similar names.
     def _run_parsec(self, file_path: Path) -> dict[str, Any]:
-        """Internal function that run the parsec executable and returns its results.
+        """Run the parsec executable and return its results.
 
         Args:
             file_path (Path): The path to a C file to be analyzed by ParseC.
