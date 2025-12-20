@@ -141,7 +141,7 @@ def test_get_comment_multi_line_pathological() -> None:
 def test_is_self_recursive_is_true() -> None:
     parsec_file = ParsecFile(Path("test/data/callgraph/self_recursion.c"))
     expected_function = parsec_file.get_function_or_none("recursive_function")
-    assert expected_function, "Function 'recursive_function' should be declared in test/data/callgraph/direct_recursion.c"
+    assert expected_function, "Function 'recursive_function' should be declared in test/data/callgraph/self_recursion.c"
     assert expected_function.is_self_recursive()
 
 
