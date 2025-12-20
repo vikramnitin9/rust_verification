@@ -138,14 +138,14 @@ def test_get_comment_multi_line_pathological() -> None:
     assert expected_function.get_preceding_lines_starting_with_comment_delimiters() == expected_comment
 
 
-def test_is_direct_recursive_is_true() -> None:
-    parsec_file = ParsecFile(Path("test/data/callgraph/direct_recursion.c"))
+def test_is_self_recursive_is_true() -> None:
+    parsec_file = ParsecFile(Path("test/data/callgraph/self_recursion.c"))
     expected_function = parsec_file.get_function_or_none("recursive_function")
     assert expected_function, "Function 'recursive_function' should be declared in test/data/callgraph/direct_recursion.c"
     assert expected_function.is_self_recursive()
 
 
-def test_is_direct_recursive_is_false() -> None:
+def test_is_self_recursive_is_false() -> None:
     parsec_file = ParsecFile(Path("test/data/callgraph/simple.c"))
     expected_function = parsec_file.get_function_or_none("a")
     assert expected_function, "Function 'a' should be declared in test/data/callgraph/simple.c"
