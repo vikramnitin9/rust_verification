@@ -92,7 +92,7 @@ def test_get_source_code_at_end_of_file() -> None:
 def test_get_comment_no_comments() -> None:
     parsec_file = ParsecFile(Path("test/data/get_comments/test.c"))
     expected_function = parsec_file.get_function_or_none("f2")
-    assert expected_function, "Function 'f2' should be declared in test/data/get_source_code/test.c"
+    assert expected_function, "Function 'f2' should be declared in test/data/get_comments/test.c"
     assert expected_function.get_preceding_lines_starting_with_comment_delimiters() is None
 
 
