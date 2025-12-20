@@ -12,7 +12,7 @@ from typing import cast
 from loguru import logger
 
 from translation import CBMCAst, CBMCToKani, KaniProofHarness, Parser, ToAst, TranslationError
-from util import FunctionSpecification, ParsecFunction
+from util import CFunction, FunctionSpecification
 from util.rust import RustFunction, RustParser, TsRustParser
 from verification import KaniVerificationContext
 
@@ -27,7 +27,7 @@ def main() -> None:
         "--functions",
         required=True,
         help="Path to the .pkl file containing the "
-        "list of ParsecFunction objects with specifications to translate.",
+        "list of CFunction objects with specifications to translate.",
     )
 
     parser.add_argument(
@@ -40,7 +40,7 @@ def main() -> None:
 
     path_to_functions = Path(args.functions)
     with path_to_functions.open("rb") as f:
-        c_functions = [cast("ParsecFunction", d) for d in pkl.load(f)]
+        c_functions = [cast("CFunction", d) for d in pkl.load(f)]
 
     if not c_functions:
         msg = f"{path_to_functions} contained no valid functions."
@@ -76,14 +76,12 @@ def main() -> None:
     )
 
 
-def _translate_specifications(
-    translator: CBMCToKani, function: ParsecFunction
-) -> FunctionSpecification:
+def _translate_specifications(translator: CBMCToKani, function: CFunction) -> FunctionSpecification:
     """Return the translated specifications originating from the given function.
 
     Args:
         translator (CBMCToKani): The translator to use for specification translation.
-        function (ParsecFunction): The function to obtain the specifications to translate.
+        function (CFunction): The function to obtain the specifications to translate.
 
     Returns:
         FunctionSpecification: A translated function specification.
@@ -112,12 +110,12 @@ def _save_translated_specifications(
 
 
 def _check_translation_preconditions(
-    c_functions: list[ParsecFunction], rust_function_name_to_function: dict[str, RustFunction]
+    c_functions: list[CFunction], rust_function_name_to_function: dict[str, RustFunction]
 ) -> None:
     """Check preconditions that must be met for specification translation.
 
     Args:
-        c_functions (list[ParsecFunction]): The C functions for which to translate specifications.
+        c_functions (list[CFunction]): The C functions for which to translate specifications.
         rust_function_name_to_function (dict[str, RustFunction]): A map of candidate Rust functions
             (i.e., translated from the C functions).
 

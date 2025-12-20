@@ -3,7 +3,7 @@
 from pathlib import Path
 from string import Template
 
-from util import ParsecFile, ParsecFunction
+from util import CFunction, ParsecFile
 
 from .verification_result import Failure
 
@@ -20,13 +20,11 @@ class PromptBuilder:
     SOURCE_PLACEHOLDER = "<<SOURCE>>"
     CALLEE_CONTEXT_PLACEHOLDER = "<<CALLEE_CONTEXT>>"
 
-    def specification_generation_prompt(
-        self, function: ParsecFunction, parsec_file: ParsecFile
-    ) -> str:
+    def specification_generation_prompt(self, function: CFunction, parsec_file: ParsecFile) -> str:
         """Return the prompt used for specification generation.
 
         Args:
-            function (ParsecFunction): The function for which to generate specifications.
+            function (CFunction): The function for which to generate specifications.
             parsec_file (ParsecFile): The top-level ParseC file.
 
         Returns:
@@ -75,15 +73,15 @@ class PromptBuilder:
             stderr=verification_failure.stderr,
         )
 
-    def _get_callee_specs(self, caller: str, callees_with_specs: list[ParsecFunction]) -> str:
+    def _get_callee_specs(self, caller: str, callees_with_specs: list[CFunction]) -> str:
         """Return the callee specifications to add to a prompt.
 
         Args:
             caller (str): The caller function.
-            callees_with_specs (list[ParsecFunction]): The list of callees with specifications.
+            callees_with_specs (list[CFunction]): The list of callees with specifications.
 
         Returns:
             str: The callee specifications to add to a prompt.
         """
-        callee_context = "\n".join(str(callee) for callee in callees_with_specs)
+        callee_context = "\n".join(callee.get_summary_for_prompt() for callee in callees_with_specs)
         return f"{caller} has the following callees:\n{callee_context}"

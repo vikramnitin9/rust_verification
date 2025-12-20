@@ -14,6 +14,7 @@ jobs:
         with:
           fetch-depth: 1
           show-progress: false
+          submodules: true
       - name: Build Docker container
         run: make docker-build
       - name: Run tests

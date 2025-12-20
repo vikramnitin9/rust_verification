@@ -1,5 +1,6 @@
 """Utilities for working with and manipulating files."""
 
+import shutil
 from pathlib import Path
 
 
@@ -16,10 +17,7 @@ def copy_file_to_folder(input_file_path: Path, destination_folder_name: str) -> 
     output_folder = Path(destination_folder_name)
     output_folder.mkdir(parents=True, exist_ok=True)
     output_file_path = output_folder / input_file_path.name
-
-    content = input_file_path.read_text(encoding="utf-8")
-    output_file_path.write_text(content, encoding="utf-8")
-
+    shutil.copy(input_file_path, output_file_path)
     return output_file_path
 
 

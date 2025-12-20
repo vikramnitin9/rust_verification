@@ -9,6 +9,11 @@ def extract_function(text: str) -> str:
 
     An LLM is prompted to return a string in the following JSON format:
 
+    # TODO: just ask for the specification.  Then the LLM is less likely to hallucinate a
+    # change in the function's source code.
+    # Also make this more structured, such as separating the pre- and post-conditions.
+    # See https://github.com/vikramnitin9/rust_verification/issues/66
+
         { "function_with_specs": "<SOURCE CODE>" }
 
     This function extracts the <SOURCE CODE> part.
