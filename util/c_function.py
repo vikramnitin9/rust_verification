@@ -11,10 +11,12 @@ from .text_util import prepend_line_numbers, uncomment_cbmc_annotations
 
 @dataclass(eq=False)
 class CFunction:
-    """Represents a C function as parsed by ParseC."""
+    """Represents a C function as parsed by ParseC.
 
-    # MDE: Cross-reference to the documentation of ParseC, so that a reader can understand the
-    # meaning of each of these fields.
+    For more details on these fields, see the ParseC documentation:
+    https://github.com/vikramnitin9/parsec/blob/main/README.md
+    """
+
     name: str
     num_args: int
     return_type: str
@@ -35,7 +37,7 @@ class CFunction:
     )  # Cannot call this `globals` as it is a Python keyword.
     structs: list[Any] = field(default_factory=list)
 
-    def __init__(self, raw_analysis: dict[str, Any]):
+    def __init__(self, raw_analysis: dict[str, Any]) -> None:
         """Create a new CFunction."""
         self.name = raw_analysis["name"]
         self.num_args = raw_analysis["num_args"]
@@ -53,7 +55,7 @@ class CFunction:
         self.arg_types = raw_analysis.get("argTypes", [])
         self.enums = raw_analysis.get("enums", [])
         if "callees" not in raw_analysis:
-            msg = f"ParseC file: {raw_analysis} was missing a 'callees' key"
+            msg = f"ParseC analysis: {raw_analysis} was missing a 'callees' key"
             raise ParsecError(msg)
         callees_in_parsec_analysis = raw_analysis["callees"]
         for func in callees_in_parsec_analysis:

@@ -92,6 +92,8 @@ multithreading and could save time across multiple runs.
 class ProofState:
 
 * specs: Map[Function, Specification]: the current specification (which may be a guess) for each function.
+  * We can compute the verified/unverified/not-yet processed functions from a ProofState's `specs` map.
+  * TODO: think about whether it's possible to obtain a list of assumed specs.
 * workstack: Stack[WorkItem]
   A stack of functions that need to be (re)processed.
   Each hint is text provided to the LLM to guide it.  I don't have a data
