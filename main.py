@@ -1,6 +1,6 @@
-"""Main entry point for specification generation and verification."""
+#!/opt/miniconda3/bin/python
 
-# !/opt/miniconda3/bin/python
+"""Main entry point for specification generation and verification."""
 
 import argparse
 import copy
@@ -75,7 +75,7 @@ def main() -> None:
         MODEL,
         system_prompt=DEFAULT_SYSTEM_PROMPT,
         verifier=verifier,
-        num_specification_candidates=args.num_specification_generation_candidates,
+        num_specification_candidates=args.num_specification_candidates,
         num_repair_iterations=args.num_specification_repair_iterations,
     )
 
@@ -83,10 +83,6 @@ def main() -> None:
         parsec_file
     )
     _verify_program(functions_in_reverse_topological_order, specification_generator, parsec_file)
-
-
-if __name__ == "__main__":
-    main()
 
 
 def _get_functions_in_reverse_topological_order(
@@ -169,3 +165,7 @@ def _step(
             # No backtracking to consider.
             next_proof_state.pop_workstack()
     return result
+
+
+if __name__ == "__main__":
+    main()
