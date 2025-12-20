@@ -196,7 +196,7 @@ class LlmSpecificationGenerator:
                     SpecConversation(
                         specification=specification,
                         conversation=unverified_spec_conversation.get_conversation_with_message_appended(
-                            {"role": "assistant", "response": response}
+                            {"role": "assistant", "content": response}
                         ),
                         backtracking_strategy=self._parse_backtracking_strategy(response),
                     )
@@ -222,7 +222,7 @@ class LlmSpecificationGenerator:
                 from the LLM from which the repaired specification was extracted.
         """
         try:
-            responses = self._model.gen(
+            responses = self._llm.gen(
                 messages=conversation, top_k=self._num_repair_candidates, temperature=0.8
             )
             candidate_repaired_functions_to_response = {
