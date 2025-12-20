@@ -206,6 +206,7 @@ class ParsecFile:
         return result
 
     # MDE: Please document and discuss relationship to other functions with similar names.
+    # JY: Work for above captured in https://github.com/vikramnitin9/rust_verification/issues/70
     def _run_parsec(self, file_path: Path) -> dict[str, Any]:
         """Run the parsec executable and return its results.
 
