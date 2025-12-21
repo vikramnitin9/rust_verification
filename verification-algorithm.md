@@ -169,6 +169,7 @@ def step(proofstate: ProofState) -> List[ProofState]:
       next_proofstate.workstack.push((last_llm_response.get_function(), last_llm_response))
     else:
       next_proofstate.workstack.pop() # pop off fn
+    result.append(next_proofstate)
   return result
 
 def generate_and_repair_spec(fn, backtrack_hint) -> List[SpecConversation]:
