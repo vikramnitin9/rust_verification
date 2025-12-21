@@ -31,6 +31,7 @@ from verification import (
 MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
 DEFAULT_NUM_SPECIFICATION_CANDIDATES = 10
+DEFAULT_NUM_REPAIR_CANDIDATES = 1
 DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS = 3
 DEFAULT_MODEL_TEMPERATURE = 1.0
 DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
@@ -58,6 +59,13 @@ def main() -> None:
         type=int,
     )
     parser.add_argument(
+        "--num-repair-candidates",
+        required=False,
+        help="The number of repaired specifications to return during a repair iteration.",
+        default=DEFAULT_NUM_REPAIR_CANDIDATES,
+        type=int,
+    )
+    parser.add_argument(
         "--num-specification-repair-iterations",
         required=False,
         help="The number of times to attempt to repair a faulty specification.",
@@ -80,6 +88,7 @@ def main() -> None:
         verifier=verifier,
         parsec_file=parsec_file,
         num_specification_candidates=args.num_specification_candidates,
+        num_repair_candidates=args.num_repair_candidates,
         num_repair_iterations=args.num_specification_repair_iterations,
     )
 

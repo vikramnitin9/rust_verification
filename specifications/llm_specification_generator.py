@@ -43,6 +43,7 @@ class LlmSpecificationGenerator:
         verifier: VerificationClient,
         parsec_file: ParsecFile,
         num_specification_candidates: int,
+        num_repair_candidates: int,
         num_repair_iterations: int,
     ):
         """Create a new LlmSpecificationGenerator."""
@@ -52,6 +53,7 @@ class LlmSpecificationGenerator:
         self._parsec_file = parsec_file
         self._prompt_builder = PromptBuilder()
         self._num_specification_candidates = num_specification_candidates
+        self._num_repair_candidates = num_repair_candidates
         self._num_repair_iterations = num_repair_iterations
 
     def generate_and_repair_spec(
@@ -171,9 +173,10 @@ class LlmSpecificationGenerator:
                 conversation_updated_with_failure_information = (
                     unverified_spec_conversation.get_conversation_with_message_appended(
                         {
-                            "user": self._prompt_builder.backtracking_prompt(
+                            "role": "user",
+                            "content": self._prompt_builder.backtracking_prompt(
                                 verification_result=vresult
-                            )
+                            ),
                         }
                     )
                 )
@@ -185,7 +188,7 @@ class LlmSpecificationGenerator:
                     SpecConversation(
                         specification=specification,
                         conversation=unverified_spec_conversation.get_conversation_with_message_appended(
-                            {"role": "assistant", "response": response}
+                            {"role": "assistant", "content": response}
                         ),
                         backtracking_strategy=self._parse_backtracking_strategy(response),
                     )
@@ -211,7 +214,7 @@ class LlmSpecificationGenerator:
                 from the LLM from which the repaired specification was extracted.
         """
         try:
-            responses = self._model.gen(
+            responses = self._llm.gen(
                 messages=conversation, top_k=self._num_repair_candidates, temperature=0.8
             )
             candidate_repaired_functions_to_response = {
