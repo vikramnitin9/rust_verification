@@ -72,6 +72,13 @@ def main() -> None:
         default=DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS,
         type=int,
     )
+    parser.add_argument(
+        "--use-llm-response-cache",
+        required=False,
+        help="Whether to use cached LLM responses for specification generation and repair.",
+        default=False,
+        type=bool,
+    )
     args = parser.parse_args()
 
     input_file_path = Path(args.file)
@@ -90,6 +97,7 @@ def main() -> None:
         num_specification_candidates=args.num_specification_candidates,
         num_repair_candidates=args.num_repair_candidates,
         num_repair_iterations=args.num_specification_repair_iterations,
+        use_cache=args.use_llm_response_cache,
     )
 
     functions_in_reverse_topological_order = _get_functions_in_reverse_topological_order(

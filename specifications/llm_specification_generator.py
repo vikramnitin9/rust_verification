@@ -15,6 +15,8 @@ from util import (
 )
 from verification import PromptBuilder, ProofState, VerificationClient
 
+from .llm_response_cache import LlmResponseCache
+
 
 class LlmSpecificationGenerator:
     """Class for LLM-driven specification generation and repair.
@@ -35,6 +37,8 @@ class LlmSpecificationGenerator:
     _num_repair_iterations: int
     _num_repair_candidates: int
     _system_prompt: str
+    _llm_response_cache: LlmResponseCache
+    _use_cache: bool
 
     def __init__(
         self,
@@ -45,6 +49,7 @@ class LlmSpecificationGenerator:
         num_specification_candidates: int,
         num_repair_candidates: int,
         num_repair_iterations: int,
+        use_cache: bool = False,
     ):
         """Create a new LlmSpecificationGenerator."""
         self._llm = get_llm_generation_with_model(model)
@@ -55,6 +60,8 @@ class LlmSpecificationGenerator:
         self._num_specification_candidates = num_specification_candidates
         self._num_repair_candidates = num_repair_candidates
         self._num_repair_iterations = num_repair_iterations
+        self._llm_response_cache = LlmResponseCache()
+        self._use_cache = use_cache
 
     def generate_and_repair_spec(
         self,
@@ -105,9 +112,18 @@ class LlmSpecificationGenerator:
         }
         try:
             conversation.append(specification_generation_message)
-            model_responses = self._llm.gen(
-                conversation, top_k=self._num_specification_candidates, temperature=0.8
-            )
+            model_responses = None
+            if self._use_cache:
+                model_responses = self._llm_response_cache.read(specification_generation_prompt)
+            if not model_responses:
+                # Cache miss.
+                model_responses = self._llm.gen(
+                    conversation, top_k=self._num_specification_candidates, temperature=0.8
+                )
+                self._llm_response_cache.write(
+                    prompt=specification_generation_prompt, responses=model_responses
+                )
+
             candidate_specified_functions_with_responses = [
                 (extract_function(response), response) for response in model_responses
             ]
