@@ -41,6 +41,7 @@ class LlmSpecificationGenerator:
         model: str,
         system_prompt: str,
         verifier: VerificationClient,
+        parsec_file: ParsecFile,
         num_specification_candidates: int,
         num_repair_iterations: int,
     ):
@@ -48,6 +49,7 @@ class LlmSpecificationGenerator:
         self._llm = get_llm_generation_with_model(model)
         self._system_prompt = system_prompt
         self._verifier = verifier
+        self._parsec_file = parsec_file
         self._prompt_builder = PromptBuilder()
         self._num_specification_candidates = num_specification_candidates
         self._num_repair_iterations = num_repair_iterations
@@ -57,7 +59,6 @@ class LlmSpecificationGenerator:
         function: CFunction,
         backtracking_hint: str,
         proof_state: ProofState,
-        parsec_file: ParsecFile,
     ) -> list[SpecConversation]:
         """Return a list of potential specifications for the function.
 
@@ -66,8 +67,6 @@ class LlmSpecificationGenerator:
             backtracking_hint (str): Hints to help guide spec generation. Only non-empty when
                 backtracking.
             proof_state (ProofState): The proof state under which to generate specs.
-            parsec_file (ParsecFile): The ParsecFile containing the function for which to
-                generate and repair potential specs.
 
         Returns:
             list[SpecConversation]: A list of potential specifications for the function.
@@ -84,7 +83,6 @@ class LlmSpecificationGenerator:
                     function=function,
                     spec_conversation=pruned_spec,
                     proof_state=proof_state,
-                    parsec_file=parsec_file,
                 )
             )
         return repaired_specs
@@ -130,7 +128,6 @@ class LlmSpecificationGenerator:
         function: CFunction,
         spec_conversation: SpecConversation,
         proof_state: ProofState,
-        parsec_file: ParsecFile,
     ) -> list[SpecConversation]:
         observed_spec_conversations = []
         verified_spec_conversations = []
@@ -142,14 +139,11 @@ class LlmSpecificationGenerator:
                     continue
                 observed_spec_conversations.append(current_spec_conversation)
 
-                # TODO: Create a separate file for each SpecConversation and pass it to the
-                # verifier.
-                path_to_file_to_verify = self._get_path_to_file_to_verify(
+                current_spec_conversation.path_to_file = self._get_path_to_file_to_verify(
                     function=function,
-                    spec_conversation=current_spec_conversation,
-                    original_file_path=parsec_file.file_path,
+                    specification=current_spec_conversation.specification,
+                    original_file_path=self._parsec_file.file_path,
                 )
-                current_spec_conversation.path_to_file = path_to_file_to_verify
 
                 vresult = self._verifier.verify(
                     function=function,
@@ -268,6 +262,21 @@ class LlmSpecificationGenerator:
             raise RuntimeError(msg) from ve
 
     def _get_path_to_file_to_verify(
-        self, function: CFunction, spec_conversation: SpecConversation, original_file_path: Path
+        self, function: CFunction, specification: FunctionSpecification, original_file_path: Path
     ) -> Path:
-        raise NotImplementedError()
+        # It might be the case that there are CBMC annotations in the previous file, in which case
+        # they must be commented-out before a CBMC run.
+        parsec_file = ParsecFile.parse_source_with_cbmc_annotations(original_file_path)
+        # Get the source code of the function with the specifications inserted
+        function_with_specs = function_util.get_source_code_with_inserted_specs(
+            function_name=function.name,
+            specifications=specification,
+            parsec_file=parsec_file,
+        )
+        # Create a temporary file with the updated function declaration
+        return function_util.get_file_with_updated_function(
+            function_name=function.name,
+            new_function_declaration=function_with_specs,
+            parsec_file=parsec_file,
+            original_src=original_file_path,
+        )

@@ -7,6 +7,7 @@ from .proof_state import ProofState, WorkStack
 
 from .verification_input import VerificationContext, VerificationInput
 from .verification_result import Failure, Success, VerificationResult
+from .verification_context_manager import VerificationContextManager
 
 __all__ = [
     "CbmcVerificationClient",
@@ -15,6 +16,7 @@ __all__ = [
     "PromptBuilder",
     "Success",
     "VerificationContext",
+    "VerificationContextManager",
     "VerificationClient",
     "VerificationInput",
     "VerificationResult",

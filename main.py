@@ -22,6 +22,7 @@ from verification import (
     CbmcVerificationClient,
     ProofState,
     VerificationClient,
+    VerificationContextManager,
     VerificationInput,
     VerificationResult,
     WorkStack,
@@ -29,13 +30,14 @@ from verification import (
 
 MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
-DEFAULT_NUM_SPECIFICATION_CANDIDATES = 1
-DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS = 10
+DEFAULT_NUM_SPECIFICATION_CANDIDATES = 10
+DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS = 3
 DEFAULT_MODEL_TEMPERATURE = 1.0
 DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
 
 GLOBAL_PROOFSTATES: list[ProofState] = []
 VERIFIER_CACHE: dict[VerificationInput, VerificationResult] = {}
+CONTEXT_MANAGER: VerificationContextManager = VerificationContextManager()
 
 
 def main() -> None:
@@ -68,13 +70,15 @@ def main() -> None:
     output_file_path = copy_file_to_folder(input_file_path, "specs")
     header_lines = [f"#include <{header}>" for header in DEFAULT_HEADERS_IN_OUTPUT]
     ensure_lines_at_beginning(header_lines, output_file_path)
-
     parsec_file = ParsecFile(input_file_path)
-    verifier: VerificationClient = CbmcVerificationClient(VERIFIER_CACHE)
+    verifier: VerificationClient = CbmcVerificationClient(
+        cache=VERIFIER_CACHE, context_manager=CONTEXT_MANAGER
+    )
     specification_generator = LlmSpecificationGenerator(
         MODEL,
         system_prompt=DEFAULT_SYSTEM_PROMPT,
         verifier=verifier,
+        parsec_file=parsec_file,
         num_specification_candidates=args.num_specification_candidates,
         num_repair_iterations=args.num_specification_repair_iterations,
     )
@@ -82,7 +86,7 @@ def main() -> None:
     functions_in_reverse_topological_order = _get_functions_in_reverse_topological_order(
         parsec_file
     )
-    _verify_program(functions_in_reverse_topological_order, specification_generator, parsec_file)
+    _verify_program(functions_in_reverse_topological_order, specification_generator)
 
 
 def _get_functions_in_reverse_topological_order(
@@ -103,9 +107,8 @@ def _get_functions_in_reverse_topological_order(
 def _verify_program(
     functions: list[CFunction],
     specification_generator: LlmSpecificationGenerator,
-    parsec_file: ParsecFile,
 ) -> dict[str, FunctionSpecification]:
-    initial_workstack: WorkStack = WorkStack([(function, "") for function in functions])
+    initial_workstack: WorkStack = WorkStack([(function, "") for function in functions[::-1]])
     initial_proof_state = ProofState(workstack=initial_workstack)
 
     GLOBAL_PROOFSTATES.append(initial_proof_state)
@@ -115,7 +118,6 @@ def _verify_program(
         next_proofstates = _step(
             proof_state=proof_state,
             specification_generator=specification_generator,
-            parsec_file=parsec_file,
         )
 
         for next_proofstate in next_proofstates:
@@ -131,7 +133,6 @@ def _verify_program(
 def _step(
     proof_state: ProofState,
     specification_generator: LlmSpecificationGenerator,
-    parsec_file: ParsecFile,
 ) -> list[ProofState]:
     work_item = proof_state.peek_workstack()
     spec_conversations_for_function: list[SpecConversation] = (
@@ -139,12 +140,14 @@ def _step(
             function=work_item.function,
             backtracking_hint=work_item.backtracking_hint,
             proof_state=proof_state,
-            parsec_file=parsec_file,
         )
     )
 
-    # TODO: actually perform pruning, here.
-    pruned_spec_conversations_for_function = spec_conversations_for_function
+    pruned_spec_conversations_for_function = _prune_specs(
+        function=work_item.function,
+        spec_conversations=spec_conversations_for_function,
+        proof_state=proof_state,
+    )
 
     result: list[ProofState] = []
 
@@ -165,6 +168,35 @@ def _step(
             # No backtracking to consider.
             next_proof_state.pop_workstack()
     return result
+
+
+def _prune_specs(
+    function: CFunction, spec_conversations: list[SpecConversation], proof_state: ProofState
+) -> list[SpecConversation]:
+    pruned_specs = []
+    for spec_conversation in spec_conversations:
+        if not spec_conversation.path_to_file:
+            msg = (
+                "SpecConversation was missing a file prior to pruning, but did not: "
+                f"{spec_conversation}"
+            )
+            raise ValueError(msg)
+        parsec_file_for_spec = ParsecFile.parse_source_with_cbmc_annotations(
+            spec_conversation.path_to_file
+        )
+        vcontext = CONTEXT_MANAGER.current_context(
+            function=function, parsec_file=parsec_file_for_spec, proof_state=proof_state
+        )
+        vinput = VerificationInput(
+            function=function,
+            spec=spec_conversation.specification,
+            context=vcontext,
+            path_to_input_file=spec_conversation.path_to_file,
+        )
+        if vresult := VERIFIER_CACHE.get(vinput):
+            if vresult.succeeded:
+                pruned_specs.append(spec_conversation)
+    return pruned_specs
 
 
 if __name__ == "__main__":

@@ -20,10 +20,14 @@ class CbmcVerificationClient(VerificationClient):
     _cache: dict[VerificationInput, VerificationResult]
     _context_manager: VerificationContextManager
 
-    def __init__(self, cache: dict[VerificationInput, VerificationResult]) -> None:
+    def __init__(
+        self,
+        cache: dict[VerificationInput, VerificationResult],
+        context_manager: VerificationContextManager,
+    ) -> None:
         """Create a new CbmcVerificationClient."""
         self._cache = cache
-        self._context_manager = VerificationContextManager()
+        self._context_manager = context_manager
 
     def verify(
         self,
@@ -44,7 +48,9 @@ class CbmcVerificationClient(VerificationClient):
             VerificationResult: The result of verifying the given function.
         """
         current_context = self._context_manager.current_context(
-            function=function, parsec_file=ParsecFile(path_to_file), proof_state=proof_state
+            function=function,
+            parsec_file=ParsecFile.parse_source_with_cbmc_annotations(path_to_file),
+            proof_state=proof_state,
         )
         vinput = VerificationInput(
             function=function, spec=spec, context=current_context, path_to_input_file=path_to_file
