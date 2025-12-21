@@ -176,6 +176,7 @@ def _step(
         else:
             # No backtracking to consider.
             next_proof_state.pop_workstack()
+        result.append(next_proof_state)
     return result
 
 
