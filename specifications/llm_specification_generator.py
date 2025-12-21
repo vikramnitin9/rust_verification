@@ -108,16 +108,19 @@ class LlmSpecificationGenerator:
             model_responses = self._llm.gen(
                 conversation, top_k=self._num_specification_candidates, temperature=0.8
             )
-            candidate_specified_functions = [
-                extract_function(response) for response in model_responses
+            candidate_specified_functions_with_responses = [
+                (extract_function(response), response) for response in model_responses
             ]
-            candidate_specs = [
-                function_util.extract_specification(function.splitlines())
-                for function in candidate_specified_functions
+            candidate_specs_with_responses = [
+                (function_util.extract_specification(function.splitlines()), response)
+                for function, response in candidate_specified_functions_with_responses
             ]
             return [
-                SpecConversation(specification=candidate_spec, conversation=conversation)
-                for candidate_spec in candidate_specs
+                SpecConversation(
+                    specification=candidate_spec,
+                    conversation=[*conversation, {"role": "assistant", "content": response}],
+                )
+                for candidate_spec, response in candidate_specs_with_responses
                 if candidate_spec
             ]
 
