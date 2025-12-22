@@ -74,10 +74,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--use-llm-response-cache",
-        required=False,
+        action="store_true",
         help="Whether to use cached LLM responses for specification generation and repair.",
-        default=False,
-        type=bool,
     )
     args = parser.parse_args()
 
@@ -169,7 +167,8 @@ def _step(
     result: list[ProofState] = []
 
     for spec_conversation in pruned_spec_conversations_for_function:
-        next_proof_state = copy.copy(proof_state)  # `copy.copy` returns a shallow copy.
+        # A deep copy is desirable here because the original proof state should not be modified.
+        next_proof_state = copy.deepcopy(proof_state)
         next_proof_state.set_specification(
             function=work_item.function, spec=spec_conversation.specification
         )
