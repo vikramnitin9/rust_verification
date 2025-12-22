@@ -300,5 +300,6 @@ class LlmSpecificationGenerator:
             function_name=function.name,
             new_function_declaration=function_with_specs,
             parsec_file=parsec_file,
-            original_src=original_file_path,
+            original_src_path=original_file_path,
+            parent_dir_path=Path("specs"),
         )

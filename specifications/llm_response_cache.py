@@ -54,4 +54,4 @@ class LlmResponseCache:
     def commit(self) -> None:
         """Commit the current contents of the in-memory cache to disk."""
         logger.info(f"Committing current LlmResponseCache to disk at: {self._path_to_cache}")
-        Path(self._path_to_cache).write_text(json.dumps(self._cache))
+        Path(self._path_to_cache).write_text(json.dumps(self._cache, indent=4))

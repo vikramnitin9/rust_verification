@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from util import CFunction, FunctionSpecification
+from util import CFunction, FunctionSpecification, ParsecFile
 
 from .verification_input import VerificationInput
 
@@ -38,6 +38,16 @@ class VerificationResult:
                 result's input.
         """
         return self.verification_input.spec
+
+    def get_parsec_file(self) -> ParsecFile:
+        """Return the ParsecFile parsed from this verification result's input file.
+
+        Returns:
+            ParsecFile: The ParsecFile parsed from this verification result's input file.
+        """
+        return ParsecFile.parse_source_with_cbmc_annotations(
+            self.verification_input.path_to_input_file
+        )
 
 
 class Failure(VerificationResult):

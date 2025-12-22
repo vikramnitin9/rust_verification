@@ -54,7 +54,18 @@ class PromptBuilder:
             str: _description_
         """
         function = verification_result.get_function()
-        source_code = function.get_source_code(include_line_numbers=True)
+
+        # There should be no difference between getting the function from the ParsecFile of the
+        # verification input and the top-level function in the verification result, but there are
+        # places in the code where one is updated (and not the other).
+        # TODO: Ensure each CFunction is updated with the latest verification input file.
+        if function_from_vinput := verification_result.get_parsec_file().get_function_or_none(
+            function_name=function.name
+        ):
+            source_code = function_from_vinput.get_source_code(include_line_numbers=True)
+        else:
+            # Temporary fallback.
+            source_code = function.get_source_code(include_line_numbers=True)
         callee_context_for_prompt = ""
         callees_to_specs = verification_result.verification_input.get_callee_names_to_specs()
         if callees_to_specs:

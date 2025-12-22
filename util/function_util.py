@@ -128,7 +128,8 @@ def get_file_with_updated_function(
     function_name: str,
     new_function_declaration: str,
     parsec_file: ParsecFile,
-    original_src: Path,
+    original_src_path: Path,
+    parent_dir_path: Path,
 ) -> Path:
     """Return a path to a new file containing a function with an updated declaration.
 
@@ -136,17 +137,21 @@ def get_file_with_updated_function(
         function_name (str): The name of the function with an updated declaration.
         new_function_declaration (str): The updated function declaration.
         parsec_file (ParsecFile): The ParsecFile.
-        original_src (Path): The path to the original file with the original function
+        original_src_path (Path): The path to the original file with the original function
             declaration.
+        parent_dir_path (Path): The path to the directory under which the file should be written.
 
     Returns:
         Path: The path to the new file.
     """
     original_function = parsec_file.get_function(function_name)
     file_content_with_candidate_specs = _replace_function_declaration(
-        original_function, new_function_declaration, original_src
+        original_function, new_function_declaration, original_src_path
     )
-    tmp_file = Path(_get_temporary_file_name(function_name, original_src))
+    # E.g., data/foo/bar/qsort.c -> qsort.c
+    original_source_file = original_src_path.name
+
+    tmp_file = Path(_get_temporary_file_name(function_name, parent_dir_path / original_source_file))
     tmp_file.parent.mkdir(exist_ok=True, parents=True)
     tmp_file.write_text(file_content_with_candidate_specs, encoding="utf-8")
     return tmp_file
