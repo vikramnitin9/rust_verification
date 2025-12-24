@@ -55,3 +55,6 @@ __pycache__/
 
 # Obtained via Git
 .plume-scripts
+
+# Local caches
+data/caching/cache.json
