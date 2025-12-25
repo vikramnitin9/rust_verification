@@ -1,11 +1,12 @@
 """Client for verifying source code via CBMC."""
 
 import subprocess
+import tempfile
 from pathlib import Path
 
 from loguru import logger
 
-from util import CFunction, FunctionSpecification, ParsecFile
+from util import CFunction, FunctionSpecification
 from verification.proof_state import ProofState
 from verification.verification_result import VerificationResult
 
@@ -34,7 +35,7 @@ class CbmcVerificationClient(VerificationClient):
         function: CFunction,
         spec: FunctionSpecification,
         proof_state: ProofState,
-        path_to_file: Path,
+        source_code_content: str,
     ) -> VerificationResult:
         """Return the result of verifying the given function.
 
@@ -42,42 +43,48 @@ class CbmcVerificationClient(VerificationClient):
             function (CFunction): The function to verify.
             spec (FunctionSpecification): The specification for the function to verify.
             proof_state (ProofState): The proof state.
-            path_to_file (Path): The path to the file containing the function to verify.
+            source_code_content (str): The source code content.
 
         Returns:
             VerificationResult: The result of verifying the given function.
         """
-        current_context = self._context_manager.current_context(
-            function=function,
-            parsec_file=ParsecFile.parse_source_with_cbmc_annotations(path_to_file),
-            proof_state=proof_state,
-        )
-        vinput = VerificationInput(
-            function=function, spec=spec, context=current_context, path_to_input_file=path_to_file
-        )
-        if vinput not in self._cache:
-            vcommand = self._get_cbmc_verification_command(
-                vinput, path_to_file_to_verify=path_to_file, proof_state=proof_state
+        with tempfile.NamedTemporaryFile(mode="w+t", prefix=function.name, suffix=".c") as tmp_f:
+            tmp_f.write(source_code_content)
+            tmp_f.seek(0)
+            path_to_file = Path(tmp_f.name)
+            current_context = self._context_manager.current_context(
+                function=function,
+                proof_state=proof_state,
             )
-            try:
-                logger.debug(f"Running command: {vcommand}")
-                result = subprocess.run(vcommand, shell=True, capture_output=True, text=True)
-                failure_messages = (
-                    None
-                    if result.returncode == 0
-                    else f"STDOUT: {result.stdout}\nSTDERR: {result.stderr}"
+            vinput = VerificationInput(
+                function=function,
+                spec=spec,
+                context=current_context,
+                contents_of_file_to_verify=source_code_content,
+            )
+            if vinput not in self._cache:
+                vcommand = self._get_cbmc_verification_command(
+                    vinput, path_to_file_to_verify=path_to_file, proof_state=proof_state
                 )
-                self._cache[vinput] = VerificationResult(
-                    vinput, succeeded=result.returncode == 0, failure_messages=failure_messages
-                )
-            except Exception as e:
-                msg = f"Error running command for function {function.name}: {e}"
-                raise RuntimeError(msg) from e
-            if result.returncode == 0:
-                logger.success(f"Verification succeeded for function '{function.name}'")
-            else:
-                logger.error(f"Verification failed for function '{function.name}'")
-        return self._cache[vinput]
+                try:
+                    logger.debug(f"Running command: {vcommand}")
+                    result = subprocess.run(vcommand, shell=True, capture_output=True, text=True)
+                    failure_messages = (
+                        None
+                        if result.returncode == 0
+                        else f"STDOUT: {result.stdout}\nSTDERR: {result.stderr}"
+                    )
+                    self._cache[vinput] = VerificationResult(
+                        vinput, succeeded=result.returncode == 0, failure_messages=failure_messages
+                    )
+                except Exception as e:
+                    msg = f"Error running command for function {function.name}: {e}"
+                    raise RuntimeError(msg) from e
+                if result.returncode == 0:
+                    logger.success(f"Verification succeeded for function '{function.name}'")
+                else:
+                    logger.error(f"Verification failed for function '{function.name}'")
+            return self._cache[vinput]
 
     def _get_cbmc_verification_command(
         self,

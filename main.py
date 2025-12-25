@@ -4,6 +4,7 @@
 
 import argparse
 import copy
+import tempfile
 from pathlib import Path
 
 from loguru import logger
@@ -39,6 +40,8 @@ DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="ut
 GLOBAL_PROOFSTATES: list[ProofState] = []
 VERIFIER_CACHE: dict[VerificationInput, VerificationResult] = {}
 CONTEXT_MANAGER: VerificationContextManager = VerificationContextManager()
+
+tempfile.tempdir = "app/specs"
 
 
 def main() -> None:
@@ -91,6 +94,7 @@ def main() -> None:
         MODEL,
         system_prompt=DEFAULT_SYSTEM_PROMPT,
         verifier=verifier,
+        verification_context_manager=CONTEXT_MANAGER,
         parsec_file=parsec_file,
         num_specification_candidates=args.num_specification_candidates,
         num_repair_candidates=args.num_repair_candidates,
@@ -192,23 +196,16 @@ def _prune_specs(
 ) -> list[SpecConversation]:
     pruned_specs = []
     for spec_conversation in spec_conversations:
-        if not spec_conversation.path_to_file:
-            msg = (
-                "SpecConversation was missing a file prior to pruning, but did not: "
-                f"{spec_conversation}"
-            )
+        contents_of_verified_file = spec_conversation.contents_of_file_to_verify
+        if contents_of_verified_file is None:
+            msg = f"{spec_conversation} was missing file contents that were run under verification"
             raise ValueError(msg)
-        parsec_file_for_spec = ParsecFile.parse_source_with_cbmc_annotations(
-            spec_conversation.path_to_file
-        )
-        vcontext = CONTEXT_MANAGER.current_context(
-            function=function, parsec_file=parsec_file_for_spec, proof_state=proof_state
-        )
+        vcontext = CONTEXT_MANAGER.current_context(function=function, proof_state=proof_state)
         vinput = VerificationInput(
             function=function,
             spec=spec_conversation.specification,
             context=vcontext,
-            path_to_input_file=spec_conversation.path_to_file,
+            contents_of_file_to_verify=contents_of_verified_file,
         )
         if vresult := VERIFIER_CACHE.get(vinput):
             if vresult.succeeded:

@@ -1,9 +1,10 @@
 """Module to construct prompts for LLM calls."""
 
+import tempfile
 from pathlib import Path
 from string import Template
 
-from util import CFunction, ParsecFile
+from util import CFunction, ParsecFile, text_util
 
 from .verification_result import VerificationResult
 
@@ -53,19 +54,31 @@ class PromptBuilder:
         Returns:
             str: _description_
         """
-        function = verification_result.get_function()
+        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".c") as tmp_f:
+            # The following might have CBMC annotations, comment them out.
+            source_code_lines = verification_result.get_source_code_contents().splitlines()
+            source_code_cbmc_commented_out = "\n".join(
+                text_util.comment_out_cbmc_annotations(lines=source_code_lines)
+            )
+            tmp_f.write(source_code_cbmc_commented_out)
+            tmp_f.seek(0)
+            parsec_file = ParsecFile(Path(tmp_f.name))
+            function = parsec_file.get_function_or_none(
+                function_name=verification_result.get_function().name
+            )
+            if not function:
+                msg = (
+                    f"Function: {verification_result.get_function().name} "
+                    "was missing from the file that failed to verify."
+                )
+                raise ValueError(msg)
+            function_lines_cbmc_commented_out = function.get_source_code(
+                include_line_numbers=True
+            ).splitlines()
+            function_lines = "\n".join(
+                text_util.uncomment_cbmc_annotations(function_lines_cbmc_commented_out)
+            )
 
-        # There should be no difference between getting the function from the ParsecFile of the
-        # verification input and the top-level function in the verification result, but there are
-        # places in the code where one is updated (and not the other).
-        # TODO: Ensure each CFunction is updated with the latest verification input file.
-        if function_from_vinput := verification_result.get_parsec_file().get_function_or_none(
-            function_name=function.name
-        ):
-            source_code = function_from_vinput.get_source_code(include_line_numbers=True)
-        else:
-            # Temporary fallback.
-            source_code = function.get_source_code(include_line_numbers=True)
         callee_context_for_prompt = ""
         callees_to_specs = verification_result.verification_input.get_callee_names_to_specs()
         if callees_to_specs:
@@ -79,7 +92,7 @@ class PromptBuilder:
 
         return PromptBuilder.BACKTRACKING_PROMPT_TEMPLATE.substitute(
             function_name=function.name,
-            source_code=source_code,
+            source_code=function_lines,
             callee_context=callee_context_for_prompt if callee_context_for_prompt != "" else "",
             failure_information=verification_result.failure_messages,
         )

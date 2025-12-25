@@ -17,7 +17,7 @@ def test_verification_input_eq() -> None:
         function=func_a,
         spec=FunctionSpecification(preconditions=["__CPROVER_ensures(1)"], postconditions=[]),
         context=VerificationContext(callee_specs={}, global_variable_specs={}),
-        path_to_input_file=Path(test_file),
+        contents_of_file_to_verify=Path(test_file).read_text(),
     )
     assert input_for_a == input_for_a, f"{input_for_a} should be equal to itself"
 
@@ -30,13 +30,13 @@ def test_verification_input_ne() -> None:
         function=func_a,
         spec=FunctionSpecification(preconditions=["__CPROVER_ensures(1)"], postconditions=[]),
         context=VerificationContext(callee_specs={}, global_variable_specs={}),
-        path_to_input_file=Path(test_file),
+        contents_of_file_to_verify=Path(test_file).read_text(),
     )
     input_for_b = VerificationInput(
         function=func_b,
         spec=FunctionSpecification(preconditions=["__CPROVER_ensures(1)"], postconditions=[]),
         context=VerificationContext(callee_specs={}, global_variable_specs={}),
-        path_to_input_file=Path(test_file),
+        contents_of_file_to_verify=Path(test_file).read_text(),
     )
     assert input_for_a != input_for_b, f"{input_for_a} should not be equal to {input_for_b}"
 
@@ -50,13 +50,13 @@ def test_verification_input_eq_different_file_names() -> None:
         function=func_a,
         spec=FunctionSpecification(preconditions=["__CPROVER_ensures(1)"], postconditions=[]),
         context=VerificationContext(callee_specs={}, global_variable_specs={}),
-        path_to_input_file=Path(test_file),
+        contents_of_file_to_verify=Path(test_file).read_text(),
     )
     input_for_a_copy = VerificationInput(
         function=func_a_copy,
         spec=FunctionSpecification(preconditions=["__CPROVER_ensures(1)"], postconditions=[]),
         context=VerificationContext(callee_specs={}, global_variable_specs={}),
-        path_to_input_file=Path(test_file_copy),
+        contents_of_file_to_verify=Path(test_file).read_text(),
     )
     assert input_for_a == input_for_a_copy, f"{input_for_a} be equal to {input_for_a_copy}"
 
@@ -70,13 +70,13 @@ def test_hashing_same_function() -> None:
         function=func_a,
         spec=FunctionSpecification(preconditions=["__CPROVER_ensures(1)"], postconditions=[]),
         context=VerificationContext(callee_specs={}, global_variable_specs={}),
-        path_to_input_file=Path(test_file),
+        contents_of_file_to_verify=Path(test_file).read_text(),
     )
     input_for_a_copy = VerificationInput(
         function=func_a_copy,
         spec=FunctionSpecification(preconditions=["__CPROVER_ensures(1)"], postconditions=[]),
         context=VerificationContext(callee_specs={}, global_variable_specs={}),
-        path_to_input_file=Path(test_file_copy),
+        contents_of_file_to_verify=Path(test_file).read_text(),
     )
     func_cache = {}
     func_cache[input_for_a] = "Some value"

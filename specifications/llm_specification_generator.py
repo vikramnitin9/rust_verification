@@ -13,7 +13,7 @@ from util import (
     extract_function,
     function_util,
 )
-from verification import PromptBuilder, ProofState, VerificationClient
+from verification import PromptBuilder, ProofState, VerificationClient, VerificationContextManager
 
 from .llm_response_cache import LlmResponseCache
 
@@ -33,6 +33,7 @@ class LlmSpecificationGenerator:
     _prompt_builder: PromptBuilder
     _llm: LLMGen
     _verifier: VerificationClient
+    _verification_context_manager: VerificationContextManager
     _num_specification_candidates: int
     _num_repair_iterations: int
     _num_repair_candidates: int
@@ -45,6 +46,7 @@ class LlmSpecificationGenerator:
         model: str,
         system_prompt: str,
         verifier: VerificationClient,
+        verification_context_manager: VerificationContextManager,
         parsec_file: ParsecFile,
         num_specification_candidates: int,
         num_repair_candidates: int,
@@ -55,6 +57,7 @@ class LlmSpecificationGenerator:
         self._llm = get_llm_generation_with_model(model)
         self._system_prompt = system_prompt
         self._verifier = verifier
+        self._verification_context_manager = verification_context_manager
         self._parsec_file = parsec_file
         self._prompt_builder = PromptBuilder()
         self._num_specification_candidates = num_specification_candidates
@@ -160,17 +163,18 @@ class LlmSpecificationGenerator:
                     continue
                 observed_spec_conversations.append(current_spec_conversation)
 
-                current_spec_conversation.path_to_file = self._get_path_to_file_to_verify(
+                contents_of_file_to_verify = self._get_content_of_file_to_verify(
                     function=function,
                     specification=current_spec_conversation.specification,
                     original_file_path=self._parsec_file.file_path,
                 )
+                current_spec_conversation.contents_of_file_to_verify = contents_of_file_to_verify
 
                 vresult = self._verifier.verify(
                     function=function,
                     spec=current_spec_conversation.specification,
                     proof_state=proof_state,
-                    path_to_file=current_spec_conversation.path_to_file,
+                    source_code_content=current_spec_conversation.contents_of_file_to_verify,
                 )
 
                 if vresult.succeeded:
@@ -179,15 +183,15 @@ class LlmSpecificationGenerator:
                     unverified_spec_conversations.append(current_spec_conversation)
 
             for unverified_spec_conversation in unverified_spec_conversations:
-                path_to_file_to_verify = unverified_spec_conversation.path_to_file
-                if not path_to_file_to_verify:
-                    msg = "A spec that failed to verify is missing the file in which it is declared"
+                contents_of_file_to_verify = unverified_spec_conversation.contents_of_file_to_verify
+                if contents_of_file_to_verify is None:
+                    msg = "A spec that failed to verify is missing its contents"
                     raise ValueError(msg)
                 vresult = self._verifier.verify(
                     function=function,
                     spec=unverified_spec_conversation.specification,
                     proof_state=proof_state,
-                    path_to_file=path_to_file_to_verify,
+                    source_code_content=contents_of_file_to_verify,
                 )
                 conversation_updated_with_failure_information = (
                     unverified_spec_conversation.get_conversation_with_message_appended(
@@ -283,23 +287,20 @@ class LlmSpecificationGenerator:
             msg = f"The LLM likely returned an invalid backtracking strategy: {llm_response}"
             raise RuntimeError(msg) from ve
 
-    def _get_path_to_file_to_verify(
+    def _get_content_of_file_to_verify(
         self, function: CFunction, specification: FunctionSpecification, original_file_path: Path
-    ) -> Path:
-        # It might be the case that there are CBMC annotations in the previous file, in which case
-        # they must be commented-out before a CBMC run.
-        parsec_file = ParsecFile.parse_source_with_cbmc_annotations(original_file_path)
-        # Get the source code of the function with the specifications inserted
-        function_with_specs = function_util.get_source_code_with_inserted_specs(
-            function_name=function.name,
-            specifications=specification,
+    ) -> str:
+        parsec_file = ParsecFile(original_file_path)
+        callees_to_specs = {
+            callee: spec
+            for callee in parsec_file.get_callees(function=function)
+            if (spec := self._verification_context_manager.get_verified_spec(function=callee))
+        }
+
+        functions_to_update = {function: specification} | callees_to_specs
+
+        return function_util.get_source_file_content_with_specifications(
+            specified_functions=functions_to_update,
             parsec_file=parsec_file,
-        )
-        # Create a temporary file with the updated function declaration
-        return function_util.get_file_with_updated_function(
-            function_name=function.name,
-            new_function_declaration=function_with_specs,
-            parsec_file=parsec_file,
-            original_src_path=original_file_path,
-            parent_dir_path=Path("specs"),
+            original_source_file_path=original_file_path,
         )

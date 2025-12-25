@@ -1,7 +1,6 @@
 """Class representing an input to a verifier (e.g., CBMC)."""
 
 from dataclasses import dataclass
-from pathlib import Path
 
 from util import CFunction, FunctionSpecification
 
@@ -44,13 +43,13 @@ class VerificationInput:
         function (CFunction): The function to be verified.
         spec (FunctionSpecification): The spec for the function to be verified.
         context (VerificationContext): The context for the function to be verified.
-        path_to_input_file (Path): The path to the file containing the function to be verified.
+        contents_of_file_to_verify (str): The contents of the file to be verified.
     """
 
     function: CFunction
     spec: FunctionSpecification
     context: VerificationContext
-    path_to_input_file: Path
+    contents_of_file_to_verify: str
 
     def get_callee_names_to_specs(self) -> dict[str, FunctionSpecification]:
         """Return a dictionary of callee names to their specifications.
@@ -66,7 +65,7 @@ class VerificationInput:
         Returns:
             str: The content of the file that is to be verified.
         """
-        return self.path_to_input_file.read_text()
+        return self.contents_of_file_to_verify
 
     def __eq__(self, other) -> bool:
         """Return True iff this input is equal to another.

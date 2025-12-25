@@ -6,15 +6,13 @@ from .cbmc_verification_client import CbmcVerificationClient
 from .proof_state import ProofState, WorkStack
 
 from .verification_input import VerificationContext, VerificationInput
-from .verification_result import Failure, Success, VerificationResult
+from .verification_result import VerificationResult
 from .verification_context_manager import VerificationContextManager
 
 __all__ = [
     "CbmcVerificationClient",
-    "Failure",
     "KaniVerificationContext",
     "PromptBuilder",
-    "Success",
     "VerificationContext",
     "VerificationContextManager",
     "VerificationClient",

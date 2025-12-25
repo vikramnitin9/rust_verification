@@ -82,4 +82,4 @@ def uncomment_cbmc_annotations(lines: list[str]) -> list[str]:
     Returns:
         list[str]: The lines with CBMC_COMMENT_PREFIX removed
     """
-    return [line.removeprefix(CBMC_COMMENT_PREFIX) for line in lines]
+    return [line.replace(CBMC_COMMENT_PREFIX, "") for line in lines]

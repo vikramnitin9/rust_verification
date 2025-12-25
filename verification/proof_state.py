@@ -129,6 +129,17 @@ class ProofState:
         """
         self._specs[function.name] = spec
 
+    def get_specification(self, function: CFunction) -> FunctionSpecification | None:
+        """Return the function's specification from this proof state.
+
+        Args:
+            function (CFunction): The function for which to retrieve a specification.
+
+        Returns:
+            FunctionSpecification | None: The specification for this function, otherwise None.
+        """
+        return self._specs.get(function.name)
+
     def assume_function(self, function: CFunction) -> None:
         """Update this proof state's list of functions with assumed specs.
 

@@ -1,6 +1,5 @@
 """Client for verifying source code."""
 
-from pathlib import Path
 from typing import Protocol
 
 from util import CFunction, FunctionSpecification
@@ -17,7 +16,7 @@ class VerificationClient(Protocol):
         function: CFunction,
         spec: FunctionSpecification,
         proof_state: ProofState,
-        path_to_file: Path,
+        source_code_content: str,
     ) -> VerificationResult:
         """Return the result of verifying the given function.
 
@@ -25,7 +24,7 @@ class VerificationClient(Protocol):
             function (CFunction): The function to verify.
             spec (FunctionSpecification): The specification for the function to verify.
             proof_state (ProofState): The proof state.
-            path_to_file (Path): The path to the file containing the function to verify.
+            source_code_content (str): The source code content.
 
         Returns:
             VerificationResult: The result of verifying the given function.
