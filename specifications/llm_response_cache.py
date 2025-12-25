@@ -15,20 +15,22 @@ class LlmResponseCache:
     for the number of candidates).
 
     Attributes:
-        _path_to_cache (str): The path to the file used as the cache.
+        _path_to_cache (Path): The path to the file used as the cache.
         _cache (dict[str, list[str]]): The cache, mapping from prompts to responses.
 
     """
 
-    _path_to_cache: str
+    _path_to_cache: Path
     _cache: dict[str, list[str]]
 
     DEFAULT_LLM_RESPONSE_CACHE_PATH = "data/caching/cache.json"
 
     def __init__(self, path_to_cache: str = DEFAULT_LLM_RESPONSE_CACHE_PATH):
         """Create a new LlmResponseCache that loads from the cache file."""
-        self._path_to_cache = path_to_cache
-        self._cache = json.loads(Path(self._path_to_cache).read_text())
+        self._path_to_cache = Path(path_to_cache)
+        if not self._path_to_cache.exists():
+            self._path_to_cache.touch()
+        self._cache = json.loads(self._path_to_cache.read_text())
         atexit.register(self.commit)
 
     def read(self, prompt: str) -> list[str] | None:
@@ -46,8 +48,8 @@ class LlmResponseCache:
         """Write to the cache with the prompt and its associated response(s).
 
         Args:
-            prompt (str): _description_
-            responses (list[str]): _description_
+            prompt (str): The prompt to an LLM.
+            responses (list[str]): The LLM response(s) to the prompt.
         """
         self._cache[prompt] = responses
 
