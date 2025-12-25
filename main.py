@@ -18,6 +18,7 @@ from util import (
     SpecConversation,
     copy_file_to_folder,
     ensure_lines_at_beginning,
+    function_util,
 )
 from verification import (
     CbmcVerificationClient,
@@ -36,12 +37,13 @@ DEFAULT_NUM_REPAIR_CANDIDATES = 1
 DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS = 3
 DEFAULT_MODEL_TEMPERATURE = 1.0
 DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
+DEFAULT_RESULT_DIR = "specs"
 
 GLOBAL_PROOFSTATES: list[ProofState] = []
 VERIFIER_CACHE: dict[VerificationInput, VerificationResult] = {}
 CONTEXT_MANAGER: VerificationContextManager = VerificationContextManager()
 
-tempfile.tempdir = "app/specs"
+tempfile.tempdir = DEFAULT_RESULT_DIR
 
 
 def main() -> None:
@@ -83,7 +85,7 @@ def main() -> None:
     args = parser.parse_args()
 
     input_file_path = Path(args.file)
-    output_file_path = copy_file_to_folder(input_file_path, "specs")
+    output_file_path = copy_file_to_folder(input_file_path, DEFAULT_RESULT_DIR)
     header_lines = [f"#include <{header}>" for header in DEFAULT_HEADERS_IN_OUTPUT]
     ensure_lines_at_beginning(header_lines, output_file_path)
     parsec_file = ParsecFile(input_file_path)
@@ -185,8 +187,12 @@ def _step(
                 function=work_item.function, hint=latest_llm_response
             )
         else:
-            # No backtracking to consider.
+            # The specification has been successfully verified; no backtracking to consider
             next_proof_state.pop_workstack()
+            # TODO: Uncomment once we have a strategy around writing verified specs to disk.
+            # _write_verified_spec(
+            #     function=work_item.function, specification=spec_conversation.specification
+            # )
         result.append(next_proof_state)
     return result
 
@@ -211,6 +217,32 @@ def _prune_specs(
             if vresult.succeeded:
                 pruned_specs.append(spec_conversation)
     return pruned_specs
+
+
+def _write_verified_spec(function: CFunction, specification: FunctionSpecification) -> None:
+    path_to_original_file = Path(function.file_name)
+    original_file_dir = str(path_to_original_file.parent).lstrip("/")
+    result_file_dir = Path(DEFAULT_RESULT_DIR) / Path(original_file_dir)
+    result_file = result_file_dir / path_to_original_file.name
+
+    if not result_file.exists():
+        # Create the result file by copying over the original file.
+        result_file.write_text(path_to_original_file.read_text(), encoding="utf-8")
+
+    parsec_file = ParsecFile(result_file)
+    function_with_verified_spec = function_util.get_source_code_with_inserted_spec(
+        function_name=function.name,
+        specification=specification,
+        parsec_file=parsec_file,
+        comment_out_spec=True,
+    )
+
+    function_util.update_function_declaration(
+        function_name=function.name,
+        updated_function_content=function_with_verified_spec,
+        parsec_file=parsec_file,
+        file=result_file,
+    )
 
 
 if __name__ == "__main__":

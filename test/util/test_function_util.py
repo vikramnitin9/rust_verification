@@ -177,7 +177,7 @@ def test_get_source_code_with_inserted_specs() -> None:
             "__CPROVER_ensures(*b == __CPROVER_old(*a))",
         ],
     )
-    swap_with_specs = function_util.get_source_code_with_inserted_specs(
+    swap_with_specs = function_util.get_source_code_with_inserted_spec(
         "swap", swap_specs, ParsecFile(file_path=Path(path_to_swap_no_specs))
     )
     assert (

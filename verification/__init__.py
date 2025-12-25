@@ -8,6 +8,7 @@ from .proof_state import ProofState, WorkStack
 from .verification_input import VerificationContext, VerificationInput
 from .verification_result import VerificationResult
 from .verification_context_manager import VerificationContextManager
+from .work_item import WorkItem
 
 __all__ = [
     "CbmcVerificationClient",
@@ -20,4 +21,5 @@ __all__ = [
     "VerificationResult",
     "ProofState",
     "WorkStack",
+    "WorkItem"
 ]

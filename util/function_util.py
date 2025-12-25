@@ -103,24 +103,31 @@ def get_signature_and_body(source_code: str, lang: str) -> tuple[str, str]:
     return (signature, body)
 
 
-def get_source_code_with_inserted_specs(
-    function_name: str, specifications: FunctionSpecification, parsec_file: ParsecFile
+def get_source_code_with_inserted_spec(
+    function_name: str,
+    specification: FunctionSpecification,
+    parsec_file: ParsecFile,
+    comment_out_spec: bool = False,
 ) -> str:
-    """Return the source code of a function with the specifications inserted.
+    """Return the source code of a function with the specification inserted.
 
     Note: This does *not* update the ParsecFile with the specified function declaration.
 
     Args:
         function_name (str): The name of the function for which to return the updated source code.
-        specifications (FunctionSpecification): The specifications for the function.
+        specification (FunctionSpecification): The specification for the function.
         parsec_file (ParsecFile): The ParsecFile.
+        comment_out_spec (bool): Whether to comment out CBMC specs.
 
     Returns:
-        str: The source code of a function with the specifications inserted.
+        str: The source code of a function with the specification inserted.
     """
     function = parsec_file.get_function(function_name=function_name)
     (signature, body) = get_signature_and_body(function.get_source_code(), lang="c")
-    specs = "\n".join(spec for spec in specifications.preconditions + specifications.postconditions)
+    specs = "\n".join(
+        f"// {spec}" if comment_out_spec else spec
+        for spec in specification.preconditions + specification.postconditions
+    )
     return f"{signature}\n{specs}\n{body}"
 
 
@@ -146,8 +153,8 @@ def get_source_file_content_with_specifications(
         content_with_specs = original_file_content
         for function, specification in specified_functions.items():
             tmp_f.seek(0)
-            function_with_specs = get_source_code_with_inserted_specs(
-                function_name=function.name, specifications=specification, parsec_file=parsec_file
+            function_with_specs = get_source_code_with_inserted_spec(
+                function_name=function.name, specification=specification, parsec_file=parsec_file
             )
             content_with_specs = _replace_function_declaration(
                 function=function,
