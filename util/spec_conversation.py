@@ -14,6 +14,7 @@ class SpecConversation:
         conversation (list[dict[str, str]]): The conversation that resulted in the specification.
         backtracking_strategy (BacktrackingStrategy | None): The backtracking strategy associated
             with the specification.
+        contents_of_file_to_verify (str | None): The content of the file to be verified.
     """
 
     specification: FunctionSpecification
@@ -53,11 +54,14 @@ class SpecConversation:
 
         Raises:
             ValueError: Raised when the latest message in this specification's associated
-                conversation does not originate from an LLM.
+                conversation does not originate from an LLM response, or if the conversation is
+                empty.
 
         Returns:
             str: The latest LLM response in this specification's associated conversation.
         """
+        if not self.conversation:
+            raise ValueError("SpecConversation had an empty conversation")
         latest_message_in_conversation = self.conversation[-1]
         if latest_message_in_conversation["role"] != "assistant":
             # Note: The "role" being "assistant" for LLM responses should be consistent

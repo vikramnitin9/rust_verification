@@ -42,7 +42,7 @@ class FunctionSpecification:
         """
         return iter((self.preconditions, self.postconditions))
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         """Return True iff the other specification comprises the same pre and postconditions.
 
         Args:

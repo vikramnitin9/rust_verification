@@ -6,6 +6,7 @@ import argparse
 import copy
 import tempfile
 from pathlib import Path
+from types import MappingProxyType
 
 from loguru import logger
 
@@ -128,7 +129,7 @@ def _get_functions_in_reverse_topological_order(
 def _verify_program(
     functions: list[CFunction],
     specification_generator: LlmSpecificationGenerator,
-) -> dict[str, FunctionSpecification]:
+) -> MappingProxyType[str, FunctionSpecification]:
     initial_workstack: WorkStack = WorkStack([(function, "") for function in functions[::-1]])
     initial_proof_state = ProofState(workstack=initial_workstack)
 

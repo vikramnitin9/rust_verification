@@ -67,14 +67,14 @@ class VerificationInput:
         """
         return self.contents_of_file_to_verify
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         """Return True iff this input is equal to another.
 
         Two verification inputs are equal iff they have the same function, specification, context,
         and if the content of the files they are verifying are equal.
 
         Args:
-            other (Any): An object to check equality for.
+            other (object): An object to check equality for.
 
         Returns:
             bool: True iff this input is equal to another.

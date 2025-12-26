@@ -1,6 +1,7 @@
 """Class representing a program's proof state."""
 
 from dataclasses import dataclass
+from types import MappingProxyType
 
 from util import CFunction, FunctionSpecification
 
@@ -112,13 +113,13 @@ class ProofState:
         """
         return self._workstack.is_empty()
 
-    def get_specifications(self) -> dict[str, FunctionSpecification]:
+    def get_specifications(self) -> MappingProxyType[str, FunctionSpecification]:
         """Return this proof state's specifications.
 
         Returns:
             dict[str, FunctionSpecification]: This proof state's specifications.
         """
-        return self._specs
+        return MappingProxyType(self._specs)
 
     def set_specification(self, function: CFunction, spec: FunctionSpecification) -> None:
         """Set this proof state's spec for a given function.
@@ -156,18 +157,18 @@ class ProofState:
         """
         self._verified_functions.append(function.name)
 
-    def get_verified_functions(self) -> list[str]:
-        """Return this proof state's verified functions.
+    def get_verified_functions(self) -> tuple[str, ...]:
+        """Return this proof state's verified functions as an immutable tuple.
 
         Returns:
-            list[str]: This proof state's verified functions.
+            tuple[str, ...]: This proof state's verified functions.
         """
-        return self._verified_functions
+        return tuple(self._verified_functions)
 
-    def get_assumed_functions(self) -> list[str]:
-        """Return this proof state's assumed functions.
+    def get_assumed_functions(self) -> tuple[str, ...]:
+        """Return this proof state's assumed functions as an immutable tuple.
 
         Returns:
-            list[str]: This proof state's assumed functions.
+            tuple[str, ...]: This proof state's assumed functions as an immutable tuple.
         """
-        return self._assumed_functions
+        return tuple(self._assumed_functions)

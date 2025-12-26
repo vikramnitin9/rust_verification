@@ -1,4 +1,3 @@
-from .cbmc_verification_client import CbmcVerificationClient
 from .kani_verification_context import KaniVerificationContext
 from .prompt_builder import PromptBuilder
 from .verification_client import VerificationClient

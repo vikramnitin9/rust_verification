@@ -61,7 +61,7 @@ class PromptBuilder:
                 text_util.comment_out_cbmc_annotations(lines=source_code_lines)
             )
             tmp_f.write(source_code_cbmc_commented_out)
-            tmp_f.seek(0)
+            tmp_f.flush()
             parsec_file = ParsecFile(Path(tmp_f.name))
             function = parsec_file.get_function_or_none(
                 function_name=verification_result.get_function().name
@@ -86,14 +86,14 @@ class PromptBuilder:
                 f"Callee: {name}\n{spec.get_prompt_str()}"
                 for name, spec in callees_to_specs.items()
             ]
-            callee_context_for_prompt = f"{function.name} has the following callees:" + "\n".join(
+            callee_context_for_prompt = f"{function.name} has the following callees:\n" + "\n".join(
                 callee_summaries
             )
 
         return PromptBuilder.BACKTRACKING_PROMPT_TEMPLATE.substitute(
             function_name=function.name,
             source_code=function_lines,
-            callee_context=callee_context_for_prompt if callee_context_for_prompt != "" else "",
+            callee_context=callee_context_for_prompt,
             failure_information=verification_result.failure_messages,
         )
 

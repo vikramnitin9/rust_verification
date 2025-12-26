@@ -13,7 +13,7 @@ class VerificationContextManager:
 
     _verified_specs: dict[str, FunctionSpecification]
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Create a VerificationContextManager."""
         self._verified_specs = {}
 
@@ -50,8 +50,9 @@ class VerificationContextManager:
         parsec_file = ParsecFile(file_path=Path(function.file_name))
         callees_for_function = parsec_file.get_callees(function=function)
         callee_specs = {
-            callee.name: proof_state.get_specifications()[callee.name]
+            callee.name: callee_spec
             for callee in callees_for_function
+            if (callee_spec := proof_state.get_specifications().get(callee.name))
         }
         return VerificationContext(
             callee_specs=callee_specs,
