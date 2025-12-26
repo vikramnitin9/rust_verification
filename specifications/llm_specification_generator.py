@@ -22,13 +22,21 @@ class LlmSpecificationGenerator:
     """Class for LLM-driven specification generation and repair.
 
     Attributes:
-        _model (LLMGen): The model to use for specification generation and repair.
         _parsec_file (ParsecFile): The ParseC file to use to obtain functions.
-        _prompt_builder (PromptBuilder): Used in creating specification generation and repair
-            prompts.
+        _prompt_builder (PromptBuilder): Used in creating specification generation/repair prompts
+        _llm (LLMGen): The client used to invoke LLMs.
+        _verifier (VerificationClient): The client for specification verification.
+        _verification_context_manager (VerificationContextManager): The context manager.
+        _num_specification_candidates (int): The number of specifications to initially generate.
+        _num_repair_iterations (int): The number of repair iterations (i.e., how many times an
+            LLM is able to repair a spec).
+        _num_repair_candidates (int): The number of repaired specs sampled from an LLM in each
+            repair round.
+        _system_prompt (str): The system prompt for the LLM.
+        _llm_response_cache (LlmResponseCache): The cache mapping LLM prompts and responses.
+        _use_cache (bool): True iff the LLM response cache should be used.
     """
 
-    _model: LLMGen
     _parsec_file: ParsecFile
     _prompt_builder: PromptBuilder
     _llm: LLMGen
@@ -52,7 +60,7 @@ class LlmSpecificationGenerator:
         num_repair_candidates: int,
         num_repair_iterations: int,
         use_cache: bool = False,
-    ):
+    ) -> None:
         """Create a new LlmSpecificationGenerator."""
         self._llm = get_llm_generation_with_model(model)
         self._system_prompt = system_prompt
@@ -76,8 +84,8 @@ class LlmSpecificationGenerator:
 
         Args:
             function (CFunction): The function for which to generate potential specs.
-            backtracking_hint (str): Hints to help guide spec generation. Only non-empty when
-                backtracking.
+            backtracking_hint (str): Hints to help guide spec generation during backtracking.
+                Only non-empty when backtracking.
             proof_state (ProofState): The proof state under which to generate specs.
 
         Returns:
@@ -104,7 +112,24 @@ class LlmSpecificationGenerator:
         function: CFunction,
         backtracking_hint: str,  # noqa: ARG002
     ) -> list[SpecConversation]:
-        # TODO: Somehow incorporate `backtracking_hint` into the prompt.
+        """Generate specifications for the given function as a list of SpecConversation(s).
+
+        This returns a list of SpecConversation. Each instance of SpecConversation maps to a
+        sample from the LLM response (i.e., one conversation per specification sample).
+
+        Args:
+            function (CFunction): The function for which to generate specifications.
+            backtracking_hint (str): The backtracking hint to guide specification generation. Only
+                non-empty when generating specs during backtracking.
+
+        Raises:
+            RuntimeError: Raised when an error is encountered during specification generation.
+
+        Returns:
+            list[SpecConversation]: The generated specifications for the given function, as a
+                SpecConversation.
+        """
+        # TODO: Somehow incorporate `backtracking_hint` into the prompt, if it is non-empty.
         conversation = [{"role": "system", "content": self._system_prompt}]
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
             function, self._parsec_file
@@ -153,6 +178,21 @@ class LlmSpecificationGenerator:
         spec_conversation: SpecConversation,
         proof_state: ProofState,
     ) -> list[SpecConversation]:
+        """Repair a spec that is failing to verify.
+
+        Args:
+            function (CFunction): The function whose specification is failing to verify.
+            spec_conversation (SpecConversation): The SpecConversation comprising the failing spec.
+                and the conversation which generated the spec.
+            proof_state (ProofState): The proof state for the failing specification.
+
+        Raises:
+            ValueError: Raised when the SpecConversation is missing the contents of the file that
+                failed to verify.
+
+        Returns:
+            list[SpecConversation]: The repaired specifications.
+        """
         observed_spec_conversations = []
         verified_spec_conversations = []
         current_spec_conversations = [spec_conversation]
@@ -187,6 +227,8 @@ class LlmSpecificationGenerator:
                 if contents_of_file_to_verify is None:
                     msg = "A spec that failed to verify is missing its contents"
                     raise ValueError(msg)
+                # Re-verifying the function might seem wasteful, but the result of verification is
+                # cached by default, and likely computed in the prior loop.
                 vresult = self._verifier.verify(
                     function=function,
                     spec=unverified_spec_conversation.specification,
@@ -290,6 +332,16 @@ class LlmSpecificationGenerator:
     def _get_content_of_file_to_verify(
         self, function: CFunction, specification: FunctionSpecification, original_file_path: Path
     ) -> str:
+        """Return the content of the file that should be verified.
+
+        Args:
+            function (CFunction): The function to be verified.
+            specification (FunctionSpecification): The specs for the function to be verified.
+            original_file_path (Path): The path to the original file where the function is declared.
+
+        Returns:
+            str: The content of the file that should be verified.
+        """
         parsec_file = ParsecFile(original_file_path)
         callees_to_specs = {
             callee: spec
@@ -297,10 +349,10 @@ class LlmSpecificationGenerator:
             if (spec := self._verification_context_manager.get_verified_spec(function=callee))
         }
 
-        functions_to_update = {function: specification} | callees_to_specs
+        functions_with_specs = {function: specification} | callees_to_specs
 
         return function_util.get_source_file_content_with_specifications(
-            specified_functions=functions_to_update,
+            specified_functions=functions_with_specs,
             parsec_file=parsec_file,
             original_source_file_path=original_file_path,
         )
