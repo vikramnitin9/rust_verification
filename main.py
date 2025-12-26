@@ -114,8 +114,14 @@ def main() -> None:
 def _get_functions_in_reverse_topological_order(
     parsec_file: ParsecFile,
 ) -> list[CFunction]:
-    # Get a list of functions in reverse topological order,
-    # i.e., starting from the leaves of the call graph.
+    """Return CFunctions sorted by reverse topological order from the call graph in the ParsecFile.
+
+    Args:
+        parsec_file (ParsecFile): The ParsecFile from which to obtain the functions.
+
+    Returns:
+        list[CFunction]: A list of CFunctions sorted by reverse topological order.
+    """
     function_names = parsec_file.get_function_names_in_topological_order(reverse_order=True)
     functions: list[CFunction] = []
     for function_name in function_names:
@@ -130,6 +136,20 @@ def _verify_program(
     functions: list[CFunction],
     specification_generator: LlmSpecificationGenerator,
 ) -> MappingProxyType[str, FunctionSpecification]:
+    """Return an immutable map of function names to their CBMC-verified specifications.
+
+    Args:
+        functions (list[CFunction]): The functions for which to generate and verify specifications.
+        specification_generator (LlmSpecificationGenerator): The specification generator.
+
+    Raises:
+        RuntimeError: Raised when a complete set of specifications are not able to be generated and
+            verified.
+
+    Returns:
+        MappingProxyType[str, FunctionSpecification]: An immutable map of function names to their
+            CBMC-verified specifications.
+    """
     initial_workstack: WorkStack = WorkStack([(function, "") for function in functions[::-1]])
     initial_proof_state = ProofState(workstack=initial_workstack)
 
@@ -147,15 +167,26 @@ def _verify_program(
                 return next_proofstate.get_specifications()
             GLOBAL_PROOFSTATES.append(next_proofstate)
 
-    # We timed out or ran out of proof states to specify without finding one
-    # with an empty work stack.
-    raise RuntimeError()
+    raise RuntimeError("Exhausted all proof states without finding one with an empty work stack")
 
 
 def _step(
     proof_state: ProofState,
     specification_generator: LlmSpecificationGenerator,
 ) -> list[ProofState]:
+    """Return a list of ProofState to explore, given an initial ProofState.
+
+    This is the key unit of parallelism for the specification generation process. It effectively
+    represents "branching points" in the tree of specifications; each node (i.e., specification)
+    can serve as parent of n "new" specifications to explore.
+
+    Args:
+        proof_state (ProofState): The proof state from which to generate new proof states.
+        specification_generator (LlmSpecificationGenerator): The specification generator.
+
+    Returns:
+        list[ProofState]: The list of new proof states to explore.
+    """
     work_item = proof_state.peek_workstack()
     spec_conversations_for_function: list[SpecConversation] = (
         specification_generator.generate_and_repair_spec(
@@ -174,33 +205,68 @@ def _step(
     result: list[ProofState] = []
 
     for spec_conversation in pruned_spec_conversations_for_function:
-        # A deep copy is desirable here because the original proof state should not be modified.
-        next_proof_state = copy.deepcopy(proof_state)
-        next_proof_state.set_specification(
-            function=work_item.function, spec=spec_conversation.specification
+        next_proof_state = _get_next_proof_state(
+            prev_proof_state=proof_state,
+            function=work_item.function,
+            spec_conversation=spec_conversation,
         )
-        latest_llm_response = spec_conversation.get_latest_llm_response()
-        if (
-            spec_conversation.backtracking_strategy == BacktrackingStrategy.REGENERATE_CALLEE_SPEC
-            or spec_conversation.backtracking_strategy == BacktrackingStrategy.REPAIR_SPEC
-        ):
-            next_proof_state.push_onto_workstack(
-                function=work_item.function, hint=latest_llm_response
-            )
-        else:
-            # The specification has been successfully verified; no backtracking to consider
-            next_proof_state.pop_workstack()
-            # TODO: Uncomment once we have a strategy around writing verified specs to disk.
-            # _write_verified_spec(
-            #     function=work_item.function, specification=spec_conversation.specification
-            # )
         result.append(next_proof_state)
     return result
+
+
+def _get_next_proof_state(
+    prev_proof_state: ProofState, function: CFunction, spec_conversation: SpecConversation
+) -> ProofState:
+    """Return the next proof state.
+
+    A new proof state is a copy of the given proof state with two key differences:
+
+        1. The new proof state's map of functions to specifications are updated with the given
+           function and its specification from the SpecConversation.
+        2. The new proof state's work stack may be smaller (if the function's specs verified
+           successfully or are assumed), or larger (if the function failed to verify).
+
+    Args:
+        prev_proof_state (ProofState): The previous proof state.
+        function (CFunction): The function for which specifications are being generated or repaired.
+        spec_conversation (SpecConversation): The spec conversation.
+
+    Returns:
+        ProofState: The next proof state for the function.
+    """
+    # A deep copy is desirable here because the previous proof state should not be modified.
+    next_proof_state = copy.deepcopy(prev_proof_state)
+    next_proof_state.set_specification(function=function, spec=spec_conversation.specification)
+    match spec_conversation.backtracking_strategy:
+        case None | BacktrackingStrategy.ASSUME_SPEC:
+            next_proof_state.pop_workstack()
+        case s if s.is_regenerate_strategy:
+            next_proof_state.push_onto_workstack(
+                function=function, hint=spec_conversation.get_latest_llm_response()
+            )
+    return next_proof_state
 
 
 def _prune_specs(
     function: CFunction, spec_conversations: list[SpecConversation], proof_state: ProofState
 ) -> list[SpecConversation]:
+    """Return a list of "pruned" SpecConversations.
+
+    Note: The current strategy is simply to return just the specifications that successfully verify.
+
+    Args:
+        function (CFunction): The function whose SpecConversations to prune.
+        spec_conversations (list[SpecConversation]): The SpecConversations to prune.
+        proof_state (ProofState): The ProofState associated with this function and its list of
+            SpecConversation.
+
+    Raises:
+        ValueError: Raised when a SpecConversation does not have any file contents that were run
+            under a verifier.
+
+    Returns:
+        list[SpecConversation]: A list of pruned SpecConversations.
+    """
     pruned_specs = []
     for spec_conversation in spec_conversations:
         contents_of_verified_file = spec_conversation.contents_of_file_to_verify
@@ -221,6 +287,15 @@ def _prune_specs(
 
 
 def _write_verified_spec(function: CFunction, specification: FunctionSpecification) -> None:
+    """Write a function's verified specification to a file on disk.
+
+    Verified specifications are written to a file under the `DEFAULT_RESULT_DIR` directory, in a
+    file that has the same name (and path) as the original (non-specified) file.
+
+    Args:
+        function (CFunction): The function for which to write a verified specification to disk.
+        specification (FunctionSpecification): The specification to write to disk.
+    """
     path_to_original_file = Path(function.file_name)
     original_file_dir = str(path_to_original_file.parent).lstrip("/")
     result_file_dir = Path(DEFAULT_RESULT_DIR) / Path(original_file_dir)
