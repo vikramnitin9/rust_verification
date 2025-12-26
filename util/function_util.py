@@ -107,6 +107,7 @@ def get_source_code_with_inserted_spec(
     function_name: str,
     specification: FunctionSpecification,
     parsec_file: ParsecFile,
+    *,
     comment_out_spec: bool = False,
 ) -> str:
     """Return the source code of a function with the specification inserted.
@@ -149,10 +150,11 @@ def get_source_file_content_with_specifications(
     original_file_content = original_source_file_path.read_text(encoding="utf-8")
     with tempfile.NamedTemporaryFile(mode="w+t") as tmp_f:
         tf_path = Path(tmp_f.name)
+        # Start out with a temporary file that is identical to the initial file (pre-specs).
         tmp_f.write(original_file_content)
-        content_with_specs = original_file_content
+        tmp_f.flush()
         for function, specification in specified_functions.items():
-            tmp_f.seek(0)
+            # Get the source code of the function from the original file, and insert the specs.
             function_with_specs = get_source_code_with_inserted_spec(
                 function_name=function.name, specification=specification, parsec_file=parsec_file
             )
@@ -161,7 +163,11 @@ def get_source_file_content_with_specifications(
                 updated_function_declaration=function_with_specs,
                 path_to_src=tf_path,
             )
+            # The temporary file's new content will be the previous content, with updated specs.
+            tmp_f.seek(0)
+            tmp_f.truncate()
             tmp_f.write(content_with_specs)
+            tmp_f.flush()
         tmp_f.seek(0)
         return tmp_f.read()
 
