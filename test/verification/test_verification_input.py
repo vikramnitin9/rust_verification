@@ -15,7 +15,7 @@ def test_verification_input_eq() -> None:
     func_a = get_function_or_none(test_file, function_name="a")
     input_for_a = VerificationInput(
         function=func_a,
-        spec=FunctionSpecification(preconditions=["__CPROVER_ensures(1)"], postconditions=[]),
+        spec=FunctionSpecification(preconditions=["__CPROVER_requires(1)"], postconditions=[]),
         context=VerificationContext(callee_specs={}, global_variable_specs={}),
         contents_of_file_to_verify=Path(test_file).read_text(),
     )
@@ -28,13 +28,13 @@ def test_verification_input_ne() -> None:
     func_b = get_function_or_none(test_file, function_name="b")
     input_for_a = VerificationInput(
         function=func_a,
-        spec=FunctionSpecification(preconditions=["__CPROVER_ensures(1)"], postconditions=[]),
+        spec=FunctionSpecification(preconditions=["__CPROVER_requires(1)"], postconditions=[]),
         context=VerificationContext(callee_specs={}, global_variable_specs={}),
         contents_of_file_to_verify=Path(test_file).read_text(),
     )
     input_for_b = VerificationInput(
         function=func_b,
-        spec=FunctionSpecification(preconditions=["__CPROVER_ensures(1)"], postconditions=[]),
+        spec=FunctionSpecification(preconditions=["__CPROVER_requires(1)"], postconditions=[]),
         context=VerificationContext(callee_specs={}, global_variable_specs={}),
         contents_of_file_to_verify=Path(test_file).read_text(),
     )
@@ -48,13 +48,13 @@ def test_verification_input_eq_different_file_names() -> None:
     func_a_copy = get_function_or_none(test_file_copy, function_name="a")
     input_for_a = VerificationInput(
         function=func_a,
-        spec=FunctionSpecification(preconditions=["__CPROVER_ensures(1)"], postconditions=[]),
+        spec=FunctionSpecification(preconditions=["__CPROVER_requires(1)"], postconditions=[]),
         context=VerificationContext(callee_specs={}, global_variable_specs={}),
         contents_of_file_to_verify=Path(test_file).read_text(),
     )
     input_for_a_copy = VerificationInput(
         function=func_a_copy,
-        spec=FunctionSpecification(preconditions=["__CPROVER_ensures(1)"], postconditions=[]),
+        spec=FunctionSpecification(preconditions=["__CPROVER_requires(1)"], postconditions=[]),
         context=VerificationContext(callee_specs={}, global_variable_specs={}),
         contents_of_file_to_verify=Path(test_file).read_text(),
     )
@@ -68,13 +68,13 @@ def test_hashing_same_function() -> None:
     func_a_copy = get_function_or_none(test_file_copy, function_name="a")
     input_for_a = VerificationInput(
         function=func_a,
-        spec=FunctionSpecification(preconditions=["__CPROVER_ensures(1)"], postconditions=[]),
+        spec=FunctionSpecification(preconditions=["__CPROVER_requires(1)"], postconditions=[]),
         context=VerificationContext(callee_specs={}, global_variable_specs={}),
         contents_of_file_to_verify=Path(test_file).read_text(),
     )
     input_for_a_copy = VerificationInput(
         function=func_a_copy,
-        spec=FunctionSpecification(preconditions=["__CPROVER_ensures(1)"], postconditions=[]),
+        spec=FunctionSpecification(preconditions=["__CPROVER_requires(1)"], postconditions=[]),
         context=VerificationContext(callee_specs={}, global_variable_specs={}),
         contents_of_file_to_verify=Path(test_file).read_text(),
     )
