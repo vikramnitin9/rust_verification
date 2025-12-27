@@ -1,4 +1,4 @@
-"""Client for verifying source code via CBMC."""
+"""Verifies source code using CBMC."""
 
 import subprocess
 import tempfile
@@ -16,7 +16,7 @@ from .verification_input import VerificationInput
 
 
 class CbmcVerificationClient(VerificationClient):
-    """Client for verifying source code via CBMC."""
+    """Verifies source code using CBMC.  The entry point is `verify()`."""
 
     _cache: dict[VerificationInput, VerificationResult]
     _context_manager: VerificationContextManager
@@ -44,6 +44,7 @@ class CbmcVerificationClient(VerificationClient):
             spec (FunctionSpecification): The specification for the function to verify.
             proof_state (ProofState): The proof state.
             source_code_content (str): The source code content.
+                # MDE: Should this be in the CFunction abstraction?
 
         Returns:
             VerificationResult: The result of verifying the given function.

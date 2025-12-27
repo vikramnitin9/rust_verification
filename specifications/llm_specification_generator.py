@@ -1,5 +1,7 @@
 """Module for generating and repairing specifications via LLMs."""
 
+# MDE: Document what granularity this works at:  a function, a file, a project?
+
 import json
 from pathlib import Path
 
@@ -20,6 +22,8 @@ from .llm_response_cache import LlmResponseCache
 
 class LlmSpecificationGenerator:
     """Class for LLM-driven specification generation and repair.
+
+    The public method is `generate_and_repair_spec()`.
 
     Attributes:
         _parsec_file (ParsecFile): The ParseC file to use to obtain functions.
@@ -51,6 +55,7 @@ class LlmSpecificationGenerator:
 
     def __init__(
         self,
+        # MDE: Maybe pass in an LlmCache, which can encapsulate the model and the system prompt.
         model: str,
         system_prompt: str,
         verifier: VerificationClient,
@@ -85,8 +90,8 @@ class LlmSpecificationGenerator:
         Args:
             function (CFunction): The function for which to generate potential specs.
             backtracking_hint (str): Hints to help guide spec generation during backtracking.
-                Only non-empty when backtracking.
-            proof_state (ProofState): The proof state under which to generate specs.
+                Only non-None when backtracking.
+            proof_state (ProofState): The proof state, which includes specifications for callees.
 
         Returns:
             list[SpecConversation]: A list of potential specifications for the function.
@@ -94,8 +99,10 @@ class LlmSpecificationGenerator:
         candidate_specs = self._generate_specs(
             function=function, backtracking_hint=backtracking_hint
         )
+
         # TODO: Actually perform some pruning here of the candidate specs first.
         pruned_specs = candidate_specs
+
         repaired_specs = []
         for pruned_spec in pruned_specs:
             repaired_specs.extend(
@@ -110,34 +117,38 @@ class LlmSpecificationGenerator:
     def _generate_specs(
         self,
         function: CFunction,
-        backtracking_hint: str,  # noqa: ARG002
+        backtracking_hint: str,
     ) -> list[SpecConversation]:
-        """Generate specifications for the given function as a list of SpecConversation(s).
+        """Generate potential specifications for the given function.
 
-        This returns a list of SpecConversation. Each instance of SpecConversation maps to a
-        sample from the LLM response (i.e., one conversation per specification sample).
+        Each LLM sample yields one SpecConversation in the result list.
 
         Args:
             function (CFunction): The function for which to generate specifications.
             backtracking_hint (str): The backtracking hint to guide specification generation. Only
                 non-empty when generating specs during backtracking.
 
-        Raises:
-            RuntimeError: Raised when an error is encountered during specification generation.
-
         Returns:
             list[SpecConversation]: The generated specifications for the given function, as a
                 SpecConversation.
         """
-        # TODO: Somehow incorporate `backtracking_hint` into the prompt, if it is non-empty.
         conversation = [{"role": "system", "content": self._system_prompt}]
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
             function, self._parsec_file
         )
+        if backtracking_hint is not None:
+            specification_generation_prompt += "\n\n" + backtracking_hint
         specification_generation_message = {
             "role": "user",
             "content": specification_generation_prompt,
         }
+        # MDE: With respect to terminology, is an "LLM response" the same as a "sample"?  Or does a
+        # response consist of multiple samples?  We should be consistent with this terminology
+        # throughout the codebase.
+
+        # MDE: As mentioned in my comments on `llm_response_cache.py`, I think that invoking the LLM
+        # should be encapsulated in the LlmResponseCache.  This client code should not be aware of
+        # whether there is a cache miss or a cache hit.
         try:
             conversation.append(specification_generation_message)
             model_responses = None
@@ -180,10 +191,13 @@ class LlmSpecificationGenerator:
     ) -> list[SpecConversation]:
         """Repair a spec that is failing to verify.
 
+        # MDE: Do we know that the argument SpecConversation definitely does not verify?  Or might
+        # it verify, in which case this method returns it unchanged?
+
         Args:
             function (CFunction): The function whose specification is failing to verify.
-            spec_conversation (SpecConversation): The SpecConversation comprising the failing spec.
-                and the conversation which generated the spec.
+            spec_conversation (SpecConversation): The SpecConversation that ends with the failing
+                spec.
             proof_state (ProofState): The proof state for the failing specification.
 
         Raises:
@@ -264,11 +278,15 @@ class LlmSpecificationGenerator:
     def _call_llm_for_repair(
         self, function: CFunction, conversation: list[dict[str, str]]
     ) -> dict[FunctionSpecification, str]:
-        """Call an LLM for repairing a failing spec.
+        """Call an LLM to repair a failing spec.
+
+        # MDE: What is the relationship between `conversation` here and the datatype
+        # `SpecConversation`?
 
         Args:
             function (CFunction): The function with the failing spec.
             conversation (list[dict[str, str]]): The conversation for specification repair.
+                # MDE: The conversation that ends with the failing spec?
 
         Raises:
             RuntimeError: Raised when a failure occurs (e.g., API timeout) during a call to an LLM
@@ -277,6 +295,8 @@ class LlmSpecificationGenerator:
         Returns:
             dict[FunctionSpecification, str]: A map of repaired specifications and the raw response
                 from the LLM from which the repaired specification was extracted.
+                # MDE: No conversation is returned?  OK if not, I'm just curious.
+
         """
         try:
             responses = self._llm.gen(
@@ -304,16 +324,14 @@ class LlmSpecificationGenerator:
         Args:
             llm_response (str): The LLM response from which to parse a backtracking strategy.
 
-        Raises:
-            RuntimeError: Raised when an error is encountered when parsing a backtracking strategy.
-
         Returns:
             BacktrackingStrategy: The backtracking strategy returned by the LLM in its response.
         """
         llm_response = llm_response.strip()
-        if llm_response.startswith("```json") or llm_response.endswith("```"):
-            # The LLM likely did not follow instructions to return just the plain object.
-            llm_response = llm_response.removeprefix("```json").removesuffix("```")
+        # Handle the possibility that the LLM did not follow instructions to return just the plain
+        # object.
+        llm_response = llm_response.removeprefix("```json").removesuffix("```")
+
         try:
             return BacktrackingStrategy(json.loads(llm_response)["backtracking_strategy"])
         except json.JSONDecodeError as je:
@@ -338,9 +356,12 @@ class LlmSpecificationGenerator:
             function (CFunction): The function to be verified.
             specification (FunctionSpecification): The specs for the function to be verified.
             original_file_path (Path): The path to the original file where the function is declared.
+                # MDE: Should the CFunction object contain a field with the original file path?
+                # MDE: That would perhaps yield better encapsulation.
 
         Returns:
             str: The content of the file that should be verified.
+
         """
         parsec_file = ParsecFile(original_file_path)
         callees_to_specs = {
