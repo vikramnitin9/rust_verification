@@ -1,11 +1,11 @@
 """Classes to represent messages in an LLM conversation."""
 
-from abc import ABC
+import abc
 from dataclasses import dataclass
 
 
 @dataclass
-class ConversationMessage(ABC):
+class ConversationMessage(abc.ABC):
     """Represents a message (either from an LLM or a user) in a conversation.
 
     Attributes:
@@ -15,6 +15,14 @@ class ConversationMessage(ABC):
 
     role: str
     content: str
+
+    @abc.abstractmethod
+    def __init__(self):
+        """Create a ConversationMessage.
+
+        Note: This is a no-op init method explicitly marked with @abstractmethod to disallow
+        instantiation of this abstract parent class.
+        """
 
     def to_dict(self) -> dict[str, str]:
         """Return a dictionary representation of this conversation message.
