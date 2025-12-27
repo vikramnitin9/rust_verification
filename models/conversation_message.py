@@ -1,14 +1,15 @@
 """Classes to represent messages in an LLM conversation."""
 
+from abc import ABC
 from dataclasses import dataclass
 
 
 @dataclass
-class ConversationMessage:
+class ConversationMessage(ABC):
     """Represents a message (either from an LLM or a user) in a conversation.
 
     Attributes:
-        role (str): Denotes the provenance of a message (e.g,, "user", "system").
+        role (str): Denotes the provenance of a message (e.g., "user", "system").
         content (str): The content of a message (i.e., the actual prompt).
     """
 
@@ -24,7 +25,6 @@ class ConversationMessage:
         return {"role": self.role, "content": self.content}
 
 
-@dataclass
 class UserMessage(ConversationMessage):
     """Represents a message originating from a user (i.e., non-LLM entity) in a conversation."""
 
@@ -34,7 +34,6 @@ class UserMessage(ConversationMessage):
         self.content = content
 
 
-@dataclass
 class LlmMessage(ConversationMessage):
     """Represents a message sent by an LLM in a conversation."""
 
@@ -44,7 +43,6 @@ class LlmMessage(ConversationMessage):
         self.content = content
 
 
-@dataclass
 class SystemMessage(ConversationMessage):
     """Represents a message meant to be a system prompt in a conversation."""
 
