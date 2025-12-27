@@ -1,104 +1,379 @@
 """Module for generating and repairing specifications via LLMs."""
 
-from models import LLMGen, ModelError, get_llm_generation_with_model
-from util import ParsecFile
-from verification import Failure, PromptBuilder, VerificationResult
+# MDE: Document what granularity this works at:  a function, a file, a project?
 
-from .llm_invocation_result import LlmInvocationResult
+import json
+from pathlib import Path
+
+from models import LLMGen, ModelError, get_llm_generation_with_model
+from util import (
+    BacktrackingStrategy,
+    CFunction,
+    FunctionSpecification,
+    ParsecFile,
+    SpecConversation,
+    extract_function,
+    function_util,
+)
+from verification import PromptBuilder, ProofState, VerificationClient, VerificationContextManager
+
+from .llm_response_cache import LlmResponseCache
 
 
 class LlmSpecificationGenerator:
     """Class for LLM-driven specification generation and repair.
 
+    The public method is `generate_and_repair_spec()`.
+
     Attributes:
-        _model (LLMGen): The model to use for specification generation and repair.
         _parsec_file (ParsecFile): The ParseC file to use to obtain functions.
-        _prompt_builder (PromptBuilder): Used in creating specification generation and repair
-            prompts.
+        _prompt_builder (PromptBuilder): Used in creating specification generation/repair prompts
+        _llm (LLMGen): The client used to invoke LLMs.
+        _verifier (VerificationClient): The client for specification verification.
+        _verification_context_manager (VerificationContextManager): The context manager.
+        _num_specification_candidates (int): The number of specifications to initially generate.
+        _num_repair_iterations (int): The number of repair iterations (i.e., how many times an
+            LLM is able to repair a spec).
+        _num_repair_candidates (int): The number of repaired specs sampled from an LLM in each
+            repair round.
+        _system_prompt (str): The system prompt for the LLM.
+        _llm_response_cache (LlmResponseCache): The cache mapping LLM prompts and responses.
+        _use_cache (bool): True iff the LLM response cache should be used.
     """
 
-    _model: LLMGen
     _parsec_file: ParsecFile
     _prompt_builder: PromptBuilder
+    _llm: LLMGen
+    _verifier: VerificationClient
+    _verification_context_manager: VerificationContextManager
+    _num_specification_candidates: int
+    _num_repair_iterations: int
+    _num_repair_candidates: int
+    _system_prompt: str
+    _llm_response_cache: LlmResponseCache
+    _use_cache: bool
 
-    def __init__(self, model: str, parsec_file: ParsecFile):
+    def __init__(
+        self,
+        # MDE: Maybe pass in an LlmCache, which can encapsulate the model and the system prompt.
+        model: str,
+        system_prompt: str,
+        verifier: VerificationClient,
+        verification_context_manager: VerificationContextManager,
+        parsec_file: ParsecFile,
+        num_specification_candidates: int,
+        num_repair_candidates: int,
+        num_repair_iterations: int,
+        use_cache: bool = False,
+    ) -> None:
         """Create a new LlmSpecificationGenerator."""
-        self._model = get_llm_generation_with_model(model)
+        self._llm = get_llm_generation_with_model(model)
+        self._system_prompt = system_prompt
+        self._verifier = verifier
+        self._verification_context_manager = verification_context_manager
         self._parsec_file = parsec_file
         self._prompt_builder = PromptBuilder()
+        self._num_specification_candidates = num_specification_candidates
+        self._num_repair_candidates = num_repair_candidates
+        self._num_repair_iterations = num_repair_iterations
+        self._llm_response_cache = LlmResponseCache()
+        self._use_cache = use_cache
 
-    def generate_specifications(
+    def generate_and_repair_spec(
         self,
-        function_name: str,
-        conversation: list[dict[str, str]],
-        num_samples: int,
-        temperature: float = 0.0,
-    ) -> LlmInvocationResult:
-        """Generate a set of specifications for the function with the given name.
+        function: CFunction,
+        backtracking_hint: str,
+        proof_state: ProofState,
+    ) -> list[SpecConversation]:
+        """Return a list of potential specifications for the function.
 
         Args:
-            function_name (str): The function for which to generate specifications.
-            conversation (list[dict[str, str]]): The LLM conversation, so far.
-            num_samples (int): The number of generated specifications to sample from the LLM.
-            temperature (float): The temperature setting for the LLM. Defaults to 0.0.
-
-        Raises:
-            RuntimeError: Raised when the function is missing from the ParseC file, or an error
-                occurs during specification generation.
+            function (CFunction): The function for which to generate potential specs.
+            backtracking_hint (str): Hints to help guide spec generation during backtracking.
+                Only non-None when backtracking.
+            proof_state (ProofState): The proof state, which includes specifications for callees.
 
         Returns:
-            LlmInvocationResult: The prompt used to invoke an LLM and its response.
+            list[SpecConversation]: A list of potential specifications for the function.
         """
-        function = self._parsec_file.get_function(function_name)
+        candidate_specs = self._generate_specs(
+            function=function, backtracking_hint=backtracking_hint
+        )
 
+        # TODO: Actually perform some pruning here of the candidate specs first.
+        pruned_specs = candidate_specs
+
+        repaired_specs = []
+        for pruned_spec in pruned_specs:
+            repaired_specs.extend(
+                self._repair_spec(
+                    function=function,
+                    spec_conversation=pruned_spec,
+                    proof_state=proof_state,
+                )
+            )
+        return repaired_specs
+
+    def _generate_specs(
+        self,
+        function: CFunction,
+        backtracking_hint: str,
+    ) -> list[SpecConversation]:
+        """Generate potential specifications for the given function.
+
+        Each LLM sample yields one SpecConversation in the result list.
+
+        Args:
+            function (CFunction): The function for which to generate specifications.
+            backtracking_hint (str): The backtracking hint to guide specification generation. Only
+                non-empty when generating specs during backtracking.
+
+        Returns:
+            list[SpecConversation]: The generated specifications for the given function, as a
+                SpecConversation.
+        """
+        conversation = [{"role": "system", "content": self._system_prompt}]
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
             function, self._parsec_file
         )
+        if backtracking_hint is not None:
+            specification_generation_prompt += "\n\n" + backtracking_hint
         specification_generation_message = {
             "role": "user",
             "content": specification_generation_prompt,
         }
-        conversation.append(specification_generation_message)
+        # MDE: With respect to terminology, is an "LLM response" the same as a "sample"?  Or does a
+        # response consist of multiple samples?  We should be consistent with this terminology
+        # throughout the codebase.
 
+        # MDE: As mentioned in my comments on `llm_response_cache.py`, I think that invoking the LLM
+        # should be encapsulated in the LlmResponseCache.  This client code should not be aware of
+        # whether there is a cache miss or a cache hit.
         try:
-            response = self._model.gen(conversation, top_k=num_samples, temperature=temperature)
-            return LlmInvocationResult(specification_generation_prompt, response)
-        except ModelError as e:
-            msg = f"Error during specification generation for '{function_name}': {e}"
-            raise RuntimeError(msg) from e
+            conversation.append(specification_generation_message)
+            model_responses = None
+            if self._use_cache:
+                model_responses = self._llm_response_cache.read(specification_generation_prompt)
+            if not model_responses:
+                # Cache miss.
+                model_responses = self._llm.gen(
+                    conversation, top_k=self._num_specification_candidates, temperature=0.8
+                )
+                self._llm_response_cache.write(
+                    prompt=specification_generation_prompt, responses=model_responses
+                )
 
-    def repair_specifications(
+            candidate_specified_functions_with_responses = [
+                (extract_function(response), response) for response in model_responses
+            ]
+            candidate_specs_with_responses = [
+                (function_util.extract_specification(function.splitlines()), response)
+                for function, response in candidate_specified_functions_with_responses
+            ]
+            return [
+                SpecConversation(
+                    specification=candidate_spec,
+                    conversation=[*conversation, {"role": "assistant", "content": response}],
+                )
+                for candidate_spec, response in candidate_specs_with_responses
+                if candidate_spec
+            ]
+
+        except ModelError as me:
+            msg = f"Failed to generate specifications for '{function.name}'"
+            raise RuntimeError(msg) from me
+
+    def _repair_spec(
         self,
-        function_name: str,
-        verification_result: VerificationResult,
-        conversation: list[dict[str, str]],
-    ) -> LlmInvocationResult:
-        """Repair the specifications for the function with the given name.
+        function: CFunction,
+        spec_conversation: SpecConversation,
+        proof_state: ProofState,
+    ) -> list[SpecConversation]:
+        """Repair a spec that is failing to verify.
+
+        # MDE: Do we know that the argument SpecConversation definitely does not verify?  Or might
+        # it verify, in which case this method returns it unchanged?
 
         Args:
-            function_name (str): The function for which to repair specifications.
-            verification_result (VerificationResult): The result of a verifier run.
-            conversation (list[dict[str, str]]): The LLM conversation, so far.
+            function (CFunction): The function whose specification is failing to verify.
+            spec_conversation (SpecConversation): The SpecConversation that ends with the failing
+                spec.
+            proof_state (ProofState): The proof state for the failing specification.
 
         Raises:
-            RuntimeError: Raised when an error occurs during specification repair.
+            ValueError: Raised when the SpecConversation is missing the contents of the file that
+                failed to verify.
 
         Returns:
-            LlmInvocationResult: The prompt used to invoke an LLM and its response.
+            list[SpecConversation]: The repaired specifications.
         """
-        if not isinstance(verification_result, Failure):
-            msg = "Repairing a specification that verifies successfully is not required"
-            raise TypeError(msg)
+        observed_spec_conversations = []
+        verified_spec_conversations = []
+        current_spec_conversations = [spec_conversation]
+        for _ in range(self._num_repair_iterations):
+            unverified_spec_conversations: list[SpecConversation] = []
+            for current_spec_conversation in current_spec_conversations:
+                if current_spec_conversation in observed_spec_conversations:
+                    continue
+                observed_spec_conversations.append(current_spec_conversation)
 
-        repair_prompt = self._prompt_builder.specification_repair_prompt(
-            function_name, verification_result
-        )
-        repair_message = {"role": "user", "content": repair_prompt}
-        conversation.append(repair_message)
+                contents_of_file_to_verify = self._get_content_of_file_to_verify(
+                    function=function,
+                    specification=current_spec_conversation.specification,
+                    original_file_path=self._parsec_file.file_path,
+                )
+                current_spec_conversation.contents_of_file_to_verify = contents_of_file_to_verify
+
+                vresult = self._verifier.verify(
+                    function=function,
+                    spec=current_spec_conversation.specification,
+                    proof_state=proof_state,
+                    source_code_content=current_spec_conversation.contents_of_file_to_verify,
+                )
+
+                if vresult.succeeded:
+                    verified_spec_conversations.append(current_spec_conversation)
+                else:
+                    unverified_spec_conversations.append(current_spec_conversation)
+
+            for unverified_spec_conversation in unverified_spec_conversations:
+                contents_of_file_to_verify = unverified_spec_conversation.contents_of_file_to_verify
+                if contents_of_file_to_verify is None:
+                    msg = "A spec that failed to verify is missing its contents"
+                    raise ValueError(msg)
+                # Re-verifying the function might seem wasteful, but the result of verification is
+                # cached by default, and likely computed in the prior loop.
+                vresult = self._verifier.verify(
+                    function=function,
+                    spec=unverified_spec_conversation.specification,
+                    proof_state=proof_state,
+                    source_code_content=contents_of_file_to_verify,
+                )
+                conversation_updated_with_failure_information = (
+                    unverified_spec_conversation.get_conversation_with_message_appended(
+                        {
+                            "role": "user",
+                            "content": self._prompt_builder.backtracking_prompt(
+                                verification_result=vresult
+                            ),
+                        }
+                    )
+                )
+
+                model_responses = self._call_llm_for_repair(
+                    function=function, conversation=conversation_updated_with_failure_information
+                )
+                current_spec_conversations += [
+                    SpecConversation(
+                        specification=specification,
+                        conversation=unverified_spec_conversation.get_conversation_with_message_appended(
+                            {"role": "assistant", "content": response}
+                        ),
+                        backtracking_strategy=self._parse_backtracking_strategy(response),
+                    )
+                    for specification, response in model_responses.items()
+                ]
+        return verified_spec_conversations or observed_spec_conversations
+
+    def _call_llm_for_repair(
+        self, function: CFunction, conversation: list[dict[str, str]]
+    ) -> dict[FunctionSpecification, str]:
+        """Call an LLM to repair a failing spec.
+
+        # MDE: What is the relationship between `conversation` here and the datatype
+        # `SpecConversation`?
+
+        Args:
+            function (CFunction): The function with the failing spec.
+            conversation (list[dict[str, str]]): The conversation for specification repair.
+                # MDE: The conversation that ends with the failing spec?
+
+        Raises:
+            RuntimeError: Raised when a failure occurs (e.g., API timeout) during a call to an LLM
+                for specification repair.
+
+        Returns:
+            dict[FunctionSpecification, str]: A map of repaired specifications and the raw response
+                from the LLM from which the repaired specification was extracted.
+                # MDE: No conversation is returned?  OK if not, I'm just curious.
+
+        """
+        try:
+            responses = self._llm.gen(
+                messages=conversation, top_k=self._num_repair_candidates, temperature=0.8
+            )
+            candidate_repaired_functions_to_response = {
+                extract_function(response): response for response in responses
+            }
+            repaired_specs_to_responses: dict[FunctionSpecification, str] = {}
+            for function_str, response in candidate_repaired_functions_to_response.items():
+                if repaired_spec := function_util.extract_specification(function_str.splitlines()):
+                    repaired_specs_to_responses[repaired_spec] = response
+            return repaired_specs_to_responses
+        except ModelError as me:
+            msg = f"Failed to repair specifications for '{function.name}'"
+            raise RuntimeError(msg) from me
+
+    def _parse_backtracking_strategy(self, llm_response: str) -> BacktrackingStrategy:
+        """Parse a backtracking strategy from an LLM response.
+
+        An LLM is asked to select a backtracking strategy and include it in its response when it
+        is asked to repair a spec. This function parses the strategy to include in a
+        SpecConversation object.
+
+        Args:
+            llm_response (str): The LLM response from which to parse a backtracking strategy.
+
+        Returns:
+            BacktrackingStrategy: The backtracking strategy returned by the LLM in its response.
+        """
+        llm_response = llm_response.strip()
+        # Handle the possibility that the LLM did not follow instructions to return just the plain
+        # object.
+        llm_response = llm_response.removeprefix("```json").removesuffix("```")
 
         try:
-            response = self._model.gen(conversation, top_k=1, temperature=0.0)
-            return LlmInvocationResult(repair_prompt, response)
-        except ModelError as e:
-            msg = f"Error during specification repair for '{function_name}': {e}"
-            raise RuntimeError(msg) from e
+            return BacktrackingStrategy(json.loads(llm_response)["backtracking_strategy"])
+        except json.JSONDecodeError as je:
+            msg = f"The LLM failed to return a valid JSON object: {llm_response}, error = {je}"
+            raise RuntimeError(msg) from je
+        except KeyError as ke:
+            msg = (
+                "The LLM returned valid JSON, but was missing the 'backtracking_strategy' key: "
+                f"{llm_response}"
+            )
+            raise RuntimeError(msg) from ke
+        except ValueError as ve:
+            msg = f"The LLM likely returned an invalid backtracking strategy: {llm_response}"
+            raise RuntimeError(msg) from ve
+
+    def _get_content_of_file_to_verify(
+        self, function: CFunction, specification: FunctionSpecification, original_file_path: Path
+    ) -> str:
+        """Return the content of the file that should be verified.
+
+        Args:
+            function (CFunction): The function to be verified.
+            specification (FunctionSpecification): The specs for the function to be verified.
+            original_file_path (Path): The path to the original file where the function is declared.
+                # MDE: Should the CFunction object contain a field with the original file path?
+                # MDE: That would perhaps yield better encapsulation.
+
+        Returns:
+            str: The content of the file that should be verified.
+
+        """
+        parsec_file = ParsecFile(original_file_path)
+        callees_to_specs = {
+            callee: spec
+            for callee in parsec_file.get_callees(function=function)
+            if (spec := self._verification_context_manager.get_verified_spec(function=callee))
+        }
+
+        functions_with_specs = {function: specification} | callees_to_specs
+
+        return function_util.get_source_file_content_with_specifications(
+            specified_functions=functions_with_specs,
+            parsec_file=parsec_file,
+            original_source_file_path=original_file_path,
+        )

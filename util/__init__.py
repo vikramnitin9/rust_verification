@@ -1,3 +1,4 @@
+from .backtracking_strategy import BacktrackingStrategy
 from .code_extraction_util import extract_function
 from .file_util import copy_file_to_folder, ensure_lines_at_beginning
 from .function_util import extract_specification
@@ -5,9 +6,14 @@ from .parsec_error import ParsecError
 from .c_function import CFunction
 from .parsec_file import ParsecFile
 from .function_specification import FunctionSpecification
+from .spec_conversation import SpecConversation
 
 __all__ = [
+    "BacktrackingStrategy",
+    "CFunction",
+    "ParsecError",
     "FunctionSpecification",
+    "SpecConversation",
     "ParsecError",
     "CFunction",
     "ParsecFile",

@@ -1,6 +1,6 @@
 """Utility methods for working with CBMC specifications."""
 
-import time
+import tempfile
 from pathlib import Path
 
 import tree_sitter_c as tsc
@@ -103,53 +103,73 @@ def get_signature_and_body(source_code: str, lang: str) -> tuple[str, str]:
     return (signature, body)
 
 
-def get_source_code_with_inserted_specs(
-    function_name: str, specifications: FunctionSpecification, parsec_file: ParsecFile
+def get_source_code_with_inserted_spec(
+    function_name: str,
+    specification: FunctionSpecification,
+    parsec_file: ParsecFile,
+    *,
+    comment_out_spec: bool = False,
 ) -> str:
-    """Return the source code of a function with the specifications inserted.
+    """Return the source code of a function with the specification inserted.
 
     Note: This does *not* update the ParsecFile with the specified function declaration.
 
     Args:
         function_name (str): The name of the function for which to return the updated source code.
-        specifications (FunctionSpecification): The specifications for the function.
+        specification (FunctionSpecification): The specification for the function.
         parsec_file (ParsecFile): The ParsecFile.
+        comment_out_spec (bool): Whether to comment out CBMC specs.
 
     Returns:
-        str: The source code of a function with the specifications inserted.
+        str: The source code of a function with the specification inserted.
     """
     function = parsec_file.get_function(function_name=function_name)
     (signature, body) = get_signature_and_body(function.get_source_code(), lang="c")
-    specs = "\n".join(spec for spec in specifications.preconditions + specifications.postconditions)
+    specs = "\n".join(
+        f"// {spec}" if comment_out_spec else spec
+        for spec in specification.preconditions + specification.postconditions
+    )
     return f"{signature}\n{specs}\n{body}"
 
 
-def get_file_with_updated_function(
-    function_name: str,
-    new_function_declaration: str,
+def get_source_file_content_with_specifications(
+    specified_functions: dict[CFunction, FunctionSpecification],
     parsec_file: ParsecFile,
-    original_src: Path,
-) -> Path:
-    """Return a path to a new file containing a function with an updated declaration.
+    original_source_file_path: Path,
+) -> str:
+    """Return the content of the given source code file after specification insertion.
 
     Args:
-        function_name (str): The name of the function with an updated declaration.
-        new_function_declaration (str): The updated function declaration.
-        parsec_file (ParsecFile): The ParsecFile.
-        original_src (Path): The path to the original file with the original function
-            declaration.
+        specified_functions (dict[CFunction, FunctionSpecification]): The map of functions to specs.
+        parsec_file (ParsecFile): The ParsecFile parse from the original source code file.
+        original_source_file_path (Path): The path to the original source code file.
 
     Returns:
-        Path: The path to the new file.
+        str: The content of the given source code file after specification insertion.
     """
-    original_function = parsec_file.get_function(function_name)
-    file_content_with_candidate_specs = _replace_function_declaration(
-        original_function, new_function_declaration, original_src
-    )
-    tmp_file = Path(_get_temporary_file_name(function_name, original_src))
-    tmp_file.parent.mkdir(exist_ok=True, parents=True)
-    tmp_file.write_text(file_content_with_candidate_specs, encoding="utf-8")
-    return tmp_file
+    original_file_content = original_source_file_path.read_text(encoding="utf-8")
+    with tempfile.NamedTemporaryFile(mode="w+t") as tmp_f:
+        tf_path = Path(tmp_f.name)
+        # Start out with a temporary file that is identical to the initial file (pre-specs).
+        tmp_f.write(original_file_content)
+        tmp_f.flush()
+        for function, specification in specified_functions.items():
+            # Get the source code of the function from the original file, and insert the specs.
+            function_with_specs = get_source_code_with_inserted_spec(
+                function_name=function.name, specification=specification, parsec_file=parsec_file
+            )
+            content_with_specs = _replace_function_declaration(
+                function=function,
+                updated_function_declaration=function_with_specs,
+                path_to_src=tf_path,
+            )
+            # The temporary file's new content will be the previous content, with updated specs.
+            tmp_f.seek(0)
+            tmp_f.truncate()
+            tmp_f.write(content_with_specs)
+            tmp_f.flush()
+        tmp_f.seek(0)
+        return tmp_f.read()
 
 
 def update_parsec_file(
@@ -277,13 +297,6 @@ def _get_spec_lines(i: int, lines: list[str]) -> str:
         if open_parens == close_parens and open_parens > 0:
             break
     return curr_spec
-
-
-def _get_temporary_file_name(function_name: str, source_file: Path) -> str:
-    now_ts = int(time.time())
-    path_to_src_no_ext = source_file.with_suffix("")
-    ext = source_file.suffix
-    return f"{path_to_src_no_ext}-{function_name}-candidate-specs-{now_ts}{ext}"
 
 
 def _replace_function_declaration(

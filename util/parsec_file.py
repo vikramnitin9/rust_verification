@@ -33,14 +33,13 @@ class ParsecFile:
     Note that ParseC can be run on a single C file, or a project.
     However, our current implementation of ParsecFile only supports running ParseC on a single file.
     See https://github.com/vikramnitin9/rust_verification/issues/69
-
     """
 
     # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
     # NOTE: Each node in call_graph represents a function name and is of type `str`.
     call_graph: nx.DiGraph  # type: ignore[type-arg]
     file_path: Path
-
+    files: list[str] = field(default_factory=list)
     # ParseC returns a list of dictionaries with one list item per function.
     # We parse these into CFunction objects and index them by function name.
     # This could have problems for static functions with the same name in different files.
@@ -64,8 +63,7 @@ class ParsecFile:
         parsec_analysis = self._run_parsec(file_path)
         function_analyses = [CFunction(f) for f in parsec_analysis.get("functions", [])]
         self.enums = parsec_analysis.get("enums", [])
-        self.structs = parsec_analysis.get("structs", [])
-        self.global_vars = parsec_analysis.get("globals", [])
+        self.files = parsec_analysis.get("files", [])
         self.functions = {analysis.name: analysis for analysis in function_analyses}
         # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
         # NOTE: Each node in call_graph represents a function name and is of type `str`.
@@ -208,6 +206,7 @@ class ParsecFile:
         return result
 
     # MDE: Please document and discuss relationship to other functions with similar names.
+    # JY: Work for above captured in https://github.com/vikramnitin9/rust_verification/issues/70
     def _run_parsec(self, file_path: Path) -> dict[str, Any]:
         """Run the parsec executable and return its results.
 
