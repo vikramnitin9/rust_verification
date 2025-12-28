@@ -5,7 +5,15 @@
 import json
 from pathlib import Path
 
-from models import LLMGen, ModelError, get_llm_generation_with_model
+from models import (
+    ConversationMessage,
+    LLMGen,
+    LlmMessage,
+    ModelError,
+    SystemMessage,
+    UserMessage,
+    get_llm_generation_with_model,
+)
 from util import (
     BacktrackingStrategy,
     CFunction,
@@ -132,16 +140,13 @@ class LlmSpecificationGenerator:
             list[SpecConversation]: The generated specifications for the given function, as a
                 SpecConversation.
         """
-        conversation = [{"role": "system", "content": self._system_prompt}]
+        conversation: list[ConversationMessage] = [SystemMessage(content=self._system_prompt)]
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
             function, self._parsec_file
         )
         if backtracking_hint is not None:
             specification_generation_prompt += "\n\n" + backtracking_hint
-        specification_generation_message = {
-            "role": "user",
-            "content": specification_generation_prompt,
-        }
+        specification_generation_message = UserMessage(content=specification_generation_prompt)
         # MDE: With respect to terminology, is an "LLM response" the same as a "sample"?  Or does a
         # response consist of multiple samples?  We should be consistent with this terminology
         # throughout the codebase.
@@ -173,7 +178,7 @@ class LlmSpecificationGenerator:
             return [
                 SpecConversation(
                     specification=candidate_spec,
-                    conversation=[*conversation, {"role": "assistant", "content": response}],
+                    conversation=[*conversation, LlmMessage(content=response)],
                 )
                 for candidate_spec, response in candidate_specs_with_responses
                 if candidate_spec
@@ -249,14 +254,12 @@ class LlmSpecificationGenerator:
                     proof_state=proof_state,
                     source_code_content=contents_of_file_to_verify,
                 )
+                backtracking_prompt = self._prompt_builder.backtracking_prompt(
+                    verification_result=vresult
+                )
                 conversation_updated_with_failure_information = (
                     unverified_spec_conversation.get_conversation_with_message_appended(
-                        {
-                            "role": "user",
-                            "content": self._prompt_builder.backtracking_prompt(
-                                verification_result=vresult
-                            ),
-                        }
+                        UserMessage(content=backtracking_prompt)
                     )
                 )
 
@@ -267,7 +270,7 @@ class LlmSpecificationGenerator:
                     SpecConversation(
                         specification=specification,
                         conversation=unverified_spec_conversation.get_conversation_with_message_appended(
-                            {"role": "assistant", "content": response}
+                            LlmMessage(content=response)
                         ),
                         backtracking_strategy=self._parse_backtracking_strategy(response),
                     )
@@ -276,7 +279,7 @@ class LlmSpecificationGenerator:
         return verified_spec_conversations or observed_spec_conversations
 
     def _call_llm_for_repair(
-        self, function: CFunction, conversation: list[dict[str, str]]
+        self, function: CFunction, conversation: list[ConversationMessage]
     ) -> dict[FunctionSpecification, str]:
         """Call an LLM to repair a failing spec.
 
@@ -285,7 +288,7 @@ class LlmSpecificationGenerator:
 
         Args:
             function (CFunction): The function with the failing spec.
-            conversation (list[dict[str, str]]): The conversation for specification repair.
+            conversation (list[ConversationMessage]): The conversation for specification repair.
                 # MDE: The conversation that ends with the failing spec?
 
         Raises:

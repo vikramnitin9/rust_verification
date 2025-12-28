@@ -4,6 +4,8 @@
 # TODO: Vikram, please document.
 # Vikram would be best suited to document this class.
 
+from .conversation_message import ConversationMessage
+
 import json
 import os
 import pathlib
@@ -38,7 +40,7 @@ class LLMGen:
             raise Exception(msg)
 
     def gen(
-        self, messages: list[dict[str, str]], temperature: float = 0, top_k: int = 1
+        self, messages: list[ConversationMessage], temperature: float = 0, top_k: int = 1
     ) -> list[str]:
         """messages: [{'role': 'system', 'content': 'You are an intelligent code assistant'},
                    {'role': 'user', 'content': 'Translate this program...'},
@@ -62,7 +64,7 @@ class LLMGen:
             try:
                 response = completion(
                     model=self.model,
-                    messages=messages,
+                    messages=[message.to_dict() for message in messages],
                     temperature=temperature,
                     n=top_k,
                     api_key=self.api_key,
