@@ -165,7 +165,7 @@ def _verify_program(
                 logger.debug(f"Skipping duplicate ProofState {next_proofstate}")
 
     verified_specs: dict[CFunction, list[FunctionSpecification]] = defaultdict(list)
-    for function in verified_specs:
+    for function in functions:
         for complete_proofstate in GLOBAL_COMPLETE_PROOFSTATES:
             if specs_for_function := complete_proofstate.get_specification(function=function):
                 verified_specs[function].append(specs_for_function)
