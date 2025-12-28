@@ -1,6 +1,8 @@
 import os
 import shutil
 
+import filecmp
+
 from pathlib import Path
 from util import FunctionSpecification, ParsecFile, function_util
 
@@ -137,11 +139,10 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
         "swap", updated_function, parsec_file, file_containing_function
     )
 
-    # MDE: use filecmp.cmp instead.
-    assert Path(path_to_expected_updated_file).read_text(encoding="utf-8") == Path(
-        file_containing_function
-    ).read_text(encoding="utf-8")
-
+    assert filecmp.cmp(
+        f1=path_to_expected_updated_file, f2=file_containing_function
+    ), (f"Expected files '{path_to_expected_updated_file}' and '{file_containing_function}' to be "
+        "identical")
 
 def test_get_signature_simple() -> None:
     src = """int main(int* a, int* b)\n{\n    printf("test")\n    return 0;\n}"""
@@ -219,10 +220,10 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
         "swap", updated_function, parsec_file, file_containing_function
     )
 
-    # MDE: use filecmp.cmp instead.
-    assert Path(path_to_expected_updated_file).read_text(encoding="utf-8") == Path(
-        file_containing_function
-    ).read_text(encoding="utf-8")
+    assert filecmp.cmp(
+        f1=path_to_expected_updated_file, f2=file_containing_function
+    ), (f"Expected files '{path_to_expected_updated_file}' and '{file_containing_function}' to be "
+        "identical")
     remove_file(file_containing_function)
 
 
@@ -249,8 +250,8 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
         "swap", updated_function, parsec_file, file_containing_function
     )
 
-    # MDE: use filecmp.cmp instead.
-    assert Path(path_to_expected_updated_file).read_text(encoding="utf-8") == Path(
-        file_containing_function
-    ).read_text(encoding="utf-8")
+    assert filecmp.cmp(
+        f1=path_to_expected_updated_file, f2=file_containing_function
+    ), (f"Expected files '{path_to_expected_updated_file}' and '{file_containing_function}' to be "
+        "identical")
     remove_file(file_containing_function)

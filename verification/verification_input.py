@@ -42,6 +42,10 @@ class VerificationContext:
 class VerificationInput:
     """The input to a verifier.
 
+    Note: contents_of_file_to_verify is used instead of a path to the file that was verified because
+    the file might not always exist. I.e., a temporary file is created during the verification
+    process and is then deleted.
+
     Attributes:
         function (CFunction): The function to be verified.
         spec (FunctionSpecification): The spec for the function to be verified.
@@ -52,9 +56,6 @@ class VerificationInput:
     function: CFunction
     spec: FunctionSpecification
     context: VerificationContext
-    # MDE: Call sites could be simpler if the file name, rather than the lines, were passed here.
-    # MDE: Or, the text could be encapsulated in the CFunction.  (Maybe that doesn't work because of
-    # added specifications??)
     contents_of_file_to_verify: str
 
     def get_callee_names_to_specs(self) -> dict[str, FunctionSpecification]:

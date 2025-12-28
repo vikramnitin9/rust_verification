@@ -13,11 +13,19 @@ from loguru import logger
 # MDE: This class currently has nothing to do with LLMs, so its name is misleading.  But, I think it
 # should call the LLM itself, so the name will be informative.
 
+# JY: Response to above; I'm not sure if the cache itself should call the LLM. This feels like a
+# violation of separation of concerns. A cache should only concern itself with storing/providing
+# values. Adding the additional responsibility of actually computing (i.e., calling the LLM) values
+# seems wrong.
+
 # MDE: I think there should be only one user-visible method (in addition to a constructor), which
 # has a name like "get".  Transparently to the user, the "get" method may call an LLM or it may read
 # from the cache.
 
 # MDE: Rather than implementing functionality yourself, I suggest using the `diskcache` package.
+#
+# JY: DiskCache's latest commit to main was March 2, 2024, is there a reason we want to use it in
+# particular?
 
 
 class LlmResponseCache:
