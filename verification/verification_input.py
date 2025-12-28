@@ -49,6 +49,9 @@ class VerificationInput:
     function: CFunction
     spec: FunctionSpecification
     context: VerificationContext
+    # MDE: Call sites could be simpler if the file name, rather than the lines, were passed here.
+    # MDE: Or, the text could be encapsulated in the CFunction.  (Maybe that doesn't work because of
+    # added specifications??)
     contents_of_file_to_verify: str
 
     def get_callee_names_to_specs(self) -> dict[str, FunctionSpecification]:

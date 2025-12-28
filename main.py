@@ -303,6 +303,7 @@ def _write_verified_spec(function: CFunction, specification: FunctionSpecificati
 
     if not result_file.exists():
         # Create the result file by copying over the original file.
+        # MDE: Either use a function like shutil.copy, or document why you do not.
         result_file.write_text(path_to_original_file.read_text(), encoding="utf-8")
 
     parsec_file = ParsecFile(result_file)

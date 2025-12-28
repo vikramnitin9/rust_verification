@@ -316,7 +316,9 @@ class CFunction:
         self_file_content = pathlib.Path(self.file_name).read_text()
         other_file_content = pathlib.Path(other.file_name).read_text()
         return (
+            # MDE: if the file names are the same, what is the point of comparing the content?
             self.name == other.name
+            # MDE: use filecmp.cmp instead (if this is retained).
             and self_file_content == other_file_content
             and self.start_line == other.start_line
             and self.end_line == other.end_line

@@ -137,6 +137,7 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
         "swap", updated_function, parsec_file, file_containing_function
     )
 
+    # MDE: use filecmp.cmp instead.
     assert Path(path_to_expected_updated_file).read_text(encoding="utf-8") == Path(
         file_containing_function
     ).read_text(encoding="utf-8")
@@ -218,6 +219,7 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
         "swap", updated_function, parsec_file, file_containing_function
     )
 
+    # MDE: use filecmp.cmp instead.
     assert Path(path_to_expected_updated_file).read_text(encoding="utf-8") == Path(
         file_containing_function
     ).read_text(encoding="utf-8")
@@ -247,6 +249,7 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
         "swap", updated_function, parsec_file, file_containing_function
     )
 
+    # MDE: use filecmp.cmp instead.
     assert Path(path_to_expected_updated_file).read_text(encoding="utf-8") == Path(
         file_containing_function
     ).read_text(encoding="utf-8")

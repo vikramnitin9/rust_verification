@@ -66,7 +66,7 @@ def get_signature_and_body(source_code: str, lang: str) -> tuple[str, str]:
             return 1;
         }
 
-    The parens are included.
+    The curly braces are included.
 
     Args:
         source_code (str): The source code of the function.

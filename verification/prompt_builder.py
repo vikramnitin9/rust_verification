@@ -12,6 +12,9 @@ from .verification_result import VerificationResult
 class PromptBuilder:
     """Encapsulates functions used in constructing prompts for LLM calls."""
 
+    # MDE: Does this class represent something?  If it's just a collection of functions, I would not
+    # use the term "encapsulate" above.
+
     SPECIFICATION_GENERATION_PROMPT_TEMPLATE = Path(
         "./prompts/generate-specifications-prompt-template.txt"
     ).read_text()
@@ -25,12 +28,18 @@ class PromptBuilder:
     def specification_generation_prompt(self, function: CFunction, parsec_file: ParsecFile) -> str:
         """Return the prompt used for specification generation.
 
+        The prompt consists of the C function and the "context", which is the specifications of its
+        callees.
+
         Args:
             function (CFunction): The function for which to generate specifications.
             parsec_file (ParsecFile): The top-level ParseC file.
+                # MDE: As elsewhere, perhaps the ParsecFile can be a field of the CFunction.
 
         Returns:
             str: The initial used for specification generation.
+                # MDE: noun missing above.  "prompt"?
+
         """
         source_code = function.get_source_code(include_documentation_comments=True)
         prompt = PromptBuilder.SPECIFICATION_GENERATION_PROMPT_TEMPLATE.replace(
@@ -39,20 +48,19 @@ class PromptBuilder:
 
         callee_context = ""
         if callees := parsec_file.get_callees(function):
-            callees_with_specs = [callee for callee in callees if callee.has_specification()]
-            if callees_with_specs:
+            if callees_with_specs := [callee for callee in callees if callee.has_specification()]:
                 callee_context = self._get_callee_specs(function.name, callees_with_specs)
 
         return prompt.replace(PromptBuilder.CALLEE_CONTEXT_PLACEHOLDER, callee_context)
 
     def backtracking_prompt(self, verification_result: VerificationResult) -> str:
-        """TODO: document me.
+        """Return prompt text indicating the need to backtrack during verification.
 
         Args:
             verification_result (VerificationResult): _description_
 
         Returns:
-            str: _description_
+            str: Prompt text indicating the need to backtrack during verification.
         """
         with tempfile.NamedTemporaryFile(mode="w+t", suffix=".c") as tmp_f:
             # The following might have CBMC annotations, comment them out.
