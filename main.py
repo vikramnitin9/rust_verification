@@ -5,6 +5,7 @@
 import argparse
 import copy
 import tempfile
+from collections import defaultdict, deque
 from pathlib import Path
 from types import MappingProxyType
 
@@ -40,9 +41,11 @@ DEFAULT_MODEL_TEMPERATURE = 1.0
 DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
 DEFAULT_RESULT_DIR = "specs"
 
-# Every ProofState in this list is incomplete:
-# MDE: This should be a deque, not a list, for efficiency.
-GLOBAL_PROOFSTATES: list[ProofState] = []
+GLOBAL_OBSERVED_PROOFSTATES: set[ProofState] = set()
+# Every ProofState in this queue is incomplete (i.e., their worklists are non-empty.)
+GLOBAL_INCOMPLETE_PROOFSTATES: deque[ProofState] = deque()
+# Every ProofState in this queue is complete (i.e., their worklists are empty.)
+GLOBAL_COMPLETE_PROOFSTATES: deque[ProofState] = deque()
 # MDE: This should be a `diskcache` rather than a Python dict.
 VERIFIER_CACHE: dict[VerificationInput, VerificationResult] = {}
 CONTEXT_MANAGER: VerificationContextManager = VerificationContextManager()
@@ -110,45 +113,18 @@ def main() -> None:
         use_cache=args.use_llm_response_cache,
     )
 
-    functions_in_reverse_topological_order = _get_functions_in_reverse_topological_order(
-        parsec_file
+    functions_in_reverse_topological_order = parsec_file.get_functions_in_topological_order(
+        reverse_order=True
     )
     _verify_program(functions_in_reverse_topological_order, specification_generator)
-
-
-def _get_functions_in_reverse_topological_order(
-    parsec_file: ParsecFile,
-) -> list[CFunction]:
-    """Return CFunctions from the ParsecFile, sorted in reverse topological order.
-
-    Args:
-        parsec_file (ParsecFile): The ParsecFile from which to obtain the functions.
-
-    Returns:
-        list[CFunction]: A list of CFunctions sorted in reverse topological order.
-    """
-    # MDE: Why does Parsec return the function *names* rather than the CFunctions here?  If it
-    # returned the CFunctions, which are strictly more expressive, then this whole function is not
-    # necessary.
-    function_names = parsec_file.get_function_names_in_topological_order(reverse_order=True)
-    # MDE: it looks to me like this can be a list comprehension.
-    functions: list[CFunction] = []
-    for function_name in function_names:
-        if function := parsec_file.get_function(function_name):
-            functions.append(function)
-        else:
-            # MDE: I think this should be an error, not a warning.  It is indicative of a bug in
-            # `get_function_names_in_topological_order`.
-            logger.warning(f"Function '{function_name}' was missing from the ParsecFile")
-    return functions
 
 
 # MDE: When does this function exit?
 def _verify_program(
     functions: list[CFunction],
     specification_generator: LlmSpecificationGenerator,
-) -> MappingProxyType[str, FunctionSpecification]:
-    """Return an immutable map of function names to CBMC specifications.
+) -> MappingProxyType[CFunction, list[FunctionSpecification]]:
+    """Return an immutable map of function names to their CBMC specifications.
 
     Each returned specification is either verified or assumed.
 
@@ -158,39 +134,42 @@ def _verify_program(
         specification_generator (LlmSpecificationGenerator): The specification generator.
 
     Returns:
-        MappingProxyType[str, FunctionSpecification]: An immutable map of function names to their
+        MappingProxyType[CFunction, FunctionSpecification]: An immutable map of function to their
             CBMC-verified specifications.
             # MDE: I'm not clear about the purpose of the map.  Could a list of
             # FunctionSpecification be returned instead?
     """
     # MDE: Please comment why the last element of `functions` does not appear in the workstack.
-    initial_workstack: WorkStack = WorkStack([(function, "") for function in functions[::-1]])
+    initial_workstack: WorkStack = WorkStack([(function, "") for function in functions])
     initial_proof_state = ProofState(workstack=initial_workstack)
 
-    GLOBAL_PROOFSTATES.append(initial_proof_state)
+    GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)
+    GLOBAL_INCOMPLETE_PROOFSTATES.append(initial_proof_state)
 
-    while GLOBAL_PROOFSTATES:
+    while GLOBAL_INCOMPLETE_PROOFSTATES:
         # MDE: I don't think we want a depth-first search here.  I think a breadth-first search
         # (achieved by making GLOBAL_PROOFSTATES a queue rather than a stack) is more appropriate,
         # to avoid getting stuck in an unproductive corner of the proof space.
-        proof_state = GLOBAL_PROOFSTATES.pop()
+        proof_state = GLOBAL_INCOMPLETE_PROOFSTATES.pop()
         next_proofstates = _step(
             proof_state=proof_state,
             specification_generator=specification_generator,
         )
 
         for next_proofstate in next_proofstates:
-            # MDE: There should be a global set of all proofstates that have ever been enqueued on
-            # GLOBAL_PROOFSTATES, to avoid ever enqueueing the same ProofState twice which could
-            # lead to repeated work or even infinite regress.
             if next_proofstate.is_workstack_empty():
-                # MDE: We don't want to terminate after the first success (which might be just
-                # assuming a specification for every function.  Instead, put the completed proof
-                # states in a collection to be returned later.
-                return next_proofstate.get_specifications()
-            GLOBAL_PROOFSTATES.append(next_proofstate)
+                GLOBAL_COMPLETE_PROOFSTATES.append(next_proofstate)
+            elif next_proofstate not in GLOBAL_OBSERVED_PROOFSTATES:
+                GLOBAL_INCOMPLETE_PROOFSTATES.append(next_proofstate)
+            else:
+                logger.debug(f"Skipping duplicate ProofState {next_proofstate}")
 
-    raise RuntimeError("Exhausted all proof states without finding one with an empty work stack")
+    verified_specs: dict[CFunction, list[FunctionSpecification]] = defaultdict(list)
+    for function in verified_specs:
+        for complete_proofstate in GLOBAL_COMPLETE_PROOFSTATES:
+            if specs_for_function := complete_proofstate.get_specification(function=function):
+                verified_specs[function].append(specs_for_function)
+    return MappingProxyType(verified_specs)
 
 
 def _step(
@@ -320,9 +299,7 @@ def _prune_specs(
         if vresult := VERIFIER_CACHE.get(vinput):
             if vresult.succeeded:
                 pruned_specs.append(spec_conversation)
-        # MDE: I think this function should return `pruned_specs` if it is nonempty, otherwise it
-        # should return its arguument.
-    return pruned_specs
+    return pruned_specs or spec_conversations
 
 
 def _write_verified_spec(function: CFunction, specification: FunctionSpecification) -> None:

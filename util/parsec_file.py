@@ -161,17 +161,18 @@ class ParsecFile:
         """
         return [f for f in self.call_graph if self.call_graph.has_edge(f, f)]
 
-    # MDE: Can this be made to return CFunctions rather than names?  CFunctions are strictly more
-    # informative.
-    def get_function_names_in_topological_order(self, reverse_order: bool = False) -> list[str]:
-        """Return the function names in this ParsecFile's call graph in topological order.
+    def get_functions_in_topological_order(self, reverse_order: bool = False) -> list[CFunction]:
+        """Return the CFunctions in this ParsecFile's call graph in topological order.
+
+        Note: If a topological ordering is impossible, this function defaults to returning the
+        functions collected via a postorder DFS traversal.
 
         Args:
             reverse_order (bool, optional): True iff the topological ordering should be reversed.
                 Defaults to False.
 
         Returns:
-            list[str]: The function names in this Parsec File's call graph in topological order.
+            list[CFunction]: The CFunctions in this ParsecFile's call graph in topological order.
         """
         if not self.call_graph.nodes():
             return []
@@ -182,31 +183,27 @@ class ParsecFile:
         self_edges = nx.selfloop_edges(call_graph_copy)
         call_graph_copy.remove_edges_from(self_edges)
 
+        function_names = []
         try:
-            names_in_topological_order = list(nx.topological_sort(call_graph_copy))
-            if reverse_order:
-                names_in_topological_order.reverse()
-            return names_in_topological_order
+            function_names = list(nx.topological_sort(call_graph_copy))
         except nx.NetworkXUnfeasible:
-            logger.warning(
+            logger.error(
                 "Cycles detected in call graph: "
                 "Using postorder DFS traversal for function ordering."
             )
-            return self._get_function_names_in_postorder_dfs(reverse_order=reverse_order)
+            function_names = list(nx.dfs_postorder_nodes(call_graph_copy))
+            if reverse_order:
+                function_names.reverse()
 
-    def _get_function_names_in_postorder_dfs(self, reverse_order: bool) -> list[str]:
-        """Return the function names in this ParsecFile's call graph collected via DFS traversal.
-
-        Args:
-            reverse_order (bool): True iff the result of the DFS traversal should be reversed.
-
-        Returns:
-            list[str]: The function names in this ParsecFile's call graph collected via a DFS
-                traversal.
-        """
-        result = list(nx.dfs_postorder_nodes(self.call_graph))
-        if reverse_order:
-            result.reverse()
+        result = []
+        for function_name in function_names:
+            if function := self.get_function_or_none(function_name=function_name):
+                result.append(function)
+            else:
+                logger.warning(
+                    f"Failed to obtain function '{function_name}' from ParsecFile parsed from "
+                    f"'{self.file_path}'"
+                )
         return result
 
     # MDE: Please document and discuss relationship to other functions with similar names.
