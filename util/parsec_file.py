@@ -36,6 +36,7 @@ class ParsecFile:
     """
 
     # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
+    # MDE: Why not make the nodes CFunction rather than str?
     # NOTE: Each node in call_graph represents a function name and is of type `str`.
     call_graph: nx.DiGraph  # type: ignore[type-arg]
     file_path: Path
@@ -160,6 +161,8 @@ class ParsecFile:
         """
         return [f for f in self.call_graph if self.call_graph.has_edge(f, f)]
 
+    # MDE: Can this be made to return CFunctions rather than names?  CFunctions are strictly more
+    # informative.
     def get_function_names_in_topological_order(self, reverse_order: bool = False) -> list[str]:
         """Return the function names in this ParsecFile's call graph in topological order.
 
@@ -170,14 +173,15 @@ class ParsecFile:
         Returns:
             list[str]: The function names in this Parsec File's call graph in topological order.
         """
+        if not self.call_graph.nodes():
+            return []
+
         # Self-edges must be removed before computing the topological sort.
         # Operate over a copy of the call graph to avoid modifying the original graph.
         call_graph_copy = copy.copy(self.call_graph)
         self_edges = nx.selfloop_edges(call_graph_copy)
         call_graph_copy.remove_edges_from(self_edges)
 
-        if not call_graph_copy.nodes():
-            return []
         try:
             names_in_topological_order = list(nx.topological_sort(call_graph_copy))
             if reverse_order:

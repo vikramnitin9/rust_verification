@@ -62,6 +62,10 @@ class WorkStack:
 class ProofState:
     """Class representing a proof state.
 
+    A proof state consists of a set of completed functions (with proven or assumed specifications)
+    and a workstack of functions yet to be specified and verified.  If the workstack is empty, then
+    every function in the program has a proven or assumed specification.
+
     Attributes:
         _specs (dict[str, FunctionSpecification]): For each function, its current specification.
             These specs may or may not be verified.
@@ -71,6 +75,7 @@ class ProofState:
             verified.
         _assumed_functions (list[str]): A list of functions whose specs are assumed for
             verification.
+
     """
 
     _specs: dict[str, FunctionSpecification]
