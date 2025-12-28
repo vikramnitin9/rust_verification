@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 
 from .llm_gen import LLMGen
+from .conversation_message import ConversationMessage, UserMessage, LlmMessage, SystemMessage
 
 load_dotenv()
 
@@ -44,4 +45,8 @@ __all__ = [
     "LLMGen",
     "ModelError",
     "get_llm_generation_with_model",
+    "ConversationMessage",
+    "UserMessage",
+    "LlmMessage",
+    "SystemMessage",
 ]
