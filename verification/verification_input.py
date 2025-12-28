@@ -13,8 +13,11 @@ class VerificationContext:
         callee_specs (dict[str, FunctionSpecification]): The specs for a function's callees.
         global_variable_specs (dict[str, str]): The specs for global program variables.
         hints (str): Hints given to the verifier for specification generation.
+            # MDE: Are those hints to the verifier or hints given to an LLM for spec generation?
     """
 
+    # MDE: This dictionary could use CFunction or str as its key.  You chose str.  What are the
+    # tradeoffs between the two choices?
     callee_specs: dict[str, FunctionSpecification]
     # I'm unsure if CBMC has a way to write specs for global variables.
     global_variable_specs: dict[str, str]
@@ -43,7 +46,7 @@ class VerificationInput:
         function (CFunction): The function to be verified.
         spec (FunctionSpecification): The spec for the function to be verified.
         context (VerificationContext): The context for the function to be verified.
-        contents_of_file_to_verify (str): The contents of the file to be verified.
+        contents_of_file_to_verify (str): The contents of the file that contains `function`.
     """
 
     function: CFunction

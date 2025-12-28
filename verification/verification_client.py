@@ -1,4 +1,4 @@
-"""Client for verifying source code."""
+"""Client for invoking a verifier on C source code."""
 
 from typing import Protocol
 
@@ -9,7 +9,7 @@ from .verification_result import VerificationResult
 
 
 class VerificationClient(Protocol):
-    """Client for verifying source code."""
+    """Client for invoking a verifier on C source code."""
 
     def verify(
         self,
@@ -25,6 +25,7 @@ class VerificationClient(Protocol):
             spec (FunctionSpecification): The specification for the function to verify.
             proof_state (ProofState): The proof state.
             source_code_content (str): The source code content.
+                # MDE: Is this for the function, or the file, or the project?
 
         Returns:
             VerificationResult: The result of verifying the given function.

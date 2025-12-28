@@ -9,7 +9,7 @@ from .verification_input import VerificationInput
 
 @dataclass(frozen=True)
 class VerificationResult:
-    """Class representing a verification result (i.e., the output of verifying a function).
+    """Class representing a verification result: the output of running a verifier on a function.
 
     Attributes:
         verification_input (VerificationInput): The input that resulted in this verification result.

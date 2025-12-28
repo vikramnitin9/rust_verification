@@ -63,7 +63,7 @@ class PromptBuilder:
             str: Prompt text indicating the need to backtrack during verification.
         """
         with tempfile.NamedTemporaryFile(mode="w+t", suffix=".c") as tmp_f:
-            # The following might have CBMC annotations, comment them out.
+            # The source code might have CBMC annotations, comment them out.
             source_code_lines = verification_result.get_source_code_contents().splitlines()
             source_code_cbmc_commented_out = "\n".join(
                 text_util.comment_out_cbmc_annotations(lines=source_code_lines)
@@ -87,6 +87,8 @@ class PromptBuilder:
                 text_util.uncomment_cbmc_annotations(function_lines_cbmc_commented_out)
             )
 
+        # MDE: I suggest encapsulating this code as a method of VerificationInput, rather than it
+        # having a method `get_callee_names_to_specs` which externalizes work to its client here.
         callee_context_for_prompt = ""
         callees_to_specs = verification_result.verification_input.get_callee_names_to_specs()
         if callees_to_specs:
@@ -106,10 +108,10 @@ class PromptBuilder:
         )
 
     def _get_callee_specs(self, caller: str, callees_with_specs: list[CFunction]) -> str:
-        """Return the callee specifications to add to a prompt.
+        """Return the specifications of all the callees of `caller`.
 
         Args:
-            caller (str): The caller function.
+            caller (str): The calling function.
             callees_with_specs (list[CFunction]): The list of callees with specifications.
 
         Returns:

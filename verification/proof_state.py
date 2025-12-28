@@ -10,7 +10,7 @@ from .work_item import WorkItem
 
 @dataclass
 class WorkStack:
-    """Class to represent a stack of functions and hints (i.e., WorkItem) to process.
+    """Class to represent a stack of functions and hints (i.e., `WorkItem`s) to process.
 
     Attributes:
         work_items (list[WorkItem]): The stack of functions and hints to process.
@@ -56,15 +56,16 @@ class WorkStack:
         Returns:
             bool: True iff there are no elements in this workstack.
         """
-        return len(self.work_items) == 0
+        return not self.work_items
 
 
 class ProofState:
-    """Class representing a program's proof state.
+    """Class representing a proof state.
 
     Attributes:
-        _specs (dict[str, FunctionSpecification]): The current specifications for each function.
+        _specs (dict[str, FunctionSpecification]): For each function, its current specification.
             These specs may or may not be verified.
+            # MDE: How are identically-named functions in different files distinguished?
         _workstack (WorkStack): A stack of functions that must be (re)processed.
         _verified_functions (list[str]): A list of functions whose specs have been successfully
             verified.
@@ -130,6 +131,9 @@ class ProofState:
         """
         self._specs[function.name] = spec
 
+    # MDE: I'm not clear on the rules about when a function is represented by its name (as in the
+    # mapping returned by get_specifications) and when it is represented by a CFunction (as here).
+    # (At the place where get_specifications is called, the CFunction is available.)
     def get_specification(self, function: CFunction) -> FunctionSpecification | None:
         """Return the function's specification from this proof state.
 
@@ -141,6 +145,9 @@ class ProofState:
         """
         return self._specs.get(function.name)
 
+    # MDE: This is not currently used.  If it is retained (I'm not sure it needs to be), then can
+    # the field be automatically updated when pushing or popping, rather than externally maintained
+    # by the client?  The same comment applies to add_verified_function.
     def assume_function(self, function: CFunction) -> None:
         """Update this proof state's list of functions with assumed specs.
 
@@ -156,6 +163,8 @@ class ProofState:
             function (CFunction): The function whose spec is verified.
         """
         self._verified_functions.append(function.name)
+
+    # MDE: The setters and getters should be in a consistent order.
 
     def get_verified_functions(self) -> tuple[str, ...]:
         """Return this proof state's verified functions as an immutable tuple.

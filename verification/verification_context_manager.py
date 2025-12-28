@@ -1,4 +1,6 @@
 """Class for working with verification contexts and proof states."""
+# MDE: Please make the description more specific than "working with".  What does this class
+# represent or do?
 
 from pathlib import Path
 
@@ -37,6 +39,8 @@ class VerificationContextManager:
         """
         return self._verified_specs.get(function.name)
 
+    # MDE: I think this can be a method of ProofState.  It is not related to the fields of
+    # VerificationContextManager.
     def current_context(self, function: CFunction, proof_state: ProofState) -> VerificationContext:
         """Return the current verification context for the function.
 
@@ -52,6 +56,7 @@ class VerificationContextManager:
         callee_specs = {
             callee.name: callee_spec
             for callee in callees_for_function
+            # MDE: I think the RHS can be: proof_state.get_specification(callee)
             if (callee_spec := proof_state.get_specifications().get(callee.name))
         }
         return VerificationContext(

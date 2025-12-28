@@ -107,6 +107,9 @@ class CbmcVerificationClient(VerificationClient):
             str: The command used to verify a function in a file with CBMC.
         """
         function_name = verification_input.function.name
+        # MDE: Do we want to replace *every* function (except the one being verified) by its current
+        # specification, whether or not it is verified/assumed?  Please discuss.
+        # MDE: I don't see that assumed_functions and verified_functions are ever set.
         replace_call_with_contract_args = "".join(
             [
                 f"--replace-call-with-contract {f} "
