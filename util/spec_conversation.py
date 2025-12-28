@@ -2,8 +2,8 @@
 
 from models import ConversationMessage, LlmMessage
 
-from .backtracking_strategy import BacktrackingStrategy
 from .function_specification import FunctionSpecification
+from .specification_generation_next_step import SpecificationGenerationNextStep
 
 
 class SpecConversation:
@@ -15,10 +15,12 @@ class SpecConversation:
         specification (FunctionSpecification): The LLM-generated specification.
         conversation (list[ConversationMessage]): The conversation that resulted in the
             specification.
-        backtracking_strategy (BacktrackingStrategy | None): The backtracking strategy associated
-            with the specification.
-            # MDE: Does the backtracking strategy also appear in the conversation?
-            # MDE: How is the backtracking strategy used?
+        specgen_next_step (SpecificationGenerationNextStep | None): The next step in the
+            specification generation process. Defaults to None until a verifier is executed, the
+            result of which is used to compute the next step (either directly accepting a verified
+            spec, or asking an LLM to decide the next step.)
+            # MDE: Does the specification generation next step also appear in the conversation?
+            # MDE: How is the next step used?
         contents_of_file_to_verify (str | None): The content of the file to be verified.
 
     # MDE: Should the CFunction be part of this datatype?
@@ -26,20 +28,20 @@ class SpecConversation:
 
     specification: FunctionSpecification
     conversation: list[ConversationMessage]
-    backtracking_strategy: BacktrackingStrategy | None
+    specgen_next_step: SpecificationGenerationNextStep | None
     contents_of_file_to_verify: str | None
 
     def __init__(
         self,
         specification: FunctionSpecification,
         conversation: list[ConversationMessage],
-        backtracking_strategy: BacktrackingStrategy | None = None,
+        specgen_next_step: SpecificationGenerationNextStep | None = None,
         contents_of_file_to_verify: str | None = None,
     ) -> None:
         """Create a new SpecConversation."""
         self.specification = specification
         self.conversation = conversation
-        self.backtracking_strategy = backtracking_strategy
+        self.specgen_next_step = specgen_next_step
         self.contents_of_file_to_verify = contents_of_file_to_verify
 
     def get_conversation_with_message_appended(

@@ -15,11 +15,11 @@ from models import (
     get_llm_generation_with_model,
 )
 from util import (
-    BacktrackingStrategy,
     CFunction,
     FunctionSpecification,
     ParsecFile,
     SpecConversation,
+    SpecificationGenerationNextStep,
     extract_function,
     function_util,
 )
@@ -90,23 +90,22 @@ class LlmSpecificationGenerator:
     def generate_and_repair_spec(
         self,
         function: CFunction,
-        backtracking_hint: str,
+        next_step_hint: str,
         proof_state: ProofState,
     ) -> list[SpecConversation]:
         """Return a list of potential specifications for the function.
 
         Args:
             function (CFunction): The function for which to generate potential specs.
-            backtracking_hint (str): Hints to help guide spec generation during backtracking.
-                Only non-None when backtracking.
+            next_step_hint (str): Hints to help guide specification regeneration (i.e., when a
+                specification is not accepted or assumed as-is, and is either being repaired or when
+                a callee specification is re-generated).
             proof_state (ProofState): The proof state, which includes specifications for callees.
 
         Returns:
             list[SpecConversation]: A list of potential specifications for the function.
         """
-        candidate_specs = self._generate_specs(
-            function=function, backtracking_hint=backtracking_hint
-        )
+        candidate_specs = self._generate_specs(function=function, next_step_hint=next_step_hint)
 
         # TODO: Actually perform some pruning here of the candidate specs first.
         pruned_specs = candidate_specs
@@ -125,7 +124,7 @@ class LlmSpecificationGenerator:
     def _generate_specs(
         self,
         function: CFunction,
-        backtracking_hint: str,
+        next_step_hint: str,
     ) -> list[SpecConversation]:
         """Generate potential specifications for the given function.
 
@@ -133,8 +132,10 @@ class LlmSpecificationGenerator:
 
         Args:
             function (CFunction): The function for which to generate specifications.
-            backtracking_hint (str): The backtracking hint to guide specification generation. Only
-                non-empty when generating specs during backtracking.
+            next_step_hint (str): Hints to guide specification generation. Only non-empty when
+                generating specs during backtracking (i.e., a specification is not accepted or
+                assumed as-is, and is either being repaired or when a callee specification is
+                re-generated).
 
         Returns:
             list[SpecConversation]: The generated specifications for the given function, as a
@@ -144,8 +145,8 @@ class LlmSpecificationGenerator:
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
             function, self._parsec_file
         )
-        if backtracking_hint is not None:
-            specification_generation_prompt += "\n\n" + backtracking_hint
+        if next_step_hint:
+            specification_generation_prompt += "\n\n" + next_step_hint
         specification_generation_message = UserMessage(content=specification_generation_prompt)
         # MDE: With respect to terminology, is an "LLM response" the same as a "sample"?  Or does a
         # response consist of multiple samples?  We should be consistent with this terminology
@@ -237,6 +238,9 @@ class LlmSpecificationGenerator:
                 )
 
                 if vresult.succeeded:
+                    current_spec_conversation.specgen_next_step = (
+                        SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
+                    )
                     verified_spec_conversations.append(current_spec_conversation)
                 else:
                     unverified_spec_conversations.append(current_spec_conversation)
@@ -254,12 +258,12 @@ class LlmSpecificationGenerator:
                     proof_state=proof_state,
                     source_code_content=contents_of_file_to_verify,
                 )
-                backtracking_prompt = self._prompt_builder.backtracking_prompt(
+                next_step_prompt = self._prompt_builder.next_step_prompt(
                     verification_result=vresult
                 )
                 conversation_updated_with_failure_information = (
                     unverified_spec_conversation.get_conversation_with_message_appended(
-                        UserMessage(content=backtracking_prompt)
+                        UserMessage(content=next_step_prompt)
                     )
                 )
 
@@ -272,7 +276,7 @@ class LlmSpecificationGenerator:
                         conversation=unverified_spec_conversation.get_conversation_with_message_appended(
                             LlmMessage(content=response)
                         ),
-                        backtracking_strategy=self._parse_backtracking_strategy(response),
+                        specgen_next_step=self._parse_next_step(response),
                     )
                     for specification, response in model_responses.items()
                 ]
@@ -317,18 +321,17 @@ class LlmSpecificationGenerator:
             msg = f"Failed to repair specifications for '{function.name}'"
             raise RuntimeError(msg) from me
 
-    def _parse_backtracking_strategy(self, llm_response: str) -> BacktrackingStrategy:
-        """Parse a backtracking strategy from an LLM response.
+    def _parse_next_step(self, llm_response: str) -> SpecificationGenerationNextStep:
+        """Parse the next steps for a prompt from an LLM response.
 
-        An LLM is asked to select a backtracking strategy and include it in its response when it
-        is asked to repair a spec. This function parses the strategy to include in a
-        SpecConversation object.
+        An LLM is asked to choose a next step and include it in its response when it is asked to
+        repair a spec. This function parses the next step to include in a SpecConversation object.
 
         Args:
-            llm_response (str): The LLM response from which to parse a backtracking strategy.
+            llm_response (str): The LLM response from which to parse a next step.
 
         Returns:
-            BacktrackingStrategy: The backtracking strategy returned by the LLM in its response.
+            SpecificationGenerationNextStep: The next step returned by the LLM in its response.
         """
         llm_response = llm_response.strip()
         # Handle the possibility that the LLM did not follow instructions to return just the plain
@@ -336,18 +339,17 @@ class LlmSpecificationGenerator:
         llm_response = llm_response.removeprefix("```json").removesuffix("```")
 
         try:
-            return BacktrackingStrategy(json.loads(llm_response)["backtracking_strategy"])
+            return SpecificationGenerationNextStep(json.loads(llm_response)["next_step"])
         except json.JSONDecodeError as je:
             msg = f"The LLM failed to return a valid JSON object: {llm_response}, error = {je}"
             raise RuntimeError(msg) from je
         except KeyError as ke:
             msg = (
-                "The LLM returned valid JSON, but was missing the 'backtracking_strategy' key: "
-                f"{llm_response}"
+                f"The LLM returned valid JSON, but was missing the 'next_step' key: {llm_response}"
             )
             raise RuntimeError(msg) from ke
         except ValueError as ve:
-            msg = f"The LLM likely returned an invalid backtracking strategy: {llm_response}"
+            msg = f"The LLM likely returned an invalid next step: {llm_response}"
             raise RuntimeError(msg) from ve
 
     def _get_content_of_file_to_verify(

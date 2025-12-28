@@ -21,7 +21,9 @@ class PromptBuilder:
     SPECIFICATION_REPAIR_PROMPT_TEMPLATE = Template(
         Path("./prompts/repair-specifications-prompt-template.txt").read_text()
     )
-    BACKTRACKING_PROMPT_TEMPLATE = Template(Path("./prompts/backtracking-prompt.txt").read_text())
+    NEXT_STEP_PROMPT_TEMPLATE = Template(
+        Path("./prompts/next-step-prompt-template.txt").read_text()
+    )
     SOURCE_PLACEHOLDER = "<<SOURCE>>"
     CALLEE_CONTEXT_PLACEHOLDER = "<<CALLEE_CONTEXT>>"
 
@@ -53,14 +55,14 @@ class PromptBuilder:
 
         return prompt.replace(PromptBuilder.CALLEE_CONTEXT_PLACEHOLDER, callee_context)
 
-    def backtracking_prompt(self, verification_result: VerificationResult) -> str:
-        """Return prompt text indicating the need to backtrack during verification.
+    def next_step_prompt(self, verification_result: VerificationResult) -> str:
+        """Return prompt text asking the LLM to decide on next steps for a failing specification.
 
         Args:
-            verification_result (VerificationResult): _description_
+            verification_result (VerificationResult): The verification result for a failing spec.
 
         Returns:
-            str: Prompt text indicating the need to backtrack during verification.
+            str: Prompt text asking the LLM to decide on next steps for a failing specification.
         """
         with tempfile.NamedTemporaryFile(mode="w+t", suffix=".c") as tmp_f:
             # The source code might have CBMC annotations, comment them out.
@@ -100,7 +102,7 @@ class PromptBuilder:
                 callee_summaries
             )
 
-        return PromptBuilder.BACKTRACKING_PROMPT_TEMPLATE.substitute(
+        return PromptBuilder.NEXT_STEP_PROMPT_TEMPLATE.substitute(
             function_name=function.name,
             source_code=function_lines,
             callee_context=callee_context_for_prompt,

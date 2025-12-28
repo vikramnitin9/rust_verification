@@ -113,13 +113,12 @@ immutable class SpecConversation:
 
 * spec: Specification
 * conversation: a conversation history with an LLM, that led to the given spec
-* backtracking_strategy: The backtracking strategy
-  associated with the spec.
+* next_step_hint: Any hints for regenerating specifications, either for repair or for callees.
 
 immutable class WorkItem:
 
 * function: ParsecFunction
-* backtracking_hint: str
+* next_step_hint: str
 
 ## Code
 

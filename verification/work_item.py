@@ -11,8 +11,9 @@ class WorkItem:
 
     Attributes:
         function (CFunction): The function on a proof state's workstack.
-        backtracking_hint: The hints to use in generating or repairing specifications.
+        next_step_hint: The hint(s) to use in repairing specifications or re-generating callee
+            specifications.
     """
 
     function: CFunction
-    backtracking_hint: str
+    next_step_hint: str

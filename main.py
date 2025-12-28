@@ -13,11 +13,11 @@ from loguru import logger
 
 from specifications import LlmSpecificationGenerator
 from util import (
-    BacktrackingStrategy,
     CFunction,
     FunctionSpecification,
     ParsecFile,
     SpecConversation,
+    SpecificationGenerationNextStep,
     copy_file_to_folder,
     ensure_lines_at_beginning,
     function_util,
@@ -147,16 +147,17 @@ def _verify_program(
     GLOBAL_INCOMPLETE_PROOFSTATES.append(initial_proof_state)
 
     while GLOBAL_INCOMPLETE_PROOFSTATES:
-        # MDE: I don't think we want a depth-first search here.  I think a breadth-first search
-        # (achieved by making GLOBAL_PROOFSTATES a queue rather than a stack) is more appropriate,
-        # to avoid getting stuck in an unproductive corner of the proof space.
-        proof_state = GLOBAL_INCOMPLETE_PROOFSTATES.pop()
+        # Use BFS to avoid getting stuck in an unproductive search over a proof state.
+        proof_state = GLOBAL_INCOMPLETE_PROOFSTATES.popleft()
         next_proofstates = _step(
             proof_state=proof_state,
             specification_generator=specification_generator,
         )
 
         for next_proofstate in next_proofstates:
+            if next_proofstate in GLOBAL_OBSERVED_PROOFSTATES:
+                continue
+            GLOBAL_OBSERVED_PROOFSTATES.add(next_proofstate)
             if next_proofstate.is_workstack_empty():
                 GLOBAL_COMPLETE_PROOFSTATES.append(next_proofstate)
             elif next_proofstate not in GLOBAL_OBSERVED_PROOFSTATES:
@@ -202,7 +203,7 @@ def _step(
     spec_conversations_for_function: list[SpecConversation] = (
         specification_generator.generate_and_repair_spec(
             function=work_item.function,
-            backtracking_hint=work_item.backtracking_hint,
+            next_step_hint=work_item.next_step_hint,
             proof_state=proof_state,
         )
     )
@@ -249,8 +250,14 @@ def _get_next_proof_state(
     # A deep copy is desirable here because the previous proof state should not be modified.
     next_proof_state = copy.deepcopy(prev_proof_state)
     next_proof_state.set_specification(function=function, spec=spec_conversation.specification)
-    match spec_conversation.backtracking_strategy:
-        case None | BacktrackingStrategy.ASSUME_SPEC:
+    match spec_conversation.specgen_next_step:
+        case None:
+            msg = f"{spec_conversation} was missing a next step"
+            raise ValueError(msg)
+        case (
+            SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
+            | SpecificationGenerationNextStep.ASSUME_SPEC_AS_IS
+        ):
             next_proof_state.pop_workstack()
         case s if s.is_regenerate_strategy:
             # MDE: If the strategy is repair, then shouldn't the workstack be popped then pushed,

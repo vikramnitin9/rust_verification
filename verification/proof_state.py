@@ -21,18 +21,18 @@ class WorkStack:
     def __init__(self, functions_and_hints: list[tuple[CFunction, str]]) -> None:
         """Create a new WorkStack."""
         self.work_items = [
-            WorkItem(function=function, backtracking_hint=hint)
+            WorkItem(function=function, next_step_hint=hint)
             for function, hint in functions_and_hints
         ]
 
-    def push(self, function: CFunction, backtracking_hint: str) -> None:
-        """Push the function and backtracking hint to this workstack.
+    def push(self, function: CFunction, next_step_hint: str) -> None:
+        """Push the function and next step hint to this workstack.
 
         Args:
             function (CFunction): The function to process.
-            backtracking_hint (str): The hint for the function to process.
+            next_step_hint (str): The hint for the function to process.
         """
-        self.work_items.append(WorkItem(function=function, backtracking_hint=backtracking_hint))
+        self.work_items.append(WorkItem(function=function, next_step_hint=next_step_hint))
 
     def peek(self) -> WorkItem:
         """Return the item at the top of this workstack.
@@ -97,7 +97,7 @@ class ProofState:
             function (CFunction): The function to push onto this proof state's workstack.
             hint (str, optional): The hint(s) for spec generation. Defaults to "".
         """
-        self._workstack.push(function=function, backtracking_hint=hint)
+        self._workstack.push(function=function, next_step_hint=hint)
 
     def peek_workstack(self) -> WorkItem:
         """Return the top element of the workstack.
