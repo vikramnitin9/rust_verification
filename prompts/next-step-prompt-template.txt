@@ -25,6 +25,7 @@ If you choose (2), your response should be in the following format:
 
 {
     "next_step": "REPAIR_SPEC",
+    "reasoning": "<REASONING>",
     "function_with_specs": "<FUNCTION_WITH_REPAIRED_SPEC>"
 }
 
@@ -32,7 +33,7 @@ If you choose (3), your response should be in the following format:
 
 {
     "next_step": "REGENERATE_CALLEE_SPEC",
-    "reasoning_for_stronger_postcondition": "<REASONING>",
+    "reasoning": "<REASONING>",
     "callee": "<CALLEE_NAME>",
     "function_with_specs": "<CALLEE_WITH_REGENERATED_SPECS>",
 }

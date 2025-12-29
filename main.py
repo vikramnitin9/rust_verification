@@ -119,14 +119,15 @@ def main() -> None:
     _verify_program(functions_in_reverse_topological_order, specification_generator)
 
 
-# MDE: When does this function exit?
 def _verify_program(
     functions: list[CFunction],
     specification_generator: LlmSpecificationGenerator,
 ) -> MappingProxyType[CFunction, list[FunctionSpecification]]:
-    """Return an immutable map of function names to their CBMC specifications.
+    """Return an immutable map of CFunctions to their CBMC specifications.
 
-    Each returned specification is either verified or assumed.
+    This function exits when the GLOBAL_INCOMPLETE_PROOFSTATES are exhausted, returning a map of
+    CFunctions to their specifications. A map is returned since it is possible for the system to
+    generate more than one valid specification for a CFunction.
 
     Args:
         functions (list[CFunction]): The functions for which to generate and verify specifications,
@@ -136,10 +137,7 @@ def _verify_program(
     Returns:
         MappingProxyType[CFunction, FunctionSpecification]: An immutable map of function to their
             CBMC-verified specifications.
-            # MDE: I'm not clear about the purpose of the map.  Could a list of
-            # FunctionSpecification be returned instead?
     """
-    # MDE: Please comment why the last element of `functions` does not appear in the workstack.
     initial_workstack: WorkStack = WorkStack([(function, "") for function in functions])
     initial_proof_state = ProofState(workstack=initial_workstack)
 
@@ -156,14 +154,14 @@ def _verify_program(
 
         for next_proofstate in next_proofstates:
             if next_proofstate in GLOBAL_OBSERVED_PROOFSTATES:
+                # Avoid re-processing proof states we've already seen.
+                logger.debug(f"Skipping duplicate ProofState {next_proofstate}")
                 continue
-            GLOBAL_OBSERVED_PROOFSTATES.add(next_proofstate)
             if next_proofstate.is_workstack_empty():
                 GLOBAL_COMPLETE_PROOFSTATES.append(next_proofstate)
             elif next_proofstate not in GLOBAL_OBSERVED_PROOFSTATES:
                 GLOBAL_INCOMPLETE_PROOFSTATES.append(next_proofstate)
-            else:
-                logger.debug(f"Skipping duplicate ProofState {next_proofstate}")
+            GLOBAL_OBSERVED_PROOFSTATES.add(next_proofstate)
 
     verified_specs: dict[CFunction, list[FunctionSpecification]] = defaultdict(list)
     for function in functions:
@@ -209,9 +207,8 @@ def _step(
     )
 
     pruned_spec_conversations_for_function = _prune_specs(
-        function=work_item.function,
-        spec_conversations=spec_conversations_for_function,
         proof_state=proof_state,
+        spec_conversations=spec_conversations_for_function,
     )
 
     result: list[ProofState] = []
@@ -260,28 +257,27 @@ def _get_next_proof_state(
         ):
             next_proof_state.pop_workstack()
         case s if s.is_regenerate_strategy:
-            # MDE: If the strategy is repair, then shouldn't the workstack be popped then pushed,
-            # rather than only pushed?
+            next_proof_state.pop_workstack()
             next_proof_state.push_onto_workstack(
-                function=function, hint=spec_conversation.get_latest_llm_response()
+                # TODO: assign the reasoning field to `hint`.
+                function=function,
+                hint=spec_conversation.get_latest_llm_response(),
             )
     return next_proof_state
 
 
 def _prune_specs(
-    function: CFunction, spec_conversations: list[SpecConversation], proof_state: ProofState
+    proof_state: ProofState,
+    spec_conversations: list[SpecConversation],
 ) -> list[SpecConversation]:
     """Given a list of SpecConversations, returns a subset of them (which prunes the others).
 
     Note: The current strategy is simply to return just the specifications that successfully verify.
 
     Args:
-        function (CFunction): The function whose SpecConversations to prune.
+        proof_state (ProofState): The ProofState (the topmost function on its workstack is the
+            function for which specifications are being generated/repaired).
         spec_conversations (list[SpecConversation]): The SpecConversations to prune.
-        proof_state (ProofState): The ProofState associated with this function and its list of
-            SpecConversation.
-            # MDE: Do we need to pass the function?  I think it's the one on the top of the
-            # ProofState's workstack.
 
     Raises:
         ValueError: Raised when a SpecConversation does not have any file contents that were run
@@ -290,6 +286,7 @@ def _prune_specs(
     Returns:
         list[SpecConversation]: A subset of the given SpecConversations.
     """
+    function = proof_state.peek_workstack().function
     pruned_specs = []
     for spec_conversation in spec_conversations:
         contents_of_verified_file = spec_conversation.contents_of_file_to_verify

@@ -82,3 +82,11 @@ class SpecConversation:
             f"'{latest_message_in_conversation.role}'"
         )
         raise ValueError(msg)
+
+    def has_next_step(self) -> bool:
+        """Return True iff this conversation has a next step.
+
+        Returns:
+            bool: True iff this conversation has a next step.
+        """
+        return self.specgen_next_step is not None

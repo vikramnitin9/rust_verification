@@ -213,15 +213,14 @@ class LlmSpecificationGenerator:
         Returns:
             list[SpecConversation]: The repaired specifications.
         """
-        observed_spec_conversations = []
-        verified_spec_conversations = []
-        current_spec_conversations = [spec_conversation]
+        observed_spec_conversations: list[SpecConversation] = []
+        verified_spec_conversations: list[SpecConversation] = []
+        current_spec_conversations: list[SpecConversation] = [spec_conversation]
         for _ in range(self._num_repair_iterations):
             unverified_spec_conversations: list[SpecConversation] = []
             for current_spec_conversation in current_spec_conversations:
                 if current_spec_conversation in observed_spec_conversations:
                     continue
-                observed_spec_conversations.append(current_spec_conversation)
 
                 contents_of_file_to_verify = self._get_content_of_file_to_verify(
                     function=function,
@@ -245,6 +244,9 @@ class LlmSpecificationGenerator:
                 else:
                     unverified_spec_conversations.append(current_spec_conversation)
 
+                observed_spec_conversations.append(current_spec_conversation)
+
+            current_spec_conversations = []
             for unverified_spec_conversation in unverified_spec_conversations:
                 contents_of_file_to_verify = unverified_spec_conversation.contents_of_file_to_verify
                 if contents_of_file_to_verify is None:
@@ -280,7 +282,11 @@ class LlmSpecificationGenerator:
                     )
                     for specification, response in model_responses.items()
                 ]
-        return verified_spec_conversations or observed_spec_conversations
+        return verified_spec_conversations or [
+            spec_conversation
+            for spec_conversation in observed_spec_conversations
+            if spec_conversation.has_next_step()
+        ]
 
     def _call_llm_for_repair(
         self, function: CFunction, conversation: list[ConversationMessage]
