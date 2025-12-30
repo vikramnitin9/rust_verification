@@ -7,6 +7,7 @@ from .c_function import CFunction
 from .parsec_file import ParsecFile
 from .function_specification import FunctionSpecification
 from .spec_conversation import SpecConversation
+from .json_util import parse_object
 
 __all__ = [
     "SpecificationGenerationNextStep",
@@ -21,4 +22,5 @@ __all__ = [
     "extract_function",
     "extract_specification",
     "ensure_lines_at_beginning",
+    "parse_object"
 ]
