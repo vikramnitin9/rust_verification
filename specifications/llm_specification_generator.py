@@ -216,7 +216,7 @@ class LlmSpecificationGenerator:
         observed_spec_conversations: list[SpecConversation] = []
         verified_spec_conversations: list[SpecConversation] = []
         current_spec_conversations: list[SpecConversation] = [spec_conversation]
-        for _ in range(self._num_repair_iterations):
+        for i in range(self._num_repair_iterations + 1):
             unverified_spec_conversations: list[SpecConversation] = []
             for current_spec_conversation in current_spec_conversations:
                 if current_spec_conversation in observed_spec_conversations:
@@ -245,6 +245,9 @@ class LlmSpecificationGenerator:
                     unverified_spec_conversations.append(current_spec_conversation)
 
                 observed_spec_conversations.append(current_spec_conversation)
+
+            if i == self._num_repair_candidates:
+                break
 
             current_spec_conversations = []
             for unverified_spec_conversation in unverified_spec_conversations:
@@ -275,9 +278,10 @@ class LlmSpecificationGenerator:
                 current_spec_conversations += [
                     SpecConversation(
                         specification=specification,
-                        conversation=unverified_spec_conversation.get_conversation_with_message_appended(
-                            LlmMessage(content=response)
-                        ),
+                        conversation=[
+                            *conversation_updated_with_failure_information,
+                            LlmMessage(content=response),
+                        ],
                         specgen_next_step=self._parse_next_step(response),
                     )
                     for specification, response in model_responses.items()

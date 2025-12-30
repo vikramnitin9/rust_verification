@@ -8,6 +8,7 @@ import tempfile
 from collections import defaultdict, deque
 from pathlib import Path
 from types import MappingProxyType
+from typing import Any
 
 from loguru import logger
 
@@ -21,6 +22,7 @@ from util import (
     copy_file_to_folder,
     ensure_lines_at_beginning,
     function_util,
+    parse_object,
 )
 from verification import (
     CbmcVerificationClient,
@@ -259,11 +261,15 @@ def _get_next_proof_state(
         case s if s.is_regenerate_strategy:
             next_proof_state.pop_workstack()
             next_proof_state.push_onto_workstack(
-                # TODO: assign the reasoning field to `hint`.
                 function=function,
-                hint=spec_conversation.get_latest_llm_response(),
+                hint=_parse_reasoning(spec_conversation.get_latest_llm_response()) or "",
             )
     return next_proof_state
+
+
+def _parse_reasoning(llm_response: str) -> str | None:
+    parsed_llm_response: dict[str, Any] = parse_object(text=llm_response)
+    return str(parsed_llm_response.get("reasoning"))
 
 
 def _prune_specs(
