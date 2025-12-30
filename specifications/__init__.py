@@ -1,5 +1,5 @@
-from .llm_invocation_result import LlmInvocationResult
+from .llm_invocation_response import LlmInvocationResponse
 from .llm_specification_generator import LlmSpecificationGenerator
-from .llm_response_cache import LlmResponseCache
+from .llm_sample_cache import LlmSampleCache
 
-__all__ = ["LlmInvocationResult", "LlmSpecificationGenerator", "LlmResponseCache"]
+__all__ = ["LlmInvocationResponse", "LlmSpecificationGenerator", "LlmSampleCache"]

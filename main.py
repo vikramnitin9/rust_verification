@@ -89,9 +89,9 @@ def main() -> None:
     )
     # MDE: I think this should default to true.
     parser.add_argument(
-        "--use-llm-response-cache",
+        "--use-llm-sample-cache",
         action="store_true",
-        help="Whether to use cached LLM responses for specification generation and repair.",
+        help="Whether to use cached LLM samples for specification generation and repair.",
     )
     args = parser.parse_args()
 
@@ -112,7 +112,7 @@ def main() -> None:
         num_specification_candidates=args.num_specification_candidates,
         num_repair_candidates=args.num_repair_candidates,
         num_repair_iterations=args.num_specification_repair_iterations,
-        use_cache=args.use_llm_response_cache,
+        use_cache=args.use_llm_sample_cache,
     )
 
     functions_in_reverse_topological_order = parsec_file.get_functions_in_topological_order(

@@ -25,7 +25,7 @@ from util import (
 )
 from verification import PromptBuilder, ProofState, VerificationClient, VerificationContextManager
 
-from .llm_response_cache import LlmResponseCache
+from .llm_sample_cache import LlmSampleCache
 
 
 class LlmSpecificationGenerator:
@@ -45,8 +45,8 @@ class LlmSpecificationGenerator:
         _num_repair_candidates (int): The number of repaired specs sampled from an LLM in each
             repair round.
         _system_prompt (str): The system prompt for the LLM.
-        _llm_response_cache (LlmResponseCache): The cache mapping LLM prompts and responses.
-        _use_cache (bool): True iff the LLM response cache should be used.
+        _llm_sample_cache (LlmSampleCache): The cache mapping LLM prompts and samples.
+        _use_cache (bool): True iff the LLM sample cache should be used.
     """
 
     _parsec_file: ParsecFile
@@ -58,7 +58,7 @@ class LlmSpecificationGenerator:
     _num_repair_iterations: int
     _num_repair_candidates: int
     _system_prompt: str
-    _llm_response_cache: LlmResponseCache
+    _llm_sample_cache: LlmSampleCache
     _use_cache: bool
 
     def __init__(
@@ -84,7 +84,7 @@ class LlmSpecificationGenerator:
         self._num_specification_candidates = num_specification_candidates
         self._num_repair_candidates = num_repair_candidates
         self._num_repair_iterations = num_repair_iterations
-        self._llm_response_cache = LlmResponseCache()
+        self._llm_sample_cache = LlmSampleCache()
         self._use_cache = use_cache
 
     def generate_and_repair_spec(
@@ -148,40 +148,37 @@ class LlmSpecificationGenerator:
         if next_step_hint:
             specification_generation_prompt += "\n\n" + next_step_hint
         specification_generation_message = UserMessage(content=specification_generation_prompt)
-        # MDE: With respect to terminology, is an "LLM response" the same as a "sample"?  Or does a
-        # response consist of multiple samples?  We should be consistent with this terminology
-        # throughout the codebase.
 
-        # MDE: As mentioned in my comments on `llm_response_cache.py`, I think that invoking the LLM
-        # should be encapsulated in the LlmResponseCache.  This client code should not be aware of
+        # MDE: As mentioned in my comments on `llm_sample_cache.py`, I think that invoking the LLM
+        # should be encapsulated in the LlmSampleCache.  This client code should not be aware of
         # whether there is a cache miss or a cache hit.
         try:
             conversation.append(specification_generation_message)
-            model_responses = None
+            spec_samples = None
             if self._use_cache:
-                model_responses = self._llm_response_cache.read(specification_generation_prompt)
-            if not model_responses:
+                spec_samples = self._llm_sample_cache.read(specification_generation_prompt)
+            if not spec_samples:
                 # Cache miss.
-                model_responses = self._llm.gen(
+                spec_samples = self._llm.gen(
                     conversation, top_k=self._num_specification_candidates, temperature=0.8
                 )
-                self._llm_response_cache.write(
-                    prompt=specification_generation_prompt, responses=model_responses
+                self._llm_sample_cache.write(
+                    prompt=specification_generation_prompt, samples=spec_samples
                 )
 
-            candidate_specified_functions_with_responses = [
-                (extract_function(response), response) for response in model_responses
+            candidate_specified_functions_with_samples = [
+                (extract_function(sample), sample) for sample in spec_samples
             ]
-            candidate_specs_with_responses = [
+            candidate_specs_with_samples = [
                 (function_util.extract_specification(function.splitlines()), response)
-                for function, response in candidate_specified_functions_with_responses
+                for function, response in candidate_specified_functions_with_samples
             ]
             return [
                 SpecConversation(
                     specification=candidate_spec,
-                    conversation=[*conversation, LlmMessage(content=response)],
+                    conversation=[*conversation, LlmMessage(content=sample)],
                 )
-                for candidate_spec, response in candidate_specs_with_responses
+                for candidate_spec, sample in candidate_specs_with_samples
                 if candidate_spec
             ]
 
