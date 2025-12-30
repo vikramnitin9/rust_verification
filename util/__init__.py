@@ -5,6 +5,7 @@ from .parsec_error import ParsecError
 from .c_function import CFunction
 from .parsec_file import ParsecFile
 from .function_specification import FunctionSpecification
+from .json_util import parse_object
 
 __all__ = [
     "FunctionSpecification",
@@ -15,4 +16,5 @@ __all__ = [
     "extract_function",
     "extract_specification",
     "ensure_lines_at_beginning",
+    "parse_object"
 ]
