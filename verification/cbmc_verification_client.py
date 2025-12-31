@@ -16,7 +16,14 @@ from .verification_input import VerificationInput
 
 
 class CbmcVerificationClient(VerificationClient):
-    """Verifies source code using CBMC.  The entry point is `verify()`."""
+    """Verifies source code using CBMC. The entry point is `verify()`.
+
+    Attributes:
+        _cache (dict[VerificationInput, VerificationResult]): A cache of verification results mapped
+            to verification inputs.
+        _context_manager (VerificationContextManager): The context manager from which verified specs
+            are obtained.
+    """
 
     _cache: dict[VerificationInput, VerificationResult]
     _context_manager: VerificationContextManager
@@ -53,20 +60,16 @@ class CbmcVerificationClient(VerificationClient):
             tmp_f.write(source_code_content)
             tmp_f.seek(0)
             path_to_file = Path(tmp_f.name)
-            current_context = self._context_manager.current_context(
-                function=function,
-                proof_state=proof_state,
-            )
             vinput = VerificationInput(
                 function=function,
                 spec=spec,
-                context=current_context,
+                context=proof_state.get_current_context(function=function),
                 contents_of_file_to_verify=source_code_content,
             )
             if vinput not in self._cache:
                 logger.debug(f"vresult was not cached for: {vinput}")
                 vcommand = self._get_cbmc_verification_command(
-                    vinput, path_to_file_to_verify=path_to_file, proof_state=proof_state
+                    vinput, path_to_file_to_verify=path_to_file
                 )
                 try:
                     logger.debug(f"Running command: {vcommand}")
@@ -94,14 +97,12 @@ class CbmcVerificationClient(VerificationClient):
         self,
         verification_input: VerificationInput,
         path_to_file_to_verify: Path,
-        proof_state: ProofState,
     ) -> str:
         """Return the command used to verify a function in a file with CBMC.
 
         Args:
             verification_input (VerificationInput): The verification input.
             path_to_file_to_verify (Path): The path to the file to verify.
-            proof_state (ProofState): The proof state to verify under.
 
         Returns:
             str: The command used to verify a function in a file with CBMC.
@@ -109,11 +110,10 @@ class CbmcVerificationClient(VerificationClient):
         function_name = verification_input.function.name
         # MDE: Do we want to replace *every* function (except the one being verified) by its current
         # specification, whether or not it is verified/assumed?  Please discuss.
-        # MDE: I don't see that assumed_functions and verified_functions are ever set.
         replace_call_with_contract_args = "".join(
             [
-                f"--replace-call-with-contract {f} "
-                for f in proof_state.get_assumed_functions() + proof_state.get_verified_functions()
+                f"--replace-call-with-contract {f.name} "
+                for f in self._context_manager.get_verified_specs()
             ]
         )
         return (

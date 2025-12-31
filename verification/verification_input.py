@@ -12,8 +12,7 @@ class VerificationContext:
     Attributes:
         callee_specs (dict[str, FunctionSpecification]): The specs for a function's callees.
         global_variable_specs (dict[str, str]): The specs for global program variables.
-        hints (str): Hints given to the verifier for specification generation.
-            # MDE: Are those hints to the verifier or hints given to an LLM for spec generation?
+        hints (str): Hints given to the LLM for specification generation and repair.
     """
 
     # MDE: This dictionary could use CFunction or str as its key.  You chose str.  What are the

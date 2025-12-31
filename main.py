@@ -4,6 +4,7 @@
 
 import argparse
 import copy
+import shutil
 import tempfile
 from collections import defaultdict, deque
 from pathlib import Path
@@ -312,13 +313,13 @@ def _prune_specs(
     return pruned_specs or spec_conversations
 
 
-def _write_verified_spec(function: CFunction, specification: FunctionSpecification) -> None:
-    """Write a function's verified specification to a file on disk.
+def _write_verified_or_assumed_spec(
+    function: CFunction, specification: FunctionSpecification
+) -> None:
+    """Write a function's verified or assumed specification to a file on disk.
 
-    # MDE: Are assumed specifications also written to disk, or only proven ones?
-
-    Verified specifications are written to a file under the `DEFAULT_RESULT_DIR` directory, in a
-    file that has the same name (and path) as the original (non-specified) file.
+    Specifications are written to a file under the `DEFAULT_RESULT_DIR` directory that has the same
+    same name (and path) as the original (non-specified) file.
 
     Args:
         function (CFunction): The function for which to write a verified specification to disk.
@@ -331,8 +332,7 @@ def _write_verified_spec(function: CFunction, specification: FunctionSpecificati
 
     if not result_file.exists():
         # Create the result file by copying over the original file.
-        # MDE: Either use a function like shutil.copy, or document why you do not.
-        result_file.write_text(path_to_original_file.read_text(), encoding="utf-8")
+        shutil.copy(path_to_original_file, result_file)
 
     parsec_file = ParsecFile(result_file)
     function_with_verified_spec = function_util.get_source_code_with_inserted_spec(

@@ -1,6 +1,4 @@
-"""Module for generating and repairing specifications via LLMs."""
-
-# MDE: Document what granularity this works at:  a function, a file, a project?
+"""Module for generating and repairing specifications at the function-level via LLMs."""
 
 import json
 from pathlib import Path
@@ -31,7 +29,8 @@ from .llm_sample_cache import LlmSampleCache
 class LlmSpecificationGenerator:
     """Class for LLM-driven specification generation and repair.
 
-    The public method is `generate_and_repair_spec()`.
+    The public method is `generate_and_repair_spec()`, which accepts a single function and generates
+    a set of potential specifications for it. Each specification may or may not verify.
 
     Attributes:
         _parsec_file (ParsecFile): The ParseC file to use to obtain functions.
@@ -238,6 +237,9 @@ class LlmSpecificationGenerator:
                         SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
                     )
                     verified_spec_conversations.append(current_spec_conversation)
+                    self._verification_context_manager.set_verified_spec(
+                        function=function, verified_spec=vresult.get_spec()
+                    )
                 else:
                     unverified_spec_conversations.append(current_spec_conversation)
 
@@ -270,7 +272,8 @@ class LlmSpecificationGenerator:
                 )
 
                 model_responses = self._call_llm_for_repair(
-                    function=function, conversation=conversation_updated_with_failure_information
+                    function=function,
+                    conversation=tuple(conversation_updated_with_failure_information),
                 )
                 current_spec_conversations += [
                     SpecConversation(
@@ -290,17 +293,20 @@ class LlmSpecificationGenerator:
         ]
 
     def _call_llm_for_repair(
-        self, function: CFunction, conversation: list[ConversationMessage]
+        self, function: CFunction, conversation: tuple[ConversationMessage, ...]
     ) -> dict[FunctionSpecification, str]:
         """Call an LLM to repair a failing spec.
 
-        # MDE: What is the relationship between `conversation` here and the datatype
-        # `SpecConversation`?
+        The conversation passed in originates from an instance of `SpecConversation` which has a
+        specification that fails to verify.
+
+        The conversation is already appended with a message that directs the LLM to fix the failing
+        spec, and is not modified by this function.
 
         Args:
             function (CFunction): The function with the failing spec.
-            conversation (list[ConversationMessage]): The conversation for specification repair.
-                # MDE: The conversation that ends with the failing spec?
+            conversation (tuple[ConversationMessage]): The conversation for specification repair,
+                which ends with a message to the LLM to fix a failing spec.
 
         Raises:
             RuntimeError: Raised when a failure occurs (e.g., API timeout) during a call to an LLM
@@ -309,7 +315,7 @@ class LlmSpecificationGenerator:
         Returns:
             dict[FunctionSpecification, str]: A map of repaired specifications and the raw response
                 from the LLM from which the repaired specification was extracted.
-                # MDE: No conversation is returned?  OK if not, I'm just curious.
+
 
         """
         try:

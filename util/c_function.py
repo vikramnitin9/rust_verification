@@ -1,5 +1,6 @@
 """Represents the ParseC representation for a C function."""
 
+import filecmp
 import pathlib
 from dataclasses import dataclass, field
 from typing import Any
@@ -313,13 +314,10 @@ class CFunction:
         """
         if not isinstance(other, CFunction):
             return False
-        self_file_content = pathlib.Path(self.file_name).read_text()
-        other_file_content = pathlib.Path(other.file_name).read_text()
         return (
             # MDE: if the file names are the same, what is the point of comparing the content?
             self.name == other.name
-            # MDE: use filecmp.cmp instead (if this is retained).
-            and self_file_content == other_file_content
+            and filecmp.cmp(self.file_name, other.file_name)
             and self.start_line == other.start_line
             and self.end_line == other.end_line
         )

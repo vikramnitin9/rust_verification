@@ -3,6 +3,7 @@
 # represent or do?
 
 from pathlib import Path
+from types import MappingProxyType
 
 from util import CFunction, FunctionSpecification, ParsecFile
 
@@ -13,7 +14,7 @@ from .verification_input import VerificationContext
 class VerificationContextManager:
     """Class for working with verification contexts and proof states."""
 
-    _verified_specs: dict[str, FunctionSpecification]
+    _verified_specs: dict[CFunction, FunctionSpecification]
 
     def __init__(self) -> None:
         """Create a VerificationContextManager."""
@@ -26,7 +27,7 @@ class VerificationContextManager:
             function (CFunction): The function whose verified spec to set in this context manager.
             verified_spec (FunctionSpecification): The verified spec to set in this context manager.
         """
-        self._verified_specs[function.name] = verified_spec
+        self._verified_specs[function] = verified_spec
 
     def get_verified_spec(self, function: CFunction) -> FunctionSpecification | None:
         """Return this function's verified spec, if it exists.
@@ -37,7 +38,16 @@ class VerificationContextManager:
         Returns:
             FunctionSpecification | None: The verified spec to return, otherwise None.
         """
-        return self._verified_specs.get(function.name)
+        return self._verified_specs.get(function)
+
+    def get_verified_specs(self) -> MappingProxyType[CFunction, FunctionSpecification]:
+        """Return an immutable view of the verified specs of this program.
+
+        Returns:
+            MappingProxyType[CFunction, FunctionSpecification]: An immutable view of the verified
+                specs of this program.
+        """
+        return MappingProxyType(self._verified_specs)
 
     # MDE: I think this can be a method of ProofState.  It is not related to the fields of
     # VerificationContextManager.
@@ -56,8 +66,7 @@ class VerificationContextManager:
         callee_specs = {
             callee.name: callee_spec
             for callee in callees_for_function
-            # MDE: I think the RHS can be: proof_state.get_specification(callee)
-            if (callee_spec := proof_state.get_specifications().get(callee.name))
+            if (callee_spec := proof_state.get_specification(callee))
         }
         return VerificationContext(
             callee_specs=callee_specs,

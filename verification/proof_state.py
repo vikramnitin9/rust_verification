@@ -1,10 +1,12 @@
 """Class representing a program's proof state."""
 
 from dataclasses import dataclass
+from pathlib import Path
 from types import MappingProxyType
 
-from util import CFunction, FunctionSpecification
+from util import CFunction, FunctionSpecification, ParsecFile
 
+from .verification_input import VerificationContext
 from .work_item import WorkItem
 
 
@@ -150,39 +152,23 @@ class ProofState:
         """
         return self._specs.get(function.name)
 
-    # MDE: This is not currently used.  If it is retained (I'm not sure it needs to be), then can
-    # the field be automatically updated when pushing or popping, rather than externally maintained
-    # by the client?  The same comment applies to add_verified_function.
-    def assume_function(self, function: CFunction) -> None:
-        """Update this proof state's list of functions with assumed specs.
+    def get_current_context(self, function: CFunction) -> VerificationContext:
+        """Return the current verification context for the function.
 
         Args:
-            function (CFunction): The function whose spec should be assumed.
-        """
-        self._assumed_functions.append(function.name)
-
-    def add_verified_function(self, function: CFunction) -> None:
-        """Update this proof state's list of verified functions.
-
-        Args:
-            function (CFunction): The function whose spec is verified.
-        """
-        self._verified_functions.append(function.name)
-
-    # MDE: The setters and getters should be in a consistent order.
-
-    def get_verified_functions(self) -> tuple[str, ...]:
-        """Return this proof state's verified functions as an immutable tuple.
+            function (CFunction): The function for which to return a context.
 
         Returns:
-            tuple[str, ...]: This proof state's verified functions.
+            VerificationContext: The current verification context for the function.
         """
-        return tuple(self._verified_functions)
-
-    def get_assumed_functions(self) -> tuple[str, ...]:
-        """Return this proof state's assumed functions as an immutable tuple.
-
-        Returns:
-            tuple[str, ...]: This proof state's assumed functions as an immutable tuple.
-        """
-        return tuple(self._assumed_functions)
+        parsec_file = ParsecFile(file_path=Path(function.file_name))
+        callees_for_function = parsec_file.get_callees(function=function)
+        callee_specs = {
+            callee.name: callee_spec
+            for callee in callees_for_function
+            if (callee_spec := self.get_specification(callee))
+        }
+        return VerificationContext(
+            callee_specs=callee_specs,
+            global_variable_specs={},
+        )

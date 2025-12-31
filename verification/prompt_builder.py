@@ -39,8 +39,7 @@ class PromptBuilder:
                 # MDE: As elsewhere, perhaps the ParsecFile can be a field of the CFunction.
 
         Returns:
-            str: The initial used for specification generation.
-                # MDE: noun missing above.  "prompt"?
+            str: The initial prompt used for specification generation.
 
         """
         source_code = function.get_source_code(include_documentation_comments=True)
