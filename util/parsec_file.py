@@ -67,12 +67,13 @@ class ParsecFile:
         self.files = parsec_analysis.get("files", [])
         self.functions = {analysis.name: analysis for analysis in function_analyses}
         # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
-        # NOTE: Each node in call_graph represents a function name and is of type `str`.
+        # NOTE: Each node in call_graph is a CFunction.
         self.call_graph: nx.DiGraph = nx.DiGraph()  # type: ignore[type-arg]
-        for func_name, func in self.functions.items():
-            self.call_graph.add_node(func_name)
+        for func in self.functions.values():
+            self.call_graph.add_node(func)
             for callee_name in func.callee_names:
-                self.call_graph.add_edge(func_name, callee_name)
+                if callee := self.functions.get(callee_name):
+                    self.call_graph.add_edge(func, callee)
 
     @staticmethod
     def parse_source_with_cbmc_annotations(
@@ -151,16 +152,6 @@ class ParsecFile:
                 logger.error(f"LLVM Analysis for callee function {callee_name} not found")
         return callees
 
-    def get_names_of_recursive_functions(self) -> list[str]:
-        """Return the names of directly-recursive functions in this ParsecFile's call graph.
-
-        Note: This does not detect mutually-recursive functions.
-
-        Returns:
-            list[str]: The names of directly-recursive functions in this ParsecFile's call graph.
-        """
-        return [f for f in self.call_graph if self.call_graph.has_edge(f, f)]
-
     def get_functions_in_topological_order(self, reverse_order: bool = False) -> list[CFunction]:
         """Return the CFunctions in this ParsecFile's call graph in topological order.
 
@@ -183,28 +174,17 @@ class ParsecFile:
         self_edges = nx.selfloop_edges(call_graph_copy)
         call_graph_copy.remove_edges_from(self_edges)
 
-        function_names = []
+        functions: list[CFunction] = []
         try:
-            function_names = list(nx.topological_sort(call_graph_copy))
+            functions = list(nx.topological_sort(call_graph_copy))
         except nx.NetworkXUnfeasible:
             logger.error(
                 "Cycles detected in call graph: "
                 "Using postorder DFS traversal for function ordering."
             )
-            function_names = list(nx.dfs_postorder_nodes(call_graph_copy))
-            if reverse_order:
-                function_names.reverse()
+            functions = list(nx.dfs_postorder_nodes(call_graph_copy))
 
-        result = []
-        for function_name in function_names:
-            if function := self.get_function_or_none(function_name=function_name):
-                result.append(function)
-            else:
-                logger.warning(
-                    f"Failed to obtain function '{function_name}' from ParsecFile parsed from "
-                    f"'{self.file_path}'"
-                )
-        return result
+        return list(reversed(functions)) if reverse_order else functions
 
     # MDE: Please document and discuss relationship to other functions with similar names.
     # JY: Work for above captured in https://github.com/vikramnitin9/rust_verification/issues/70

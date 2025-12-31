@@ -141,7 +141,9 @@ def _verify_program(
         MappingProxyType[CFunction, FunctionSpecification]: An immutable map of function to their
             CBMC-verified specifications.
     """
-    initial_workstack: WorkStack = WorkStack([(function, "") for function in functions])
+    # The stack is populated from left-to-right, since functions is in reverse topological order
+    # i.e., the first element popped from the stack should be a leaf.
+    initial_workstack: WorkStack = WorkStack([(function, "") for function in functions[::-1]])
     initial_proof_state = ProofState(workstack=initial_workstack)
 
     GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)
