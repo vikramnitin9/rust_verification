@@ -40,7 +40,7 @@ class LLMGen:
             raise Exception(msg)
 
     def gen(
-        self, messages: list[ConversationMessage], temperature: float = 0, top_k: int = 1
+        self, messages: tuple[ConversationMessage, ...], temperature: float = 0, top_k: int = 1
     ) -> list[str]:
         """messages: [{'role': 'system', 'content': 'You are an intelligent code assistant'},
                    {'role': 'user', 'content': 'Translate this program...'},

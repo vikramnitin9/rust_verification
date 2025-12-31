@@ -160,7 +160,7 @@ class LlmSpecificationGenerator:
             if not spec_samples:
                 # Cache miss.
                 spec_samples = self._llm.gen(
-                    conversation, top_k=self._num_specification_candidates, temperature=0.8
+                    tuple(conversation), top_k=self._num_specification_candidates, temperature=0.8
                 )
                 self._llm_sample_cache.write(
                     prompt=specification_generation_prompt, samples=spec_samples
@@ -314,7 +314,7 @@ class LlmSpecificationGenerator:
         """
         try:
             responses = self._llm.gen(
-                messages=conversation, top_k=self._num_repair_candidates, temperature=0.8
+                messages=tuple(conversation), top_k=self._num_repair_candidates, temperature=0.8
             )
             candidate_repaired_functions_to_response = {
                 extract_function(response): response for response in responses
