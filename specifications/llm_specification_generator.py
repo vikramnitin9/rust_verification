@@ -191,20 +191,22 @@ class LlmSpecificationGenerator:
         spec_conversation: SpecConversation,
         proof_state: ProofState,
     ) -> list[SpecConversation]:
-        """Repair a spec that is failing to verify.
+        """Repair a spec that may fail to verify.
 
-        # MDE: Do we know that the argument SpecConversation definitely does not verify?  Or might
-        # it verify, in which case this method returns it unchanged?
+        This function is called on a list of *pruned* specifications. Depending on the strategy,
+        the list of pruned specifications may only contain specifications that verify, fail to
+        verify, or a mix. In the case of specifications that verify, the original specification
+        is returned, unchanged.
 
         Args:
-            function (CFunction): The function whose specification is failing to verify.
-            spec_conversation (SpecConversation): The SpecConversation that ends with the failing
-                spec.
-            proof_state (ProofState): The proof state for the failing specification.
+            function (CFunction): The function whose specification may fail to verify.
+            spec_conversation (SpecConversation): The SpecConversation that ends with the spec that
+                may fail to verify.
+            proof_state (ProofState): The proof state for the specification.
 
         Raises:
             ValueError: Raised when the SpecConversation is missing the contents of the file that
-                failed to verify.
+                was input to the verifier. This should never happen.
 
         Returns:
             list[SpecConversation]: The repaired specifications.

@@ -16,11 +16,10 @@ class SpecConversation:
         conversation (list[ConversationMessage]): The conversation that resulted in the
             specification.
         specgen_next_step (SpecificationGenerationNextStep | None): The next step in the
-            specification generation process. Defaults to None until a verifier is executed, the
-            result of which is used to compute the next step (either directly accepting a verified
-            spec, or asking an LLM to decide the next step.)
-            # MDE: Does the specification generation next step also appear in the conversation?
-            # MDE: How is the next step used?
+            specification generation process. Defaults to None until a verifier is executed. The
+            message that is parsed to populate this field exists in the conversation. The value of
+            `specgen_next_step` is used to create the next proof state in a step of the
+            generate/repair spec process.
         contents_of_file_to_verify (str | None): The content of the file to be verified.
 
     # MDE: Should the CFunction be part of this datatype?

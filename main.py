@@ -57,8 +57,10 @@ tempfile.tempdir = DEFAULT_RESULT_DIR
 
 
 def main() -> None:
-    """Generate specifications for C functions using an LLM and verify them with CBMC."""
-    # MDE: Is it all the C functions in a file?  In multiple files?  Can it be a subset of them?
+    """Generate specifications for C functions in a file using an LLM and verify them with CBMC.
+
+    The current implementation operates over *all* the C functions parsed from a file.
+    """
     parser = argparse.ArgumentParser(
         prog="main.py", description="Generate and verify CBMC specifications for a C file."
     )
@@ -88,11 +90,13 @@ def main() -> None:
         default=DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS,
         type=int,
     )
-    # MDE: I think this should default to true.
     parser.add_argument(
-        "--use-llm-sample-cache",
-        action="store_true",
-        help="Whether to use cached LLM samples for specification generation and repair.",
+        "--disable-llm-sample-cache",
+        action="store_false",
+        help=(
+            "Disable the use of cached LLM samples (i.e., specs) for specification generation and"
+            " repair (defaults to False)."
+        ),
     )
     args = parser.parse_args()
 

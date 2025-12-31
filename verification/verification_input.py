@@ -73,6 +73,30 @@ class VerificationInput:
         """
         return self.contents_of_file_to_verify
 
+    def get_callee_context_for_prompt(self) -> str:
+        """Return the specifications of all the callees of this input's function.
+
+        The context is a string in the format below:
+
+        '{self.function}' has the following callees:
+        Callee: ...
+        Preconditions: ...
+        Postconditions: ...
+
+        Returns:
+            str: The callee specifications formatted for a prompt.
+        """
+        callee_context_for_prompt = ""
+        if callees_to_specs := self.get_callee_names_to_specs():
+            callee_summaries = [
+                f"Callee: {name}\n{spec.get_prompt_str()}"
+                for name, spec in callees_to_specs.items()
+            ]
+            callee_context_for_prompt = (
+                f"{self.function.name} has the following callees:\n" + "\n".join(callee_summaries)
+            )
+        return callee_context_for_prompt
+
     def __eq__(self, other: object) -> bool:
         """Return True iff this input is equal to another.
 

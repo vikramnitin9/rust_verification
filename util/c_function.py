@@ -315,8 +315,7 @@ class CFunction:
         if not isinstance(other, CFunction):
             return False
         return (
-            # MDE: if the file names are the same, what is the point of comparing the content?
-            self.name == other.name
+            self.name == other.name  # Do the two functions have the same name?
             and filecmp.cmp(self.file_name, other.file_name)
             and self.start_line == other.start_line
             and self.end_line == other.end_line

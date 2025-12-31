@@ -24,8 +24,7 @@ class VerificationClient(Protocol):
             function (CFunction): The function to verify.
             spec (FunctionSpecification): The specification for the function to verify.
             proof_state (ProofState): The proof state.
-            source_code_content (str): The source code content.
-                # MDE: Is this for the function, or the file, or the project?
+            source_code_content (str): The source code for the file passed as input to the verifier.
 
         Returns:
             VerificationResult: The result of verifying the given function.

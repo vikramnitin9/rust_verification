@@ -1,6 +1,4 @@
-"""Class for working with verification contexts and proof states."""
-# MDE: Please make the description more specific than "working with".  What does this class
-# represent or do?
+"""Class for managing verification contexts, proof states, and verified."""
 
 from pathlib import Path
 from types import MappingProxyType
@@ -12,7 +10,15 @@ from .verification_input import VerificationContext
 
 
 class VerificationContextManager:
-    """Class for working with verification contexts and proof states."""
+    """Class for managing verification contexts, proof states, and verified specs.
+
+    Each proof state in the system is associated with a function. Ideally, every proof state should
+    know about each of the verified specifications in a program. However, this requires every extant
+    proof state to be updated whenever a specification is verified.
+
+    The VerificationContextManager attempts to mitigate this by maintaining a global store of
+    verified specs that can be queried.
+    """
 
     _verified_specs: dict[CFunction, FunctionSpecification]
 

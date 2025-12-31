@@ -10,10 +10,7 @@ from .verification_result import VerificationResult
 
 
 class PromptBuilder:
-    """Encapsulates functions used in constructing prompts for LLM calls."""
-
-    # MDE: Does this class represent something?  If it's just a collection of functions, I would not
-    # use the term "encapsulate" above.
+    """A collection of functions used in constructing prompts for LLM calls."""
 
     SPECIFICATION_GENERATION_PROMPT_TEMPLATE = Path(
         "./prompts/generate-specifications-prompt-template.txt"
@@ -88,23 +85,10 @@ class PromptBuilder:
                 text_util.uncomment_cbmc_annotations(function_lines_cbmc_commented_out)
             )
 
-        # MDE: I suggest encapsulating this code as a method of VerificationInput, rather than it
-        # having a method `get_callee_names_to_specs` which externalizes work to its client here.
-        callee_context_for_prompt = ""
-        callees_to_specs = verification_result.verification_input.get_callee_names_to_specs()
-        if callees_to_specs:
-            callee_summaries = [
-                f"Callee: {name}\n{spec.get_prompt_str()}"
-                for name, spec in callees_to_specs.items()
-            ]
-            callee_context_for_prompt = f"{function.name} has the following callees:\n" + "\n".join(
-                callee_summaries
-            )
-
         return PromptBuilder.NEXT_STEP_PROMPT_TEMPLATE.substitute(
             function_name=function.name,
             source_code=function_lines,
-            callee_context=callee_context_for_prompt,
+            callee_context=verification_result.verification_input.get_callee_context_for_prompt(),
             failure_information=verification_result.failure_messages,
         )
 

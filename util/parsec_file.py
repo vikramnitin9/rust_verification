@@ -36,8 +36,7 @@ class ParsecFile:
     """
 
     # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
-    # MDE: Why not make the nodes CFunction rather than str?
-    # NOTE: Each node in call_graph represents a function name and is of type `str`.
+    # NOTE: Each node in call_graph is a CFunction.
     call_graph: nx.DiGraph  # type: ignore[type-arg]
     file_path: Path
     files: list[str] = field(default_factory=list)
