@@ -61,7 +61,9 @@ class LlmSpecificationGenerator:
         conversation.append(specification_generation_message)
 
         try:
-            response = self._model.gen(conversation, top_k=num_samples, temperature=temperature)
+            response = self._model.gen(
+                tuple(conversation), top_k=num_samples, temperature=temperature
+            )
             return LlmInvocationResult(specification_generation_prompt, response)
         except ModelError as e:
             msg = f"Error during specification generation for '{function_name}': {e}"
@@ -97,7 +99,7 @@ class LlmSpecificationGenerator:
         conversation.append(repair_message)
 
         try:
-            response = self._model.gen(conversation, top_k=1, temperature=0.0)
+            response = self._model.gen(tuple(conversation), top_k=1, temperature=0.0)
             return LlmInvocationResult(repair_prompt, response)
         except ModelError as e:
             msg = f"Error during specification repair for '{function_name}': {e}"
