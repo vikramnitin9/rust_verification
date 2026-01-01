@@ -97,6 +97,7 @@ def test_extract_spec_multiple_multi_line_specs() -> None:
     assert spec.postconditions == [
         "__CPROVER_ensures(*a == __CPROVER_old(*b))",
         "__CPROVER_ensures(*b ==__CPROVER_old(*a))",
+        "__CPROVER_assigns(a)",
     ], f"Unexpected postconditions: {spec.postconditions}"
 
 

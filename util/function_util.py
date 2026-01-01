@@ -11,7 +11,7 @@ from .function_specification import FunctionSpecification
 from .parsec_file import ParsecFile
 
 PRECONDITION_PREFIX = "__CPROVER_requires"
-POSTCONDITION_PREFIX = "__CPROVER_ensures"
+POSTCONDITION_PREFIXES = ["__CPROVER_ensures", "__CPROVER_assigns"]
 
 TREE_SITTER_LANG = Language(tsc.language())
 PARSER = Parser(TREE_SITTER_LANG)
@@ -32,7 +32,7 @@ def extract_specification(function_lines: list[str]) -> FunctionSpecification | 
     for i, line in enumerate(stripped_lines):
         if line.startswith(PRECONDITION_PREFIX):
             preconditions.append(_get_spec_lines(i, stripped_lines))
-        elif line.startswith(POSTCONDITION_PREFIX):
+        elif any(line.startswith(prefix) for prefix in POSTCONDITION_PREFIXES):
             postconditions.append(_get_spec_lines(i, stripped_lines))
     if preconditions or postconditions:
         return FunctionSpecification(
