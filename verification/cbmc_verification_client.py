@@ -67,7 +67,7 @@ class CbmcVerificationClient(VerificationClient):
                 contents_of_file_to_verify=source_code_content,
             )
             if vinput not in self._cache:
-                logger.debug(f"vresult was not cached for: {vinput}")
+                logger.debug(f"vresult cache miss for: {vinput.function}")
                 vcommand = self._get_cbmc_verification_command(
                     vinput, path_to_file_to_verify=path_to_file
                 )
@@ -82,7 +82,7 @@ class CbmcVerificationClient(VerificationClient):
                     self._cache[vinput] = VerificationResult(
                         vinput, succeeded=result.returncode == 0, failure_messages=failure_messages
                     )
-                    logger.debug(f"Cached vresult for: {vinput}")
+                    logger.debug(f"Caching vresult for: {vinput.function}")
                 except Exception as e:
                     msg = f"Error running command for function {function.name}: {e}"
                     raise RuntimeError(msg) from e

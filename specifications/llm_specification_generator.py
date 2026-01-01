@@ -129,6 +129,10 @@ class LlmSpecificationGenerator:
 
         Each LLM sample yields one SpecConversation in the result list.
 
+        # TODO: When `next_step_hint` is non-empty, this function is being invoked with the intent
+        to repair a spec; we cannot simply grab the source code from the CFunction, it'll be the
+        function without any specs. We need a way to get the failed spec.
+
         Args:
             function (CFunction): The function for which to generate specifications.
             next_step_hint (str): Hints to guide specification generation. Only non-empty when
