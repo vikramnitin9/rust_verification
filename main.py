@@ -117,7 +117,7 @@ def main() -> None:
         num_specification_candidates=args.num_specification_candidates,
         num_repair_candidates=args.num_repair_candidates,
         num_repair_iterations=args.num_specification_repair_iterations,
-        use_cache=args.use_llm_sample_cache,
+        use_cache=args.disable_llm_sample_cache,
     )
 
     functions_in_reverse_topological_order = parsec_file.get_functions_in_topological_order(
