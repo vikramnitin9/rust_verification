@@ -12,6 +12,7 @@ __CPROVER_ensures(
 __CPROVER_ensures(
     *b == 
     __CPROVER_old(*a))
+__CPROVER_assigns(a)
 {
     int t = *a;
     *a = *b;
