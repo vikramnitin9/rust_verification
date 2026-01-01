@@ -95,9 +95,9 @@ def test_extract_spec_multiple_multi_line_specs() -> None:
         "__CPROVER_requires(__CPROVER_is_fresh(b, sizeof(int)))",
     ], f"Unexpected preconditions: {spec.preconditions}"
     assert spec.postconditions == [
+        "__CPROVER_assigns(a)",
         "__CPROVER_ensures(*a == __CPROVER_old(*b))",
         "__CPROVER_ensures(*b ==__CPROVER_old(*a))",
-        "__CPROVER_assigns(a)",
     ], f"Unexpected postconditions: {spec.postconditions}"
 
 
