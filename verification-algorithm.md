@@ -92,7 +92,7 @@ multithreading and could save time across multiple runs.
 immutable class ProofState:
 
 * specs: Map[Function, Specification]: the current specification (which may be a guess) for each function.
-  * Immutable, so can be represented by `immutabledict`.
+  * Immutable, so can be represented by `types.MappingProxyType`.
   * When `workstack` is pushed or popped, one entry of the map is updated,
     corresponding to the function that was pushed or popped.  (But, since
     ProofState is immutable, this is by comparison to a previous ProofState.)
