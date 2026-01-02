@@ -89,13 +89,18 @@ Each access to a global data structure must use locking; or we could store them
 persistently, say using SQLite, which permits using multiprocessing rather than
 multithreading and could save time across multiple runs.
 
-class ProofState:
+immutable class ProofState:
 
 * specs: Map[Function, Specification]: the current specification (which may be a guess) for each function.
+  * Immutable, so can be represented by `types.MappingProxyType`.
+  * When `workstack` is pushed or popped, one entry of the map is updated,
+    corresponding to the function that was pushed or popped.  (But, since
+    ProofState is immutable, this is by comparison to a previous ProofState.)
   * We can compute the verified/unverified/not-yet processed functions from a ProofState's `specs` map.
   * TODO: think about whether it's possible to obtain a list of assumed specs.
 * workstack: Stack[WorkItem]
   A stack of functions that need to be (re)processed.
+  * Immutable, so can be represented as a tuple rather than as a Stack.
   Each hint is text provided to the LLM to guide it.  I don't have a data
   structure (beyond string) in mind for it yet.
   Example hints:
@@ -130,6 +135,7 @@ def verify_program(program) -> List[Map[Fn, Spec]]:
   Input: a program
   Output: a list of program specifications.  A program specification contains a specification for each function in the program
   """
+  # Since workstacks are immutable, a workstack can be represented as a tuple rather than as a Stack.
   initial_workstack: Stack[(function, backtrack_hint)] = all functions in `program`, in reverse topological
                                                 order (that is, children first), with empty backtrack_hint.
   initial_proofstate = ProofState(initial_workstack)
@@ -162,13 +168,16 @@ def step(proofstate: ProofState) -> List[ProofState]:
 
   result = []
   for specc in pruned_speccs:
-    next_proofstate = proofstate.clone()
-    next_proofstate.specs[fn] = specc.spec
+    # Produce a new ProofState from `specc.spec` and `specc.conversation`.
+
+    next_proofstate_specs = proofstate.specs | {fn: specc.spec}
+
     last_llm_response = specc.conversation.last()
     if last_llm_response contains "backtrack":
-      next_proofstate.workstack.push((last_llm_response.get_function(), last_llm_response))
+      next_proofstate_workstack = proofstate.workstack + [(last_llm_response.get_function(), last_llm_response)]
     else:
-      next_proofstate.workstack.pop() # pop off fn
+      next_proofstate_workstack = proofstate.workstack[:-1] # pop off fn
+    next_proofstate = ProofState(next_proofstate_specs, next_proofstate_workstack)
     result.append(next_proofstate)
   return result
 
