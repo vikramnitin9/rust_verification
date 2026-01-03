@@ -11,7 +11,6 @@ from verification.proof_state import ProofState
 from verification.verification_result import VerificationResult
 
 from .verification_client import VerificationClient
-from .verification_context_manager import VerificationContextManager
 from .verification_input import VerificationInput
 
 
@@ -21,21 +20,16 @@ class CbmcVerificationClient(VerificationClient):
     Attributes:
         _cache (dict[VerificationInput, VerificationResult]): A cache of verification results mapped
             to verification inputs.
-        _context_manager (VerificationContextManager): The context manager from which verified specs
-            are obtained.
     """
 
     _cache: dict[VerificationInput, VerificationResult]
-    _context_manager: VerificationContextManager
 
     def __init__(
         self,
         cache: dict[VerificationInput, VerificationResult],
-        context_manager: VerificationContextManager,
     ) -> None:
         """Create a new CbmcVerificationClient."""
         self._cache = cache
-        self._context_manager = context_manager
 
     def verify(
         self,
@@ -69,7 +63,7 @@ class CbmcVerificationClient(VerificationClient):
             if vinput not in self._cache:
                 logger.debug(f"vresult cache miss for: {vinput.function}")
                 vcommand = self._get_cbmc_verification_command(
-                    vinput, path_to_file_to_verify=path_to_file
+                    vinput, path_to_file_to_verify=path_to_file, proof_state=proof_state
                 )
                 try:
                     logger.debug(f"Running command: {vcommand}")
@@ -97,12 +91,14 @@ class CbmcVerificationClient(VerificationClient):
         self,
         verification_input: VerificationInput,
         path_to_file_to_verify: Path,
+        proof_state: ProofState,
     ) -> str:
         """Return the command used to verify a function in a file with CBMC.
 
         Args:
             verification_input (VerificationInput): The verification input.
             path_to_file_to_verify (Path): The path to the file to verify.
+            proof_state (ProofState): The proof state under which verification is occurring.
 
         Returns:
             str: The command used to verify a function in a file with CBMC.
@@ -112,8 +108,8 @@ class CbmcVerificationClient(VerificationClient):
         # specification, whether or not it is verified/assumed?  Please discuss.
         replace_call_with_contract_args = "".join(
             [
-                f"--replace-call-with-contract {f.name} "
-                for f in self._context_manager.get_verified_specs()
+                f"--replace-call-with-contract {verified_function_name} "
+                for verified_function_name in proof_state.get_specifications()
             ]
         )
         return (

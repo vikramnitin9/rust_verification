@@ -21,7 +21,7 @@ from util import (
     extract_function,
     function_util,
 )
-from verification import PromptBuilder, ProofState, VerificationClient, VerificationContextManager
+from verification import PromptBuilder, ProofState, VerificationClient
 
 from .llm_sample_cache import LlmSampleCache
 
@@ -37,7 +37,6 @@ class LlmSpecificationGenerator:
         _prompt_builder (PromptBuilder): Used in creating specification generation/repair prompts
         _llm (LLMGen): The client used to invoke LLMs.
         _verifier (VerificationClient): The client for specification verification.
-        _verification_context_manager (VerificationContextManager): The context manager.
         _num_specification_candidates (int): The number of specifications to initially generate.
         _num_repair_iterations (int): The number of repair iterations (i.e., how many times an
             LLM is able to repair a spec).
@@ -52,7 +51,6 @@ class LlmSpecificationGenerator:
     _prompt_builder: PromptBuilder
     _llm: LLMGen
     _verifier: VerificationClient
-    _verification_context_manager: VerificationContextManager
     _num_specification_candidates: int
     _num_repair_iterations: int
     _num_repair_candidates: int
@@ -66,7 +64,6 @@ class LlmSpecificationGenerator:
         model: str,
         system_prompt: str,
         verifier: VerificationClient,
-        verification_context_manager: VerificationContextManager,
         parsec_file: ParsecFile,
         num_specification_candidates: int,
         num_repair_candidates: int,
@@ -77,7 +74,6 @@ class LlmSpecificationGenerator:
         self._llm = get_llm_generation_with_model(model)
         self._system_prompt = system_prompt
         self._verifier = verifier
-        self._verification_context_manager = verification_context_manager
         self._parsec_file = parsec_file
         self._prompt_builder = PromptBuilder()
         self._num_specification_candidates = num_specification_candidates
@@ -228,6 +224,7 @@ class LlmSpecificationGenerator:
                     function=function,
                     specification=current_spec_conversation.specification,
                     original_file_path=self._parsec_file.file_path,
+                    proof_state=proof_state,
                 )
                 current_spec_conversation.contents_of_file_to_verify = contents_of_file_to_verify
 
@@ -243,9 +240,6 @@ class LlmSpecificationGenerator:
                         SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
                     )
                     verified_spec_conversations.append(current_spec_conversation)
-                    self._verification_context_manager.set_verified_spec(
-                        function=function, verified_spec=vresult.get_spec()
-                    )
                 else:
                     unverified_spec_conversations.append(current_spec_conversation)
 
@@ -372,7 +366,11 @@ class LlmSpecificationGenerator:
             raise RuntimeError(msg) from ve
 
     def _get_content_of_file_to_verify(
-        self, function: CFunction, specification: FunctionSpecification, original_file_path: Path
+        self,
+        function: CFunction,
+        specification: FunctionSpecification,
+        original_file_path: Path,
+        proof_state: ProofState,
     ) -> str:
         """Return the content of the file that should be verified.
 
@@ -380,6 +378,7 @@ class LlmSpecificationGenerator:
             function (CFunction): The function to be verified.
             specification (FunctionSpecification): The specs for the function to be verified.
             original_file_path (Path): The path to the original file where the function is declared.
+            proof_state (ProofState): The proof state under which the function is verified.
                 # MDE: Should the CFunction object contain a field with the original file path?
                 # MDE: That would perhaps yield better encapsulation.
 
@@ -391,7 +390,7 @@ class LlmSpecificationGenerator:
         callees_to_specs = {
             callee: spec
             for callee in parsec_file.get_callees(function=function)
-            if (spec := self._verification_context_manager.get_verified_spec(function=callee))
+            if (spec := proof_state.get_specification(function=callee))
         }
 
         functions_with_specs = {function: specification} | callees_to_specs

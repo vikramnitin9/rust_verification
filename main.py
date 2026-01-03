@@ -28,7 +28,6 @@ from verification import (
     CbmcVerificationClient,
     ProofState,
     VerificationClient,
-    VerificationContextManager,
     VerificationInput,
     VerificationResult,
     WorkItem,
@@ -51,7 +50,6 @@ GLOBAL_INCOMPLETE_PROOFSTATES: deque[ProofState] = deque()
 GLOBAL_COMPLETE_PROOFSTATES: deque[ProofState] = deque()
 # MDE: This should be a `diskcache` rather than a Python dict.
 VERIFIER_CACHE: dict[VerificationInput, VerificationResult] = {}
-CONTEXT_MANAGER: VerificationContextManager = VerificationContextManager()
 
 tempfile.tempdir = DEFAULT_RESULT_DIR
 
@@ -105,14 +103,11 @@ def main() -> None:
     header_lines = [f"#include <{header}>" for header in DEFAULT_HEADERS_IN_OUTPUT]
     ensure_lines_at_beginning(header_lines, output_file_path)
     parsec_file = ParsecFile(input_file_path)
-    verifier: VerificationClient = CbmcVerificationClient(
-        cache=VERIFIER_CACHE, context_manager=CONTEXT_MANAGER
-    )
+    verifier: VerificationClient = CbmcVerificationClient(cache=VERIFIER_CACHE)
     specification_generator = LlmSpecificationGenerator(
         MODEL,
         system_prompt=DEFAULT_SYSTEM_PROMPT,
         verifier=verifier,
-        verification_context_manager=CONTEXT_MANAGER,
         parsec_file=parsec_file,
         num_specification_candidates=args.num_specification_candidates,
         num_repair_candidates=args.num_repair_candidates,
@@ -310,7 +305,7 @@ def _prune_specs(
         if contents_of_verified_file is None:
             msg = f"{spec_conversation} was missing file contents that were run under verification"
             raise ValueError(msg)
-        vcontext = CONTEXT_MANAGER.current_context(function=function, proof_state=proof_state)
+        vcontext = proof_state.get_current_context(function=function)
         vinput = VerificationInput(
             function=function,
             spec=spec_conversation.specification,
