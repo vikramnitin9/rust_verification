@@ -95,7 +95,7 @@ To debug a specification generation run (e.g., for `data/qsort.c`),
   first run the following command:
 
 ```sh
-% bash run.sh python -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 --wait-for-client ./generate_specs.py --file data/qsort.c
+% bash run.sh python -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 --wait-for-client ./main.py --file data/qsort.c
 ```
 
 This effectively starts the container,

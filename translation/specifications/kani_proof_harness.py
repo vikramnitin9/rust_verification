@@ -24,7 +24,7 @@ class KaniProofHarness:
 
     A Kani proof harness is a single function acting as the entry point for verification.
     It comprises a call to the function under verification, and a set of assumptions
-    (if applicable).
+    (if applicable), which represent the specifications of callee functions.
 
     Attributes:
         _signature (str): The signature of this harness.

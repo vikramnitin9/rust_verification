@@ -33,14 +33,13 @@ class ParsecFile:
     Note that ParseC can be run on a single C file, or a project.
     However, our current implementation of ParsecFile only supports running ParseC on a single file.
     See https://github.com/vikramnitin9/rust_verification/issues/69
-
     """
 
     # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
-    # NOTE: Each node in call_graph represents a function name and is of type `str`.
+    # NOTE: Each node in call_graph is a CFunction.
     call_graph: nx.DiGraph  # type: ignore[type-arg]
     file_path: Path
-
+    files: list[str] = field(default_factory=list)
     # ParseC returns a list of dictionaries with one list item per function.
     # We parse these into CFunction objects and index them by function name.
     # This could have problems for static functions with the same name in different files.
@@ -64,16 +63,16 @@ class ParsecFile:
         parsec_analysis = self._run_parsec(file_path)
         function_analyses = [CFunction(f) for f in parsec_analysis.get("functions", [])]
         self.enums = parsec_analysis.get("enums", [])
-        self.structs = parsec_analysis.get("structs", [])
-        self.global_vars = parsec_analysis.get("globals", [])
+        self.files = parsec_analysis.get("files", [])
         self.functions = {analysis.name: analysis for analysis in function_analyses}
         # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
-        # NOTE: Each node in call_graph represents a function name and is of type `str`.
+        # NOTE: Each node in call_graph is a CFunction.
         self.call_graph: nx.DiGraph = nx.DiGraph()  # type: ignore[type-arg]
-        for func_name, func in self.functions.items():
-            self.call_graph.add_node(func_name)
+        for func in self.functions.values():
+            self.call_graph.add_node(func)
             for callee_name in func.callee_names:
-                self.call_graph.add_edge(func_name, callee_name)
+                if callee := self.functions.get(callee_name):
+                    self.call_graph.add_edge(func, callee)
 
     @staticmethod
     def parse_source_with_cbmc_annotations(
@@ -152,62 +151,42 @@ class ParsecFile:
                 logger.error(f"LLVM Analysis for callee function {callee_name} not found")
         return callees
 
-    def get_names_of_recursive_functions(self) -> list[str]:
-        """Return the names of directly-recursive functions in this ParsecFile's call graph.
+    def get_functions_in_topological_order(self, reverse_order: bool = False) -> list[CFunction]:
+        """Return the CFunctions in this ParsecFile's call graph in topological order.
 
-        Note: This does not detect mutually-recursive functions.
-
-        Returns:
-            list[str]: The names of directly-recursive functions in this ParsecFile's call graph.
-        """
-        return [f for f in self.call_graph if self.call_graph.has_edge(f, f)]
-
-    def get_function_names_in_topological_order(self, reverse_order: bool = False) -> list[str]:
-        """Return the function names in this ParsecFile's call graph in topological order.
+        Note: If a topological ordering is impossible, this function defaults to returning the
+        functions collected via a postorder DFS traversal.
 
         Args:
             reverse_order (bool, optional): True iff the topological ordering should be reversed.
                 Defaults to False.
 
         Returns:
-            list[str]: The function names in this Parsec File's call graph in topological order.
+            list[CFunction]: The CFunctions in this ParsecFile's call graph in topological order.
         """
+        if not self.call_graph.nodes():
+            return []
+
         # Self-edges must be removed before computing the topological sort.
         # Operate over a copy of the call graph to avoid modifying the original graph.
         call_graph_copy = copy.copy(self.call_graph)
         self_edges = nx.selfloop_edges(call_graph_copy)
         call_graph_copy.remove_edges_from(self_edges)
 
-        if not call_graph_copy.nodes():
-            return []
+        functions: list[CFunction] = []
         try:
-            names_in_topological_order = list(nx.topological_sort(call_graph_copy))
-            if reverse_order:
-                names_in_topological_order.reverse()
-            return names_in_topological_order
+            functions = list(nx.topological_sort(call_graph_copy))
         except nx.NetworkXUnfeasible:
-            logger.warning(
+            logger.error(
                 "Cycles detected in call graph: "
                 "Using postorder DFS traversal for function ordering."
             )
-            return self._get_function_names_in_postorder_dfs(reverse_order=reverse_order)
+            functions = list(nx.dfs_postorder_nodes(call_graph_copy))
 
-    def _get_function_names_in_postorder_dfs(self, reverse_order: bool) -> list[str]:
-        """Return the function names in this ParsecFile's call graph collected via DFS traversal.
-
-        Args:
-            reverse_order (bool): True iff the result of the DFS traversal should be reversed.
-
-        Returns:
-            list[str]: The function names in this ParsecFile's call graph collected via a DFS
-                traversal.
-        """
-        result = list(nx.dfs_postorder_nodes(self.call_graph))
-        if reverse_order:
-            result.reverse()
-        return result
+        return list(reversed(functions)) if reverse_order else functions
 
     # MDE: Please document and discuss relationship to other functions with similar names.
+    # JY: Work for above captured in https://github.com/vikramnitin9/rust_verification/issues/70
     def _run_parsec(self, file_path: Path) -> dict[str, Any]:
         """Run the parsec executable and return its results.
 

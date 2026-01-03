@@ -1,29 +1,48 @@
-"""Module to represent verification results."""
+"""Class representing a verification result."""
 
 from dataclasses import dataclass
-from pathlib import Path
+
+from util import CFunction, FunctionSpecification
+
+from .verification_input import VerificationInput
 
 
 @dataclass(frozen=True)
 class VerificationResult:
-    """Represents a verifier result."""
-
-
-@dataclass(frozen=True)
-class Success(VerificationResult):
-    """Represents a successful verification result."""
-
-
-@dataclass(frozen=True)
-class Failure(VerificationResult):
-    """Represents an unsuccessful verification result.
+    """Class representing a verification result: the output of running a verifier on a function.
 
     Attributes:
-        source (Path): The file that failed to verify.
-        stdout (str): The stdout output from an unsuccessful verification result.
-        stderr (str): The stderr output from an unsuccessful verification result.
+        verification_input (VerificationInput): The input that resulted in this verification result.
+        succeeded (bool): True iff the input for this verification result successfully verified.
+        failure_messages (str | None): Any failure messages for this verification result, if its
+            input failed verification.
     """
 
-    source: Path
-    stdout: str
-    stderr: str
+    verification_input: VerificationInput
+    succeeded: bool
+    failure_messages: str | None
+
+    def get_function(self) -> CFunction:
+        """Return the function associated with this verification result's input.
+
+        Returns:
+            CFunction: The function associated with this verification result's input.
+        """
+        return self.verification_input.function
+
+    def get_spec(self) -> FunctionSpecification:
+        """Return the specification associated with this verification result's input.
+
+        Returns:
+            FunctionSpecification: Return the specification associated with this verification
+                result's input.
+        """
+        return self.verification_input.spec
+
+    def get_source_code_contents(self) -> str:
+        """Return the source code from this verification result (i.e., what the verifier ran on).
+
+        Returns:
+            str: The source code from this verification result.
+        """
+        return self.verification_input.contents_of_file_to_verify

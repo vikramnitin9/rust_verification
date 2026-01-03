@@ -38,3 +38,42 @@ def ensure_lines_at_beginning(lines_to_insert: list[str], file_path: Path) -> No
     if lines_to_add:
         updated_file_content = "\n".join(lines_to_add) + "\n" + file_content
         file_path.write_text(updated_file_content, encoding="utf-8")
+
+
+### File reading and writing
+
+
+def strip_lines(text_lines: list[str]) -> list[str]:
+    """Return the input list, with each line stripped.
+
+    Args:
+        text_lines (str): a multi-line string.
+
+    Returns:
+        list[str]: The stripped lines of the text.
+    """
+    return [line.strip() for line in text_lines]
+
+
+def split_and_strip_lines(text: str) -> list[str]:
+    """Return the text split into lines, with each line stripped.
+
+    Args:
+        text (str): a multi-line string.
+
+    Returns:
+        list[str]: The stripped lines of the text.
+    """
+    return [line.strip() for line in text.splitlines()]
+
+
+def read_lines(filename: str) -> list[str]:
+    """Return the lines of the file, without trailing newlines.
+
+    Args:
+        filename (str): a file name
+
+    Returns:
+        list[str]: The lines of the file
+    """
+    return Path(filename).read_text().splitlines()
