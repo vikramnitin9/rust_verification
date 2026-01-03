@@ -222,7 +222,6 @@ def _step(
     for spec_conversation in pruned_spec_conversations_for_function:
         next_proof_state = _get_next_proof_state(
             prev_proof_state=proof_state,
-            function=work_item.function,
             spec_conversation=spec_conversation,
         )
         result.append(next_proof_state)
@@ -230,7 +229,7 @@ def _step(
 
 
 def _get_next_proof_state(
-    prev_proof_state: ProofState, function: CFunction, spec_conversation: SpecConversation
+    prev_proof_state: ProofState, spec_conversation: SpecConversation
 ) -> ProofState:
     """Return the next proof state, which is based on `spec_conversation`.
 
@@ -244,14 +243,14 @@ def _get_next_proof_state(
 
     Args:
         prev_proof_state (ProofState): The previous proof state.
-        function (CFunction): The function for which specifications are being generated or repaired.
-        spec_conversation (SpecConversation): The spec conversation.
+        spec_conversation (SpecConversation): The spec conversation comprising the function and the
+            specification under verification.
 
     Returns:
         ProofState: The next proof state for the function, given the conversation.
     """
     next_proof_state = prev_proof_state.set_specification(
-        function=function, specification=spec_conversation.specification
+        function=spec_conversation.function, specification=spec_conversation.specification
     )
     next_workstack = next_proof_state.get_workstack()
     match spec_conversation.specgen_next_step:
@@ -265,7 +264,7 @@ def _get_next_proof_state(
             next_workstack = next_workstack.pop()
         case s if s.is_regenerate_strategy:
             work_item = WorkItem(
-                function=function,
+                function=spec_conversation.function,
                 next_step_hint=_parse_reasoning(spec_conversation.get_latest_llm_response()) or "",
             )
             next_workstack = next_workstack.pop().push(work_item=work_item)
@@ -298,9 +297,9 @@ def _prune_specs(
     Returns:
         list[SpecConversation]: A subset of the given SpecConversations.
     """
-    function = proof_state.peek_workstack().function
     pruned_specs = []
     for spec_conversation in spec_conversations:
+        function = spec_conversation.function
         contents_of_verified_file = spec_conversation.contents_of_file_to_verify
         if contents_of_verified_file is None:
             msg = f"{spec_conversation} was missing file contents that were run under verification"

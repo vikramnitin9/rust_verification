@@ -2,6 +2,7 @@
 
 from models import ConversationMessage, LlmMessage
 
+from .c_function import CFunction
 from .function_specification import FunctionSpecification
 from .specification_generation_next_step import SpecificationGenerationNextStep
 
@@ -12,6 +13,7 @@ class SpecConversation:
     INVARIANT: the last key-value pair in `conversation` is the latest response from the LLM.
 
     Attributes:
+        function (CFunction): The function for which the specification was generated.
         specification (FunctionSpecification): The LLM-generated specification.
         conversation (list[ConversationMessage]): The conversation that resulted in the
             specification.
@@ -21,10 +23,9 @@ class SpecConversation:
             `specgen_next_step` is used to create the next proof state in a step of the
             generate/repair spec process.
         contents_of_file_to_verify (str | None): The content of the file to be verified.
-
-    # MDE: Should the CFunction be part of this datatype?
     """
 
+    function: CFunction
     specification: FunctionSpecification
     conversation: list[ConversationMessage]
     specgen_next_step: SpecificationGenerationNextStep | None
@@ -32,12 +33,14 @@ class SpecConversation:
 
     def __init__(
         self,
+        function: CFunction,
         specification: FunctionSpecification,
         conversation: list[ConversationMessage],
         specgen_next_step: SpecificationGenerationNextStep | None = None,
         contents_of_file_to_verify: str | None = None,
     ) -> None:
         """Create a new SpecConversation."""
+        self.function = function
         self.specification = specification
         self.conversation = conversation
         self.specgen_next_step = specgen_next_step

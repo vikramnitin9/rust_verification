@@ -109,7 +109,6 @@ class LlmSpecificationGenerator:
         for pruned_spec in pruned_specs:
             repaired_specs.extend(
                 self._repair_spec(
-                    function=function,
                     spec_conversation=pruned_spec,
                     proof_state=proof_state,
                 )
@@ -169,11 +168,12 @@ class LlmSpecificationGenerator:
                 (extract_function(sample), sample) for sample in spec_samples
             ]
             candidate_specs_with_samples = [
-                (function_util.extract_specification(function.splitlines()), response)
-                for function, response in candidate_specified_functions_with_samples
+                (function_util.extract_specification(function_from_response.splitlines()), response)
+                for function_from_response, response in candidate_specified_functions_with_samples
             ]
             return [
                 SpecConversation(
+                    function=function,
                     specification=candidate_spec,
                     conversation=[*conversation, LlmMessage(content=sample)],
                 )
@@ -187,7 +187,6 @@ class LlmSpecificationGenerator:
 
     def _repair_spec(
         self,
-        function: CFunction,
         spec_conversation: SpecConversation,
         proof_state: ProofState,
     ) -> list[SpecConversation]:
@@ -199,7 +198,6 @@ class LlmSpecificationGenerator:
         is returned, unchanged.
 
         Args:
-            function (CFunction): The function whose specification may fail to verify.
             spec_conversation (SpecConversation): The SpecConversation that ends with the spec that
                 may fail to verify.
             proof_state (ProofState): The proof state for the specification.
@@ -221,15 +219,15 @@ class LlmSpecificationGenerator:
                     continue
 
                 contents_of_file_to_verify = self._get_content_of_file_to_verify(
-                    function=function,
-                    specification=current_spec_conversation.specification,
+                    spec_conversation=current_spec_conversation,
                     original_file_path=self._parsec_file.file_path,
                     proof_state=proof_state,
                 )
                 current_spec_conversation.contents_of_file_to_verify = contents_of_file_to_verify
 
+                # TODO: Consider refactoring `verify` to consume a `SpecConversation`?
                 vresult = self._verifier.verify(
-                    function=function,
+                    function=current_spec_conversation.function,
                     spec=current_spec_conversation.specification,
                     proof_state=proof_state,
                     source_code_content=current_spec_conversation.contents_of_file_to_verify,
@@ -257,7 +255,7 @@ class LlmSpecificationGenerator:
                 # Re-verifying the function might seem wasteful, but the result of verification is
                 # cached by default, and likely computed in the prior loop.
                 vresult = self._verifier.verify(
-                    function=function,
+                    function=unverified_spec_conversation.function,
                     spec=unverified_spec_conversation.specification,
                     proof_state=proof_state,
                     source_code_content=contents_of_file_to_verify,
@@ -272,11 +270,12 @@ class LlmSpecificationGenerator:
                 )
 
                 model_responses = self._call_llm_for_repair(
-                    function=function,
+                    function=unverified_spec_conversation.function,
                     conversation=tuple(conversation_updated_with_failure_information),
                 )
                 current_spec_conversations += [
                     SpecConversation(
+                        function=unverified_spec_conversation.function,
                         specification=specification,
                         conversation=[
                             *conversation_updated_with_failure_information,
@@ -367,16 +366,15 @@ class LlmSpecificationGenerator:
 
     def _get_content_of_file_to_verify(
         self,
-        function: CFunction,
-        specification: FunctionSpecification,
+        spec_conversation: SpecConversation,
         original_file_path: Path,
         proof_state: ProofState,
     ) -> str:
         """Return the content of the file that should be verified.
 
         Args:
-            function (CFunction): The function to be verified.
-            specification (FunctionSpecification): The specs for the function to be verified.
+            spec_conversation (SpecConversation): The spec conversation comprising the function and
+                the specification under verification.
             original_file_path (Path): The path to the original file where the function is declared.
             proof_state (ProofState): The proof state under which the function is verified.
                 # MDE: Should the CFunction object contain a field with the original file path?
@@ -389,11 +387,13 @@ class LlmSpecificationGenerator:
         parsec_file = ParsecFile(original_file_path)
         callees_to_specs = {
             callee: spec
-            for callee in parsec_file.get_callees(function=function)
+            for callee in parsec_file.get_callees(function=spec_conversation.function)
             if (spec := proof_state.get_specification(function=callee))
         }
 
-        functions_with_specs = {function: specification} | callees_to_specs
+        functions_with_specs = {
+            spec_conversation.function: spec_conversation.specification
+        } | callees_to_specs
 
         return function_util.get_source_file_content_with_specifications(
             specified_functions=functions_with_specs,
