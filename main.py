@@ -31,6 +31,7 @@ from verification import (
     VerificationContextManager,
     VerificationInput,
     VerificationResult,
+    WorkItem,
     WorkStack,
 )
 
