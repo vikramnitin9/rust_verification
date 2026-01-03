@@ -64,23 +64,18 @@ class ProofState:
     every function in the program has a proven or assumed specification.
 
     Attributes:
-        _specs (MappingProxyType[str, FunctionSpecification]): The current specifications for
+        _specs (MappingProxyType[CFunction, FunctionSpecification]): The current specifications for
             each function. These specifications may or may not be verified.
-            # MDE: How are identically-named functions in different files distinguished?
+            # TODO: How are identically-named functions in different files distinguished?
         _workstack (WorkStack): A stack of functions that must be (re)processed.
-        _verified_functions (list[str]): A list of functions whose specs have been successfully
-            verified.
-        _assumed_functions (list[str]): A list of functions whose specs are assumed for
-            verification.
+        # TODO: Do we need to explicitly consider assumed specifications?
 
     """
 
-    _specs: MappingProxyType[str, FunctionSpecification]
+    _specs: MappingProxyType[CFunction, FunctionSpecification]
     _workstack: WorkStack
-    _verified_functions: list[str]
-    _assumed_functions: list[str]
 
-    def __init__(self, specs: dict[str, FunctionSpecification], workstack: WorkStack) -> None:
+    def __init__(self, specs: dict[CFunction, FunctionSpecification], workstack: WorkStack) -> None:
         """Create a new ProofState."""
         self._specs = MappingProxyType(specs)
         self._workstack = workstack
@@ -120,11 +115,11 @@ class ProofState:
         """
         return ProofState(specs=self._specs.copy(), workstack=workstack)
 
-    def get_specifications(self) -> MappingProxyType[str, FunctionSpecification]:
+    def get_specifications(self) -> MappingProxyType[CFunction, FunctionSpecification]:
         """Return this proof state's specifications.
 
         Returns:
-            dict[str, FunctionSpecification]: This proof state's specifications.
+            dict[CFunction, FunctionSpecification]: This proof state's specifications.
         """
         return MappingProxyType(self._specs)
 
@@ -140,12 +135,9 @@ class ProofState:
         Returns:
             ProofState: A new proof state with updated specifications for the given function.
         """
-        updated_specs = self._specs | {function.name: specification}
+        updated_specs = self._specs | {function: specification}
         return ProofState(specs=updated_specs, workstack=self._workstack)
 
-    # MDE: I'm not clear on the rules about when a function is represented by its name (as in the
-    # mapping returned by get_specifications) and when it is represented by a CFunction (as here).
-    # (At the place where get_specifications is called, the CFunction is available.)
     def get_specification(self, function: CFunction) -> FunctionSpecification | None:
         """Return the function's specification from this proof state.
 
@@ -155,7 +147,7 @@ class ProofState:
         Returns:
             FunctionSpecification | None: The specification for this function, otherwise None.
         """
-        return self._specs.get(function.name)
+        return self._specs.get(function)
 
     def get_current_context(self, function: CFunction) -> VerificationContext:
         """Return the current verification context for the function.
@@ -171,7 +163,7 @@ class ProofState:
         callee_specs = {
             callee: callee_spec
             for callee in callees_for_function
-            if (callee_spec := self._specs.get(callee.name))
+            if (callee_spec := self._specs.get(callee))
         }
         return VerificationContext(
             callee_specs=callee_specs,
