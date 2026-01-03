@@ -10,31 +10,26 @@ from .verification_input import VerificationContext
 from .work_item import WorkItem
 
 
-@dataclass
+@dataclass(frozen=True)
 class WorkStack:
     """Class to represent a stack of functions and hints (i.e., `WorkItem`s) to process.
 
     Attributes:
-        work_items (list[WorkItem]): The stack of functions and hints to process.
+        work_items (tuple[WorkItem, ...]): The immutable stack of functions and hints to process.
     """
 
-    work_items: list[WorkItem]
+    work_items: tuple[WorkItem, ...]
 
-    def __init__(self, functions_and_hints: list[tuple[CFunction, str]]) -> None:
-        """Create a new WorkStack."""
-        self.work_items = [
-            WorkItem(function=function, next_step_hint=hint)
-            for function, hint in functions_and_hints
-        ]
-
-    def push(self, function: CFunction, next_step_hint: str) -> None:
-        """Push the function and next step hint to this workstack.
+    def push(self, work_item: WorkItem) -> "WorkStack":
+        """Return a new workstack with the given work item on top.
 
         Args:
-            function (CFunction): The function to process.
-            next_step_hint (str): The hint for the function to process.
+            work_item (WorkItem): The work item to be on top of the new work stack.
+
+        Returns:
+            WorkStack: A new workstack with the work item on top.
         """
-        self.work_items.append(WorkItem(function=function, next_step_hint=next_step_hint))
+        return WorkStack((*self.work_items, work_item))
 
     def peek(self) -> WorkItem:
         """Return the item at the top of this workstack.
@@ -44,13 +39,13 @@ class WorkStack:
         """
         return self.work_items[-1]
 
-    def pop(self) -> WorkItem:
-        """Remove the item at the top of this workstack and return it.
+    def pop(self) -> "WorkStack":
+        """Return a new workstack with the top element removed.
 
         Returns:
-            WorkItem: The removed item at the top of this workstack.
+            WorkStack: A new workstack with the top element removed.
         """
-        return self.work_items.pop()
+        return WorkStack(work_items=self.work_items[:-1])
 
     def is_empty(self) -> bool:
         """Return True iff there are no elements in this workstack.
@@ -62,15 +57,15 @@ class WorkStack:
 
 
 class ProofState:
-    """Class representing a proof state.
+    """Class representing an immutable proof state.
 
     A proof state consists of a set of completed functions (with proven or assumed specifications)
     and a workstack of functions yet to be specified and verified.  If the workstack is empty, then
     every function in the program has a proven or assumed specification.
 
     Attributes:
-        _specs (dict[str, FunctionSpecification]): For each function, its current specification.
-            These specs may or may not be verified.
+        _specs (MappingProxyType[str, FunctionSpecification]): The current specifications for
+            each function. These specifications may or may not be verified.
             # MDE: How are identically-named functions in different files distinguished?
         _workstack (WorkStack): A stack of functions that must be (re)processed.
         _verified_functions (list[str]): A list of functions whose specs have been successfully
@@ -80,26 +75,15 @@ class ProofState:
 
     """
 
-    _specs: dict[str, FunctionSpecification]
+    _specs: MappingProxyType[str, FunctionSpecification]
     _workstack: WorkStack
     _verified_functions: list[str]
     _assumed_functions: list[str]
 
-    def __init__(self, workstack: WorkStack) -> None:
+    def __init__(self, specs: dict[str, FunctionSpecification], workstack: WorkStack) -> None:
         """Create a new ProofState."""
-        self._specs = {}
+        self._specs = MappingProxyType(specs)
         self._workstack = workstack
-        self._verified_functions = []
-        self._assumed_functions = []
-
-    def push_onto_workstack(self, function: CFunction, hint: str = "") -> None:
-        """Push the given function and (optional) hint onto this proof state's workstack.
-
-        Args:
-            function (CFunction): The function to push onto this proof state's workstack.
-            hint (str, optional): The hint(s) for spec generation. Defaults to "".
-        """
-        self._workstack.push(function=function, next_step_hint=hint)
 
     def peek_workstack(self) -> WorkItem:
         """Return the top element of the workstack.
@@ -109,10 +93,6 @@ class ProofState:
         """
         return self._workstack.peek()
 
-    def pop_workstack(self) -> None:
-        """Remove the top element of the workstack."""
-        self._workstack.pop()
-
     def is_workstack_empty(self) -> bool:
         """Return True iff this proof state's workstack is empty.
 
@@ -120,6 +100,25 @@ class ProofState:
             bool: True iff this proof state's workstack is empty.
         """
         return self._workstack.is_empty()
+
+    def get_workstack(self) -> WorkStack:
+        """Return this proof state's work stack.
+
+        Returns:
+            WorkStack: This proof state's work stack.
+        """
+        return self._workstack
+
+    def set_workstack(self, workstack: WorkStack) -> "ProofState":
+        """Return a new proof state updated with the given work stack.
+
+        Args:
+            workstack (WorkStack): The work stack for the new proof state.
+
+        Returns:
+            ProofState: The new proof state updated with the given work stack.
+        """
+        return ProofState(specs=self._specs.copy(), workstack=workstack)
 
     def get_specifications(self) -> MappingProxyType[str, FunctionSpecification]:
         """Return this proof state's specifications.
@@ -129,14 +128,20 @@ class ProofState:
         """
         return MappingProxyType(self._specs)
 
-    def set_specification(self, function: CFunction, spec: FunctionSpecification) -> None:
-        """Set this proof state's spec for a given function.
+    def set_specification(
+        self, function: CFunction, specification: FunctionSpecification
+    ) -> "ProofState":
+        """Return a new proof state with updated specifications for the given function.
 
         Args:
-            function (CFunction): The function whose specs to set.
-            spec (FunctionSpecification): The specs to set.
+            function (CFunction): The function.
+            specification (FunctionSpecification): The specification.
+
+        Returns:
+            ProofState: A new proof state with updated specifications for the given function.
         """
-        self._specs[function.name] = spec
+        updated_specs = self._specs | {function.name: specification}
+        return ProofState(specs=updated_specs, workstack=self._workstack)
 
     # MDE: I'm not clear on the rules about when a function is represented by its name (as in the
     # mapping returned by get_specifications) and when it is represented by a CFunction (as here).
@@ -166,7 +171,7 @@ class ProofState:
         callee_specs = {
             callee.name: callee_spec
             for callee in callees_for_function
-            if (callee_spec := self.get_specification(callee))
+            if (callee_spec := self._specs.get(callee.name))
         }
         return VerificationContext(
             callee_specs=callee_specs,

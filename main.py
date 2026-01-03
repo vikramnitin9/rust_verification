@@ -3,7 +3,6 @@
 """Main entry point for specification generation and verification."""
 
 import argparse
-import copy
 import shutil
 import tempfile
 from collections import defaultdict, deque
@@ -147,8 +146,10 @@ def _verify_program(
     """
     # The stack is populated from left-to-right, since functions is in reverse topological order
     # i.e., the first element popped from the stack should be a leaf.
-    initial_workstack: WorkStack = WorkStack([(function, "") for function in functions[::-1]])
-    initial_proof_state = ProofState(workstack=initial_workstack)
+    initial_workstack: WorkStack = WorkStack(
+        tuple(WorkItem(function, "") for function in functions[::-1])
+    )
+    initial_proof_state = ProofState(specs={}, workstack=initial_workstack)
 
     GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)
     GLOBAL_INCOMPLETE_PROOFSTATES.append(initial_proof_state)
@@ -253,9 +254,10 @@ def _get_next_proof_state(
     Returns:
         ProofState: The next proof state for the function, given the conversation.
     """
-    # A deep copy is desirable here because the previous proof state should not be modified.
-    next_proof_state = copy.deepcopy(prev_proof_state)
-    next_proof_state.set_specification(function=function, spec=spec_conversation.specification)
+    next_proof_state = prev_proof_state.set_specification(
+        function=function, specification=spec_conversation.specification
+    )
+    next_workstack = next_proof_state.get_workstack()
     match spec_conversation.specgen_next_step:
         case None:
             msg = f"{spec_conversation} was missing a next step"
@@ -264,13 +266,14 @@ def _get_next_proof_state(
             SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
             | SpecificationGenerationNextStep.ASSUME_SPEC_AS_IS
         ):
-            next_proof_state.pop_workstack()
+            next_workstack = next_workstack.pop()
         case s if s.is_regenerate_strategy:
-            next_proof_state.pop_workstack()
-            next_proof_state.push_onto_workstack(
+            work_item = WorkItem(
                 function=function,
-                hint=_parse_reasoning(spec_conversation.get_latest_llm_response()) or "",
+                next_step_hint=_parse_reasoning(spec_conversation.get_latest_llm_response()) or "",
             )
+            next_workstack = next_workstack.pop().push(work_item=work_item)
+    next_proof_state = next_proof_state.set_workstack(next_workstack)
     return next_proof_state
 
 
