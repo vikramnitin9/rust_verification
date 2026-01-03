@@ -15,9 +15,7 @@ class VerificationContext:
         hints (str): Hints given to the LLM for specification generation and repair.
     """
 
-    # MDE: This dictionary could use CFunction or str as its key.  You chose str.  What are the
-    # tradeoffs between the two choices?
-    callee_specs: dict[str, FunctionSpecification]
+    callee_specs: dict[CFunction, FunctionSpecification]
     # I'm unsure if CBMC has a way to write specs for global variables.
     global_variable_specs: dict[str, str]
     hints: str = ""
@@ -57,11 +55,11 @@ class VerificationInput:
     context: VerificationContext
     contents_of_file_to_verify: str
 
-    def get_callee_names_to_specs(self) -> dict[str, FunctionSpecification]:
-        """Return a dictionary of callee names to their specifications.
+    def get_callees_to_specs(self) -> dict[CFunction, FunctionSpecification]:
+        """Return a dictionary of callees to their specifications.
 
         Returns:
-            dict[str, FunctionSpecification]: A dictionary of callee names to their specifications.
+            dict[str, FunctionSpecification]: A dictionary of callees to their specifications.
         """
         return self.context.callee_specs
 
@@ -87,10 +85,10 @@ class VerificationInput:
             str: The callee specifications formatted for a prompt.
         """
         callee_context_for_prompt = ""
-        if callees_to_specs := self.get_callee_names_to_specs():
+        if callees_to_specs := self.get_callees_to_specs():
             callee_summaries = [
-                f"Callee: {name}\n{spec.get_prompt_str()}"
-                for name, spec in callees_to_specs.items()
+                f"Callee: {callee.name}\n{spec.get_prompt_str()}"
+                for callee, spec in callees_to_specs.items()
             ]
             callee_context_for_prompt = (
                 f"{self.function.name} has the following callees:\n" + "\n".join(callee_summaries)

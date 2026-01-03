@@ -169,7 +169,7 @@ class ProofState:
         parsec_file = ParsecFile(file_path=Path(function.file_name))
         callees_for_function = parsec_file.get_callees(function=function)
         callee_specs = {
-            callee.name: callee_spec
+            callee: callee_spec
             for callee in callees_for_function
             if (callee_spec := self._specs.get(callee.name))
         }
