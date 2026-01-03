@@ -61,9 +61,9 @@ immutable class Context:
 
 immutable class VerificationResult:
 
-* input: VerificationInput
-* succeeded: boolean
-* failure_messages: String | None
+* `input`: VerificationInput
+* `succeeded`: boolean
+* `failure_messages`: String | None
 
 It doesn't make sense to say that a function specification in isolation is
 verified or not, because the verification result depends on the full verifier
@@ -111,19 +111,19 @@ immutable class ProofState:
 
 Possible fields:
 
-* verified_functions: a list of functions that have been verified.
-* assumed_functions: a list of functions with unverified, but trusted, specifications.
+* `verified_functions`: a list of functions that have been verified.
+* `assumed_functions`: a list of functions with unverified, but trusted, specifications.
 
 immutable class SpecConversation:
 
-* spec: Specification
-* conversation: a conversation history with an LLM, that led to the given spec
-* next_step_hint: Any hints for regenerating specifications, either for repair or for callees.
+* `spec`: Specification
+* `conversation`: a conversation history with an LLM, that led to the given spec
+* `next_step_hint`: Any hints for regenerating specifications, either for repair or for callees.
 
 immutable class WorkItem:
 
-* function: ParsecFunction
-* next_step_hint: str
+* `function`: ParsecFunction
+* `next_step_hint`: str
 
 ## Code
 
