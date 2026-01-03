@@ -41,17 +41,18 @@ class LlmSampleCache:
         _cache (dict[str, list[str]]): The cache, mapping from prompts to samples.
     """
 
-    _path_to_cache: Path
+    _path_to_cache_file: Path
     _cache: dict[str, list[str]]
 
     DEFAULT_LLM_SAMPLE_CACHE_PATH = "data/caching/cache.json"
 
     def __init__(self, path_to_cache: str = DEFAULT_LLM_SAMPLE_CACHE_PATH):
         """Create a new LlmResponseCache that loads from the cache file."""
-        self._path_to_cache = Path(path_to_cache)
-        if not self._path_to_cache.exists():
-            self._path_to_cache.touch()
-        self._cache = json.loads(self._path_to_cache.read_text())
+        self._path_to_cache_file = Path(path_to_cache)
+        if not self._path_to_cache_file.exists():
+            self._path_to_cache_file.parent.mkdir(parents=True)
+            self._path_to_cache_file.write_text("{}", encoding="utf-8")
+        self._cache = json.loads(self._path_to_cache_file.read_text())
         atexit.register(self.commit)
 
     def read(self, prompt: str) -> list[str] | None:
@@ -76,5 +77,5 @@ class LlmSampleCache:
 
     def commit(self) -> None:
         """Commit the current contents of the in-memory cache to disk."""
-        logger.info(f"Committing current LlmSampleCache to disk at: {self._path_to_cache}")
-        Path(self._path_to_cache).write_text(json.dumps(self._cache, indent=4))
+        logger.info(f"Committing current LlmSampleCache to disk at: {self._path_to_cache_file}")
+        Path(self._path_to_cache_file).write_text(json.dumps(self._cache, indent=4))
