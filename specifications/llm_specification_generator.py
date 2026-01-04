@@ -18,7 +18,7 @@ from util import (
     ParsecFile,
     SpecConversation,
     SpecificationGenerationNextStep,
-    extract_function,
+    extract_function_source_code,
     function_util,
 )
 from verification import PromptBuilder, ProofState, VerificationClient
@@ -34,7 +34,7 @@ class LlmSpecificationGenerator:
 
     Attributes:
         _parsec_file (ParsecFile): The ParseC file to use to obtain functions.
-        _prompt_builder (PromptBuilder): Used in creating specification generation/repair prompts
+        _prompt_builder (PromptBuilder): Used in creating specification generation/repair prompts.
         _llm (LLMGen): The client used to invoke LLMs.
         _verifier (VerificationClient): The client for specification verification.
         _num_specification_candidates (int): The number of specifications to initially generate.
@@ -85,14 +85,14 @@ class LlmSpecificationGenerator:
     def generate_and_repair_spec(
         self,
         function: CFunction,
-        next_step_hint: str,
+        hint: str,
         proof_state: ProofState,
     ) -> list[SpecConversation]:
         """Return a list of potential specifications for the function.
 
         Args:
             function (CFunction): The function for which to generate potential specs.
-            next_step_hint (str): Hints to help guide specification regeneration (i.e., when a
+            hint (str): Hints to help guide specification regeneration (i.e., when a
                 specification is not accepted or assumed as-is, and is either being repaired or when
                 a callee specification is re-generated).
             proof_state (ProofState): The proof state, which includes specifications for callees.
@@ -100,14 +100,15 @@ class LlmSpecificationGenerator:
         Returns:
             list[SpecConversation]: A list of potential specifications for the function.
         """
-        candidate_specs = self._generate_specs(function=function, next_step_hint=next_step_hint)
+        candidate_specs = self._generate_unrepaired_specs(function=function, hint=hint)
 
-        # TODO: Actually perform some pruning here of the candidate specs first.
+        # TODO: Actually perform some pruning here of the candidate specs.
         pruned_specs = candidate_specs
 
         repaired_specs = []
         for pruned_spec in pruned_specs:
             repaired_specs.extend(
+                # `_repair_spec()` is called whether or not the spec verifies.
                 self._repair_spec(
                     spec_conversation=pruned_spec,
                     proof_state=proof_state,
@@ -115,22 +116,22 @@ class LlmSpecificationGenerator:
             )
         return repaired_specs
 
-    def _generate_specs(
+    def _generate_unrepaired_specs(
         self,
         function: CFunction,
-        next_step_hint: str,
+        hint: str,
     ) -> list[SpecConversation]:
         """Generate potential specifications for the given function.
 
         Each LLM sample yields one SpecConversation in the result list.
 
-        # TODO: When `next_step_hint` is non-empty, this function is being invoked with the intent
+        # TODO: When `hint` is non-empty, this function is being invoked with the intent
         to repair a spec; we cannot simply grab the source code from the CFunction, it'll be the
         function without any specs. We need a way to get the failed spec.
 
         Args:
             function (CFunction): The function for which to generate specifications.
-            next_step_hint (str): Hints to guide specification generation. Only non-empty when
+            hint (str): Hints to guide specification generation. Only non-empty when
                 generating specs during backtracking (i.e., a specification is not accepted or
                 assumed as-is, and is either being repaired or when a callee specification is
                 re-generated).
@@ -143,8 +144,8 @@ class LlmSpecificationGenerator:
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
             function, self._parsec_file
         )
-        if next_step_hint:
-            specification_generation_prompt += "\n\n" + next_step_hint
+        if hint:
+            specification_generation_prompt += "\n\n" + hint
         specification_generation_message = UserMessage(content=specification_generation_prompt)
 
         # MDE: As mentioned in my comments on `llm_sample_cache.py`, I think that invoking the LLM
@@ -165,7 +166,7 @@ class LlmSpecificationGenerator:
                 )
 
             candidate_specified_functions_with_samples = [
-                (extract_function(sample), sample) for sample in spec_samples
+                (extract_function_source_code(sample), sample) for sample in spec_samples
             ]
             candidate_specs_with_samples = [
                 (function_util.extract_specification(function_from_response.splitlines()), response)
@@ -190,27 +191,20 @@ class LlmSpecificationGenerator:
         spec_conversation: SpecConversation,
         proof_state: ProofState,
     ) -> list[SpecConversation]:
-        """Repair a spec that may fail to verify.
-
-        This function is called on a list of *pruned* specifications. Depending on the strategy,
-        the list of pruned specifications may only contain specifications that verify, fail to
-        verify, or a mix. In the case of specifications that verify, the original specification
-        is returned, unchanged.
+        """If the spec verifies, return it.  If the spec does not verify, try to repair it.
 
         Args:
             spec_conversation (SpecConversation): The SpecConversation that ends with the spec that
                 may fail to verify.
             proof_state (ProofState): The proof state for the specification.
 
-        Raises:
-            ValueError: Raised when the SpecConversation is missing the contents of the file that
-                was input to the verifier. This should never happen.
-
         Returns:
             list[SpecConversation]: The repaired specifications.
         """
-        observed_spec_conversations: list[SpecConversation] = []
+        # This is the return value of the method.
         verified_spec_conversations: list[SpecConversation] = []
+
+        observed_spec_conversations: list[SpecConversation] = []
         current_spec_conversations: list[SpecConversation] = [spec_conversation]
         for i in range(self._num_repair_iterations + 1):
             unverified_spec_conversations: list[SpecConversation] = []
@@ -296,16 +290,16 @@ class LlmSpecificationGenerator:
     ) -> dict[FunctionSpecification, str]:
         """Call an LLM to repair a failing spec.
 
-        The conversation passed in originates from an instance of `SpecConversation` which has a
+        The conversation passed in originates from a `SpecConversation` that has a LLM-generated
         specification that fails to verify.
 
-        The conversation is already appended with a message that directs the LLM to fix the failing
-        spec, and is not modified by this function.
+        The conversation is already appended with a user message that directs the LLM to fix the
+        failing spec, and is not modified by this function.
 
         Args:
             function (CFunction): The function with the failing spec.
             conversation (tuple[ConversationMessage]): The conversation for specification repair,
-                which ends with a message to the LLM to fix a failing spec.
+                which ends with a user message telling the LLM to fix a failing spec.
 
         Raises:
             RuntimeError: Raised when a failure occurs (e.g., API timeout) during a call to an LLM
@@ -315,14 +309,13 @@ class LlmSpecificationGenerator:
             dict[FunctionSpecification, str]: A map of repaired specifications and the raw response
                 from the LLM from which the repaired specification was extracted.
 
-
         """
         try:
             responses = self._llm.gen(
                 messages=tuple(conversation), top_k=self._num_repair_candidates, temperature=0.8
             )
             candidate_repaired_functions_to_response = {
-                extract_function(response): response for response in responses
+                extract_function_source_code(response): response for response in responses
             }
             repaired_specs_to_responses: dict[FunctionSpecification, str] = {}
             for function_str, response in candidate_repaired_functions_to_response.items():
