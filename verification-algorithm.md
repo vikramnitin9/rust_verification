@@ -118,12 +118,12 @@ immutable class SpecConversation:
 
 * `spec`: Specification
 * `conversation`: a conversation history with an LLM, that led to the given spec
-* `next_step_hint`: Any hints for regenerating specifications, either for repair or for callees.
+* `hint`: Any hints for regenerating specifications, either for repair or for callees.
 
 immutable class WorkItem:
 
 * `function`: ParsecFunction
-* `next_step_hint`: str
+* `hint`: str
 
 ## Code
 

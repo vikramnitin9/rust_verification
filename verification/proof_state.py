@@ -7,7 +7,26 @@ from types import MappingProxyType
 from util import CFunction, FunctionSpecification, ParsecFile
 
 from .verification_input import VerificationContext
-from .work_item import WorkItem
+
+
+@dataclass(frozen=True)
+class WorkItem:
+    """Class to represent a function on a proof state's workstack.
+
+    Attributes:
+        function (CFunction): A function that needs to be specified.  The function might need to be
+            processed for the first time (in which case the hint is empty), or it might need to be
+            reprocessed because of backtracking (in which case the hint is non-empty).  To process a
+            function is to take a step:
+            * an LLM generates a specification
+            * the verifier is called, and the specification may be repaired
+            * the LLM decides what to do next
+        hint: The hint(s) to use in re-generating callee specifications during backtracking.
+            Not used during specification repair.
+    """
+
+    function: CFunction
+    hint: str
 
 
 @dataclass(frozen=True)
