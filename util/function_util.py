@@ -124,7 +124,7 @@ def get_source_code_with_inserted_spec(
         str: The source code of a function with the specification inserted.
     """
     function = parsec_file.get_function(function_name=function_name)
-    (signature, body) = get_signature_and_body(function.get_source_code(), lang="c")
+    (signature, body) = get_signature_and_body(function.get_original_source_code(), lang="c")
     specs = "\n".join(
         f"// {spec}" if comment_out_spec else spec
         for spec in specification.preconditions + specification.postconditions
