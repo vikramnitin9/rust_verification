@@ -108,8 +108,8 @@ class CbmcVerificationClient(VerificationClient):
         # specification, whether or not it is verified/assumed?  Please discuss.
         replace_call_with_contract_args = " ".join(
             [
-                f"--replace-call-with-contract {verified_function}"
-                for verified_function in proof_state.get_specifications()
+                f"--replace-call-with-contract {previously_verified_function.name}"
+                for previously_verified_function in proof_state.get_specifications()
             ]
         )
         return " && ".join(

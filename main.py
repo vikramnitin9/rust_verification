@@ -162,9 +162,10 @@ def _verify_program(
                 logger.debug(f"Skipping duplicate ProofState {next_proofstate}")
                 continue
             GLOBAL_OBSERVED_PROOFSTATES.add(next_proofstate)
+
             if next_proofstate.is_workstack_empty():
                 GLOBAL_COMPLETE_PROOFSTATES.append(next_proofstate)
-            elif next_proofstate not in GLOBAL_OBSERVED_PROOFSTATES:
+            else:
                 GLOBAL_INCOMPLETE_PROOFSTATES.append(next_proofstate)
 
     verified_specs: dict[CFunction, list[FunctionSpecification]] = defaultdict(list)
