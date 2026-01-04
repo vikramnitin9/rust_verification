@@ -18,11 +18,15 @@ class SpecConversation:
         conversation (list[ConversationMessage]): The conversation that resulted in the
             specification.
         specgen_next_step (SpecificationGenerationNextStep | None): The next step in the
-            specification generation process. Defaults to None until a verifier is executed. The
-            message that is parsed to populate this field exists in the conversation. The value of
-            `specgen_next_step` is used to create the next proof state in a step of the
+            specification generation process. Defaults to None until a verifier is executed.
+            # MDE: I am confused by "defaults to None until".  When is there a different default?
+            # Maybe you mean that the value is "None" until a verifier is executed.  Really, it is
+            # None until the LLM has reacted to a verifier execution.
+            The message that is parsed to populate this field exists in the conversation. The value
+            of `specgen_next_step` is used to create the next proof state in a step of the
             generate/repair spec process.
         contents_of_file_to_verify (str | None): The content of the file to be verified.
+            # MDE: when is this field None?
     """
 
     function: CFunction

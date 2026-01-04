@@ -15,4 +15,5 @@ class LlmInvocationResponse:
     """
 
     prompt: str
+    # MDE: Should this be a tuple instead, since it is immutable?
     samples: list[str]

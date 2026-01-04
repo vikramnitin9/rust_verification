@@ -90,6 +90,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--disable-llm-sample-cache",
+        # MDE: This looks wrong.  The action is store_false, but the documentation says it defaults
+        # to false.
         action="store_false",
         help=(
             "Disable the use of cached LLM samples (i.e., specs) for specification generation and"
@@ -111,7 +113,9 @@ def main() -> None:
         parsec_file=parsec_file,
         num_specification_candidates=args.num_specification_candidates,
         num_repair_candidates=args.num_repair_candidates,
+        # MDE: For clarity in the code, make the two names the same.
         num_repair_iterations=args.num_specification_repair_iterations,
+        # MDE: The left-hand side is "use", but the right-hand side is "disable".
         use_cache=args.disable_llm_sample_cache,
     )
 
@@ -121,6 +125,9 @@ def main() -> None:
     _verify_program(functions_in_reverse_topological_order, specification_generator)
 
 
+# MDE: The return type is wrong.  We want a set of program specifications, where each program
+# specification is internally consistent.  It is possible that functions A and B each have three
+# verifiable specs, but not all 9 combinations of specs are verifiable.
 def _verify_program(
     functions: list[CFunction],
     specification_generator: LlmSpecificationGenerator,
@@ -145,11 +152,14 @@ def _verify_program(
     initial_workstack: WorkStack = WorkStack(
         tuple(WorkItem(function, "") for function in functions[::-1])
     )
+    # MDE: Please create a constructor that takes a list of functions.  Having the client (i.e.,
+    # this code) create the initial workstack violates abstraction.
     initial_proof_state = ProofState(specs={}, workstack=initial_workstack)
 
     GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)
     GLOBAL_INCOMPLETE_PROOFSTATES.append(initial_proof_state)
 
+    # MDE: I think this condition should include "or timeout reached".
     while GLOBAL_INCOMPLETE_PROOFSTATES:
         # Use BFS to avoid getting stuck in an unproductive search over a proof state.
         proof_state = GLOBAL_INCOMPLETE_PROOFSTATES.popleft()
@@ -165,10 +175,13 @@ def _verify_program(
                 continue
             if next_proofstate.is_workstack_empty():
                 GLOBAL_COMPLETE_PROOFSTATES.append(next_proofstate)
+                # MDE: replace "elif ...:" by just "else:", because the condition must be true.
             elif next_proofstate not in GLOBAL_OBSERVED_PROOFSTATES:
                 GLOBAL_INCOMPLETE_PROOFSTATES.append(next_proofstate)
             GLOBAL_OBSERVED_PROOFSTATES.add(next_proofstate)
 
+    # MDE: I think this routine should just return GLOBAL_COMPLETE_PROOFSTATES.
+    # It has the information we need, which is strictly more information than the map.
     verified_specs: dict[CFunction, list[FunctionSpecification]] = defaultdict(list)
     for function in functions:
         for complete_proofstate in GLOBAL_COMPLETE_PROOFSTATES:
@@ -249,6 +262,11 @@ def _get_next_proof_state(
     Returns:
         ProofState: The next proof state for the function, given the conversation.
     """
+    # MDE: The two calls to `set_specification` and `set_workstack` make two copies of the
+    # proofstate, and the proofstate is not used in between.  For efficiency -- and for clarity
+    # regarding which data structures are actually needed -- please remove the two functions and
+    # replace them by one ProofState constructor function that takes three arguments (the function,
+    # the specification, and the workstack).
     next_proof_state = prev_proof_state.set_specification(
         function=spec_conversation.function, specification=spec_conversation.specification
     )
@@ -265,6 +283,15 @@ def _get_next_proof_state(
         case s if s.is_regenerate_strategy:
             work_item = WorkItem(
                 function=spec_conversation.function,
+                # MDE: I had assumed there would only be a hint when backtracking.  (Or, maybe that
+                # is actually true?  If so, I suggest explicitly splitting `case s if
+                # s.is_regenerate_strategy:` into two `SpecificationGenerationNextStep` items,
+                # because there is no need to pop the workstack and then to push an equal (but not
+                # identical) WorkItem onto it.  Doing so is confusing to the reader and is also
+                # inefficient both in terms of memory used and in cost of equality checks.) When not
+                # backtracking, all the information that the LLM needs is in the conversation. The
+                # point of the hint is that a WorkItem does not carry a SpecConversation, so the
+                # only way to pass information from previous LLM invocations is via the hint.
                 next_step_hint=_parse_reasoning(spec_conversation.get_latest_llm_response()) or "",
             )
             next_workstack = next_workstack.pop().push(work_item=work_item)
@@ -273,6 +300,7 @@ def _get_next_proof_state(
 
 
 def _parse_reasoning(llm_response: str) -> str | None:
+    # MDE: Please add a docstring.
     parsed_llm_response: dict[str, Any] = parse_object(text=llm_response)
     return str(parsed_llm_response.get("reasoning"))
 
@@ -311,6 +339,8 @@ def _prune_specs(
             context=vcontext,
             contents_of_file_to_verify=contents_of_verified_file,
         )
+        # MDE: How can `vresult` ever be None?  I think that is an error that should result in a
+        # thrown exception.
         if vresult := VERIFIER_CACHE.get(vinput):
             if vresult.succeeded:
                 pruned_specs.append(spec_conversation)
@@ -322,12 +352,20 @@ def _write_verified_or_assumed_spec(
 ) -> None:
     """Write a function's verified or assumed specification to a file on disk.
 
+    # MDE: It would be helpful to give the purpose of the file.  I think it is because CBMC requires
+    # a file as input, so we are writing the spec in order to pass it to CBMC for verification.
+
+    # MDE: Document what else is in the file on disk.  Is every other function exactly as originally
+    # written by the user?  Or do (some?) other functions in the specified file have specifications
+    # written on them?
+
     Specifications are written to a file under the `DEFAULT_RESULT_DIR` directory that has the same
     same name (and path) as the original (non-specified) file.
 
     Args:
         function (CFunction): The function for which to write a verified specification to disk.
         specification (FunctionSpecification): The specification to write to disk.
+
     """
     path_to_original_file = Path(function.file_name)
     original_file_dir = str(path_to_original_file.parent).lstrip("/")

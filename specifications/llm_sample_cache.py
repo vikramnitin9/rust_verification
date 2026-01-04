@@ -10,22 +10,30 @@ from pathlib import Path
 
 from loguru import logger
 
-# MDE: This class currently has nothing to do with LLMs, so its name is misleading.  But, I think it
-# should call the LLM itself, so the name will be informative.
+# MDE: This class currently has nothing to do with LLMs, so its name is misleading.
+# Because its functionality is generic caching and it has nothing to do with an LLM:
+# * You should not write it. Find an existing implementation elsewhere.
+#   One possibility is the `diskcache` package.  It has 2.8k GitHub stars, which suggests it is
+#   widely used and of good quality.  Although its latest release was in August 2023 and its latest
+#   commit to main was in March 2024, I wouldn't expect that it needs to be updated often, if its
+#   functionality is stable.  However, if there is a better alternative, that is fine with me.
+# * If you were to write it, its class name should not contain "LLM".
+
+# MDE: I think there should be a class named something like "LlmClient" or "LlmInvoker".
+# Its API has:
+# * a constructor that takes an optional boolean to disable caching.
+# * one user-visible method, which has a name like "get".  The "get" method promises to return an
+#   LLM response. Transparently to the user, the "get" method may call an LLM or it may read from
+#   the cache.
 
 # JY: Response to above; I'm not sure if the cache itself should call the LLM. This feels like a
 # violation of separation of concerns. A cache should only concern itself with storing/providing
 # values. Adding the additional responsibility of actually computing (i.e., calling the LLM) values
 # seems wrong.
-
-# MDE: I think there should be only one user-visible method (in addition to a constructor), which
-# has a name like "get".  Transparently to the user, the "get" method may call an LLM or it may read
-# from the cache.
-
-# MDE: Rather than implementing functionality yourself, I suggest using the `diskcache` package.
-#
-# JY: DiskCache's latest commit to main was March 2, 2024, is there a reason we want to use it in
-# particular?
+# MDE: I agree that there should be a separation of concerns.  I have clarified above that my
+# suggestions are related to creating an LlmClient class, not about creating a single class with
+# user-visible LLM behavior *and* user-visible caching behavior.  However, my comments were unclear
+# previously; sorry about that.
 
 
 class LlmSampleCache:

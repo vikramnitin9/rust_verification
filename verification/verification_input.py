@@ -13,6 +13,11 @@ class VerificationContext:
         callee_specs (dict[str, FunctionSpecification]): The specs for a function's callees.
         global_variable_specs (dict[str, str]): The specs for global program variables.
         hints (str): Hints given to the LLM for specification generation and repair.
+            # MDE: I don't understand why the `hints` field exists in VerificationContext.
+            # It is never used by a verifier, so it seems out of place and does not beling in
+            # VerificationInput.  Furthermore, if it differs from one VerificationInput to another,
+            # then even though the verifier behavior would be identical, it will suffer a cache miss
+            # and cause recomputation (it will cause a real call to the verifier).
     """
 
     callee_specs: dict[CFunction, FunctionSpecification]
@@ -48,6 +53,8 @@ class VerificationInput:
         spec (FunctionSpecification): The spec for the function to be verified.
         context (VerificationContext): The context for the function to be verified.
         contents_of_file_to_verify (str): The contents of the file that contains `function`.
+            # MDE: Is this content exactly as written by the programmer?  Or have all the
+            # specifications from the context already been inserted?
     """
 
     function: CFunction

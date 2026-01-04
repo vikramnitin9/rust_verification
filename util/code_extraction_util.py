@@ -2,6 +2,9 @@
 
 from .json_util import parse_object
 
+# MDE: Did we discuss having the LLM return only the specs, without repeating the function's source
+# code?
+
 
 def extract_function(text: str) -> str:
     """Extract the source code part of an LLM response.

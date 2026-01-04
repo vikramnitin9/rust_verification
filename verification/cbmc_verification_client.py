@@ -22,6 +22,7 @@ class CbmcVerificationClient(VerificationClient):
             to verification inputs.
     """
 
+    # MDE: Make this cache persistent to disk.
     _cache: dict[VerificationInput, VerificationResult]
 
     def __init__(
@@ -104,8 +105,12 @@ class CbmcVerificationClient(VerificationClient):
             str: The command used to verify a function in a file with CBMC.
         """
         function_name = verification_input.function.name
-        # MDE: Do we want to replace *every* function (except the one being verified) by its current
-        # specification, whether or not it is verified/assumed?  Please discuss.
+        # MDE: I think we want to replace *only* the callees of the function being called.  We don't
+        # want to replace *every* function.  The reason is for caching.  Verifying function f
+        # depends only on the callee specs.  If other function specs (outside the context) are also
+        # inserted, then there won't be a hit in the cache and the verifier will be called again.
+        # This is a bit part of the reason for the context.  So, I think the list comprehension
+        # should be over the verification context, not the whole proof state.
         replace_call_with_contract_args = "".join(
             [
                 f"--replace-call-with-contract {verified_function_name} "

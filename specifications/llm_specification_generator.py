@@ -45,6 +45,8 @@ class LlmSpecificationGenerator:
         _system_prompt (str): The system prompt for the LLM.
         _llm_sample_cache (LlmSampleCache): The cache mapping LLM prompts and samples.
         _use_cache (bool): True iff the LLM sample cache should be used.
+            # MDE: Can eliminate the `_use_cache` field by testing whether `_llm_sample_cache` is
+            # None.
     """
 
     _parsec_file: ParsecFile
@@ -124,6 +126,8 @@ class LlmSpecificationGenerator:
 
         Each LLM sample yields one SpecConversation in the result list.
 
+        # MDE: I think the following "TODO" is wrong.  Repair is done elsewhere, and it does not
+        # call this function.
         # TODO: When `next_step_hint` is non-empty, this function is being invoked with the intent
         to repair a spec; we cannot simply grab the source code from the CFunction, it'll be the
         function without any specs. We need a way to get the failed spec.
@@ -134,10 +138,12 @@ class LlmSpecificationGenerator:
                 generating specs during backtracking (i.e., a specification is not accepted or
                 assumed as-is, and is either being repaired or when a callee specification is
                 re-generated).
+                # MDE: Same comment as above: delete "either being repaired or".
 
         Returns:
             list[SpecConversation]: The generated specifications for the given function, as a
                 SpecConversation.
+
         """
         conversation: list[ConversationMessage] = [SystemMessage(content=self._system_prompt)]
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
@@ -148,8 +154,9 @@ class LlmSpecificationGenerator:
         specification_generation_message = UserMessage(content=specification_generation_prompt)
 
         # MDE: As mentioned in my comments on `llm_sample_cache.py`, I think that invoking the LLM
-        # should be encapsulated in the LlmSampleCache.  This client code should not be aware of
-        # whether there is a cache miss or a cache hit.
+        # should be encapsulated in an LlmClient or LlmInvoker class.  This client code should not
+        # be aware of whether there is a cache miss or a cache hit, or even of whether a cache
+        # exists.
         try:
             conversation.append(specification_generation_message)
             spec_samples = None
@@ -208,14 +215,23 @@ class LlmSpecificationGenerator:
 
         Returns:
             list[SpecConversation]: The repaired specifications.
+                # MDE: As currently implemented, the repaired specs may or may not verify.  If they
+                # don't verify, then what is the point of returning them?  We have already done as
+                # much repair as we are willing to do (that is, num_repair_iterations).  Maybe this
+                # method should return a list of specs that verify, which may be empty.
         """
         observed_spec_conversations: list[SpecConversation] = []
         verified_spec_conversations: list[SpecConversation] = []
         current_spec_conversations: list[SpecConversation] = [spec_conversation]
+        # MDE: Please document how the above three variables are used.  (I did one of them in the
+        # other branch, which should be merged before this comment is addressed.)
         for i in range(self._num_repair_iterations + 1):
             unverified_spec_conversations: list[SpecConversation] = []
             for current_spec_conversation in current_spec_conversations:
                 if current_spec_conversation in observed_spec_conversations:
+                    # MDE: I don't understand how this can happen.  `current_spec_conversation` is
+                    # created by extending some existing conversation, so it will never have been
+                    # previously observed.  What am I missing?
                     continue
 
                 contents_of_file_to_verify = self._get_content_of_file_to_verify(
@@ -230,6 +246,7 @@ class LlmSpecificationGenerator:
                     function=current_spec_conversation.function,
                     spec=current_spec_conversation.specification,
                     proof_state=proof_state,
+                    # MDE: Is the source code available in the `function` argument in this call?
                     source_code_content=current_spec_conversation.contents_of_file_to_verify,
                 )
 
@@ -243,6 +260,10 @@ class LlmSpecificationGenerator:
 
                 observed_spec_conversations.append(current_spec_conversation)
 
+            # MDE: This looks very suspicious to me.  i is assigned from `_num_repair_iterations`,
+            # but here it is compared to `_num_repair_candidates`.  Those are conceptually different
+            # types.  `_num_repair_candidates` is how many samples to take from the LLM response,
+            # and is currently always 1.
             if i == self._num_repair_candidates:
                 break
 
@@ -273,6 +294,8 @@ class LlmSpecificationGenerator:
                     function=unverified_spec_conversation.function,
                     conversation=tuple(conversation_updated_with_failure_information),
                 )
+                # MDE: Write a brief comment about why this doesn't use `append()`.  Probably
+                # because it wants to create a new list rather than modify an existing list.
                 current_spec_conversations += [
                     SpecConversation(
                         function=unverified_spec_conversation.function,
@@ -314,13 +337,17 @@ class LlmSpecificationGenerator:
         Returns:
             dict[FunctionSpecification, str]: A map of repaired specifications and the raw response
                 from the LLM from which the repaired specification was extracted.
-
-
+                # MDE: Why is this a map rather than a list of pairs?  It is not looked up in, only
+                # iterated over.
         """
         try:
             responses = self._llm.gen(
                 messages=tuple(conversation), top_k=self._num_repair_candidates, temperature=0.8
             )
+            # MDE: Why is this a map rather than a list of pairs?  Using a map suggests to a reader
+            # that lookup will be done, but this is only iterated over.  In fact, even a list of
+            # pairs is not necessary.  The for loop below can iterate over `responses` and call
+            # `extract_function_source_code(response)` within the loop.
             candidate_repaired_functions_to_response = {
                 extract_function(response): response for response in responses
             }
@@ -371,6 +398,9 @@ class LlmSpecificationGenerator:
         proof_state: ProofState,
     ) -> str:
         """Return the content of the file that should be verified.
+
+        # MDE: Is this the original content of the file, as written by the user?  Or does it contain
+        # some inserted specifications and, if so, which ones?
 
         Args:
             spec_conversation (SpecConversation): The spec conversation comprising the function and
