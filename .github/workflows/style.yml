@@ -29,6 +29,7 @@ jobs:
       - name: uv diagnostics
         run: |
           command -v uv
+          uv tree
           uv run ruff --version
       - name: Check style
         run: make style-check
