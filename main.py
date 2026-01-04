@@ -5,14 +5,14 @@
 import argparse
 import shutil
 import tempfile
-from collections import defaultdict, deque
+import time
+from collections import deque
 from pathlib import Path
-from types import MappingProxyType
 from typing import Any
 
 from loguru import logger
 
-from specifications import LlmSpecificationGenerator
+from specifications import LlmSampleCache, LlmSpecificationGenerator
 from util import (
     CFunction,
     FunctionSpecification,
@@ -31,7 +31,6 @@ from verification import (
     VerificationInput,
     VerificationResult,
     WorkItem,
-    WorkStack,
 )
 
 MODEL = "gpt-4o"
@@ -40,6 +39,8 @@ DEFAULT_NUM_SPECIFICATION_CANDIDATES = 10
 DEFAULT_NUM_REPAIR_CANDIDATES = 1
 DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS = 3
 DEFAULT_MODEL_TEMPERATURE = 1.0
+# Default timeout of 5 minutes for specification generation and repair.
+DEFAULT_SPECIFICATION_GENERATION_TIMEOUT_SEC = 300
 DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
 DEFAULT_RESULT_DIR = "specs"
 
@@ -89,10 +90,15 @@ def main() -> None:
         type=int,
     )
     parser.add_argument(
+        "--specification-generation-timeout-sec",
+        required=False,
+        help="The timeout for specification generation (in seconds, defaults to 5 minutes).",
+        default=DEFAULT_SPECIFICATION_GENERATION_TIMEOUT_SEC,
+        type=float,
+    )
+    parser.add_argument(
         "--disable-llm-sample-cache",
-        # MDE: This looks wrong.  The action is store_false, but the documentation says it defaults
-        # to false.
-        action="store_false",
+        action="store_true",
         help=("Always call the LLM, do not use cached answers (defaults to False)."),
     )
     args = parser.parse_args()
@@ -110,55 +116,48 @@ def main() -> None:
         parsec_file=parsec_file,
         num_specification_candidates=args.num_specification_candidates,
         num_repair_candidates=args.num_repair_candidates,
-        # MDE: For clarity in the code, make the two names the same.
-        num_repair_iterations=args.num_specification_repair_iterations,
-        # MDE: The left-hand side is "use", but the right-hand side is "disable".
-        use_cache=args.disable_llm_sample_cache,
+        num_specification_repair_iterations=args.num_specification_repair_iterations,
+        llm_sample_cache=None if args.disable_llm_sample_cache else LlmSampleCache(),
     )
 
     functions_in_reverse_topological_order = parsec_file.get_functions_in_topological_order(
         reverse_order=True
     )
-    _verify_program(functions_in_reverse_topological_order, specification_generator)
+    _verify_program(
+        functions=functions_in_reverse_topological_order,
+        specification_generator=specification_generator,
+        specgen_timeout_sec=args.specification_generation_timeout_sec,
+    )
 
 
-# MDE: The return type is wrong.  We want a set of program specifications, where each program
-# specification is internally consistent.  It is possible that functions A and B each have three
-# verifiable specs, but not all 9 combinations of specs are verifiable.
 def _verify_program(
     functions: list[CFunction],
     specification_generator: LlmSpecificationGenerator,
-) -> MappingProxyType[CFunction, list[FunctionSpecification]]:
-    """Return an immutable map of CFunctions to their CBMC specifications.
+    specgen_timeout_sec: float,
+) -> tuple[ProofState, ...]:
+    """Return a set of ProofStates with specifications for each function.
 
-    This function exits when GLOBAL_INCOMPLETE_PROOFSTATES is empty. The returned map's value type
-    is list because it is possible for the system to generate more than one valid specification for
-    a CFunction.
+    This function exits when GLOBAL_INCOMPLETE_PROOFSTATES is empty.
 
     Args:
         functions (list[CFunction]): The functions for which to generate and verify specifications,
             in reverse topological order.
         specification_generator (LlmSpecificationGenerator): The specification generator.
+        specgen_timeout_sec (float): The timeout for specification generation (in seconds).
 
     Returns:
-        MappingProxyType[CFunction, FunctionSpecification]: An immutable map of function to their
-            CBMC-verified specifications.
+        tuple[ProofState, ...]: A set of ProofStates with specifications for each function.
 
     """
     # Since `functions` is in reverse topological order,
     # the first element popped from the stack will be a leaf.
-    initial_workstack: WorkStack = WorkStack(
-        tuple(WorkItem(function, "") for function in functions[::-1])
-    )
-    # MDE: Please create a constructor that takes a list of functions.  Having the client (i.e.,
-    # this code) create the initial workstack violates abstraction.
-    initial_proof_state = ProofState(specs={}, workstack=initial_workstack)
+    initial_proof_state = ProofState.from_functions(functions=functions[::-1])
 
     GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)
     GLOBAL_INCOMPLETE_PROOFSTATES.append(initial_proof_state)
 
-    # MDE: I think this condition should include "or timeout reached".
-    while GLOBAL_INCOMPLETE_PROOFSTATES:
+    specgen_timeout_limit = time.time() + specgen_timeout_sec
+    while GLOBAL_INCOMPLETE_PROOFSTATES and not _is_timeout_reached(specgen_timeout_limit):
         # Use BFS to avoid getting stuck in an unproductive search over a proof state.
         proof_state = GLOBAL_INCOMPLETE_PROOFSTATES.popleft()
         next_proofstates = _step(
@@ -178,14 +177,7 @@ def _verify_program(
             else:
                 GLOBAL_INCOMPLETE_PROOFSTATES.append(next_proofstate)
 
-    # MDE: I think this routine should just return GLOBAL_COMPLETE_PROOFSTATES.
-    # It has the information we need, which is strictly more information than the map.
-    verified_specs: dict[CFunction, list[FunctionSpecification]] = defaultdict(list)
-    for function in functions:
-        for complete_proofstate in GLOBAL_COMPLETE_PROOFSTATES:
-            if specs_for_function := complete_proofstate.get_specification(function=function):
-                verified_specs[function].append(specs_for_function)
-    return MappingProxyType(verified_specs)
+    return tuple(complete_proofstate for complete_proofstate in GLOBAL_COMPLETE_PROOFSTATES)
 
 
 def _step(
@@ -267,10 +259,10 @@ def _get_next_proof_state(
     # regarding which data structures are actually needed -- please remove the two functions and
     # replace them by one ProofState constructor function that takes three arguments (the function,
     # the specification, and the workstack).
-    next_proof_state = prev_proof_state.set_specification(
-        function=spec_conversation.function, specification=spec_conversation.specification
-    )
-    next_workstack = next_proof_state.get_workstack()
+    specs_for_next_proof_state = prev_proof_state.get_specifications() | {
+        spec_conversation.function: spec_conversation.specification
+    }
+    workstack_for_next_proof_state = prev_proof_state.get_workstack()
     match spec_conversation.specgen_next_step:
         case None:
             msg = f"{spec_conversation} was missing a next step"
@@ -279,7 +271,7 @@ def _get_next_proof_state(
             SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
             | SpecificationGenerationNextStep.ASSUME_SPEC_AS_IS
         ):
-            next_workstack = next_workstack.pop()
+            workstack_for_next_proof_state = workstack_for_next_proof_state.pop()
         case s if s.is_regenerate_strategy:
             work_item = WorkItem(
                 function=spec_conversation.function,
@@ -294,13 +286,21 @@ def _get_next_proof_state(
                 # only way to pass information from previous LLM invocations is via the hint.
                 hint=_parse_reasoning(spec_conversation.get_latest_llm_response()) or "",
             )
-            next_workstack = next_workstack.pop().push(work_item=work_item)
-    next_proof_state = next_proof_state.set_workstack(next_workstack)
-    return next_proof_state
+            workstack_for_next_proof_state = workstack_for_next_proof_state.pop().push(
+                work_item=work_item
+            )
+    return ProofState(specs=specs_for_next_proof_state, workstack=workstack_for_next_proof_state)
 
 
 def _parse_reasoning(llm_response: str) -> str | None:
-    # MDE: Please add a docstring.
+    """Return the value mapped to the "reasoning" key in an LLM response.
+
+    Args:
+        llm_response (str): The LLM response.
+
+    Returns:
+        str | None: The value mapped to the "reasoning" key in an LLM response.
+    """
     parsed_llm_response: dict[str, Any] = parse_object(text=llm_response)
     return str(parsed_llm_response.get("reasoning"))
 
@@ -339,11 +339,12 @@ def _prune_specs(
             context=vcontext,
             contents_of_file_to_verify=contents_of_verified_file,
         )
-        # MDE: How can `vresult` ever be None?  I think that is an error that should result in a
-        # thrown exception.
         if vresult := VERIFIER_CACHE.get(vinput):
             if vresult.succeeded:
                 pruned_specs.append(spec_conversation)
+        else:
+            msg = f"Cache miss for previously-executed vinput: {vinput}"
+            raise RuntimeError(msg)
     return pruned_specs or spec_conversations
 
 
@@ -393,6 +394,18 @@ def _write_verified_or_assumed_spec(
         parsec_file=parsec_file,
         file=result_file,
     )
+
+
+def _is_timeout_reached(timeout_limit_sec: float) -> bool:
+    """Return True iff the timeout limit has been reached (or exceeded).
+
+    Args:
+        timeout_limit_sec (float): The timeout limit (in seconds).
+
+    Returns:
+        bool: True iff the timeout limit has been reached (or exceeded).
+    """
+    return time.time() >= timeout_limit_sec
 
 
 if __name__ == "__main__":

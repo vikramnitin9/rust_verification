@@ -44,9 +44,6 @@ class LlmSpecificationGenerator:
             repair round.
         _system_prompt (str): The system prompt for the LLM.
         _llm_sample_cache (LlmSampleCache): The cache mapping LLM prompts and samples.
-        _use_cache (bool): True iff the LLM sample cache should be used.
-            # MDE: Can eliminate the `_use_cache` field by testing whether `_llm_sample_cache` is
-            # None.
     """
 
     _parsec_file: ParsecFile
@@ -54,11 +51,10 @@ class LlmSpecificationGenerator:
     _llm: LLMGen
     _verifier: VerificationClient
     _num_specification_candidates: int
-    _num_repair_iterations: int
+    _num_specification_repair_iterations: int
     _num_repair_candidates: int
     _system_prompt: str
-    _llm_sample_cache: LlmSampleCache
-    _use_cache: bool
+    _llm_sample_cache: LlmSampleCache | None
 
     def __init__(
         self,
@@ -69,8 +65,8 @@ class LlmSpecificationGenerator:
         parsec_file: ParsecFile,
         num_specification_candidates: int,
         num_repair_candidates: int,
-        num_repair_iterations: int,
-        use_cache: bool = False,
+        num_specification_repair_iterations: int,
+        llm_sample_cache: LlmSampleCache | None,
     ) -> None:
         """Create a new LlmSpecificationGenerator."""
         self._llm = get_llm_generation_with_model(model)
@@ -80,9 +76,8 @@ class LlmSpecificationGenerator:
         self._prompt_builder = PromptBuilder()
         self._num_specification_candidates = num_specification_candidates
         self._num_repair_candidates = num_repair_candidates
-        self._num_repair_iterations = num_repair_iterations
-        self._llm_sample_cache = LlmSampleCache()
-        self._use_cache = use_cache
+        self._num_specification_repair_iterations = num_specification_repair_iterations
+        self._llm_sample_cache = llm_sample_cache
 
     def generate_and_repair_spec(
         self,
@@ -160,16 +155,17 @@ class LlmSpecificationGenerator:
         try:
             conversation.append(specification_generation_message)
             spec_samples = None
-            if self._use_cache:
+            if self._llm_sample_cache:
                 spec_samples = self._llm_sample_cache.read(specification_generation_prompt)
             if not spec_samples:
                 # Cache miss.
                 spec_samples = self._llm.gen(
                     tuple(conversation), top_k=self._num_specification_candidates, temperature=0.8
                 )
-                self._llm_sample_cache.write(
-                    prompt=specification_generation_prompt, samples=spec_samples
-                )
+                if self._llm_sample_cache:
+                    self._llm_sample_cache.write(
+                        prompt=specification_generation_prompt, samples=spec_samples
+                    )
 
             candidate_specified_functions_with_samples = [
                 (extract_function_source_code(sample), sample) for sample in spec_samples
@@ -218,7 +214,7 @@ class LlmSpecificationGenerator:
         current_spec_conversations: list[SpecConversation] = [spec_conversation]
         # MDE: Please document how the above three variables are used.  (I did one of them in the
         # other branch, which should be merged before this comment is addressed.)
-        for i in range(self._num_repair_iterations + 1):
+        for i in range(self._num_specification_repair_iterations + 1):
             unverified_spec_conversations: list[SpecConversation] = []
             for current_spec_conversation in current_spec_conversations:
                 if current_spec_conversation in observed_spec_conversations:
