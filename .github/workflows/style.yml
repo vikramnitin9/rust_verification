@@ -24,12 +24,5 @@ jobs:
           sudo apt install -yqq perltidy shfmt shellcheck devscripts
       - name: Install uv
         uses: astral-sh/setup-uv@v7
-      - name: Show variable values
-        run: make showvars
-      - name: uv diagnostics
-        run: |
-          command -v uv
-          uv tree
-          uv run ruff --version
       - name: Check style
         run: make style-check

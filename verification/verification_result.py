@@ -23,26 +23,25 @@ class VerificationResult:
     failure_messages: str | None
 
     def get_function(self) -> CFunction:
-        """Return the function associated with this verification result's input.
+        """Return the function being verified.
 
         Returns:
-            CFunction: The function associated with this verification result's input.
+            CFunction: The function being verified.
         """
         return self.verification_input.function
 
     def get_spec(self) -> FunctionSpecification:
-        """Return the specification associated with this verification result's input.
+        """Return the specification being verified.
 
         Returns:
-            FunctionSpecification: Return the specification associated with this verification
-                result's input.
+            FunctionSpecification: Return the specification being verified.
         """
         return self.verification_input.spec
 
     def get_source_code_contents(self) -> str:
-        """Return the source code from this verification result (i.e., what the verifier ran on).
+        """Return the source code that the verifier ran on.
 
         Returns:
-            str: The source code from this verification result.
+            str: The source code that the verifier ran on.
         """
         return self.verification_input.contents_of_file_to_verify

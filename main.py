@@ -55,9 +55,9 @@ tempfile.tempdir = DEFAULT_RESULT_DIR
 
 
 def main() -> None:
-    """Generate specifications for C functions in a file using an LLM and verify them with CBMC.
+    """Generate specifications for a given C file using an LLM and verify them with CBMC.
 
-    The current implementation operates over *all* the C functions parsed from a file.
+    The current implementation operates over all the C functions in one file.
     """
     parser = argparse.ArgumentParser(
         prog="main.py", description="Generate and verify CBMC specifications for a C file."
@@ -65,7 +65,7 @@ def main() -> None:
     parser.add_argument(
         "--file",
         required=True,
-        help="Path to the C file for which to generate and verify specifications.",
+        help="The C file for which to generate and verify specifications.",
     )
     parser.add_argument(
         "--num-specification-candidates",
@@ -77,7 +77,7 @@ def main() -> None:
     parser.add_argument(
         "--num-repair-candidates",
         required=False,
-        help="The LLM rectuns this many repaired specifications for each unverifiable spec.",
+        help="The LLM generates this many repaired specifications for each unverifiable spec.",
         default=DEFAULT_NUM_REPAIR_CANDIDATES,
         type=int,
     )
@@ -93,10 +93,7 @@ def main() -> None:
         # MDE: This looks wrong.  The action is store_false, but the documentation says it defaults
         # to false.
         action="store_false",
-        help=(
-            "Disable the use of cached LLM samples (i.e., specs) for specification generation and"
-            " repair (defaults to False)."
-        ),
+        help=("Always call the LLM, do not use cached answers (defaults to False)."),
     )
     args = parser.parse_args()
 
@@ -134,9 +131,9 @@ def _verify_program(
 ) -> MappingProxyType[CFunction, list[FunctionSpecification]]:
     """Return an immutable map of CFunctions to their CBMC specifications.
 
-    This function exits when the GLOBAL_INCOMPLETE_PROOFSTATES are exhausted, returning a map of
-    CFunctions to their specifications. A map is returned since it is possible for the system to
-    generate more than one valid specification for a CFunction.
+    This function exits when GLOBAL_INCOMPLETE_PROOFSTATES is empty. The returned map's value type
+    is list because it is possible for the system to generate more than one valid specification for
+    a CFunction.
 
     Args:
         functions (list[CFunction]): The functions for which to generate and verify specifications,
@@ -146,9 +143,10 @@ def _verify_program(
     Returns:
         MappingProxyType[CFunction, FunctionSpecification]: An immutable map of function to their
             CBMC-verified specifications.
+
     """
-    # The stack is populated from left-to-right, since functions is in reverse topological order
-    # i.e., the first element popped from the stack should be a leaf.
+    # Since `functions` is in reverse topological order,
+    # the first element popped from the stack will be a leaf.
     initial_workstack: WorkStack = WorkStack(
         tuple(WorkItem(function, "") for function in functions[::-1])
     )
@@ -173,12 +171,12 @@ def _verify_program(
                 # Avoid re-processing proof states we've already seen.
                 logger.debug(f"Skipping duplicate ProofState {next_proofstate}")
                 continue
+            GLOBAL_OBSERVED_PROOFSTATES.add(next_proofstate)
+
             if next_proofstate.is_workstack_empty():
                 GLOBAL_COMPLETE_PROOFSTATES.append(next_proofstate)
-                # MDE: replace "elif ...:" by just "else:", because the condition must be true.
-            elif next_proofstate not in GLOBAL_OBSERVED_PROOFSTATES:
+            else:
                 GLOBAL_INCOMPLETE_PROOFSTATES.append(next_proofstate)
-            GLOBAL_OBSERVED_PROOFSTATES.add(next_proofstate)
 
     # MDE: I think this routine should just return GLOBAL_COMPLETE_PROOFSTATES.
     # It has the information we need, which is strictly more information than the map.
@@ -204,8 +202,8 @@ def _step(
       workstack.
 
     This is the key unit of parallelism for the specification generation process. It effectively
-    represents "branching points" in the tree of specifications; each node (i.e., specification)
-    can serve as parent of n "new" specifications to explore.
+    represents "branching points" in the search for a program specification; each node (i.e.,
+    partial program specification) can serve as parent of multiple "new" specifications to explore.
 
     Args:
         proof_state (ProofState): The proof state from which to generate new proof states.
@@ -216,11 +214,13 @@ def _step(
 
     """
     work_item = proof_state.peek_workstack()
-    # Each SpecConversation represents an attempt at generating & verifying a spec for the function.
+    # Each SpecConversation represents a completed attempt at generating and verifying a spec for
+    # the function.  That is, the next step focuses on a different function, even if it is possible
+    # that the algorithm may revisit this function later due to backtracking.
     spec_conversations_for_function: list[SpecConversation] = (
         specification_generator.generate_and_repair_spec(
             function=work_item.function,
-            next_step_hint=work_item.next_step_hint,
+            hint=work_item.hint,
             proof_state=proof_state,
         )
     )
@@ -250,8 +250,8 @@ def _get_next_proof_state(
 
         1. The new proof state's map of functions to specifications is updated with the given
            function and its specification from the SpecConversation.
-        2. The new proof state's work stack may be smaller (if the function's spec verified
-           successfully or is assumed), or larger (if the function failed to verify and the
+        2. The new proof state's work stack is either smaller (if the function's spec verified
+           successfully or is assumed) or larger (if the function failed to verify and the
            proof process will backtrack).
 
     Args:
@@ -292,7 +292,7 @@ def _get_next_proof_state(
                 # backtracking, all the information that the LLM needs is in the conversation. The
                 # point of the hint is that a WorkItem does not carry a SpecConversation, so the
                 # only way to pass information from previous LLM invocations is via the hint.
-                next_step_hint=_parse_reasoning(spec_conversation.get_latest_llm_response()) or "",
+                hint=_parse_reasoning(spec_conversation.get_latest_llm_response()) or "",
             )
             next_workstack = next_workstack.pop().push(work_item=work_item)
     next_proof_state = next_proof_state.set_workstack(next_workstack)
@@ -314,8 +314,8 @@ def _prune_specs(
     Note: The current strategy is simply to return just the specifications that successfully verify.
 
     Args:
-        proof_state (ProofState): The ProofState (the topmost function on its workstack is the
-            function for which specifications are being generated/repaired).
+        proof_state (ProofState): The ProofState. The topmost function on its workstack is the
+            function for which specifications are being generated/repaired.
         spec_conversations (list[SpecConversation]): The SpecConversations to prune.
 
     Raises:
@@ -367,6 +367,9 @@ def _write_verified_or_assumed_spec(
         specification (FunctionSpecification): The specification to write to disk.
 
     """
+    # Examples of original and result file names:
+    # * "my_research/myfile.c" => "specs/my_research/myfile.c"
+    # * "/home/jquser/my_research/myfile.c" => "specs/home/jquser/my_research/myfile.c"
     path_to_original_file = Path(function.file_name)
     original_file_dir = str(path_to_original_file.parent).lstrip("/")
     result_file_dir = Path(DEFAULT_RESULT_DIR) / Path(original_file_dir)

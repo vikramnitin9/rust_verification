@@ -6,7 +6,7 @@ from .json_util import parse_object
 # code?
 
 
-def extract_function(text: str) -> str:
+def extract_function_source_code(text: str) -> str:
     """Extract the source code part of an LLM response.
 
     An LLM is prompted to return a string in the following JSON format:

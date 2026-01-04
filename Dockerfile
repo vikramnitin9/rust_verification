@@ -88,7 +88,7 @@ RUN cd /app/parsec && \
     cd build && \
     cmake .. && \
     make -j 4
-ENV PARSEC_BUILD_DIR=/app/parsec/build
+ENV PARSEC_EXECUTABLE=/app/parsec/build/parsec
 
 ENV CARGO_HOME="/app/.cargo"
 ENV RUSTUP_HOME="/app/.rustup"

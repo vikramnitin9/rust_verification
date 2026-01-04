@@ -10,13 +10,11 @@ from .specification_generation_next_step import SpecificationGenerationNextStep
 class SpecConversation:
     """Class to represent an LLM-generated specification and the conversation that led to it.
 
-    INVARIANT: the last key-value pair in `conversation` is the latest response from the LLM.
-
     Attributes:
         function (CFunction): The function for which the specification was generated.
         specification (FunctionSpecification): The LLM-generated specification.
         conversation (list[ConversationMessage]): The conversation that resulted in the
-            specification.
+            specification.  The last message is the latest response from the LLM.
         specgen_next_step (SpecificationGenerationNextStep | None): The next step in the
             specification generation process. Defaults to None until a verifier is executed.
             # MDE: I am confused by "defaults to None until".  When is there a different default?
@@ -90,9 +88,9 @@ class SpecConversation:
         raise ValueError(msg)
 
     def has_next_step(self) -> bool:
-        """Return True iff this conversation has a next step.
+        """Return True iff this conversation includes the LLM deciding on a next step.
 
         Returns:
-            bool: True iff this conversation has a next step.
+            bool: True iff this conversation includes the LLM deciding on a next step.
         """
         return self.specgen_next_step is not None
