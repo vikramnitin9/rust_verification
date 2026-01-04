@@ -1353,7 +1353,7 @@ requires-dist = [
 dev = [
     { name = "pymarkdownlnt", specifier = ">=0.9.33" },
     { name = "pytest", specifier = ">=9.0.2" },
-    { name = "ruff", specifier = ">=0.14.10" },
+    { name = "ruff", specifier = "==0.14.10" },
     { name = "ty", specifier = ">=0.0.1a33" },
 ]
 

@@ -19,6 +19,6 @@ dependencies = [
 dev = [
     "pymarkdownlnt>=0.9.33",
     "pytest>=9.0.2",
-    "ruff=0.14.10",
+    "ruff==0.14.10",
     "ty>=0.0.1a33",
 ]
