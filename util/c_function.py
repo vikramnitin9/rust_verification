@@ -29,6 +29,7 @@ class CFunction:
     end_col: int
     preconditions: list[str]
     postconditions: list[str]
+    source_code: str
     arg_names: list[str] = field(default_factory=list)
     arg_types: list[str] = field(default_factory=list)
     enums: list[Any] = field(default_factory=list)
@@ -67,13 +68,16 @@ class CFunction:
         self.global_vars = raw_analysis.get("globals", [])
         self.structs = raw_analysis.get("structs", [])
 
-    def get_source_code(
+    def get_original_source_code(
         self,
         include_documentation_comments: bool = False,
         include_line_numbers: bool = False,
         should_uncomment_cbmc_annotations: bool = False,
     ) -> str:
-        """Return the source code for this function, optionally including documentation comments.
+        """Return the *original* source code for this function.
+
+        Original in this context refers to the source code of the function from the initial source
+        code file passed to the verifier.
 
         Args:
             include_documentation_comments (bool): True iff documentation comments appearing before
@@ -124,6 +128,12 @@ class CFunction:
             )
 
         return source_code
+    
+    def set_source_code(self, source_code: str) -> None:
+        self.source_code = source_code
+    
+    def get_source_code(self) -> str:
+        return self.source_code
 
     def _add_line_numbers(self, source_code: str, start_line_offset: int) -> str:
         """Return source code with line numbers prepended to each line.

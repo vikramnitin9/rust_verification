@@ -39,7 +39,7 @@ class PromptBuilder:
             str: The initial prompt used for specification generation.
 
         """
-        source_code = function.get_source_code(include_documentation_comments=True)
+        source_code = function.get_original_source_code(include_documentation_comments=True)
         prompt = PromptBuilder.SPECIFICATION_GENERATION_PROMPT_TEMPLATE.replace(
             PromptBuilder.SOURCE_PLACEHOLDER, source_code
         )
@@ -78,9 +78,8 @@ class PromptBuilder:
                     "was missing from the file that failed to verify."
                 )
                 raise ValueError(msg)
-            function_lines_cbmc_commented_out = function.get_source_code(
-                include_line_numbers=True
-            ).splitlines()
+            # TODO: Come up with a way to get the line numbers.
+            function_lines_cbmc_commented_out = function.get_source_code().splitlines()
             function_lines = "\n".join(
                 text_util.uncomment_cbmc_annotations(function_lines_cbmc_commented_out)
             )
