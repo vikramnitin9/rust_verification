@@ -14,7 +14,7 @@ class SpecConversation:
         function (CFunction): The function for which the specification was generated.
         specification (FunctionSpecification): The LLM-generated specification.
         conversation (list[ConversationMessage]): The conversation that resulted in the
-            specification.  The last key-value pair is the latest response from the LLM.
+            specification.  The last message is the latest response from the LLM.
         specgen_next_step (SpecificationGenerationNextStep | None): The next step in the
             specification generation process. Defaults to None until a verifier is executed. The
             message that is parsed to populate this field exists in the conversation. The value of
