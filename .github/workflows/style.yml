@@ -26,5 +26,9 @@ jobs:
         uses: astral-sh/setup-uv@v7
       - name: Show variable values
         run: make showvars
+      - name: uv diagnostics
+        run: |
+          command -v uv
+          uv run ruff --version
       - name: Check style
         run: make style-check

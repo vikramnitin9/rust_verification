@@ -12,11 +12,13 @@ from loguru import logger
 
 # MDE: This class currently has nothing to do with LLMs, so its name is misleading.
 # Because its functionality is generic caching and it has nothing to do with an LLM:
-# * You should not write it. Find an existing implementation elsewhere.
-#   One possibility is the `diskcache` package.  It has 2.8k GitHub stars, which suggests it is
-#   widely used and of good quality.  Although its latest release was in August 2023 and its latest
-#   commit to main was in March 2024, I wouldn't expect that it needs to be updated often, if its
-#   functionality is stable.  However, if there is a better alternative, that is fine with me.
+# * You should not write it. Find an existing implementation elsewhere.  One possibility is the
+#   `diskcache` package.  It has 2.8k GitHub stars, which suggests it is widely used and of good
+#   quality.  Its documentation compares to other libraries at
+#   https://grantjenks.com/docs/diskcache/#comparisons.  Although its latest release was in August
+#   2023 and its latest commit to main was in March 2024, I wouldn't expect that it needs to be
+#   updated often, if its functionality is stable.  However, if there is a better alternative, that
+#   is fine with me.
 # * If you were to write it, its class name should not contain "LLM".
 
 # MDE: I think there should be a class named something like "LlmClient" or "LlmInvoker".
