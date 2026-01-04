@@ -8,12 +8,14 @@ class ConversationMessage:
     """Represents a message in a conversation.
 
     Attributes:
-        role (str): The provenance of the message. Always one of "user", "assistant", or "system".
-        content (str): The content of the message (i.e., the user's prompt or the LLM's response).
+        content (str): The content of a message (i.e., the actual prompt).
+        role (str): Denotes the provenance of a message (e.g., "user", "system").
     """
 
-    role: str
+    # The `content` field must precede the `role` field because `role` has a default but `content`
+    # does not.
     content: str
+    role: str = ""
 
     def __post_init__(self) -> None:
         """Prevent direct instantiation of ConversationMessage."""
