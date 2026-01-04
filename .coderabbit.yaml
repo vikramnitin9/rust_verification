@@ -20,6 +20,7 @@ reviews:
     - "!**/node_modules/**"
     - "!verification-algorithm.md"
   auto_review:
+    enabled: false
     ignore_title_keywords:
       - "wip"
       - "draft"
