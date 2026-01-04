@@ -12,6 +12,8 @@ class ConversationMessage:
         role (str): Denotes the provenance of a message (e.g., "user", "system").
     """
 
+    # The `content` field must precede the `role` field because `role` has a default but `content`
+    # does not.
     content: str
     role: str = ""
 

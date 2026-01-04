@@ -196,11 +196,11 @@ class ParsecFile:
         Returns:
             dict[str, Any]: The JSON output produced by ParseC as a dictionary.
         """
-        parsec_build_dir = os.environ.get("PARSEC_BUILD_DIR")
-        if not parsec_build_dir:
-            raise Exception("$PARSEC_BUILD_DIR not set.")
+        parsec_executable = os.environ.get("PARSEC_EXECUTABLE")
+        if not parsec_executable:
+            raise Exception("$PARSEC_EXECUTABLE not set.")
         try:
-            cmd = f"{parsec_build_dir}/parsec --rename-main=false --add-instr=false {file_path}"
+            cmd = f"{parsec_executable} --rename-main=false --add-instr=false {file_path}"
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
             if result.returncode != 0:
                 msg = f"Error running parsec: {result.stderr} {result.stdout}"

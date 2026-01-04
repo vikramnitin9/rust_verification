@@ -106,17 +106,30 @@ class CbmcVerificationClient(VerificationClient):
         function_name = verification_input.function.name
         # MDE: Do we want to replace *every* function (except the one being verified) by its current
         # specification, whether or not it is verified/assumed?  Please discuss.
-        replace_call_with_contract_args = "".join(
+        replace_call_with_contract_args = " ".join(
             [
-                f"--replace-call-with-contract {verified_function_name} "
-                for verified_function_name in proof_state.get_specifications()
+                f"--replace-call-with-contract {previously_verified_function.name}"
+                for previously_verified_function in proof_state.get_specifications()
             ]
         )
-        return (
-            f"goto-cc -o {function_name}.goto {path_to_file_to_verify} --function {function_name} && "  # noqa : E501
-            f"goto-instrument --partial-loops --unwind 5 {function_name}.goto {function_name}.goto "
-            f"&& goto-instrument {replace_call_with_contract_args} "
-            f"--enforce-contract {function_name} "
-            f"{function_name}.goto checking-{function_name}-contracts.goto && "
-            f"cbmc checking-{function_name}-contracts.goto --function {function_name} --depth 100"
+        return " && ".join(
+            [
+                (
+                    f"goto-cc -o {function_name}.goto {path_to_file_to_verify} "
+                    f"--function {function_name}"
+                ),
+                (
+                    f"goto-instrument --partial-loops --unwind 5 "
+                    f"{function_name}.goto {function_name}.goto"
+                ),
+                (
+                    f"goto-instrument {replace_call_with_contract_args} "
+                    f"--enforce-contract {function_name} "
+                    f"{function_name}.goto checking-{function_name}-contracts.goto"
+                ),
+                (
+                    f"cbmc checking-{function_name}-contracts.goto "
+                    f"--function {function_name} --depth 100"
+                ),
+            ]
         )
