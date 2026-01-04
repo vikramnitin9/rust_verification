@@ -239,11 +239,19 @@ class LlmSpecificationGenerator:
                     original_file_path=self._parsec_file.file_path,
                     proof_state=proof_state,
                 )
+                function_under_repair = current_spec_conversation.function
+                function_under_repair.set_source_code(
+                    function_util.get_source_code_with_inserted_spec(
+                        function_name=function_under_repair.name,
+                        specification=current_spec_conversation.specification,
+                        parsec_file=self._parsec_file,
+                    )
+                )
                 current_spec_conversation.contents_of_file_to_verify = contents_of_file_to_verify
 
                 # TODO: Consider refactoring `verify` to consume a `SpecConversation`?
                 vresult = self._verifier.verify(
-                    function=current_spec_conversation.function,
+                    function=function_under_repair,
                     spec=current_spec_conversation.specification,
                     proof_state=proof_state,
                     # MDE: Is the source code available in the `function` argument in this call?
