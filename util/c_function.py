@@ -128,11 +128,21 @@ class CFunction:
             )
 
         return source_code
-    
+
     def set_source_code(self, source_code: str) -> None:
+        """Set the source code for this function.
+
+        Args:
+            source_code (str): The source code to set for this function.
+        """
         self.source_code = source_code
-    
+
     def get_source_code(self) -> str:
+        """Return this function's source code.
+
+        Returns:
+            str: This function's source code.
+        """
         return self.source_code
 
     def _add_line_numbers(self, source_code: str, start_line_offset: int) -> str:
