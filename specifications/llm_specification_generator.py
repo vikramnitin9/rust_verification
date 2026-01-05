@@ -238,7 +238,8 @@ class LlmSpecificationGenerator:
                 )
                 current_spec_conversation.contents_of_file_to_verify = contents_of_file_to_verify
 
-                # TODO: Consider refactoring `verify` to consume a `SpecConversation`?
+                # `verify` does not consume a `SpecConversation` because it is designed to be
+                # independent from any specification generation strategy.
                 vresult = self._verifier.verify(
                     function=function_under_repair,
                     spec=current_spec_conversation.specification,

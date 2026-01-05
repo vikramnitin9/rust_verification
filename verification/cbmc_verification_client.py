@@ -64,7 +64,7 @@ class CbmcVerificationClient(VerificationClient):
             if vinput not in self._cache:
                 logger.debug(f"vresult cache miss for: {vinput.function}")
                 vcommand = self._get_cbmc_verification_command(
-                    vinput, path_to_file_to_verify=path_to_file, proof_state=proof_state
+                    vinput, path_to_file_to_verify=path_to_file
                 )
                 try:
                     logger.debug(f"Running command: {vcommand}")
@@ -92,30 +92,20 @@ class CbmcVerificationClient(VerificationClient):
         self,
         verification_input: VerificationInput,
         path_to_file_to_verify: Path,
-        proof_state: ProofState,
     ) -> str:
         """Return the command used to verify a function in a file with CBMC.
 
         Args:
             verification_input (VerificationInput): The verification input.
             path_to_file_to_verify (Path): The path to the file to verify.
-            proof_state (ProofState): The proof state under which verification is occurring.
 
         Returns:
             str: The command used to verify a function in a file with CBMC.
         """
         function_name = verification_input.function.name
-        # MDE: I think we want to replace *only* the callees of the function being called.  We don't
-        # want to replace *every* function.  The reason is for caching.  Verifying function f
-        # depends only on the callee specs.  If other function specs (outside the context) are also
-        # inserted, then there won't be a hit in the cache and the verifier will be called again.
-        # This is a bit part of the reason for the context.  So, I think the list comprehension
-        # should be over the verification context, not the whole proof state.
-        replace_call_with_contract_args = "".join(
-            [
-                f"--replace-call-with-contract {previously_verified_function.name}"
-                for previously_verified_function in proof_state.get_specifications()
-            ]
+        callee_names = [callee.name for callee in verification_input.get_callees_to_specs()]
+        replace_call_with_contract_args = " ".join(
+            [f"--replace-call-with-contract {callee_name}" for callee_name in callee_names]
         )
         return " && ".join(
             [
