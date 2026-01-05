@@ -120,7 +120,7 @@ class LLMGen:
             case "claude37":
                 model_str = "claude-3-7-sonnet@20250219"
                 if not IS_VERTEX_AVAILABLE:
-                    model_str = model_name.replace("@", "-")
+                    model_str = model_str.replace("@", "-")
                 return LLMGen(model=model_str, vertex=IS_VERTEX_AVAILABLE)
             case "gpt-4o":
                 return LLMGen(model=model_name, vertex=IS_VERTEX_AVAILABLE)
