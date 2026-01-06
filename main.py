@@ -90,7 +90,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--disable-llm-sample-cache",
-        action="store_false",
+        action="store_true",
         help=("Always call the LLM, do not use cached answers (defaults to False)."),
     )
     args = parser.parse_args()
@@ -109,7 +109,7 @@ def main() -> None:
         num_specification_candidates=args.num_specification_candidates,
         num_repair_candidates=args.num_repair_candidates,
         num_repair_iterations=args.num_specification_repair_iterations,
-        use_cache=args.disable_llm_sample_cache,
+        disable_cache=args.disable_llm_sample_cache,
     )
 
     functions_in_reverse_topological_order = parsec_file.get_functions_in_topological_order(
