@@ -5,12 +5,11 @@ from pathlib import Path
 
 from models import (
     ConversationMessage,
-    LLMGen,
+    LlmClient,
     LlmMessage,
     ModelError,
     SystemMessage,
     UserMessage,
-    get_llm_generation_with_model,
 )
 from util import (
     CFunction,
@@ -23,8 +22,6 @@ from util import (
 )
 from verification import PromptBuilder, ProofState, VerificationClient
 
-from .llm_sample_cache import LlmSampleCache
-
 
 class LlmSpecificationGenerator:
     """Class for LLM-driven specification generation and repair.
@@ -35,49 +32,52 @@ class LlmSpecificationGenerator:
     Attributes:
         _parsec_file (ParsecFile): The ParseC file to use to obtain functions.
         _prompt_builder (PromptBuilder): Used in creating specification generation/repair prompts.
-        _llm (LLMGen): The client used to invoke LLMs.
         _verifier (VerificationClient): The client for specification verification.
         _num_specification_candidates (int): The number of specifications to initially generate.
-        _num_repair_iterations (int): The number of repair iterations (i.e., how many times an
-            LLM is able to repair a spec).
-        _num_repair_candidates (int): The number of repaired specs sampled from an LLM in each
-            repair round.
+        _num_specification_repair_iterations (int): The number of repair iterations (i.e., how many
+            times an LLM is able to repair a spec).
+        _num_specification_repair_candidates (int): The number of repaired specs sampled from an LLM
+            in each repair round.
         _system_prompt (str): The system prompt for the LLM.
-        _llm_sample_cache (LlmSampleCache): The cache mapping LLM prompts and samples.
+        _disable_cache (bool): True iff caching should be disabled for LLM responses.
+        _llm_client (LlmClient): The client used to invoke LLMs.
     """
 
     _parsec_file: ParsecFile
     _prompt_builder: PromptBuilder
-    _llm: LLMGen
     _verifier: VerificationClient
     _num_specification_candidates: int
     _num_specification_repair_iterations: int
-    _num_repair_candidates: int
+    _num_specification_repair_candidates: int
     _system_prompt: str
-    _llm_sample_cache: LlmSampleCache | None
+    _disable_cache: bool
+    _llm_client: LlmClient
 
     def __init__(
         self,
-        # MDE: Maybe pass in an LlmCache, which can encapsulate the model and the system prompt.
         model: str,
         system_prompt: str,
         verifier: VerificationClient,
         parsec_file: ParsecFile,
         num_specification_candidates: int,
-        num_repair_candidates: int,
+        num_specification_repair_candidates: int,
         num_specification_repair_iterations: int,
-        llm_sample_cache: LlmSampleCache | None,
+        disable_cache: bool = False,
     ) -> None:
         """Create a new LlmSpecificationGenerator."""
-        self._llm = get_llm_generation_with_model(model)
         self._system_prompt = system_prompt
         self._verifier = verifier
         self._parsec_file = parsec_file
         self._prompt_builder = PromptBuilder()
         self._num_specification_candidates = num_specification_candidates
-        self._num_repair_candidates = num_repair_candidates
+        self._num_specification_repair_candidates = num_specification_repair_candidates
         self._num_specification_repair_iterations = num_specification_repair_iterations
-        self._llm_sample_cache = llm_sample_cache
+        self._llm_client = LlmClient(
+            model_name=model,
+            top_k=num_specification_candidates,
+            temperature=0.8,
+            disable_cache=disable_cache,
+        )
 
     def generate_and_repair_spec(
         self,
@@ -148,24 +148,9 @@ class LlmSpecificationGenerator:
             specification_generation_prompt += "\n\n" + hint
         specification_generation_message = UserMessage(content=specification_generation_prompt)
 
-        # MDE: As mentioned in my comments on `llm_sample_cache.py`, I think that invoking the LLM
-        # should be encapsulated in an LlmClient or LlmInvoker class.  This client code should not
-        # be aware of whether there is a cache miss or a cache hit, or even of whether a cache
-        # exists.
         try:
             conversation.append(specification_generation_message)
-            spec_samples = None
-            if self._llm_sample_cache:
-                spec_samples = self._llm_sample_cache.read(specification_generation_prompt)
-            if not spec_samples:
-                # Cache miss.
-                spec_samples = self._llm.gen(
-                    tuple(conversation), top_k=self._num_specification_candidates, temperature=0.8
-                )
-                if self._llm_sample_cache:
-                    self._llm_sample_cache.write(
-                        prompt=specification_generation_prompt, samples=spec_samples
-                    )
+            spec_samples = self._llm_client.get(conversation=tuple(conversation))
 
             candidate_specified_functions_with_samples = [
                 (extract_function_source_code(sample), sample) for sample in spec_samples
@@ -262,7 +247,7 @@ class LlmSpecificationGenerator:
             # but here it is compared to `_num_repair_candidates`.  Those are conceptually different
             # types.  `_num_repair_candidates` is how many samples to take from the LLM response,
             # and is currently always 1.
-            if i == self._num_repair_candidates:
+            if i == self._num_specification_repair_candidates:
                 break
 
             current_spec_conversations = []
@@ -337,8 +322,8 @@ class LlmSpecificationGenerator:
                 from the LLM from which the repaired specification was extracted.
         """
         try:
-            responses = self._llm.gen(
-                messages=tuple(conversation), top_k=self._num_repair_candidates, temperature=0.8
+            responses = self._llm_client.get(
+                conversation=conversation, top_k=self._num_specification_repair_candidates
             )
             # MDE: Why is this a map rather than a list of pairs?  Using a map suggests to a reader
             # that lookup will be done, but this is only iterated over.  In fact, even a list of

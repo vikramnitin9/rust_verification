@@ -13,7 +13,7 @@ from typing import Any
 from diskcache import Cache  # ty: ignore
 from loguru import logger
 
-from specifications import LlmSampleCache, LlmSpecificationGenerator
+from specifications import LlmSpecificationGenerator
 from util import (
     CFunction,
     FunctionSpecification,
@@ -116,9 +116,9 @@ def main() -> None:
         verifier=verifier,
         parsec_file=parsec_file,
         num_specification_candidates=args.num_specification_candidates,
-        num_repair_candidates=args.num_repair_candidates,
+        num_specification_repair_candidates=args.num_repair_candidates,
         num_specification_repair_iterations=args.num_specification_repair_iterations,
-        llm_sample_cache=None if args.disable_llm_sample_cache else LlmSampleCache(),
+        disable_cache=args.disable_llm_sample_cache,
     )
 
     functions_in_reverse_topological_order = parsec_file.get_functions_in_topological_order(
