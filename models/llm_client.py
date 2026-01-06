@@ -56,8 +56,8 @@ class LlmClient:
             msg = "Cannot prompt an LLM with an empty conversation"
             raise ValueError(msg)
 
+        cache_key = self._get_cache_key(conversation=conversation)
         if self._sample_cache is not None:
-            cache_key = self._get_cache_key(conversation=conversation)
             if cached_response := self._sample_cache.get(cache_key):
                 return cached_response
 
