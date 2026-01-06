@@ -4,6 +4,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from diskcache import Cache  # ty: ignore
 from loguru import logger
 
 from util import CFunction, FunctionSpecification
@@ -18,15 +19,15 @@ class CbmcVerificationClient(VerificationClient):
     """Verifies source code using CBMC. The entry point is `verify()`.
 
     Attributes:
-        _cache (dict[VerificationInput, VerificationResult]): A cache of verification results mapped
-            to verification inputs.
+        _cache (Cache): A cache of verification results mapped to verification inputs. The keys for
+            VERIFIER_CACHE are `VerificationInput` and the values are `VerificationResult`.
     """
 
-    _cache: dict[VerificationInput, VerificationResult]
+    _cache: Cache
 
     def __init__(
         self,
-        cache: dict[VerificationInput, VerificationResult],
+        cache: Cache,
     ) -> None:
         """Create a new CbmcVerificationClient."""
         self._cache = cache
