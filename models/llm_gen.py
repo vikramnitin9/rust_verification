@@ -18,7 +18,7 @@ from loguru import logger
 
 load_dotenv()
 
-IS_VERTEX_AVAILABLE: bool = "VERTEX_AI_JSON" in os.environ
+IS_VERTEX_AVAILABLE = "VERTEX_AI_JSON" in os.environ
 
 
 class ModelError(Exception):
@@ -28,8 +28,8 @@ class ModelError(Exception):
 class LLMGen:
     """Encapsulate LLM-based generation logic."""
 
-    def __init__(self, model: str, vertex: bool = True):
-        if vertex:
+    def __init__(self, model: str, is_vertex_available: bool = True):
+        if is_vertex_available:
             litellm.vertex_location = "us-east5"
             with pathlib.Path(os.environ["VERTEX_AI_JSON"]).open(encoding="utf-8") as file:
                 self.vertex_credentials: str | None = json.dumps(json.load(file))
@@ -118,12 +118,12 @@ class LLMGen:
         """
         match model_name:
             case "claude37":
-                model_str = "claude-3-7-sonnet@20250219"
+                claude_model_name = "claude-3-7-sonnet@20250219"
                 if not IS_VERTEX_AVAILABLE:
-                    model_str = model_str.replace("@", "-")
-                return LLMGen(model=model_str, vertex=IS_VERTEX_AVAILABLE)
+                    claude_model_name = claude_model_name.replace("@", "-")
+                return LLMGen(model=claude_model_name, is_vertex_available=IS_VERTEX_AVAILABLE)
             case "gpt-4o":
-                return LLMGen(model=model_name, vertex=IS_VERTEX_AVAILABLE)
+                return LLMGen(model=model_name, is_vertex_available=IS_VERTEX_AVAILABLE)
             case _:
                 msg = f"Unsupported model: {model_name}"
                 raise ModelError(msg)

@@ -38,31 +38,46 @@ class LlmClient:
         self._temperature = temperature
         self._sample_cache = None if disable_cache else Cache(directory=DEFAULT_CACHE_DIR)
 
-    def get(self, conversation: tuple[ConversationMessage, ...]) -> list[str]:
+    def get(
+        self,
+        conversation: tuple[ConversationMessage, ...],
+        temperature: float | None = None,
+        top_k: int | None = None,
+    ) -> list[str]:
         """Return the response from the LLM for the given conversation.
 
         INVARIANT: The last message in the conversation comprises the prompt for the model.
 
         Args:
             conversation (tuple[ConversationMessage, ...]): The conversation for the LLM.
+            temperature (float | None): The temperature for generation.
+            top_k (int | None): The number of samples to obtain.
 
         Raises:
             ValueError: Raised when an empty conversation is passed in.
 
         Returns:
-            list[str]: The list of samples (of length `self._top_k`) from the LLM.
+            list[str]: The list of samples (of length `self._top_k` or `top_k` if not None)
+                from the LLM.
         """
         if not conversation:
             msg = "Cannot prompt an LLM with an empty conversation"
             raise ValueError(msg)
 
-        cache_key = self._get_cache_key(conversation=conversation)
+        temperature = temperature or self._temperature
+        top_k = top_k or self._top_k
+        cache_key = None
         if self._sample_cache is not None:
+            cache_key = self._get_cache_key(
+                conversation=conversation, temperature=temperature, top_k=top_k
+            )
             if cached_response := self._sample_cache.get(cache_key):
                 return cached_response
 
         result = self._llm.gen(
-            messages=conversation, temperature=self._temperature, top_k=self._top_k
+            messages=conversation,
+            temperature=temperature or self._temperature,
+            top_k=top_k or self._top_k,
         )
 
         if self._sample_cache is not None:
@@ -71,14 +86,32 @@ class LlmClient:
         return result
 
     def _get_cache_key(
-        self, conversation: tuple[ConversationMessage, ...]
+        self,
+        conversation: tuple[ConversationMessage, ...],
+        temperature: float,
+        top_k: int,
     ) -> tuple[tuple[str, str], ...]:
         """Return the key used to cache the given conversation.
 
+        The cache key comprises:
+
+            1. The conversation.
+            2. The temperature.
+            3. The value of `top_k`.
+            4. The model name.
+
         Args:
             conversation (tuple[ConversationMessage, ...]): The conversation to cache.
+            temperature (float): The temperature for generation.
+            top_k (int): The number of samples to obtain.
 
         Returns:
             tuple[tuple[str, str],...]: The key used to cache the given conversation.
         """
-        return tuple((message.role, message.content) for message in conversation)
+        conversation_tuples = tuple((message.role, message.content) for message in conversation)
+        return (
+            *conversation_tuples,
+            ("temperature", str(temperature)),
+            ("top_k", str(top_k)),
+            ("model", self._llm.model),
+        )
