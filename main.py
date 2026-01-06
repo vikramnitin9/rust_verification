@@ -10,6 +10,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any
 
+from diskcache import Cache  # ty: ignore
 from loguru import logger
 
 from specifications import LlmSpecificationGenerator
@@ -29,7 +30,6 @@ from verification import (
     ProofState,
     VerificationClient,
     VerificationInput,
-    VerificationResult,
     WorkItem,
     WorkStack,
 )
@@ -42,14 +42,15 @@ DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS = 3
 DEFAULT_MODEL_TEMPERATURE = 1.0
 DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
 DEFAULT_RESULT_DIR = "specs"
+DEFAULT_VERIFIER_RESULT_CACHE_DIR = "data/caching/verifier"
 
 GLOBAL_OBSERVED_PROOFSTATES: set[ProofState] = set()
 # Every ProofState in this queue is incomplete (i.e., their worklists are non-empty.)
 GLOBAL_INCOMPLETE_PROOFSTATES: deque[ProofState] = deque()
 # Every ProofState in this queue is complete (i.e., their worklists are empty.)
 GLOBAL_COMPLETE_PROOFSTATES: deque[ProofState] = deque()
-# MDE: This should be a `diskcache` rather than a Python dict.
-VERIFIER_CACHE: dict[VerificationInput, VerificationResult] = {}
+# The keys for VERIFIER_CACHE are `VerificationInput` and the values are `VerificationResult`.
+VERIFIER_CACHE: Cache = Cache(directory=DEFAULT_VERIFIER_RESULT_CACHE_DIR)
 
 tempfile.tempdir = DEFAULT_RESULT_DIR
 
@@ -90,7 +91,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--disable-llm-sample-cache",
-        action="store_false",
+        action="store_true",
         help=("Always call the LLM, do not use cached answers (defaults to False)."),
     )
     args = parser.parse_args()
@@ -109,7 +110,7 @@ def main() -> None:
         num_specification_candidates=args.num_specification_candidates,
         num_repair_candidates=args.num_repair_candidates,
         num_repair_iterations=args.num_specification_repair_iterations,
-        use_cache=args.disable_llm_sample_cache,
+        disable_cache=args.disable_llm_sample_cache,
     )
 
     functions_in_reverse_topological_order = parsec_file.get_functions_in_topological_order(
@@ -315,6 +316,9 @@ def _prune_specs(
         if vresult := VERIFIER_CACHE.get(vinput):
             if vresult.succeeded:
                 pruned_specs.append(spec_conversation)
+        else:
+            msg = f"{vinput} was missing in the verifier cache"
+            raise ValueError(msg)
     return pruned_specs or spec_conversations
 
 
