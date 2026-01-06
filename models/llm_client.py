@@ -14,8 +14,8 @@ class LlmClient:
     Attributes:
         _llm (LLMGen): The internal LLM interface (see https://docs.litellm.ai/docs/).
         _top_k (int): The number of samples to obtain from the LLM.
-        _temperature (float): The temperature (cannot be 0 for top-k > 1).
-        _sample_cache (Cache | None): The cache storing samples from the LLM.
+        _temperature (float): The temperature (cannot be 0 if top_k > 1).
+        _sample_cache (Cache | None): A cache of LLM responses.
     """
 
     _llm: LLMGen
@@ -56,22 +56,19 @@ class LlmClient:
             msg = "Cannot prompt an LLM with an empty conversation"
             raise ValueError(msg)
 
-        cache_key = self._get_cache_key(conversation=conversation)
-        samples = []
         if self._sample_cache is not None:
+            cache_key = self._get_cache_key(conversation=conversation)
             if cached_response := self._sample_cache.get(cache_key):
                 return cached_response
 
-            # Cache miss.
-            samples = self._llm.gen(
-                messages=conversation, temperature=self._temperature, top_k=self._top_k
-            )
-            self._sample_cache[cache_key] = samples
-            return samples
-
-        return self._llm.gen(
+        result = self._llm.gen(
             messages=conversation, temperature=self._temperature, top_k=self._top_k
         )
+
+        if self._sample_cache is not None:
+            self._sample_cache[cache_key] = result
+
+        return result
 
     def _get_cache_key(
         self, conversation: tuple[ConversationMessage, ...]

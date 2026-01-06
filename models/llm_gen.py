@@ -18,7 +18,7 @@ from loguru import logger
 
 load_dotenv()
 
-IS_VERTEX_AVAILABLE = "VERTEX_AI_JSON" in os.environ
+IS_VERTEX_AVAILABLE: bool = "VERTEX_AI_JSON" in os.environ
 
 
 class ModelError(Exception):
