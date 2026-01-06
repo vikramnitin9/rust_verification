@@ -57,4 +57,4 @@ __pycache__/
 .plume-scripts
 
 # Local caches
-data/caching/cache.json
+data/caching/

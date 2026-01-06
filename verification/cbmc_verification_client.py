@@ -20,7 +20,7 @@ class CbmcVerificationClient(VerificationClient):
 
     Attributes:
         _cache (Cache): A cache of verification results mapped to verification inputs. The keys for
-            VERIFIER_CACHE are `VerificationInput` and the values are `VerificationResult`.
+            this cache are `VerificationInput` and the values are `VerificationResult`.
     """
 
     _cache: Cache
