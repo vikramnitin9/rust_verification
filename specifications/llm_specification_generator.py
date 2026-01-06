@@ -3,6 +3,8 @@
 import json
 from pathlib import Path
 
+from loguru import logger
+
 from models import (
     ConversationMessage,
     LlmClient,
@@ -289,7 +291,7 @@ class LlmSpecificationGenerator:
                         ],
                         specgen_next_step=self._parse_next_step(response),
                     )
-                    for specification, response in model_responses.items()
+                    for specification, response in model_responses
                 ]
         return verified_spec_conversations or [
             spec_conversation
@@ -299,7 +301,7 @@ class LlmSpecificationGenerator:
 
     def _call_llm_for_repair(
         self, function: CFunction, conversation: tuple[ConversationMessage, ...]
-    ) -> dict[FunctionSpecification, str]:
+    ) -> tuple[tuple[FunctionSpecification, str], ...]:
         """Call an LLM to repair a failing spec.
 
         The conversation passed in originates from a `SpecConversation` that has a LLM-generated
@@ -318,28 +320,36 @@ class LlmSpecificationGenerator:
                 for specification repair.
 
         Returns:
-            dict[FunctionSpecification, str]: A map of repaired specifications and the raw response
-                from the LLM from which the repaired specification was extracted.
+            tuple[tuple[FunctionSpecification, str], ...]: A tuple of function specifications paired
+                with the raw LLM response from which they were extracted.
+
         """
         try:
             responses = self._llm_client.get(
                 conversation=conversation, top_k=self._num_specification_repair_candidates
             )
-            # MDE: Why is this a map rather than a list of pairs?  Using a map suggests to a reader
-            # that lookup will be done, but this is only iterated over.  In fact, even a list of
-            # pairs is not necessary.  The for loop below can iterate over `responses` and call
-            # `extract_function_source_code(response)` within the loop.
-            candidate_repaired_functions_to_response = {
-                extract_function_source_code(response): response for response in responses
-            }
-            repaired_specs_to_responses: dict[FunctionSpecification, str] = {}
-            for function_str, response in candidate_repaired_functions_to_response.items():
-                if repaired_spec := function_util.extract_specification(function_str.splitlines()):
-                    repaired_specs_to_responses[repaired_spec] = response
-            return repaired_specs_to_responses
+            repaired_specs_with_responses: list[tuple[FunctionSpecification, str]] = []
+            for response in responses:
+                if repaired_spec := self._parse_specification_from_response(response):
+                    repaired_specs_with_responses.append((repaired_spec, response))
+                else:
+                    logger.warning(f"Failed to parse a specification from: {response}")
+            return tuple(repaired_specs_with_responses)
         except ModelError as me:
             msg = f"Failed to repair specifications for '{function.name}'"
             raise RuntimeError(msg) from me
+
+    def _parse_specification_from_response(self, llm_response: str) -> FunctionSpecification | None:
+        """Return the specification parsed from an LLM response.
+
+        Args:
+            llm_response (str): The LLM response from which to parse a specification.
+
+        Returns:
+            FunctionSpecification | None: The parsed specification, or None.
+        """
+        function_in_response = extract_function_source_code(llm_response)
+        return function_util.extract_specification(function_in_response.splitlines())
 
     def _parse_next_step(self, llm_response: str) -> SpecificationGenerationNextStep:
         """Parse the next steps for a prompt from an LLM response.
