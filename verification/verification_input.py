@@ -14,18 +14,11 @@ class VerificationContext:
     Attributes:
         callee_specs (dict[str, FunctionSpecification]): The specs for a function's callees.
         global_variable_specs (dict[str, str]): The specs for global program variables.
-        hints (str): Hints given to the LLM for specification generation and repair.
-            # MDE: I don't understand why the `hints` field exists in VerificationContext.
-            # It is never used by a verifier, so it seems out of place and does not beling in
-            # VerificationInput.  Furthermore, if it differs from one VerificationInput to another,
-            # then even though the verifier behavior would be identical, it will suffer a cache miss
-            # and cause recomputation (it will cause a real call to the verifier).
     """
 
     callee_specs: dict[CFunction, FunctionSpecification]
     # I'm unsure if CBMC has a way to write specs for global variables.
     global_variable_specs: dict[str, str]
-    hints: str = ""
 
     def __hash__(self) -> int:
         """Return the hash for this verification context.
@@ -37,7 +30,6 @@ class VerificationContext:
             (
                 frozenset(self.callee_specs.items()),
                 frozenset(self.global_variable_specs.items()),
-                self.hints,
             )
         )
 
