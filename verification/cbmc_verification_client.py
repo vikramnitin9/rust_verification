@@ -86,7 +86,7 @@ class CbmcVerificationClient(VerificationClient):
                 logger.success(f"Verification succeeded for function '{function.name}'")
             else:
                 logger.error(f"Verification failed for function '{function.name}'")
-            return self._cache[vinput]
+            return vresult
 
     def _get_cbmc_verification_command(
         self,
