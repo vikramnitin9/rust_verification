@@ -303,7 +303,9 @@ class LlmSpecificationGenerator:
 
         """
         try:
-            responses = self._llm_client.get(conversation=conversation)
+            responses = self._llm_client.get(
+                conversation=conversation, top_k=self._num_repair_candidates
+            )
             candidate_repaired_functions_to_response = {
                 extract_function_source_code(response): response for response in responses
             }
