@@ -10,6 +10,7 @@ from collections import deque
 from pathlib import Path
 from typing import Any
 
+from diskcache import Cache  # ty: ignore
 from loguru import logger
 
 from specifications import LlmSampleCache, LlmSpecificationGenerator
@@ -29,7 +30,6 @@ from verification import (
     ProofState,
     VerificationClient,
     VerificationInput,
-    VerificationResult,
     WorkItem,
 )
 
@@ -42,6 +42,7 @@ DEFAULT_MODEL_TEMPERATURE = 1.0
 # Default timeout of 5 minutes for specification generation and repair.
 DEFAULT_SPECIFICATION_GENERATION_TIMEOUT_SEC = 300
 DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
+DEFAULT_VERIFIER_CACHE_DIR = "data/caching/verifier"
 DEFAULT_RESULT_DIR = "specs"
 
 GLOBAL_OBSERVED_PROOFSTATES: set[ProofState] = set()
@@ -50,7 +51,7 @@ GLOBAL_INCOMPLETE_PROOFSTATES: deque[ProofState] = deque()
 # Every ProofState in this queue is complete (i.e., their worklists are empty.)
 GLOBAL_COMPLETE_PROOFSTATES: deque[ProofState] = deque()
 # MDE: This should be a `diskcache` rather than a Python dict.
-VERIFIER_CACHE: dict[VerificationInput, VerificationResult] = {}
+VERIFIER_CACHE: Cache = Cache(directory=DEFAULT_VERIFIER_CACHE_DIR)
 
 tempfile.tempdir = DEFAULT_RESULT_DIR
 
