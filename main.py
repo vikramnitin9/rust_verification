@@ -44,14 +44,15 @@ DEFAULT_SPECIFICATION_GENERATION_TIMEOUT_SEC = 300
 DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
 DEFAULT_VERIFIER_CACHE_DIR = "data/caching/verifier"
 DEFAULT_RESULT_DIR = "specs"
+DEFAULT_VERIFIER_RESULT_CACHE_DIR = "data/caching/verifier"
 
 GLOBAL_OBSERVED_PROOFSTATES: set[ProofState] = set()
 # Every ProofState in this queue is incomplete (i.e., their worklists are non-empty.)
 GLOBAL_INCOMPLETE_PROOFSTATES: deque[ProofState] = deque()
 # Every ProofState in this queue is complete (i.e., their worklists are empty.)
 GLOBAL_COMPLETE_PROOFSTATES: deque[ProofState] = deque()
-# MDE: This should be a `diskcache` rather than a Python dict.
-VERIFIER_CACHE: Cache = Cache(directory=DEFAULT_VERIFIER_CACHE_DIR)
+# The keys for VERIFIER_CACHE are `VerificationInput` and the values are `VerificationResult`.
+VERIFIER_CACHE: Cache = Cache(directory=DEFAULT_VERIFIER_RESULT_CACHE_DIR)
 
 tempfile.tempdir = DEFAULT_RESULT_DIR
 
