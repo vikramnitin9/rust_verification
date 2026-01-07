@@ -165,7 +165,7 @@ class LlmSpecificationGenerator:
                 SpecConversation(
                     function=function,
                     specification=candidate_spec,
-                    conversation=[*conversation, LlmMessage(content=sample)],
+                    conversation=(*conversation, LlmMessage(content=sample)),
                 )
                 for candidate_spec, sample in candidate_specs_with_samples
                 if candidate_spec
@@ -277,7 +277,7 @@ class LlmSpecificationGenerator:
 
                 model_responses = self._call_llm_for_repair(
                     function=unverified_spec_conversation.function,
-                    conversation=tuple(conversation_updated_with_failure_information),
+                    conversation=conversation_updated_with_failure_information,
                 )
                 # MDE: Write a brief comment about why this doesn't use `append()`.  Probably
                 # because it wants to create a new list rather than modify an existing list.
@@ -285,10 +285,10 @@ class LlmSpecificationGenerator:
                     SpecConversation(
                         function=unverified_spec_conversation.function,
                         specification=specification,
-                        conversation=[
+                        conversation=(
                             *conversation_updated_with_failure_information,
                             LlmMessage(content=response),
-                        ],
+                        ),
                         specgen_next_step=self._parse_next_step(response),
                     )
                     for specification, response in model_responses

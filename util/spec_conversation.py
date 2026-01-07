@@ -13,7 +13,7 @@ class SpecConversation:
     Attributes:
         function (CFunction): The function for which the specification was generated.
         specification (FunctionSpecification): The LLM-generated specification.
-        conversation (list[ConversationMessage]): The conversation that resulted in the
+        conversation (tuple[ConversationMessage, ...]): The conversation that resulted in the
             specification.  The last message is the latest response from the LLM.
         specgen_next_step (SpecificationGenerationNextStep | None): The next step in the
             specification generation process. Defaults to None until a verifier is executed.
@@ -29,7 +29,7 @@ class SpecConversation:
 
     function: CFunction
     specification: FunctionSpecification
-    conversation: list[ConversationMessage]
+    conversation: tuple[ConversationMessage, ...]
     specgen_next_step: SpecificationGenerationNextStep | None
     contents_of_file_to_verify: str | None
 
@@ -37,7 +37,7 @@ class SpecConversation:
         self,
         function: CFunction,
         specification: FunctionSpecification,
-        conversation: list[ConversationMessage],
+        conversation: tuple[ConversationMessage, ...],
         specgen_next_step: SpecificationGenerationNextStep | None = None,
         contents_of_file_to_verify: str | None = None,
     ) -> None:
@@ -50,17 +50,17 @@ class SpecConversation:
 
     def get_conversation_with_message_appended(
         self, message: ConversationMessage
-    ) -> list[ConversationMessage]:
+    ) -> tuple[ConversationMessage, ...]:
         """Return a copy of this SpecConversation's conversation with the given message appended.
 
         Args:
             message (ConversationMessage): The message to append to the end of the conversation.
 
         Returns:
-            list[ConversationMessage]: A copy of this SpecConversation's conversation field with the
-                message appended.
+            tuple[ConversationMessage]: A copy of this SpecConversation's conversation field with
+                the message appended.
         """
-        return [*self.conversation, message]
+        return (*self.conversation, message)
 
     def get_latest_llm_response(self) -> str:
         """Return the latest LLM response in this specification's associated conversation.
