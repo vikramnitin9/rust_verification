@@ -300,9 +300,12 @@ class LlmSpecificationGenerator:
                 )
                 specs_to_repair.append((next_spec_conversation, num_repair_attempts + 1))
 
-        # TODO: specs_that_failed_repair are ones for which a backtracking (or assume) decision
-        # needs to be made.
-        return verified_spec_conversations or specs_that_failed_repair
+        return verified_spec_conversations or [
+            self._call_llm_for_backtracking_strategy(
+                spec_conversation=unrepairable_spec, proof_state=proof_state
+            )
+            for unrepairable_spec in specs_that_failed_repair
+        ]
 
     def _call_llm_for_repair(
         self, function: CFunction, conversation: tuple[ConversationMessage, ...]
@@ -343,6 +346,60 @@ class LlmSpecificationGenerator:
         except ModelError as me:
             msg = f"Failed to repair specifications for '{function.name}'"
             raise RuntimeError(msg) from me
+
+    def _call_llm_for_backtracking_strategy(
+        self, spec_conversation: SpecConversation, proof_state: ProofState
+    ) -> SpecConversation:
+        """Return a SpecConversation that resulted from asking an LLM for a backtracking strategy.
+
+        Args:
+            spec_conversation (SpecConversation): The SpecConversation for a specification that
+                failed repair.
+            proof_state (ProofState): The proof state under which verification fails.
+
+        Raises:
+            ValueError: Raised when the specification that failed repair does not have an associated
+                file content.
+
+        Returns:
+            SpecConversation: A SpecConversation that includes the backtracking strategy decided by
+                an LLM.
+        """
+        contents_of_file_to_verify = spec_conversation.contents_of_file_to_verify
+        if not contents_of_file_to_verify:
+            msg = (
+                "Missing file content for failed specification: "
+                "f{spec_conversation_that_failed_repair}"
+            )
+            raise ValueError(msg)
+        vresult = self._verifier.verify(
+            function=spec_conversation.function,
+            spec=spec_conversation.specification,
+            proof_state=proof_state,
+            source_code_content=contents_of_file_to_verify,
+        )
+        next_step_prompt = self._prompt_builder.next_step_prompt(verification_result=vresult)
+        conversation_with_next_step_prompt = (
+            spec_conversation.get_conversation_with_message_appended(
+                message=UserMessage(content=next_step_prompt)
+            )
+        )
+
+        # Give us one backtracking decision, for now.
+        backtracking_samples = self._llm_client.get(
+            conversation=conversation_with_next_step_prompt, top_k=1
+        )
+        backtracking_decision = backtracking_samples[0]
+
+        return SpecConversation(
+            function=spec_conversation.function,
+            specification=spec_conversation.specification,
+            conversation=(
+                *conversation_with_next_step_prompt,
+                LlmMessage(content=backtracking_decision),
+            ),
+            specgen_next_step=self._parse_next_step(backtracking_decision),
+        )
 
     def _parse_specification_from_response(self, llm_response: str) -> FunctionSpecification | None:
         """Return the specification parsed from an LLM response.
