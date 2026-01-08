@@ -1,9 +1,14 @@
 """Class to represent an LLM-generated specification and the conversation that led to it."""
 
+from types import MappingProxyType
+from typing import Self
+
 from models import ConversationMessage, LlmMessage
 
 from .c_function import CFunction
 from .function_specification import FunctionSpecification
+from .function_util import get_source_file_content_with_specifications
+from .parsec_file import ParsecFile
 from .specification_generation_next_step import SpecificationGenerationNextStep
 
 
@@ -15,31 +20,25 @@ class SpecConversation:
         specification (FunctionSpecification): The LLM-generated specification.
         conversation (tuple[ConversationMessage, ...]): The conversation that resulted in the
             specification.  The last message is the latest response from the LLM.
-        specgen_next_step (SpecificationGenerationNextStep | None): The next step in the
-            specification generation process. Defaults to None until a verifier is executed.
-            # MDE: I am confused by "defaults to None until".  When is there a different default?
-            # Maybe you mean that the value is "None" until a verifier is executed.  Really, it is
-            # None until the LLM has reacted to a verifier execution.
-            The message that is parsed to populate this field exists in the conversation. The value
-            of `specgen_next_step` is used to create the next proof state in a step of the
-            generate/repair spec process.
         contents_of_file_to_verify (str | None): The content of the file to be verified.
-            # MDE: when is this field None?
+        specgen_next_step (SpecificationGenerationNextStep | None): The next step in the
+            specification generation process. It value is set upon a successful verification run,
+            or when an LLM produces a backtracking decision (on a spec that fails repair).
     """
 
     function: CFunction
     specification: FunctionSpecification
     conversation: tuple[ConversationMessage, ...]
+    contents_of_file_to_verify: str
     specgen_next_step: SpecificationGenerationNextStep | None
-    contents_of_file_to_verify: str | None
 
     def __init__(
         self,
         function: CFunction,
         specification: FunctionSpecification,
         conversation: tuple[ConversationMessage, ...],
+        contents_of_file_to_verify: str,
         specgen_next_step: SpecificationGenerationNextStep | None = None,
-        contents_of_file_to_verify: str | None = None,
     ) -> None:
         """Create a new SpecConversation."""
         self.function = function
@@ -47,6 +46,49 @@ class SpecConversation:
         self.conversation = conversation
         self.specgen_next_step = specgen_next_step
         self.contents_of_file_to_verify = contents_of_file_to_verify
+
+    @classmethod
+    def create(
+        cls,
+        function: CFunction,
+        specification: FunctionSpecification,
+        conversation: tuple[ConversationMessage, ...],
+        parsec_file: ParsecFile,
+        existing_specs: MappingProxyType[CFunction, FunctionSpecification],
+    ) -> Self:
+        """Alternative constructor for SpecConversation.
+
+        Args:
+            function (CFunction): The CFunction for which specifications were generated.
+            specification (FunctionSpecification): The specifications generated for the CFunction.
+            conversation (tuple[ConversationMessage, ...]): The conversation from which the
+                specifications were generated.
+            parsec_file (ParsecFile): The ParsecFile in which the function is defined and
+                implemented.
+            existing_specs (MappingProxyType[CFunction, FunctionSpecification]): The existing
+                specs.
+
+        Returns:
+            Self: A SpecConversation.
+        """
+        callees_to_specs = {
+            callee: spec
+            for callee in parsec_file.get_callees(function=function)
+            if (spec := existing_specs.get(callee))
+        }
+        functions_with_specs = {function: specification} | callees_to_specs
+
+        source_file_to_verify = get_source_file_content_with_specifications(
+            specified_functions=functions_with_specs,
+            parsec_file=parsec_file,
+            original_source_file_path=parsec_file.file_path,
+        )
+        return cls(
+            function=function,
+            specification=specification,
+            conversation=tuple(conversation),
+            contents_of_file_to_verify=source_file_to_verify,
+        )
 
     def get_conversation_with_message_appended(
         self, message: ConversationMessage

@@ -46,9 +46,8 @@ class VerificationInput:
         function (CFunction): The function to be verified.
         spec (FunctionSpecification): The spec for the function to be verified.
         context (VerificationContext): The context for the function to be verified.
-        contents_of_file_to_verify (str): The contents of the file that contains `function`.
-            # MDE: Is this content exactly as written by the programmer?  Or have all the
-            # specifications from the context already been inserted?
+        contents_of_file_to_verify (str): The contents of the file to verify with the specifications
+            of the context inserted.
     """
 
     function: CFunction
