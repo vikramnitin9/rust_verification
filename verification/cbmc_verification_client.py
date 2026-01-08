@@ -69,13 +69,11 @@ class CbmcVerificationClient(VerificationClient):
                 try:
                     logger.debug(f"Running command: {vcommand}")
                     result = subprocess.run(vcommand, shell=True, capture_output=True, text=True)
-                    failure_messages = (
-                        None
-                        if result.returncode == 0
-                        else f"STDOUT: {result.stdout}\nSTDERR: {result.stderr}"
-                    )
                     self._cache[vinput] = VerificationResult(
-                        vinput, succeeded=result.returncode == 0, failure_messages=failure_messages
+                        vinput,
+                        succeeded=result.returncode == 0,
+                        stdout=result.stdout,
+                        stderr=result.stderr,
                     )
                     logger.debug(f"Caching vresult for: {vinput.function}")
                 except Exception as e:

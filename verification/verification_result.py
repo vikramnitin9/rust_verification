@@ -20,7 +20,8 @@ class VerificationResult:
 
     verification_input: VerificationInput
     succeeded: bool
-    failure_messages: str | None
+    stdout: str
+    stderr: str
 
     def get_function(self) -> CFunction:
         """Return the function being verified.

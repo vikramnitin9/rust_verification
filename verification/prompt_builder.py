@@ -88,8 +88,43 @@ class PromptBuilder:
             function_name=function.name,
             source_code=function_lines,
             callee_context=verification_result.verification_input.get_callee_context_for_prompt(),
-            failure_information=verification_result.failure_messages,
+            failure_information=verification_result.stdout + "\n" + verification_result.stderr,
         )
+
+    def repair_prompt(self, verification_result: VerificationResult) -> str:
+        """Return the prompt used in iteratively repairing a specification.
+
+        Args:
+            verification_result (VerificationResult): The verification result with failure
+                information.
+
+        Returns:
+            str: The prompt used in iteratively repairing a specification.
+        """
+        with tempfile.NamedTemporaryFile(mode="w+t", suffix=".c") as tmp_f:
+            # The source code might have CBMC annotations, comment them out.
+            source_code_lines = verification_result.get_source_code_contents().splitlines()
+            source_code_cbmc_commented_out = "\n".join(
+                text_util.comment_out_cbmc_annotations(lines=source_code_lines)
+            )
+            tmp_f.write(source_code_cbmc_commented_out)
+            tmp_f.flush()
+            parsec_file = ParsecFile(Path(tmp_f.name))
+            function = parsec_file.get_function_or_none(
+                function_name=verification_result.get_function().name
+            )
+            if not function:
+                msg = (
+                    f"Function: {verification_result.get_function().name} "
+                    "was missing from the file that failed to verify."
+                )
+                raise ValueError(msg)
+            return PromptBuilder.SPECIFICATION_REPAIR_PROMPT_TEMPLATE.substitute(
+                function_name=function.name,
+                stdout=verification_result.stdout,
+                stderr=verification_result.stderr,
+                function_implementation=verification_result.get_source_code_contents(),
+            )
 
     def _get_callee_specs(self, caller: str, callees_with_specs: list[CFunction]) -> str:
         """Return the specifications of all the callees of `caller`.
