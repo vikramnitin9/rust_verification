@@ -8,7 +8,6 @@ import tempfile
 import time
 from collections import deque
 from pathlib import Path
-from typing import Any
 
 from diskcache import Cache  # ty: ignore
 from loguru import logger
@@ -23,7 +22,7 @@ from util import (
     copy_file_to_folder,
     ensure_lines_at_beginning,
     function_util,
-    parse_object,
+    parse_backtracking_info,
 )
 from verification import (
     CbmcVerificationClient,
@@ -256,15 +255,9 @@ def _get_next_proof_state(
     Returns:
         ProofState: The next proof state for the function, given the conversation.
     """
-    # MDE: The two calls to `set_specification` and `set_workstack` make two copies of the
-    # proofstate, and the proofstate is not used in between.  For efficiency -- and for clarity
-    # regarding which data structures are actually needed -- please remove the two functions and
-    # replace them by one ProofState constructor function that takes three arguments (the function,
-    # the specification, and the workstack).
     specs_for_next_proof_state = prev_proof_state.get_specifications() | {
         spec_conversation.function: spec_conversation.specification
     }
-    workstack_for_next_proof_state = prev_proof_state.get_workstack()
     match spec_conversation.specgen_next_step:
         case None:
             msg = f"{spec_conversation} was missing a next step"
@@ -273,38 +266,28 @@ def _get_next_proof_state(
             SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
             | SpecificationGenerationNextStep.ASSUME_SPEC_AS_IS
         ):
-            workstack_for_next_proof_state = workstack_for_next_proof_state.pop()
-        case s if s.is_regenerate_strategy:
-            work_item = WorkItem(
-                function=spec_conversation.function,
-                # MDE: I had assumed there would only be a hint when backtracking.  (Or, maybe that
-                # is actually true?  If so, I suggest explicitly splitting `case s if
-                # s.is_regenerate_strategy:` into two `SpecificationGenerationNextStep` items,
-                # because there is no need to pop the workstack and then to push an equal (but not
-                # identical) WorkItem onto it.  Doing so is confusing to the reader and is also
-                # inefficient both in terms of memory used and in cost of equality checks.) When not
-                # backtracking, all the information that the LLM needs is in the conversation. The
-                # point of the hint is that a WorkItem does not carry a SpecConversation, so the
-                # only way to pass information from previous LLM invocations is via the hint.
-                hint=_parse_reasoning(spec_conversation.get_latest_llm_response()) or "",
+            workstack_for_next_proof_state = prev_proof_state.get_workstack().pop()
+            return ProofState(
+                specs=specs_for_next_proof_state, workstack=workstack_for_next_proof_state
             )
-            workstack_for_next_proof_state = workstack_for_next_proof_state.pop().push(
-                work_item=work_item
+        case SpecificationGenerationNextStep.REGENERATE_CALLEE_SPEC:
+            backtracking_info = parse_backtracking_info(
+                llm_response=spec_conversation.get_latest_llm_response(),
+                parsec_file=ParsecFile(Path()),  # TODO: Get access to the correct ParsecResult.
             )
-    return ProofState(specs=specs_for_next_proof_state, workstack=workstack_for_next_proof_state)
-
-
-def _parse_reasoning(llm_response: str) -> str | None:
-    """Return the value mapped to the "reasoning" key in an LLM response.
-
-    Args:
-        llm_response (str): The LLM response.
-
-    Returns:
-        str | None: The value mapped to the "reasoning" key in an LLM response.
-    """
-    parsed_llm_response: dict[str, Any] = parse_object(text=llm_response)
-    return str(parsed_llm_response.get("reasoning"))
+            work_item_for_callee = WorkItem(
+                function=backtracking_info.function, hint=backtracking_info.reasoning
+            )
+            workstack_for_next_proof_state = prev_proof_state.get_workstack().push(
+                work_item_for_callee
+            )
+            return ProofState(
+                specs=specs_for_next_proof_state,
+                workstack=workstack_for_next_proof_state,
+            )
+        case _:
+            msg = f"Unexpected next step strategy: '{SpecConversation.specgen_next_step}'"
+            raise ValueError(msg)
 
 
 def _prune_specs(

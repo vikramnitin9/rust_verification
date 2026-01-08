@@ -8,6 +8,7 @@ from .parsec_file import ParsecFile
 from .function_specification import FunctionSpecification
 from .spec_conversation import SpecConversation
 from .json_util import parse_object
+from .backtracking_util import parse_backtracking_info
 
 __all__ = [
     "SpecificationGenerationNextStep",
@@ -23,4 +24,5 @@ __all__ = [
     "extract_specification",
     "ensure_lines_at_beginning",
     "parse_object",
+    "parse_backtracking_info",
 ]
