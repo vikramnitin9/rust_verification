@@ -174,6 +174,8 @@ class LlmSpecificationGenerator:
                             conversation=(*conversation, LlmMessage(content=sample)),
                         )
                     )
+                else:
+                    logger.warning(f"Failed to parse a specification from: {sample}")
 
             return unrepaired_spec_conversations
 
@@ -194,33 +196,24 @@ class LlmSpecificationGenerator:
             proof_state (ProofState): The proof state for the specification.
 
         Returns:
-            list[SpecConversation]: The repaired specifications.
-                # MDE: As currently implemented, the repaired specs may or may not verify.  If they
-                # don't verify, then what is the point of returning them?  We have already done as
-                # much repair as we are willing to do (that is, num_repair_iterations).  Maybe this
-                # method should return a list of specs that verify, which may be empty.
+            list[SpecConversation]: A list of specifications that successfully verify (they either
+                verified in the first place, or were repaired), or a list of specifications that
+                ultimately failed to be repaired with a next step set for specification generation.
         """
-        # This is the return value of the method.
+        # Below are the two possible return values of this method.
         verified_spec_conversations: list[SpecConversation] = []
+        specs_that_failed_repair: list[SpecConversation] = []
 
-        # Does the given spec even need repair?
-        contents_of_file_to_verify = self._get_content_of_file_to_verify(
-            spec_conversation=spec_conversation,
-            original_file_path=self._parsec_file.file_path,
-            proof_state=proof_state,
+        # Check whether the given spec even needs repair.
+        self._prepare_spec_for_verification(
+            spec_conversation=spec_conversation, proof_state=proof_state
         )
-        spec_conversation.contents_of_file_to_verify = contents_of_file_to_verify
-        initial_function = spec_conversation.function
-        initial_function.set_source_code(
-            function_util.get_source_code_with_inserted_spec(
-                function_name=initial_function.name,
-                specification=spec_conversation.specification,
-                parsec_file=self._parsec_file,
-            )
-        )
+        if not spec_conversation.contents_of_file_to_verify:
+            msg = f"Attempting to verify an empty file for: {spec_conversation}"
+            raise ValueError(msg)
 
         vresult = self._verifier.verify(
-            function=initial_function,
+            function=spec_conversation.function,
             spec=spec_conversation.specification,
             proof_state=proof_state,
             source_code_content=spec_conversation.contents_of_file_to_verify,
@@ -235,9 +228,8 @@ class LlmSpecificationGenerator:
         # Each tuple comprises the spec conversation, and the repair count (i.e., how many times a
         # a repair was attempted on it).
         specs_to_repair: deque[tuple[SpecConversation, int]] = deque([(spec_conversation, 0)])
-        specs_that_failed_repair: list[SpecConversation] = []
 
-        # Attempt to repair each broken spec
+        # Attempt to repair each broken spec.
         while specs_to_repair:
             spec_under_repair, num_repair_attempts = specs_to_repair.popleft()
 
@@ -306,6 +298,33 @@ class LlmSpecificationGenerator:
             )
             for unrepairable_spec in specs_that_failed_repair
         ]
+
+    def _prepare_spec_for_verification(
+        self, spec_conversation: SpecConversation, proof_state: ProofState
+    ) -> None:
+        """Prepare a SpecConversation for verification.
+
+        This function ensures that a SpecConversation's `contents_of_file_to_verify`
+        field is set and non-empty, and sets the function under verification's
+        `source_code` field prior to verification.
+
+        Args:
+            spec_conversation (SpecConversation): The SpecConversation to prepare for verification.
+            proof_state (ProofState): The ProofState under which verification occurs.
+        """
+        contents_of_file_to_verify = self._get_content_of_file_to_verify(
+            spec_conversation=spec_conversation,
+            original_file_path=self._parsec_file.file_path,
+            proof_state=proof_state,
+        )
+        spec_conversation.contents_of_file_to_verify = contents_of_file_to_verify
+        function_to_verify = spec_conversation.function
+        function_code_with_specs = function_util.get_source_code_with_inserted_spec(
+            function_name=function_to_verify.name,
+            specification=spec_conversation.specification,
+            parsec_file=self._parsec_file,
+        )
+        function_to_verify.set_source_code(function_code_with_specs)
 
     def _call_llm_for_repair(
         self, function: CFunction, conversation: tuple[ConversationMessage, ...]
