@@ -78,10 +78,12 @@ class PromptBuilder:
                     "was missing from the file that failed to verify."
                 )
                 raise ValueError(msg)
-            # TODO: Come up with a way to get the line numbers.
-            function_lines_cbmc_commented_out = function.get_source_code().splitlines()
+            function_lines = source_code_lines[function.start_line - 1 : function.end_line]
+            number_with_function_lines = text_util.prepend_line_numbers(
+                function_lines, start=function.start_line, end=function.end_line
+            )
             function_lines = "\n".join(
-                text_util.uncomment_cbmc_annotations(function_lines_cbmc_commented_out)
+                f"{line}: {content}" for line, content in number_with_function_lines
             )
 
         return PromptBuilder.NEXT_STEP_PROMPT_TEMPLATE.substitute(
@@ -119,11 +121,16 @@ class PromptBuilder:
                     "was missing from the file that failed to verify."
                 )
                 raise ValueError(msg)
+            source_code_with_line_numbers = text_util.prepend_line_numbers(
+                lines=source_code_lines, start=1, end=len(source_code_lines)
+            )
             return PromptBuilder.SPECIFICATION_REPAIR_PROMPT_TEMPLATE.substitute(
                 function_name=function.name,
                 stdout=verification_result.stdout,
                 stderr=verification_result.stderr,
-                function_implementation=verification_result.get_source_code_contents(),
+                function_implementation="\n".join(
+                    f"{line}: {content}" for line, content in source_code_with_line_numbers
+                ),
             )
 
     def _get_callee_specs(self, caller: str, callees_with_specs: list[CFunction]) -> str:
