@@ -240,43 +240,28 @@ def repair_spec(fn, specc, proofstate) -> List[SpecConversation]:
       # Dead end, repair failed.
       specs_that_failed_repair.append(spec_under_repair)
       continue
+  
+    # Try repair.
+    repair_prompt = get_repair_prompt(spec_under_repair, vresult)
+    conversation_with_repair_prompt = spec_under_repair.conversation + repair_prompt
+    newly_repaired_specs = call_llm(conversation_with_repair_prompt)
 
+    for newly_repaired_spec, response in newly_repaired_specs:
+      next_specc = SpecConversation(
+        spec_under_repair,
+        newly_repaired_spec,
+        conversation_with_repair_prompt + response
+      )
+      specs_to_repair.append((next_specc, num_repair_attempts + 1))
+    
+    if verified_specs:
+      return verified_specs
 
-  # all_speccs = []  # Return every spec that was observed ...
-  # verified_speccs = []  # ... unless some were verified, in which case return only them.
-  # current_speccs = [specc]
-  # for i = 1 to num_repair_iterations:
-  #   unverified_speccs = []  # Pairs of spec and conversation.
-  #   for specc in current_speccs:
-  #     if specc in all_speccs:
-  #       # We have already seen this spec with this conversation, so don't re-process it.
-  #       continue
-  #     all_speccs.append(specc)
-  #     vresult = call_verifier(fn, specc, proofstate) # e.g., CBMC
-  #     if is_success(vresult):
-  #       verified_speccs.append(specc)
-  #     else:
-  #       unverified_speccs.append(specc)
-  #   current_speccs = []
-  #   for (spec, conversation) in unverified_speccs:
-  #     vresult = call_verifier(fn, spec, proofstate) # this VerificationResult is a verification failure
-  #     # Update the conversation history and pass the full history to the LLM.
-  #     new_conversation = conversation + [
-  #       {
-  #         "role": "user",
-  #         "content": f"Verification error for {fn.name}: {error}. Either"
-  #         + " (1) Repair the specification for {fn.name}.  Return the repaired specification for {fn.name}.  Or"
-  #         + " (2) Retain the current specification for {fn.name} and choose a callee that needs a stronger specification in order to make {fn.name} verify."
-  #         + " State the reasoning for why this is the case, and return the word 'backtrack', the callee function, and its stronger specification."
-  #       }
-  #     ]
-  #     responses = llm(new_conversation, fn, spec) # TODO: Why pass in `fn` and `spec`? They appear in the conversation.
-  #     # Each response forks a new conversation history
-  #     current_speccs += [(response, new_conversation + [{"assistant": response}]) for response in responses]
-  # if verified_speccs:
-  #   return verified_speccs:
-  # else:
-  #   return all_speccs
+    return [
+      call_llm_for_backtracking_strategy(
+        spec_conversation=unrepairable_spec, proof_state=proof_state)
+      for unrepairable_spec in specs_that_failed_repair
+    ]
 
 def call_verifier(fn, specc, proofstate) -> VerificationResult:
   """
