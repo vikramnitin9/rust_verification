@@ -14,13 +14,11 @@ class VerificationContext:
     Attributes:
         callee_specs (dict[str, FunctionSpecification]): The specs for a function's callees.
         global_variable_specs (dict[str, str]): The specs for global program variables.
-        hints (str): Hints given to the LLM for specification generation and repair.
     """
 
     callee_specs: dict[CFunction, FunctionSpecification]
     # I'm unsure if CBMC has a way to write specs for global variables.
     global_variable_specs: dict[str, str]
-    hints: str = ""
 
     def __hash__(self) -> int:
         """Return the hash for this verification context.
@@ -32,7 +30,6 @@ class VerificationContext:
             (
                 frozenset(self.callee_specs.items()),
                 frozenset(self.global_variable_specs.items()),
-                self.hints,
             )
         )
 
@@ -50,6 +47,8 @@ class VerificationInput:
         spec (FunctionSpecification): The spec for the function to be verified.
         context (VerificationContext): The context for the function to be verified.
         contents_of_file_to_verify (str): The contents of the file that contains `function`.
+            # MDE: Is this content exactly as written by the programmer?  Or have all the
+            # specifications from the context already been inserted?
     """
 
     function: CFunction

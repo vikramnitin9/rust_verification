@@ -3,6 +3,8 @@
 import json
 from pathlib import Path
 
+from loguru import logger
+
 from models import (
     ConversationMessage,
     LlmClient,
@@ -34,10 +36,10 @@ class LlmSpecificationGenerator:
         _prompt_builder (PromptBuilder): Used in creating specification generation/repair prompts.
         _verifier (VerificationClient): The client for specification verification.
         _num_specification_candidates (int): The number of specifications to initially generate.
-        _num_repair_iterations (int): The number of repair iterations (i.e., how many times an
-            LLM is able to repair a spec).
-        _num_repair_candidates (int): The number of repaired specs sampled from an LLM in each
-            repair round.
+        _num_specification_repair_iterations (int): The number of repair iterations (i.e., how many
+            times an LLM is able to repair a spec).
+        _num_specification_repair_candidates (int): The number of repaired specs sampled from an LLM
+            in each repair round.
         _system_prompt (str): The system prompt for the LLM.
         _disable_cache (bool): True iff caching should be disabled for LLM responses.
         _llm_client (LlmClient): The client used to invoke LLMs.
@@ -47,8 +49,8 @@ class LlmSpecificationGenerator:
     _prompt_builder: PromptBuilder
     _verifier: VerificationClient
     _num_specification_candidates: int
-    _num_repair_iterations: int
-    _num_repair_candidates: int
+    _num_specification_repair_iterations: int
+    _num_specification_repair_candidates: int
     _system_prompt: str
     _disable_cache: bool
     _llm_client: LlmClient
@@ -60,8 +62,8 @@ class LlmSpecificationGenerator:
         verifier: VerificationClient,
         parsec_file: ParsecFile,
         num_specification_candidates: int,
-        num_repair_candidates: int,
-        num_repair_iterations: int,
+        num_specification_repair_candidates: int,
+        num_specification_repair_iterations: int,
         disable_cache: bool = False,
     ) -> None:
         """Create a new LlmSpecificationGenerator."""
@@ -70,8 +72,8 @@ class LlmSpecificationGenerator:
         self._parsec_file = parsec_file
         self._prompt_builder = PromptBuilder()
         self._num_specification_candidates = num_specification_candidates
-        self._num_repair_candidates = num_repair_candidates
-        self._num_repair_iterations = num_repair_iterations
+        self._num_specification_repair_candidates = num_specification_repair_candidates
+        self._num_specification_repair_iterations = num_specification_repair_iterations
         self._llm_client = LlmClient(
             model_name=model,
             top_k=num_specification_candidates,
@@ -122,6 +124,8 @@ class LlmSpecificationGenerator:
 
         Each LLM sample yields one SpecConversation in the result list.
 
+        # MDE: I think the following "TODO" is wrong.  Repair is done elsewhere, and it does not
+        # call this function.
         # TODO: When `hint` is non-empty, this function is being invoked with the intent
         to repair a spec; we cannot simply grab the source code from the CFunction, it'll be the
         function without any specs. We need a way to get the failed spec.
@@ -132,6 +136,7 @@ class LlmSpecificationGenerator:
                 generating specs during backtracking (i.e., a specification is not accepted or
                 assumed as-is, and is either being repaired or when a callee specification is
                 re-generated).
+                # MDE: Same comment as above: delete "either being repaired or".
 
         Returns:
             list[SpecConversation]: The generated specifications for the given function, as a
@@ -184,16 +189,25 @@ class LlmSpecificationGenerator:
 
         Returns:
             list[SpecConversation]: The repaired specifications.
+                # MDE: As currently implemented, the repaired specs may or may not verify.  If they
+                # don't verify, then what is the point of returning them?  We have already done as
+                # much repair as we are willing to do (that is, num_repair_iterations).  Maybe this
+                # method should return a list of specs that verify, which may be empty.
         """
         # This is the return value of the method.
         verified_spec_conversations: list[SpecConversation] = []
 
         observed_spec_conversations: list[SpecConversation] = []
         current_spec_conversations: list[SpecConversation] = [spec_conversation]
-        for i in range(self._num_repair_iterations + 1):
+        # MDE: Please document how the above three variables are used.  (I did one of them in the
+        # other branch, which should be merged before this comment is addressed.)
+        for i in range(self._num_specification_repair_iterations + 1):
             unverified_spec_conversations: list[SpecConversation] = []
             for current_spec_conversation in current_spec_conversations:
                 if current_spec_conversation in observed_spec_conversations:
+                    # MDE: I don't understand how this can happen.  `current_spec_conversation` is
+                    # created by extending some existing conversation, so it will never have been
+                    # previously observed.  What am I missing?
                     continue
 
                 contents_of_file_to_verify = self._get_content_of_file_to_verify(
@@ -211,12 +225,14 @@ class LlmSpecificationGenerator:
                 )
                 current_spec_conversation.contents_of_file_to_verify = contents_of_file_to_verify
 
-                # TODO: Consider refactoring `verify` to consume a `SpecConversation`?
+                # `verify` does not consume a `SpecConversation` because it is designed to be
+                # independent from any specification generation strategy.
                 vresult = self._verifier.verify(
                     function=function_under_repair,
                     spec=current_spec_conversation.specification,
                     proof_state=proof_state,
-                    source_code_content=current_spec_conversation.contents_of_file_to_verify,
+                    # MDE: Is the source code available in the `function` argument in this call?
+                    source_file_content=current_spec_conversation.contents_of_file_to_verify,
                 )
 
                 if vresult.succeeded:
@@ -229,7 +245,11 @@ class LlmSpecificationGenerator:
 
                 observed_spec_conversations.append(current_spec_conversation)
 
-            if i == self._num_repair_candidates:
+            # MDE: This looks very suspicious to me.  i is assigned from `_num_repair_iterations`,
+            # but here it is compared to `_num_repair_candidates`.  Those are conceptually different
+            # types.  `_num_repair_candidates` is how many samples to take from the LLM response,
+            # and is currently always 1.
+            if i == self._num_specification_repair_candidates:
                 break
 
             current_spec_conversations = []
@@ -244,7 +264,7 @@ class LlmSpecificationGenerator:
                     function=unverified_spec_conversation.function,
                     spec=unverified_spec_conversation.specification,
                     proof_state=proof_state,
-                    source_code_content=contents_of_file_to_verify,
+                    source_file_content=contents_of_file_to_verify,
                 )
                 next_step_prompt = self._prompt_builder.next_step_prompt(
                     verification_result=vresult
@@ -259,6 +279,8 @@ class LlmSpecificationGenerator:
                     function=unverified_spec_conversation.function,
                     conversation=conversation_updated_with_failure_information,
                 )
+                # MDE: Write a brief comment about why this doesn't use `append()`.  Probably
+                # because it wants to create a new list rather than modify an existing list.
                 current_spec_conversations += [
                     SpecConversation(
                         function=unverified_spec_conversation.function,
@@ -269,7 +291,7 @@ class LlmSpecificationGenerator:
                         ),
                         specgen_next_step=self._parse_next_step(response),
                     )
-                    for specification, response in model_responses.items()
+                    for specification, response in model_responses
                 ]
         return verified_spec_conversations or [
             spec_conversation
@@ -279,7 +301,7 @@ class LlmSpecificationGenerator:
 
     def _call_llm_for_repair(
         self, function: CFunction, conversation: tuple[ConversationMessage, ...]
-    ) -> dict[FunctionSpecification, str]:
+    ) -> tuple[tuple[FunctionSpecification, str], ...]:
         """Call an LLM to repair a failing spec.
 
         The conversation passed in originates from a `SpecConversation` that has a LLM-generated
@@ -298,25 +320,36 @@ class LlmSpecificationGenerator:
                 for specification repair.
 
         Returns:
-            dict[FunctionSpecification, str]: A map of repaired specifications and the raw response
-                from the LLM from which the repaired specification was extracted.
+            tuple[tuple[FunctionSpecification, str], ...]: A tuple of function specifications paired
+                with the raw LLM response from which they were extracted.
 
         """
         try:
             responses = self._llm_client.get(
-                conversation=conversation, top_k=self._num_repair_candidates
+                conversation=conversation, top_k=self._num_specification_repair_candidates
             )
-            candidate_repaired_functions_to_response = {
-                extract_function_source_code(response): response for response in responses
-            }
-            repaired_specs_to_responses: dict[FunctionSpecification, str] = {}
-            for function_str, response in candidate_repaired_functions_to_response.items():
-                if repaired_spec := function_util.extract_specification(function_str.splitlines()):
-                    repaired_specs_to_responses[repaired_spec] = response
-            return repaired_specs_to_responses
+            repaired_specs_with_responses: list[tuple[FunctionSpecification, str]] = []
+            for response in responses:
+                if repaired_spec := self._parse_specification_from_response(response):
+                    repaired_specs_with_responses.append((repaired_spec, response))
+                else:
+                    logger.warning(f"Failed to parse a specification from: {response}")
+            return tuple(repaired_specs_with_responses)
         except ModelError as me:
             msg = f"Failed to repair specifications for '{function.name}'"
             raise RuntimeError(msg) from me
+
+    def _parse_specification_from_response(self, llm_response: str) -> FunctionSpecification | None:
+        """Return the specification parsed from an LLM response.
+
+        Args:
+            llm_response (str): The LLM response from which to parse a specification.
+
+        Returns:
+            FunctionSpecification | None: The parsed specification, or None.
+        """
+        function_in_response = extract_function_source_code(llm_response)
+        return function_util.extract_specification(function_in_response.splitlines())
 
     def _parse_next_step(self, llm_response: str) -> SpecificationGenerationNextStep:
         """Parse the next steps for a prompt from an LLM response.
@@ -356,6 +389,9 @@ class LlmSpecificationGenerator:
         proof_state: ProofState,
     ) -> str:
         """Return the content of the file that should be verified.
+
+        # MDE: Is this the original content of the file, as written by the user?  Or does it contain
+        # some inserted specifications and, if so, which ones?
 
         Args:
             spec_conversation (SpecConversation): The spec conversation comprising the function and

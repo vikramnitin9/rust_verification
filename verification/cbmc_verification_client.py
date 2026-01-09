@@ -37,7 +37,7 @@ class CbmcVerificationClient(VerificationClient):
         function: CFunction,
         spec: FunctionSpecification,
         proof_state: ProofState,
-        source_code_content: str,
+        source_file_content: str,
     ) -> VerificationResult:
         """Return the result of verifying the given function.
 
@@ -45,26 +45,25 @@ class CbmcVerificationClient(VerificationClient):
             function (CFunction): The function to verify.
             spec (FunctionSpecification): The specification for the function to verify.
             proof_state (ProofState): The proof state.
-            source_code_content (str): The source code content.
-                # MDE: Should this be in the CFunction abstraction?
+            source_file_content (str): The source code content of the entire file to verify.
 
         Returns:
             VerificationResult: The result of verifying the given function.
         """
         with tempfile.NamedTemporaryFile(mode="w+t", prefix=function.name, suffix=".c") as tmp_f:
-            tmp_f.write(source_code_content)
+            tmp_f.write(source_file_content)
             tmp_f.seek(0)
             path_to_file = Path(tmp_f.name)
             vinput = VerificationInput(
                 function=function,
                 spec=spec,
                 context=proof_state.get_current_context(function=function),
-                contents_of_file_to_verify=source_code_content,
+                contents_of_file_to_verify=source_file_content,
             )
             if vinput not in self._cache:
                 logger.debug(f"vresult cache miss for: {vinput.function}")
                 vcommand = self._get_cbmc_verification_command(
-                    vinput, path_to_file_to_verify=path_to_file, proof_state=proof_state
+                    vinput, path_to_file_to_verify=path_to_file
                 )
                 try:
                     logger.debug(f"Running command: {vcommand}")
@@ -92,26 +91,20 @@ class CbmcVerificationClient(VerificationClient):
         self,
         verification_input: VerificationInput,
         path_to_file_to_verify: Path,
-        proof_state: ProofState,
     ) -> str:
         """Return the command used to verify a function in a file with CBMC.
 
         Args:
             verification_input (VerificationInput): The verification input.
             path_to_file_to_verify (Path): The path to the file to verify.
-            proof_state (ProofState): The proof state under which verification is occurring.
 
         Returns:
             str: The command used to verify a function in a file with CBMC.
         """
         function_name = verification_input.function.name
-        # MDE: Do we want to replace *every* function (except the one being verified) by its current
-        # specification, whether or not it is verified/assumed?  Please discuss.
+        callee_names = [callee.name for callee in verification_input.get_callees_to_specs()]
         replace_call_with_contract_args = " ".join(
-            [
-                f"--replace-call-with-contract {previously_verified_function.name}"
-                for previously_verified_function in proof_state.get_specifications()
-            ]
+            [f"--replace-call-with-contract {callee_name}" for callee_name in callee_names]
         )
         return " && ".join(
             [
