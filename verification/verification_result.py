@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from util import CFunction, FunctionSpecification, text_util
+from util import CFunction, FunctionSpecification
 
 from .verification_input import VerificationInput
 
