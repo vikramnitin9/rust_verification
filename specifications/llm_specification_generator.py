@@ -232,7 +232,7 @@ class LlmSpecificationGenerator:
                     spec=current_spec_conversation.specification,
                     proof_state=proof_state,
                     # MDE: Is the source code available in the `function` argument in this call?
-                    source_code_content=current_spec_conversation.contents_of_file_to_verify,
+                    source_file_content=current_spec_conversation.contents_of_file_to_verify,
                 )
 
                 if vresult.succeeded:
@@ -264,7 +264,7 @@ class LlmSpecificationGenerator:
                     function=unverified_spec_conversation.function,
                     spec=unverified_spec_conversation.specification,
                     proof_state=proof_state,
-                    source_code_content=contents_of_file_to_verify,
+                    source_file_content=contents_of_file_to_verify,
                 )
                 next_step_prompt = self._prompt_builder.next_step_prompt(
                     verification_result=vresult

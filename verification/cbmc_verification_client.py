@@ -37,7 +37,7 @@ class CbmcVerificationClient(VerificationClient):
         function: CFunction,
         spec: FunctionSpecification,
         proof_state: ProofState,
-        source_code_content: str,
+        source_file_content: str,
     ) -> VerificationResult:
         """Return the result of verifying the given function.
 
@@ -45,21 +45,20 @@ class CbmcVerificationClient(VerificationClient):
             function (CFunction): The function to verify.
             spec (FunctionSpecification): The specification for the function to verify.
             proof_state (ProofState): The proof state.
-            source_code_content (str): The source code content.
-                # MDE: Should this be in the CFunction abstraction?
+            source_file_content (str): The source code content of the entire file to verify.
 
         Returns:
             VerificationResult: The result of verifying the given function.
         """
         with tempfile.NamedTemporaryFile(mode="w+t", prefix=function.name, suffix=".c") as tmp_f:
-            tmp_f.write(source_code_content)
+            tmp_f.write(source_file_content)
             tmp_f.seek(0)
             path_to_file = Path(tmp_f.name)
             vinput = VerificationInput(
                 function=function,
                 spec=spec,
                 context=proof_state.get_current_context(function=function),
-                contents_of_file_to_verify=source_code_content,
+                contents_of_file_to_verify=source_file_content,
             )
             if vinput not in self._cache:
                 logger.debug(f"vresult cache miss for: {vinput.function}")
