@@ -339,12 +339,12 @@ def _write_verified_or_assumed_spec(
 ) -> None:
     """Write a function's verified or assumed specification to a file on disk.
 
-    # MDE: It would be helpful to give the purpose of the file.  I think it is because CBMC requires
-    # a file as input, so we are writing the spec in order to pass it to CBMC for verification.
+    This function should be called to update the files which will be the end-result of verification,
+    not the temporary files used in iteratively verifying candidate specifications.
 
-    # MDE: Document what else is in the file on disk.  Is every other function exactly as originally
-    # written by the user?  Or do (some?) other functions in the specified file have specifications
-    # written on them?
+    The contents of the file that is being written to are identical to the corresponding file in the
+    unverified (input) program, but some functions may be specified (i.e., have CBMC annotations)
+    as specification generation progresses.
 
     Specifications are written to a file under the `DEFAULT_RESULT_DIR` directory that has the same
     same name (and path) as the original (non-specified) file.
