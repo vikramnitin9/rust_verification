@@ -225,10 +225,16 @@ class LlmSpecificationGenerator:
         # Each tuple comprises the spec conversation, and the repair count (i.e., how many times a
         # a repair was attempted on it).
         specs_to_repair: deque[tuple[SpecConversation, int]] = deque([(spec_conversation, 0)])
+        visited_specs: set[SpecConversation] = set()
 
         # Attempt to repair each broken spec.
         while specs_to_repair:
             spec_under_repair, num_repair_attempts = specs_to_repair.popleft()
+
+            if spec_under_repair in visited_specs:
+                # We've seen this spec before, move on.
+                continue
+            visited_specs.add(spec_under_repair)
 
             # Re-verifying the function might seem wasteful, but the result of verification is
             # cached by default, and likely computed in the prior loop.
@@ -247,9 +253,9 @@ class LlmSpecificationGenerator:
                 verified_spec_conversations.append(spec_under_repair)
                 continue
 
+            specs_that_failed_repair.append(spec_under_repair)
             if num_repair_attempts >= self._num_specification_repair_iterations:
                 # We've iteratively repaired this spec as much as we had to, but failed.
-                specs_that_failed_repair.append(spec_under_repair)
                 continue
 
             # Attempt repair.

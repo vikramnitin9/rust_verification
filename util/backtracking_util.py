@@ -13,12 +13,13 @@ class BacktrackingInformation:
 
     Attributes:
         function (CFunction): The function to backtrack to (i.e., regenerate specs for).
-        reasoning (str): The reasoning provided by an LLM for backtracking.
+        postcondition_strengthening_description (str): The description of the
+            postcondition-strengthening change that should be made to the callee specification.
 
     """
 
-    function: CFunction
-    reasoning: str
+    callee: CFunction
+    postcondition_strengthening_description: str
 
 
 def parse_backtracking_info(llm_response: str, parsec_file: ParsecFile) -> BacktrackingInformation:
@@ -39,14 +40,18 @@ def parse_backtracking_info(llm_response: str, parsec_file: ParsecFile) -> Backt
     """
     llm_response_dict = parse_object(llm_response)
     callee_name = llm_response_dict.get("callee")
-    reasoning = llm_response_dict.get("reasoning")
-    if callee_name and reasoning:
+    postcondition_change_for_callee = llm_response_dict.get("postcondition_change_for_callee")
+    if callee_name and postcondition_change_for_callee:
         if callee := parsec_file.get_function_or_none(function_name=str(callee_name)):
-            return BacktrackingInformation(function=callee, reasoning=str(reasoning))
+            return BacktrackingInformation(
+                callee=callee,
+                postcondition_strengthening_description=str(postcondition_change_for_callee),
+            )
         msg = f"Callee '{callee_name}' was missing from the ParsecFile"
         raise ValueError(msg)
     msg = (
         "Backtracking strategy was missing information: "
-        f"callee = {callee_name}, reasoning = {reasoning}"
+        f"callee = {callee_name}, "
+        f"postcondition_change_for_callee = {postcondition_change_for_callee}"
     )
     raise RuntimeError(msg)

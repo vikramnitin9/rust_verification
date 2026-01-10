@@ -8,10 +8,12 @@ The following failures are reported by CBMC:
 
 $failure_information
 
-Given this information, select from the three options:
+Given this information, select from the two options:
 
     1. Assume the specification as-is, and proceed with verifying the rest of the program.
-    2. Choose a callee of $function_name that might require a stronger postcondition, and state in what way the postcondition must be strengthened.
+    2. Choose a callee of $function_name, and state in what way the postcondition must be
+       strengthened in order for $function_name's specifications to verify.
+      
 
 
 If you choose (1), your response should be in the following format:
@@ -23,8 +25,7 @@ If you choose (1), your response should be in the following format:
 If you choose (2), your response should be in the following format:
 
 {
-    "next_step": "REGENERATE_CALLEE_SPEC",
-    "reasoning": "<REASONING>",
+    "next_step": "BACKTRACK_TO_CALLEE",
+    "postcondition_change_for_callee": "<DESCRIPTION>",
     "callee": "<CALLEE_NAME>",
-    "function_with_specs": "<CALLEE_WITH_REGENERATED_SPECS>",
 }

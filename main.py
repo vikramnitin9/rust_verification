@@ -270,13 +270,14 @@ def _get_next_proof_state(
             return ProofState(
                 specs=specs_for_next_proof_state, workstack=workstack_for_next_proof_state
             )
-        case SpecificationGenerationNextStep.REGENERATE_CALLEE_SPEC:
+        case SpecificationGenerationNextStep.BACKTRACK_TO_CALLEE:
             backtracking_info = parse_backtracking_info(
                 llm_response=spec_conversation.get_latest_llm_response(),
                 parsec_file=ParsecFile(Path()),  # TODO: Get access to the correct ParsecResult.
             )
             work_item_for_callee = WorkItem(
-                function=backtracking_info.function, hint=backtracking_info.reasoning
+                function=backtracking_info.callee,
+                hint=backtracking_info.postcondition_strengthening_description,
             )
             workstack_for_next_proof_state = prev_proof_state.get_workstack().push(
                 work_item_for_callee
