@@ -380,6 +380,7 @@ def _write_verified_or_assumed_spec(
 
     if not result_file.exists():
         # Create the result file by copying over the original file.
+        result_file.parent.mkdir(exist_ok=True, parents=True)
         shutil.copy(path_to_original_file, result_file)
 
     parsec_file = ParsecFile(result_file)
