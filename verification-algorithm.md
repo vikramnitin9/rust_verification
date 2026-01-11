@@ -221,7 +221,7 @@ def generate_speccs(fn, backtrack_hint) -> List[SpecConversation]:
   Output: a list of candidate specifications of length `num_llm_samples`.
   Implementation note: see LlmSpecificationGenerator.
   """
-  llm_input = ("guess the specification for", fn, current_context(fn, proofstate), hint)
+  llm_input = ("guess the specification for", fn, current_context(fn, proofstate), backtrack_hint)
   specs = llm(llm_input) # call the LLM
   return [SpecConversation(spec, [llm_input]) for spec in specs]
 
