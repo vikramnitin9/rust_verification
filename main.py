@@ -104,10 +104,12 @@ def main() -> None:
     args = parser.parse_args()
 
     input_file_path = Path(args.file)
+    parsec_file = ParsecFile(input_file_path)
+
     output_file_path = copy_file_to_folder(input_file_path, DEFAULT_RESULT_DIR)
     header_lines = [f"#include <{header}>" for header in DEFAULT_HEADERS_IN_OUTPUT]
     ensure_lines_at_beginning(header_lines, output_file_path)
-    parsec_file = ParsecFile(input_file_path)
+
     verifier: VerificationClient = CbmcVerificationClient(cache=VERIFIER_CACHE)
     specification_generator = LlmSpecificationGenerator(
         MODEL,
