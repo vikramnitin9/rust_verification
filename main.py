@@ -115,6 +115,8 @@ def main() -> None:
     input_file_path = Path(args.file)
     parsec_file = ParsecFile(input_file_path)
 
+    # MDE: Will this path be repeatedly overwritten during the verification process?  If so, that is
+    # a serious problem for concurrency.
     output_file_path = copy_file_to_folder(input_file_path, DEFAULT_RESULT_DIR)
     header_lines = [f"#include <{header}>" for header in DEFAULT_HEADERS_IN_OUTPUT]
     ensure_lines_at_beginning(header_lines, output_file_path)
@@ -149,6 +151,7 @@ def _verify_program(
     """Return a set of ProofStates with specifications for each function.
 
     This function exits when GLOBAL_INCOMPLETE_PROOFSTATES is empty.
+    # MDE: or timeout?
 
     Args:
         functions (list[CFunction]): The functions for which to generate and verify specifications,
@@ -268,6 +271,7 @@ def _get_next_proof_state(
     specs_for_next_proof_state = prev_proof_state.get_specifications() | {
         spec_conversation.function: spec_conversation.specification
     }
+    # MDE: `specgen_next_step` is not the same field name as used in the algorithm description.
     match spec_conversation.specgen_next_step:
         case None:
             msg = f"{spec_conversation} was missing a next step"
@@ -322,7 +326,9 @@ def _prune_specs(
 ) -> list[SpecConversation]:
     """Given a list of SpecConversations, returns a subset of them (which prunes the others).
 
-    Note: The current strategy is simply to return just the specifications that successfully verify.
+    Note: The current strategy is:
+    If any specification verifies, return all the specifications that verify.
+    Otherwise, return all the input specifications.
 
     Args:
         proof_state (ProofState): The ProofState. The topmost function on its workstack is the
