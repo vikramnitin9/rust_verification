@@ -34,20 +34,24 @@ from verification import (
 MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
 DEFAULT_NUM_SPECIFICATION_CANDIDATES = 10
-DEFAULT_NUM_REPAIR_CANDIDATES = 1
-DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS = 3
-DEFAULT_MODEL_TEMPERATURE = 1.0
+DEFAULT_NUM_REPAIR_CANDIDATES = 1  # MDE: This seems too low to me.
+DEFAULT_MODEL_TEMPERATURE = 1.0  # MDE: This is incompatible
+# with "DEFAULT_NUM_SPECIFICATION_CANDIDATES = 10"
+DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS = 3  # MDE: This might be too high.
+# MDE: Is this a timeout per function, per file, or per program?
 # Default timeout of 5 minutes for specification generation and repair.
 DEFAULT_SPECIFICATION_GENERATION_TIMEOUT_SEC = 300
 DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
 DEFAULT_VERIFIER_CACHE_DIR = "data/caching/verifier"
 DEFAULT_RESULT_DIR = "specs"
+# MDE: What is the destinction from DEFAULT_VERIFIER_CACHE_DIR which has the same value?
 DEFAULT_VERIFIER_RESULT_CACHE_DIR = "data/caching/verifier"
 
 GLOBAL_OBSERVED_PROOFSTATES: set[ProofState] = set()
 # Every ProofState in this queue is incomplete (i.e., their worklists are non-empty.)
 GLOBAL_INCOMPLETE_PROOFSTATES: deque[ProofState] = deque()
 # Every ProofState in this queue is complete (i.e., their worklists are empty.)
+# MDE: Why is this a deque rather than a list?  I don't think it is ever removed from.
 GLOBAL_COMPLETE_PROOFSTATES: deque[ProofState] = deque()
 # The keys for VERIFIER_CACHE are `VerificationInput` and the values are `VerificationResult`.
 VERIFIER_CACHE: Cache = Cache(directory=DEFAULT_VERIFIER_RESULT_CACHE_DIR)
@@ -64,6 +68,10 @@ def main() -> None:
         prog="main.py", description="Generate and verify CBMC specifications for a C file."
     )
     parser.add_argument(
+        # MDE: I don't feel "--file" is informative.  It doesn't indicate whether the file is used
+        # for input or output (that omission somewhat implies both) or what is in the file.  I
+        # suggest that the file names be passed directly on the command line, as a non-flag
+        # argument.
         "--file",
         required=True,
         help="The C file for which to generate and verify specifications.",
@@ -92,6 +100,7 @@ def main() -> None:
     parser.add_argument(
         "--specification-generation-timeout-sec",
         required=False,
+        # MDE: Is this per function or per program?
         help="The timeout for specification generation (in seconds, defaults to 5 minutes).",
         default=DEFAULT_SPECIFICATION_GENERATION_TIMEOUT_SEC,
         type=float,
