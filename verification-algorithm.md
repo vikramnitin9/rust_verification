@@ -24,13 +24,17 @@ heuristic prunes or prioritizes the possibilities).
 Two integers parameterize the algorithm:
 
 * `num_llm_samples`: each call to `llm()` returns a list of this length.
+  The algrithm pursues all these possibilities in parallel.
   As a general rule, after each call to `llm()`, our algorithm heuristically
   prunes the returned list of samples to reduce the exploration space.
+  * The implementation calls the LLM for different purposes and therefore has multiple variables,
+    one for each type of LLM query.
 * `num_repair_iterations`: the number of times that the LLM tries to repair a
   specification, using feedback from running the verifier.
 
 The implementation also contains:
 
+* which model to use
 * the model temperature, which cannot be set to 0 for sampling/generating candidates.
 
 ## Data structures
@@ -41,13 +45,12 @@ immutable class VerificationInput:
 * spec for function
 * context: Context
 
-Context (defined just below) represents specifications other relevant parts
-(other than the method under verification).  Each context is a subset of a
-ProofState, created by calling `current_context(fn, proofstate)`.  The program
-does not directly manipulate contexts; they are an internal detail of caching.
-They are used as keys for caching (rather than a ProofState) because they
-contain only the relevant parts of a ProofState, which reduces the number of
-possible keys and the likelihood of hitting in the cache.
+Context (defined just below) represents specifications of other relevant parts (other than the
+method under verification).  Each context is a subset of a ProofState, created by calling
+`current_context(fn, proofstate)`.  The verification algorithm does not directly manipulate
+contexts; they are an internal detail of caching.  They are used as keys for caching (rather than a
+ProofState) because they contain only the relevant parts of a ProofState, which reduces the number
+of possible keys and increases the likelihood of hitting in the cache.
 
 immutable class Context:
 
@@ -67,23 +70,23 @@ immutable class VerificationResult:
 
 It doesn't make sense to say that a function specification in isolation is
 verified or not, because the verification result depends on the full verifier
-input, which includes the specifications of the callees and callers.
+input, which includes the specifications of the callees.
 
 Global data structures:
 
-* `verifier_outputs`:  Map[VerificationInput, VerificationResult].
-  A cache for efficiency.  Is only added to, never removed from.
-  This cache eliminates the need to pass VerificationResults through the program,
-  since they can just be looked up.
-* `llm_cache`: Map[LlmInput, List[LlmOutput]]: for efficiency.  Is only added to, never removed from.
-  The input type (the key) is probably String.  Each value in the map is a list
-  of strings, with length `num_llm_samples`.
-  * Cache responses for testing + in cases where we make the same call to the LLM (given that it's
-    the same LLM and not an "improved" model or the same call made some timeframe after the last
-    call).
 * `proofstates_worklist`:  set of ProofStates yet to be explored.
   Trying to add an element that has ever been previously added has no effect.
   (We could imagine making this a priority queue if we have a good heuristic for ordering.)
+* `verifier_outputs`:  Map[VerificationInput, VerificationResult].
+  A cache.  Is only added to, never removed from.
+  This cache eliminates the need to pass VerificationResults through the program,
+  since they can just be looked up.
+* `llm_cache`: Map[LlmInput, List[LlmOutput]]: for efficiency.  Is only added to, never removed
+  from.  The input type (the key) is probably a tuple that includes the string sent to the model,
+  the model name, and its temperature.  Each value in the map is a list of strings, with length
+  `num_llm_samples`.
+  * If a vendor (e.g., OpenAI) changes a model without changing its name, than cache entries for it
+    need to be removed.
 
 Each access to a global data structure must use locking; or we could store them
 persistently, say using SQLite, which permits using multiprocessing rather than
@@ -96,34 +99,35 @@ immutable class ProofState:
   * When `workstack` is pushed or popped, one entry of the map is updated,
     corresponding to the function that was pushed or popped.  (But, since
     ProofState is immutable, this is by comparison to a previous ProofState.)
-  * We can compute the verified/unverified/not-yet processed functions from a ProofState's `specs` map.
-  * TODO: think about whether it's possible to obtain a list of assumed specs.
+  * There might be a specification for a function that is on the workstack.  This is important to
+    handle recursion and even when the call graph is a dag rather than a tree.
+  * TODO: add information to distinguish verified/assumed/unverified/not-yet processed functions?
 * workstack: Stack[WorkItem]
   A stack of functions that need to be (re)processed.
   * Immutable, so can be represented as a tuple rather than as a Stack.
+  Invariant:  all the WorkItems with a non-empty `backtrack_hint` are above all the pairs with None.
+  This is because every push onto the workstack has a non-None `backtrack_hint`.
+
+Possible fields for ProofState:
+
+* `verified_functions`: a list of functions that have been verified.
+* `assumed_functions`: a list of functions with unverified, but trusted, specifications.
+
+immutable class WorkItem:
+
+* `function`: ParsecFunction
+* `backtrack_hint`: str
   Each hint is text provided to the LLM to guide it.  I don't have a data
   structure (beyond string) in mind for it yet.
   Example hints:
   * "Please weaken/strengthen the postcondition"
   * "This function is only ever called with non-null values",
-  Invariant:  all the pairs with a non-empty `backtrack_hint` are above all the pairs with None.
-  This is because every push onto the workstack has a non-None `backtrack_hint`.
-
-Possible fields:
-
-* `verified_functions`: a list of functions that have been verified.
-* `assumed_functions`: a list of functions with unverified, but trusted, specifications.
 
 immutable class SpecConversation:
 
 * `spec`: Specification
 * `conversation`: a conversation history with an LLM, that led to the given spec
 * `hint`: Any hints for regenerating specifications, either for repair or for callees.
-
-immutable class WorkItem:
-
-* `function`: ParsecFunction
-* `hint`: str
 
 ## Code
 
