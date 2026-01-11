@@ -197,9 +197,9 @@ def generate_and_repair_spec(fn, backtrack_hint) -> List[SpecConversation]:
   Output: a list of potential specs for the function.  Some may verify and some may not verify.
   """
   generated_speccs = generate_speccs(fn, backtrack_hint)
-  pruned_specs = prune_heuristically(fn, generated_speccs)
-  repaired_specs = [*repair_spec(fn, spec) for spec in pruned_specs]
-  return repaired_specs
+  pruned_speccs = prune_heuristically(fn, generated_speccs)
+  repaired_speccs = [*repair_spec(fn, spec) for spec in pruned_speccs]
+  return repaired_speccs
 
 def prune_heuristically(fn, speccs: List[SpecConversation]) -> List[SpecConversation]:
   # Here is one example of a very simple heuristic for pruning:
@@ -210,7 +210,8 @@ def generate_speccs(fn, backtrack_hint) -> List[SpecConversation]:
   """
   An LLM guesses a specification.
   Input: a function and a hint.  The hint is plaintext.
-  Output: a list of candidate specifications of length `num_llm_samples`.
+  Output: a list of candidate specifications of length `num_llm_samples`.  Each candidate
+  SpecConversation has length 1.
   Implementation note: see LlmSpecificationGenerator.
   """
   llm_input = ("guess the specification for", fn, current_context(fn, proofstate), backtrack_hint)
@@ -225,25 +226,26 @@ def repair_spec(fn, specc, proofstate) -> List[SpecConversation]:
           backtracking step associated with them.
   """
   # Implementation note: See `_repair_spec` in `main.py`.
-  verified_specs = []
 
   vresult = call_verifier(fn, specc, proofstate)
   if is_success(vresult):
-    verified_specs.append(specc)
-    return verified_specs
+    return [specc]
   
   # specs_to_repair comprises a pair, the first element is a spec, and the second element is a
   # number denoting the number of times a repair was attempted.
-  specs_to_repair = queue((specc, 0))
+  specs_to_repair = queue((specc, 0)) # Note: the same pair can never be added to the queue more 
+      # than once.  (Or, more likely, the same specc can never be added to the queue more than once, 
+    # regardless of the iteration number.)
+  verified_speccs = []
   specs_that_failed_repair = []
 
   while specs_to_repair:
-    spec_under_repair, num_repair_attempts = specs_to_repair.popleft()
+    spec_under_repair, num_repair_attempts = specs_to_repair.remove_head() # In Python: popleft()
     vresult = call_verifier(fn, spec_under_repair, proofstate)
     if is_success(vresult):
       # No need to continue with the current spec under repair, continue with the remainder.
       spec_under_repair.next_step = ACCEPT_VERIFIED_SPEC
-      verified_specs.append(spec_under_repair)
+      verified_speccs.append(spec_under_repair)
       continue
 
     if num_repair_attempts >= num_repair_iterations:
@@ -254,9 +256,9 @@ def repair_spec(fn, specc, proofstate) -> List[SpecConversation]:
     # Try repair.
     repair_prompt = get_repair_prompt(spec_under_repair, vresult)
     conversation_with_repair_prompt = spec_under_repair.conversation + repair_prompt
-    newly_repaired_specs = call_llm(conversation_with_repair_prompt)
+    newly_repaired_speccs = call_llm(conversation_with_repair_prompt)
 
-    for newly_repaired_spec, response in newly_repaired_specs:
+    for newly_repaired_spec, response in newly_repaired_speccs:
       next_specc = SpecConversation(
         spec_under_repair,
         newly_repaired_spec,
@@ -264,8 +266,8 @@ def repair_spec(fn, specc, proofstate) -> List[SpecConversation]:
       )
       specs_to_repair.append((next_specc, num_repair_attempts + 1))
     
-    if verified_specs:
-      return verified_specs
+    if verified_speccs:
+      return verified_speccs
 
     return [
       call_llm_for_backtracking_strategy(
