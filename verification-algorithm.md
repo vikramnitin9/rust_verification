@@ -290,7 +290,7 @@ def repair_spec(fn, specc, proofstate) -> List[SpecConversation]:
 def call_verifier(fn, specc, proofstate) -> VerificationResult:
   """
   Calls a verification tool such as CBMC.  Uses a cache to avoid recomputation.
-  Input: the function, a specification, and context.
+  Input: the function, its specification, and the current proof state.
   Output: a verification result.
   """
   context = current_context(fn, proofstate)
@@ -307,45 +307,22 @@ def current_context(fn, proofstate) -> context:
   Input: A function
   Output: the function's current verification context: the specs of callers and callees.
   """
-  # Look up from proofstate's fields, such as `specs` or `verified_functions` and `assumed_functions`.
+  # Look up from proofstate's `specs` field.
 
 def llm(...):
-  This is a function that calls the API we're using for LLMs.  It should use a cache.
+  This function calls the API we're using for LLMs.  It should use a cache.
 ```
 
 Suppose that, after creating a VerificationInput, the system changes some
 specification in the context.  Then the old VerificationInput is no longer
 applicable.  A call to `call_verifier()` will create a new VerificationInput
 and the verifier will be re-run.  (This is one reason that verification
-results are not passed around in the algorithm, but are re-computed -- to
-avoid the bookkeeping of figuring out what has to be updated.)
+results are not passed around in the algorithm, but are re-computed from a
+ProofState -- to avoid the bookkeeping of figuring out what has to be updated.)
 
 ## Parallelization
 
 Many for loops and list comprehensions (but not the for loop in `repair`) can be parallelized.
-
-<!--
-## OLD, NO LONGER RELEVANT
-
-More about forking processes:
-
-At each point that the LLM is invoked, the algorithm could call the LLM multiple times and pursue each of the possibilities (possibly in parallel).
-Currently this is hard-coded in `generate_and_repair_spec()`, which is the client of `generate_speccs()` which calls the LLM to produce multiple results.
-However, it is not done for other LLM calls in `repair_spec()` and `choose_next_step()`.
-
-It would be better for the algorithm to apply sample-exploration more uniformly.
-
-* One way is to hard-code the other LLM uses, just as `generate_speccs()` and its client `generate_and_repair_spec()` are.
-* Another way is to modify the algorithm to fork multiple processes, like so:
-  * Rewrite the algorithm to treat each LLM query call as returning exactly one value.  (This actually simplifies `generate_and_repair_spec()` and its client `verify_program()`.
-  * Actually, each LLM query returns a list (which is different than the above rewriting).
-    Fork N processes, one for for each element of the list.
-    Each forked process has its own process state, which starts as a copy of the global variables and call stack.
-  * Pruning processes:
-    Whenever a process successfully completes a task (I'm not exactly sure what is the definition of "task" here), possibly prune all the siblings of this process that are still running, because they are no longer needed.
-    This is similar to a process manager that prunes processes that have been superseded (that, is prune a process if some other process already solved the problem).
-    A process manager would also prune processes that have run for too long.
--->
 
 <!--
 LocalWords:  workstack llm num VerificationInput VerificationResult boolean fn doesn SQLite multithreading WorkItem
