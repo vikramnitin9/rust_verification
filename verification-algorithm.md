@@ -104,7 +104,9 @@ immutable class ProofState:
   * TODO: add information to distinguish verified/assumed/unverified/not-yet processed functions?
 * workstack: Stack[WorkItem]
   A stack of functions that need to be (re)processed.
-  * Immutable, so can be represented as a tuple rather than as a Stack.
+  * Immutable, so can be represented more efficiently than as a Stack.
+    It could be a tuple of all the elements, or it could be implemented as a manual linked list, as
+    a pair of one element and a pointer to the remainder of the list.
   Invariant:  all the WorkItems with a non-empty `backtrack_hint` are above all the pairs with None.
   This is because every push onto the workstack has a non-None `backtrack_hint`.
 
@@ -128,6 +130,12 @@ immutable class SpecConversation:
 * `spec`: Specification
 * `conversation`: a conversation history with an LLM, that led to the given spec
 * `hint`: Any hints for regenerating specifications, either for repair or for callees.
+  * MDE: is `hint` from the past (it appears in the conversation already), or is it for the future
+    (it will be used in choosing the next step)?  Or, does its semantics depend on whether the
+    latest round in the conversation is from the verification algorithm or from the LLM?
+  * MDE: Is `hint` always a repair hint (in which case its name should be changed to
+    `repair_hint`, or is it sometimes a backtracking hint?
+* MDE: This class is missing a field `next_step` (and documentation of it).
 
 ## Code
 
@@ -139,8 +147,8 @@ def verify_program(program) -> List[Map[Fn, Spec]]:
   Output: a list of program specifications.  A program specification contains a specification for each function in the program
   """
   # Since workstacks are immutable, a workstack can be represented as a tuple rather than as a Stack.
-  initial_workstack: Stack[(function, backtrack_hint)] = all functions in `program`, in reverse topological
-                                                order (that is, children first), with empty backtrack_hint.
+  initial_workstack: Stack[WorkItem] = all functions in `program`, in reverse topological
+                                       order (that is, children first), with empty backtrack_hint.
   initial_proofstate = ProofState(initial_workstack)
   global.proofstates_worklist.add(initial_proofstate)
 
@@ -161,11 +169,13 @@ def step(proofstate: ProofState) -> List[ProofState]:
   This is the key unit of parallelism.
   Input: a ProofState
   Output: a list of ProofStates resulting from the verification attempt.
-    Let f be the top of the input's workstack.
-    The output ProofState has a smaller workstack if f was successfully verified or if f's spec will be assumed.
-    The output ProofState has a larger workstack (representing backtracking) if f was not successfully verified.
+    Let `top_fn` be the function on the top of the input's workstack.
+    The output ProofState has a smaller workstack if top_fn was successfully verified or if top_fn's
+    spec will be assumed.
+    The output ProofState has a larger workstack (representing backtracking) if `top_fn` was not 
+    verified or assumed.
   """
-  (fn, backtrack_hint) = proofstate.workstack.top();
+  (fn, backtrack_hint): WorkItem = proofstate.workstack.top();
   new_speccs: List[SpecConversation] = generate_and_repair_spec(fn, backtrack_hint)
   pruned_speccs = prune_heuristically(fn, candidate_speccs, proofstate)
 
@@ -173,24 +183,27 @@ def step(proofstate: ProofState) -> List[ProofState]:
   for specc in pruned_speccs:
     # Produce a new ProofState from `specc.spec` and `specc.conversation`.
 
+    # Updating the specs is important even if backtracking will occur.
     next_proofstate_specs = proofstate.specs | {fn: specc.spec}
 
     last_llm_response = specc.conversation.last()
     if last_llm_response contains "backtrack":
-      next_proofstate_workstack = proofstate.workstack + [(last_llm_response.get_function(), last_llm_response)]
+      next_proofstate_workstack =
+          proofstate.workstack + [WorkItem(last_llm_response.get_function(), last_llm_response)]
     else:
       next_proofstate_workstack = proofstate.workstack[:-1] # pop off fn
     next_proofstate = ProofState(next_proofstate_specs, next_proofstate_workstack)
     result.append(next_proofstate)
   return result
 
+# MDE: I suspect this needs a ProofState as an input.
 def generate_and_repair_spec(fn, backtrack_hint) -> List[SpecConversation]:
   """
   Generate a specification for a function.
   Input: a function and hints about how to specify it.  The hints are non-empty only when backtracking.
   Output: a list of potential specs for the function.  Some may verify and some may not verify.
   """
-  generated_speccs = generate_speccs(fn, hint)
+  generated_speccs = generate_speccs(fn, backtrack_hint)
   pruned_specs = prune_heuristically(fn, generated_speccs)
   repaired_specs = [*repair_spec(fn, spec) for spec in pruned_specs]
   return repaired_specs
@@ -200,7 +213,8 @@ def prune_heuristically(fn, speccs: List[SpecConversation]) -> List[SpecConversa
   #  * If any spec verifies, return a list containing only the specs that verify.
   #  * Otherwise, return all the specs.
 
-def generate_speccs(fn, hint) -> List[SpecConversation]:
+# MDE: I suspect this needs a ProofState as an input.
+def generate_speccs(fn, backtrack_hint) -> List[SpecConversation]:
   """
   An LLM guesses a specification.
   Input: a function and a hint.  The hint is plaintext.
