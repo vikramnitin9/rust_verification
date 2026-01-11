@@ -15,7 +15,6 @@ from loguru import logger
 from specifications import LlmSpecificationGenerator
 from util import (
     CFunction,
-    FunctionSpecification,
     ParsecFile,
     SpecConversation,
     SpecificationGenerationNextStep,
@@ -266,6 +265,9 @@ def _get_next_proof_state(
             SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
             | SpecificationGenerationNextStep.ASSUME_SPEC_AS_IS
         ):
+            # There could be more than one valid specification generated (i.e., when we sample more
+            # than once from the LLM). For now, we take the last (valid) specification and write it.
+            _write_verified_or_assumed_spec(spec_conversation=spec_conversation)
             workstack_for_next_proof_state = prev_proof_state.get_workstack().pop()
             return ProofState(
                 specs=specs_for_next_proof_state, workstack=workstack_for_next_proof_state
@@ -273,10 +275,22 @@ def _get_next_proof_state(
         case SpecificationGenerationNextStep.BACKTRACK_TO_CALLEE:
             backtracking_info = parse_backtracking_info(
                 llm_response=spec_conversation.get_latest_llm_response(),
-                parsec_file=ParsecFile(Path()),  # TODO: Get access to the correct ParsecResult.
             )
+            # TODO: Fetching the callee from the same file in which the function under spec. gen.
+            # is defined is a brittle assumption that should be fixed with multi-file ParseC
+            # support.
+            result_file = _get_result_file(function=spec_conversation.function)
+            callee = ParsecFile(result_file).get_function_or_none(
+                function_name=backtracking_info.callee_name
+            )
+            if not callee:
+                msg = (
+                    f"'{result_file}' was missing a definition for callee: "
+                    f"'{backtracking_info.callee_name}' during backtracking"
+                )
+                raise ValueError(msg)
             work_item_for_callee = WorkItem(
-                function=backtracking_info.callee,
+                function=callee,
                 hint=backtracking_info.postcondition_strengthening_description,
             )
             workstack_for_next_proof_state = prev_proof_state.get_workstack().push(
@@ -334,9 +348,7 @@ def _prune_specs(
     return pruned_specs or spec_conversations
 
 
-def _write_verified_or_assumed_spec(
-    function: CFunction, specification: FunctionSpecification
-) -> None:
+def _write_verified_or_assumed_spec(spec_conversation: SpecConversation) -> None:
     """Write a function's verified or assumed specification to a file on disk.
 
     This function should be called to update the files which will be the end-result of verification,
@@ -350,17 +362,13 @@ def _write_verified_or_assumed_spec(
     same name (and path) as the original (non-specified) file.
 
     Args:
-        function (CFunction): The function for which to write a verified specification to disk.
-        specification (FunctionSpecification): The specification to write to disk.
+        spec_conversation (SpecConversation): The SpecConversation comprising the specification that
+            should be written to the result file.
 
     """
-    # Examples of original and result file names:
-    # * "my_research/myfile.c" => "specs/my_research/myfile.c"
-    # * "/home/jquser/my_research/myfile.c" => "specs/home/jquser/my_research/myfile.c"
+    function = spec_conversation.function
     path_to_original_file = Path(function.file_name)
-    original_file_dir = str(path_to_original_file.parent).lstrip("/")
-    result_file_dir = Path(DEFAULT_RESULT_DIR) / Path(original_file_dir)
-    result_file = result_file_dir / path_to_original_file.name
+    result_file = _get_result_file(function=function)
 
     if not result_file.exists():
         # Create the result file by copying over the original file.
@@ -370,7 +378,7 @@ def _write_verified_or_assumed_spec(
     parsec_file = ParsecFile(result_file)
     function_with_verified_spec = function_util.get_source_code_with_inserted_spec(
         function_name=function.name,
-        specification=specification,
+        specification=spec_conversation.specification,
         parsec_file=parsec_file,
         comment_out_spec=True,
     )
@@ -381,6 +389,26 @@ def _write_verified_or_assumed_spec(
         parsec_file=parsec_file,
         file=result_file,
     )
+
+
+def _get_result_file(function: CFunction) -> Path:
+    """Return the name of the result file for a function.
+
+    The "result file" is where the verified or assumed specification for a function is written.
+
+    Args:
+        function (CFunction): The function for which to obtain the result file.
+
+    Returns:
+        Path: The result file.
+    """
+    # Examples of original and result file names:
+    # * "my_research/myfile.c" => "specs/my_research/myfile.c"
+    # * "/home/jquser/my_research/myfile.c" => "specs/home/jquser/my_research/myfile.c"
+    path_to_original_file = Path(function.file_name)
+    original_file_dir = str(path_to_original_file.parent).lstrip("/")
+    result_file_dir = Path(DEFAULT_RESULT_DIR) / Path(original_file_dir)
+    return result_file_dir / path_to_original_file.name
 
 
 def _is_timeout_reached(timeout_limit_sec: float) -> bool:
