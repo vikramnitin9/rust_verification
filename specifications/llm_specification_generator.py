@@ -99,6 +99,7 @@ class LlmSpecificationGenerator:
 
         Returns:
             list[SpecConversation]: A list of potential specifications for the function.
+                Each may or may not verify.
         """
         candidate_specs = self._generate_unrepaired_specs(
             function=function, hint=hint, proof_state=proof_state

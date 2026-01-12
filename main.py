@@ -104,10 +104,12 @@ def main() -> None:
     args = parser.parse_args()
 
     input_file_path = Path(args.file)
+    parsec_file = ParsecFile(input_file_path)
+
     output_file_path = copy_file_to_folder(input_file_path, DEFAULT_RESULT_DIR)
     header_lines = [f"#include <{header}>" for header in DEFAULT_HEADERS_IN_OUTPUT]
     ensure_lines_at_beginning(header_lines, output_file_path)
-    parsec_file = ParsecFile(input_file_path)
+
     verifier: VerificationClient = CbmcVerificationClient(cache=VERIFIER_CACHE)
     specification_generator = LlmSpecificationGenerator(
         MODEL,
@@ -135,28 +137,29 @@ def _verify_program(
     specification_generator: LlmSpecificationGenerator,
     specgen_timeout_sec: float,
 ) -> tuple[ProofState, ...]:
-    """Return a set of ProofStates with specifications for each function.
+    """Return a set of ProofStates, each of which has a specification for each function.
 
     This function exits when GLOBAL_INCOMPLETE_PROOFSTATES is empty.
 
     Args:
         functions (list[CFunction]): The functions for which to generate and verify specifications,
             in reverse topological order.
-        specification_generator (LlmSpecificationGenerator): The specification generator.
+        specification_generator (LlmSpecificationGenerator): The LLM specification generator.
         specgen_timeout_sec (float): The timeout for specification generation (in seconds).
 
     Returns:
         tuple[ProofState, ...]: A set of ProofStates with specifications for each function.
 
     """
-    # Since `functions` is in reverse topological order,
-    # the first element popped from the stack will be a leaf.
     initial_proof_state = ProofState.from_functions(functions=functions[::-1])
-
     GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)
+    # This is the global worklist.
     GLOBAL_INCOMPLETE_PROOFSTATES.append(initial_proof_state)
 
     specgen_timeout_limit = time.time() + specgen_timeout_sec
+
+    # Since `functions` is in reverse topological order,
+    # the first element popped from the stack will be a leaf.
     while GLOBAL_INCOMPLETE_PROOFSTATES and not _is_timeout_reached(specgen_timeout_limit):
         # Use BFS to avoid getting stuck in an unproductive search over a proof state.
         proof_state = GLOBAL_INCOMPLETE_PROOFSTATES.popleft()
@@ -177,7 +180,7 @@ def _verify_program(
             else:
                 GLOBAL_INCOMPLETE_PROOFSTATES.append(next_proofstate)
 
-    return tuple(complete_proofstate for complete_proofstate in GLOBAL_COMPLETE_PROOFSTATES)
+    return tuple(GLOBAL_COMPLETE_PROOFSTATES)
 
 
 def _step(
@@ -186,16 +189,14 @@ def _step(
 ) -> list[ProofState]:
     """Given a ProofState, returns of list of ProofStates, each of which makes a "step" of progress.
 
-    A step of progress is one of:
-    * verify the function at the top of the workstack and pop it off
-    * assume the function at the top of the workstack and pop it off
-    * backtrack: add a previously-completed function to the workstack, with the goal of obtaining a
-      specification for it that is more useful to the function that is currently at the top of the
-      workstack.
+    A step of progress is one of (where `top_fn` is the function ot the top of the workstack):
+    * Generate a verifiable spec for `top_fn` and pop the workstack.
+    * Generate an assumed spec for `top_fn` and pop the workstack.
+    * Backtrack: add a previously-completed function to the workstack, with the goal of obtaining a
+      specification for it that is more useful to `top_fn`.
 
-    This is the key unit of parallelism for the specification generation process. It effectively
-    represents "branching points" in the search for a program specification; each node (i.e.,
-    partial program specification) can serve as parent of multiple "new" specifications to explore.
+    The next step focuses on a different function, even if it is possible that the algorithm may
+    revisit this function later due to backtracking.
 
     Args:
         proof_state (ProofState): The proof state from which to generate new proof states.
@@ -206,9 +207,8 @@ def _step(
 
     """
     work_item = proof_state.peek_workstack()
-    # Each SpecConversation represents a completed attempt at generating and verifying a spec for
-    # the function.  That is, the next step focuses on a different function, even if it is possible
-    # that the algorithm may revisit this function later due to backtracking.
+    # Each SpecConversation in this list represents a completed attempt at generating and verifying
+    # a spec for the function.
     spec_conversations_for_function: list[SpecConversation] = (
         specification_generator.generate_and_repair_spec(
             function=work_item.function,
@@ -217,42 +217,41 @@ def _step(
         )
     )
 
-    pruned_spec_conversations_for_function = _prune_specs(
+    pruned_spec_conversations_for_function = _prune_specs_heuristically(
         proof_state=proof_state,
         spec_conversations=spec_conversations_for_function,
     )
 
-    result: list[ProofState] = []
-
-    for spec_conversation in pruned_spec_conversations_for_function:
-        next_proof_state = _get_next_proof_state(
+    result: list[ProofState] = [
+        _get_next_proof_state(
             prev_proof_state=proof_state,
             spec_conversation=spec_conversation,
         )
-        result.append(next_proof_state)
+        for spec_conversation in pruned_spec_conversations_for_function
+    ]
     return result
 
 
 def _get_next_proof_state(
     prev_proof_state: ProofState, spec_conversation: SpecConversation
 ) -> ProofState:
-    """Return the next proof state, which is based on `spec_conversation`.
+    """Return the next proof state by modifying `prev_proof_state` based on `spec_conversation`.
 
-    A new proof state is a copy of the given proof state with two key differences:
+        The new proof state is a copy of the given proof state with two differences:
 
-        1. The new proof state's map of functions to specifications is updated with the given
-           function and its specification from the SpecConversation.
-        2. The new proof state's work stack is either smaller (if the function's spec verified
-           successfully or is assumed) or larger (if the function failed to verify and the
-           proof process will backtrack).
+            1. The new proof state's map of functions to specifications is updated with the given
+               function and its specification from the SpecConversation.
+            2. The new proof state's work stack is either smaller (if the function's spec verified
+               successfully or is assumed) or larger (if the function failed to verify and the
+               proof process will backtrack).
 
     Args:
         prev_proof_state (ProofState): The previous proof state.
-        spec_conversation (SpecConversation): The spec conversation comprising the function and the
-            specification under verification.
+        spec_conversation (SpecConversation): The spec conversation in which an LLM generated a
+            specification for the function on the top of the workstack of `prev_proof_state`.
 
     Returns:
-        ProofState: The next proof state for the function, given the conversation.
+        ProofState: The next proof state for the program, given the conversation.
     """
     specs_for_next_proof_state = prev_proof_state.get_specifications() | {
         spec_conversation.function: spec_conversation.specification
@@ -267,7 +266,7 @@ def _get_next_proof_state(
         ):
             # There could be more than one valid specification generated (i.e., when we sample more
             # than once from the LLM). For now, we take the last (valid) specification and write it.
-            _write_verified_or_assumed_spec(spec_conversation=spec_conversation)
+            _write_spec_to_disk(spec_conversation=spec_conversation)
             workstack_for_next_proof_state = prev_proof_state.get_workstack().pop()
             return ProofState(
                 specs=specs_for_next_proof_state, workstack=workstack_for_next_proof_state
@@ -305,13 +304,15 @@ def _get_next_proof_state(
             raise ValueError(msg)
 
 
-def _prune_specs(
+def _prune_specs_heuristically(
     proof_state: ProofState,
     spec_conversations: list[SpecConversation],
 ) -> list[SpecConversation]:
     """Given a list of SpecConversations, returns a subset of them (which prunes the others).
 
-    Note: The current strategy is simply to return just the specifications that successfully verify.
+    Note: The current strategy is:
+    If any specification verifies, return all the specifications that verify.
+    Otherwise, return all the input specifications.
 
     Args:
         proof_state (ProofState): The ProofState. The topmost function on its workstack is the
@@ -328,11 +329,11 @@ def _prune_specs(
     pruned_specs = []
     for spec_conversation in spec_conversations:
         function = spec_conversation.function
+        vcontext = proof_state.get_current_context(function=function)
         contents_of_verified_file = spec_conversation.contents_of_file_to_verify
         if contents_of_verified_file is None:
             msg = f"{spec_conversation} was missing file contents that were run under verification"
             raise ValueError(msg)
-        vcontext = proof_state.get_current_context(function=function)
         vinput = VerificationInput(
             function=function,
             spec=spec_conversation.specification,
@@ -348,8 +349,8 @@ def _prune_specs(
     return pruned_specs or spec_conversations
 
 
-def _write_verified_or_assumed_spec(spec_conversation: SpecConversation) -> None:
-    """Write a function's verified or assumed specification to a file on disk.
+def _write_spec_to_disk(spec_conversation: SpecConversation) -> None:
+    """Write a function specification to a file on disk.
 
     This function should be called to update the files which will be the end-result of verification,
     not the temporary files used in iteratively verifying candidate specifications.
