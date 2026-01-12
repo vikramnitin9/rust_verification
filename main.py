@@ -251,7 +251,7 @@ def _step(
 def _get_next_proof_state(
     prev_proof_state: ProofState, spec_conversation: SpecConversation
 ) -> ProofState:
-    """Return the next proof state, which modifies `prev_proof_state` based on `spec_conversation`.
+    """Return the next proof state by modifying `prev_proof_state` based on `spec_conversation`.
 
         The new proof state is a copy of the given proof state with two differences:
 
@@ -264,7 +264,7 @@ def _get_next_proof_state(
     Args:
         prev_proof_state (ProofState): The previous proof state.
         spec_conversation (SpecConversation): The spec conversation in which an LLM generated a
-            specification for the function on the teop of the workstack of `prev_proof_state`.
+            specification for the function on the top of the workstack of `prev_proof_state`.
 
     Returns:
         ProofState: The next proof state for the program, given the conversation.
