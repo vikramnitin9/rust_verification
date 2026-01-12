@@ -234,6 +234,10 @@ def _step(
         spec_conversations=spec_conversations_for_function,
     )
 
+    # MDE: `_call_llm_for_backtracking_strategy` can be called here in this function or can be
+    # called in `_get_next_proof_state()`, rather than hiding it within
+    # `generate_and_repair_spec()`.
+
     result: list[ProofState] = [
         _get_next_proof_state(
             prev_proof_state=proof_state,
@@ -362,6 +366,10 @@ def _prune_specs_heuristically(
         else:
             msg = f"Cache miss for previously-executed vinput: {vinput}"
             raise RuntimeError(msg)
+    # MDE: Maybe this is the only place that the `next_step` field is needed.  If so, I suggest that
+    # the return tye of the function is a list of (boolean, SpecConversation) pairs, where the
+    # boolean indicates whether verification succeeded.  I think that is clearer and cleaner than
+    # permanently putting information in the SpecConversation that is only transiently useful.
     return pruned_specs or spec_conversations
 
 

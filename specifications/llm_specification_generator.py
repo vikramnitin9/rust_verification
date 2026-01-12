@@ -82,6 +82,8 @@ class LlmSpecificationGenerator:
             disable_cache=disable_cache,
         )
 
+    # MDE: This function currently does more than its documentation admits, since it also chooses a
+    # backtracking strategy.  Move that into a caller of this function.
     def generate_and_repair_spec(
         self,
         function: CFunction,
@@ -99,6 +101,7 @@ class LlmSpecificationGenerator:
 
         Returns:
             list[SpecConversation]: A list of potential specifications for the function.
+                Each may or may not verify.
         """
         candidate_specs = self._generate_unrepaired_specs(
             function=function, hint=hint, proof_state=proof_state
@@ -187,6 +190,12 @@ class LlmSpecificationGenerator:
             msg = f"Failed to generate specifications for '{function.name}'"
             raise RuntimeError(msg) from me
 
+    # MDE: The name and first line of documentation of this function omit important functionality of
+    # choosing the next step if no verified specification could be generated.  Currently, that
+    # functionality is independent of the rest of the functionality of this function.  (It occurs in
+    # the call to `_call_llm_for_backtracking_strategy()` at the very end of the function.)
+    # Therefore, I suggest keeping the name and spec of this function simple:  it just tries to do
+    # repair.  Move the unrelated choice of whethere to backtrack into a client.
     def _repair_spec(
         self,
         spec_conversation: SpecConversation,
@@ -216,6 +225,8 @@ class LlmSpecificationGenerator:
             source_file_content=spec_conversation.contents_of_file_to_verify,
         )
         if vresult.succeeded:
+            # MDE: I don't think this assignment is needed.  Other code can cheaply check whether
+            # verification succeeded.
             spec_conversation.specgen_next_step = (
                 SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
             )
@@ -247,6 +258,8 @@ class LlmSpecificationGenerator:
 
             if vresult.succeeded:
                 # No need to iterate further, there is nothing to repair.
+                # MDE: I don't think this assignment is needed.  Other code can cheaply check
+                # whether verification succeeded.
                 spec_under_repair.specgen_next_step = (
                     SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
                 )

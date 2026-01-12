@@ -248,8 +248,8 @@ def repair_spec(fn, specc, proofstate) -> List[SpecConversation]:
   specs_that_failed_repair = []
 
   while specs_to_repair:
-    # MDE: What is the value of `spec_under_repair.next_step`?  `spec_under_repair` is sometimes
-    # returned without its `next_step` field being changed.  That seems like a problem.
+    # MDE: What is the value of `spec_under_repair.next_step` at this point?  `spec_under_repair` is
+    # sometimes returned without its `next_step` field being changed.  That seems like a problem.
     spec_under_repair, num_repair_attempts = specs_to_repair.remove_head() # In Python: popleft()
     vresult = call_verifier(fn, spec_under_repair, proofstate)
     if is_success(vresult):
