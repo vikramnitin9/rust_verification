@@ -227,9 +227,7 @@ class LlmSpecificationGenerator:
         if vresult.succeeded:
             # MDE: I don't think this assignment is needed.  Other code can cheaply check whether
             # verification succeeded.
-            spec_conversation.specgen_next_step = (
-                SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
-            )
+            spec_conversation.next_step = SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
             verified_spec_conversations.append(spec_conversation)
             return verified_spec_conversations
 
@@ -260,9 +258,7 @@ class LlmSpecificationGenerator:
                 # No need to iterate further, there is nothing to repair.
                 # MDE: I don't think this assignment is needed.  Other code can cheaply check
                 # whether verification succeeded.
-                spec_under_repair.specgen_next_step = (
-                    SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
-                )
+                spec_under_repair.next_step = SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
                 verified_spec_conversations.append(spec_under_repair)
                 continue
 
@@ -387,7 +383,7 @@ class LlmSpecificationGenerator:
                 LlmMessage(content=backtracking_decision),
             ),
             contents_of_file_to_verify=spec_conversation.contents_of_file_to_verify,
-            specgen_next_step=self._parse_next_step(backtracking_decision),
+            next_step=self._parse_next_step(backtracking_decision),
         )
 
     def _parse_specification_from_response(self, llm_response: str) -> FunctionSpecification | None:

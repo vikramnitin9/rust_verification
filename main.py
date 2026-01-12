@@ -150,8 +150,8 @@ def _verify_program(
 ) -> tuple[ProofState, ...]:
     """Return a set of ProofStates, each of which has a specification for each function.
 
-    This function exits when GLOBAL_INCOMPLETE_PROOFSTATES is empty.
-    # MDE: or timeout?
+    This function exits when GLOBAL_INCOMPLETE_PROOFSTATES is empty or when execution time
+    exceeds DEFAULT_SPECIFICATION_GENERATION_TIMEOUT_SEC.
 
     Args:
         functions (list[CFunction]): The functions for which to generate and verify specifications,
@@ -272,8 +272,7 @@ def _get_next_proof_state(
     specs_for_next_proof_state = prev_proof_state.get_specifications() | {
         spec_conversation.function: spec_conversation.specification
     }
-    # MDE: `specgen_next_step` is not the same field name as used in the algorithm description.
-    match spec_conversation.specgen_next_step:
+    match spec_conversation.next_step:
         case None:
             msg = f"{spec_conversation} was missing a next step"
             raise ValueError(msg)
@@ -317,7 +316,7 @@ def _get_next_proof_state(
                 workstack=workstack_for_next_proof_state,
             )
         case _:
-            msg = f"Unexpected next step strategy: '{SpecConversation.specgen_next_step}'"
+            msg = f"Unexpected next step strategy: '{SpecConversation.next_step}'"
             raise ValueError(msg)
 
 
