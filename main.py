@@ -279,7 +279,7 @@ def _get_next_proof_state(
         ):
             # There could be more than one valid specification generated (i.e., when we sample more
             # than once from the LLM). For now, we take the last (valid) specification and write it.
-            _write_verified_or_assumed_spec(spec_conversation=spec_conversation)
+            _write_spec_to_disk(spec_conversation=spec_conversation)
             workstack_for_next_proof_state = prev_proof_state.get_workstack().pop()
             return ProofState(
                 specs=specs_for_next_proof_state, workstack=workstack_for_next_proof_state
@@ -365,8 +365,8 @@ def _prune_specs_heuristically(
     return pruned_specs or spec_conversations
 
 
-def _write_verified_or_assumed_spec(spec_conversation: SpecConversation) -> None:
-    """Write a function's verified or assumed specification to a file on disk.
+def _write_spec_to_disk(spec_conversation: SpecConversation) -> None:
+    """Write a function specification to a file on disk.
 
     This function should be called to update the files which will be the end-result of verification,
     not the temporary files used in iteratively verifying candidate specifications.
