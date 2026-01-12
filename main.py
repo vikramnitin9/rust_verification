@@ -341,6 +341,8 @@ def _prune_specs_heuristically(
     """
     pruned_specs = []
     for spec_conversation in spec_conversations:
+        # MDE: abstract out the creation of a VerificationInput (everything through the blank line)
+        # into its own function.
         function = spec_conversation.function
         vcontext = proof_state.get_current_context(function=function)
         contents_of_verified_file = spec_conversation.contents_of_file_to_verify
@@ -353,6 +355,7 @@ def _prune_specs_heuristically(
             context=vcontext,
             contents_of_file_to_verify=contents_of_verified_file,
         )
+
         if vresult := VERIFIER_CACHE.get(vinput):
             if vresult.succeeded:
                 pruned_specs.append(spec_conversation)
