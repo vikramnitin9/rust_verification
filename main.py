@@ -320,8 +320,7 @@ def _prune_specs_heuristically(
         spec_conversations (list[SpecConversation]): The SpecConversations to prune.
 
     Raises:
-        ValueError: Raised when a SpecConversation does not have any file contents that were run
-            under a verifier.
+        RuntimeError: Raised when a previously-verified input does not have a cache entry.
 
     Returns:
         list[SpecConversation]: A subset of the given SpecConversations.
@@ -330,15 +329,11 @@ def _prune_specs_heuristically(
     for spec_conversation in spec_conversations:
         function = spec_conversation.function
         vcontext = proof_state.get_current_context(function=function)
-        contents_of_verified_file = spec_conversation.contents_of_file_to_verify
-        if contents_of_verified_file is None:
-            msg = f"{spec_conversation} was missing file contents that were run under verification"
-            raise ValueError(msg)
         vinput = VerificationInput(
             function=function,
             spec=spec_conversation.specification,
             context=vcontext,
-            contents_of_file_to_verify=contents_of_verified_file,
+            contents_of_file_to_verify=spec_conversation.contents_of_file_to_verify,
         )
         if vresult := VERIFIER_CACHE.get(vinput):
             if vresult.succeeded:
