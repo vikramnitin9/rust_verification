@@ -368,13 +368,19 @@ def _prune_specs_heuristically(
 def _write_spec_to_disk(spec_conversation: SpecConversation) -> None:
     """Write a function specification to a file on disk.
 
+    # MDE: What is the reason for this stricture?  Because this function hard-codes the file name?
     This function should be called to update the files which will be the end-result of verification,
     not the temporary files used in iteratively verifying candidate specifications.
 
     The contents of the file that is being written to are identical to the corresponding file in the
     unverified (input) program, but some functions may be specified (i.e., have CBMC annotations)
     as specification generation progresses.
+    # MDE: "as specification generation progresses" is in conflict with "the end-result of
+    # verification".  Please clarify.  Is one of them about function verification and the other
+    # about program verification, or is one of the comments just wrong?
 
+    # MDE: This is very bad for parallelism.  Two parallel processes might both find different
+    # successful specs at the same time.
     Specifications are written to a file under the `DEFAULT_RESULT_DIR` directory that has the same
     same name (and path) as the original (non-specified) file.
 
