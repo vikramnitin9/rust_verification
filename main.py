@@ -310,7 +310,9 @@ def _prune_specs_heuristically(
 ) -> list[SpecConversation]:
     """Given a list of SpecConversations, returns a subset of them (which prunes the others).
 
-    Note: The current strategy is simply to return just the specifications that successfully verify.
+    Note: The current strategy is:
+    If any specification verifies, return all the specifications that verify.
+    Otherwise, return all the input specifications.
 
     Args:
         proof_state (ProofState): The ProofState. The topmost function on its workstack is the
