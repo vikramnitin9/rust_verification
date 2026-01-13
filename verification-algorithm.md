@@ -24,7 +24,7 @@ heuristic prunes or prioritizes the possibilities).
 Two integers parameterize the algorithm:
 
 * `num_llm_samples`: each call to `llm()` returns a list of this length.
-  The algrithm pursues all these possibilities in parallel.
+  The algorithm pursues all these possibilities in parallel.
   As a general rule, after each call to `llm()`, our algorithm heuristically
   prunes the returned list of samples to reduce the exploration space.
   * The implementation calls the LLM for different purposes and therefore has multiple variables,
