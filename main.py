@@ -36,8 +36,7 @@ MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
 DEFAULT_NUM_SPECIFICATION_CANDIDATES = 10
 DEFAULT_NUM_REPAIR_CANDIDATES = 1  # MDE: This seems too low to me.
-DEFAULT_MODEL_TEMPERATURE = 1.0  # MDE: This is incompatible
-# with "DEFAULT_NUM_SPECIFICATION_CANDIDATES = 10"
+DEFAULT_MODEL_TEMPERATURE = 1.0
 DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS = 3  # MDE: This might be too high.
 # MDE: Is this a timeout per function, per file, or per program?
 # Default timeout of 5 minutes for specification generation and repair.

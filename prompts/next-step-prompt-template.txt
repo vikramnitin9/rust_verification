@@ -13,8 +13,13 @@ Given this information, select from the two options:
     1. Assume the specification as-is, and proceed with verifying the rest of the program.
     2. Choose a callee of $function_name, and state in what way the postcondition must be
        strengthened in order for $function_name's specifications to verify.
-      
 
+<KEY POINTS>
+
+You should almost always select (1) unless you have strong evidence that (2) will result in a
+specification that verifies for $function_name
+
+</KEY POINTS>
 
 If you choose (1), your response should be in the following format:
 
@@ -28,4 +33,6 @@ If you choose (2), your response should be in the following format:
     "next_step": "BACKTRACK_TO_CALLEE",
     "postcondition_change_for_callee": "<DESCRIPTION>",
     "callee": "<CALLEE_NAME>",
+    # TODO(maybe): Ask it to generate the strengthened spec for the callee, then run the verifier on
+    # the failing function, assuming the strengthened spec, then backtrack based on that result.
 }
