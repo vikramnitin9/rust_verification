@@ -82,8 +82,6 @@ class LlmSpecificationGenerator:
             disable_cache=disable_cache,
         )
 
-    # MDE: This function currently does more than its documentation admits, since it also chooses a
-    # backtracking strategy.  Move that into a caller of this function.
     def generate_and_repair_spec(
         self,
         function: CFunction,
@@ -295,12 +293,7 @@ class LlmSpecificationGenerator:
                 )
                 specs_to_repair.append((next_spec_conversation, num_repair_attempts + 1))
 
-        return verified_spec_conversations or [
-            self._call_llm_for_backtracking_strategy(
-                spec_conversation=unrepairable_spec, proof_state=proof_state
-            )
-            for unrepairable_spec in specs_that_failed_repair
-        ]
+        return verified_spec_conversations or specs_that_failed_repair
 
     def _call_llm_for_repair(
         self, function: CFunction, conversation: tuple[ConversationMessage, ...]
@@ -342,7 +335,7 @@ class LlmSpecificationGenerator:
             msg = f"Failed to repair specifications for '{function.name}'"
             raise RuntimeError(msg) from me
 
-    def _call_llm_for_backtracking_strategy(
+    def call_llm_for_backtracking_strategy(
         self, spec_conversation: SpecConversation, proof_state: ProofState
     ) -> SpecConversation:
         """Return a SpecConversation that resulted from asking an LLM for a backtracking strategy.

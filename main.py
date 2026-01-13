@@ -229,23 +229,58 @@ def _step(
         )
     )
 
-    pruned_spec_conversations_for_function = _prune_specs_heuristically(
-        proof_state=proof_state,
-        spec_conversations=spec_conversations_for_function,
-    )
-
-    # MDE: `_call_llm_for_backtracking_strategy` can be called here in this function or can be
-    # called in `_get_next_proof_state()`, rather than hiding it within
-    # `generate_and_repair_spec()`.
+    specc_with_next_steps = [
+        _get_specc_with_next_step(
+            spec_conversation=specc,
+            proof_state=proof_state,
+            specification_generator=specification_generator,
+        )
+        for specc in spec_conversations_for_function
+    ]
 
     result: list[ProofState] = [
         _get_next_proof_state(
             prev_proof_state=proof_state,
-            spec_conversation=spec_conversation,
+            spec_conversation=specc,
         )
-        for spec_conversation in pruned_spec_conversations_for_function
+        for specc in specc_with_next_steps
     ]
     return result
+
+
+def _get_specc_with_next_step(
+    spec_conversation: SpecConversation,
+    proof_state: ProofState,
+    specification_generator: LlmSpecificationGenerator,
+) -> SpecConversation:
+    """Return the given SpecConversation with its next step field set.
+
+    Args:
+        spec_conversation (SpecConversation): The SpecConversation whose next step field to set.
+        proof_state (ProofState): The ProofState.
+        specification_generator (LlmSpecificationGenerator): The specification generator.
+
+    Raises:
+        RuntimeError: Raised when a previously-verified spec is missing from the verifier cache.
+
+    Returns:
+        SpecConversation: The given SpecConversation with its next step field set.
+    """
+    vinput = VerificationInput(
+        function=spec_conversation.function,
+        spec=spec_conversation.specification,
+        context=proof_state.get_current_context(function=spec_conversation.function),
+        contents_of_file_to_verify=spec_conversation.contents_of_file_to_verify,
+    )
+    if vresult := VERIFIER_CACHE.get(vinput):
+        if vresult.succeeded:
+            spec_conversation.next_step = SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
+            return spec_conversation
+        return specification_generator.call_llm_for_backtracking_strategy(
+            spec_conversation=spec_conversation, proof_state=proof_state
+        )
+    msg = f"Previously-verified spec: '{spec_conversation}' was missing from the verifier cache"
+    raise RuntimeError(msg)
 
 
 def _get_next_proof_state(
@@ -318,53 +353,6 @@ def _get_next_proof_state(
         case _:
             msg = f"Unexpected next step strategy: '{SpecConversation.next_step}'"
             raise ValueError(msg)
-
-
-def _prune_specs_heuristically(
-    proof_state: ProofState,
-    spec_conversations: list[SpecConversation],
-) -> list[SpecConversation]:
-    """Given a list of SpecConversations, returns a subset of them (which prunes the others).
-
-    Note: The current strategy is:
-    If any specification verifies, return all the specifications that verify.
-    Otherwise, return all the input specifications.
-
-    Args:
-        proof_state (ProofState): The ProofState. The topmost function on its workstack is the
-            function for which specifications are being generated/repaired.
-        spec_conversations (list[SpecConversation]): The SpecConversations to prune.
-
-    Raises:
-        RuntimeError: Raised when a previously-verified input does not have a cache entry.
-
-    Returns:
-        list[SpecConversation]: A subset of the given SpecConversations.
-    """
-    pruned_specs = []
-    for spec_conversation in spec_conversations:
-        # MDE: abstract out the creation of a VerificationInput (everything through the blank line)
-        # into its own function.
-        function = spec_conversation.function
-        vcontext = proof_state.get_current_context(function=function)
-        vinput = VerificationInput(
-            function=function,
-            spec=spec_conversation.specification,
-            context=vcontext,
-            contents_of_file_to_verify=spec_conversation.contents_of_file_to_verify,
-        )
-
-        if vresult := VERIFIER_CACHE.get(vinput):
-            if vresult.succeeded:
-                pruned_specs.append(spec_conversation)
-        else:
-            msg = f"Cache miss for previously-executed vinput: {vinput}"
-            raise RuntimeError(msg)
-    # MDE: Maybe this is the only place that the `next_step` field is needed.  If so, I suggest that
-    # the return tye of the function is a list of (boolean, SpecConversation) pairs, where the
-    # boolean indicates whether verification succeeded.  I think that is clearer and cleaner than
-    # permanently putting information in the SpecConversation that is only transiently useful.
-    return pruned_specs or spec_conversations
 
 
 def _write_spec_to_disk(spec_conversation: SpecConversation) -> None:

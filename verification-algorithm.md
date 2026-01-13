@@ -254,8 +254,9 @@ def repair_spec(fn, specc, proofstate) -> List[SpecConversation]:
   specs_that_failed_repair = []
 
   while specs_to_repair:
-    # MDE: What is the value of `spec_under_repair.next_step` at this point?  `spec_under_repair` is
-    # sometimes returned without its `next_step` field being changed.  That seems like a problem.
+    # The value of `spec_under_repair.next_step` is None; this field is set only when a spec
+    # is successfully verifies (ACCEPT_VERIFIED_SPEC) or when an LLM decides on a next step for
+    # a spec that fails repair (resulting in either ACCEPT_SPEC_AS_IS or BACKTRACK_TO_CALLEE).
     spec_under_repair, num_repair_attempts = specs_to_repair.remove_head() # In Python: popleft()
     vresult = call_verifier(fn, spec_under_repair, proofstate)
     if is_success(vresult):
@@ -275,8 +276,8 @@ def repair_spec(fn, specc, proofstate) -> List[SpecConversation]:
     newly_repaired_speccs = call_llm(conversation_with_repair_prompt)
 
     for newly_repaired_spec, response in newly_repaired_speccs:
-      # MDE: I would expect every SpecConversation constructor call to provide `next_step`.  Or is
-      # there a default value?
+      # A newly-created SpecConversation's next_step field defaults to `None`, since its
+      # specification has yet to be verified.
       next_specc = SpecConversation(
         spec_under_repair,
         newly_repaired_spec,
