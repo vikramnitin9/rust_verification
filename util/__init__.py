@@ -1,4 +1,4 @@
-from .specification_generation_next_step import SpecificationGenerationNextStep
+from .specification_generation_next_step import SpecificationGenerationNextStep, AcceptVerifiedSpec, AssumeSpecAsIs, BacktrackToCallee
 from .code_extraction_util import extract_function_source_code
 from .file_util import copy_file_to_folder, ensure_lines_at_beginning
 from .function_util import extract_specification
@@ -12,6 +12,9 @@ from .backtracking_util import parse_backtracking_info
 
 __all__ = [
     "SpecificationGenerationNextStep",
+    "AcceptVerifiedSpec",
+    "AssumeSpecAsIs",
+    "BacktrackToCallee",
     "CFunction",
     "ParsecError",
     "FunctionSpecification",

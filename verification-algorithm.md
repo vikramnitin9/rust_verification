@@ -129,19 +129,16 @@ immutable class SpecConversation:
 
 * `spec`: Specification
 * `conversation`: a conversation history with an LLM, that led to the given spec
-* `hint`: Any hints for regenerating specifications, either for repair or for callees.
-  * MDE: is `hint` from the past (it appears in the conversation already), or is it for the future
-    (it will be used in choosing the next step)?  Or, does its semantics depend on whether the
-    latest round in the conversation is from the verification algorithm or from the LLM?
-  * MDE: Is `hint` always a repair hint (in which case its name should be changed to
-    `repair_hint`, or is it sometimes a backtracking hint?
 * `next_step`: The next step in the specification generation process. Valid values for the next step
   are:
   * `ACCEPT_VERIFIED_SPEC`: For specs that successfully verify with CBMC.
   * `ASSUME_SPEC_AS_IS`: For specs that should be assumed during verification (when repair or
     backtracking has repeatedly failed).
   * `BACKTRACK_TO_CALLEE`: When the specifications should be regenerated for a callee of the
-    function with this conversations's spec.
+    function with this conversations's spec, which has the following fields:
+    * `callee`: The name of the callee to backtrack to.
+    * `hint`: The reasoning given by the LLM that generally describes the
+      postcondition-strengthening change to the callee specification.
 
 ## Code
 

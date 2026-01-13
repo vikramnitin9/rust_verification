@@ -14,14 +14,15 @@ from loguru import logger
 
 from specifications import LlmSpecificationGenerator
 from util import (
+    AcceptVerifiedSpec,
+    AssumeSpecAsIs,
+    BacktrackToCallee,
     CFunction,
     ParsecFile,
     SpecConversation,
-    SpecificationGenerationNextStep,
     copy_file_to_folder,
     ensure_lines_at_beginning,
     function_util,
-    parse_backtracking_info,
 )
 from verification import (
     CbmcVerificationClient,
@@ -42,17 +43,14 @@ DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS = 3  # MDE: This might be too high.
 # Default timeout of 5 minutes for specification generation and repair.
 DEFAULT_SPECIFICATION_GENERATION_TIMEOUT_SEC = 300
 DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
-DEFAULT_VERIFIER_CACHE_DIR = "data/caching/verifier"
 DEFAULT_RESULT_DIR = "specs"
-# MDE: What is the destinction from DEFAULT_VERIFIER_CACHE_DIR which has the same value?
 DEFAULT_VERIFIER_RESULT_CACHE_DIR = "data/caching/verifier"
 
 GLOBAL_OBSERVED_PROOFSTATES: set[ProofState] = set()
 # Every ProofState in this queue is incomplete (i.e., their worklists are non-empty.)
 GLOBAL_INCOMPLETE_PROOFSTATES: deque[ProofState] = deque()
 # Every ProofState in this queue is complete (i.e., their worklists are empty.)
-# MDE: Why is this a deque rather than a list?  I don't think it is ever removed from.
-GLOBAL_COMPLETE_PROOFSTATES: deque[ProofState] = deque()
+GLOBAL_COMPLETE_PROOFSTATES: list[ProofState] = []
 # The keys for VERIFIER_CACHE are `VerificationInput` and the values are `VerificationResult`.
 VERIFIER_CACHE: Cache = Cache(directory=DEFAULT_VERIFIER_RESULT_CACHE_DIR)
 
@@ -274,7 +272,7 @@ def _get_specc_with_next_step(
     )
     if vresult := VERIFIER_CACHE.get(vinput):
         if vresult.succeeded:
-            spec_conversation.next_step = SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
+            spec_conversation.next_step = AcceptVerifiedSpec()
             return spec_conversation
         return specification_generator.call_llm_for_backtracking_strategy(
             spec_conversation=spec_conversation, proof_state=proof_state
@@ -311,10 +309,7 @@ def _get_next_proof_state(
         case None:
             msg = f"{spec_conversation} was missing a next step"
             raise ValueError(msg)
-        case (
-            SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
-            | SpecificationGenerationNextStep.ASSUME_SPEC_AS_IS
-        ):
+        case AcceptVerifiedSpec() | AssumeSpecAsIs():
             # There could be more than one valid specification generated (i.e., when we sample more
             # than once from the LLM). For now, we take the last (valid) specification and write it.
             _write_spec_to_disk(spec_conversation=spec_conversation)
@@ -322,27 +317,19 @@ def _get_next_proof_state(
             return ProofState(
                 specs=specs_for_next_proof_state, workstack=workstack_for_next_proof_state
             )
-        case SpecificationGenerationNextStep.BACKTRACK_TO_CALLEE:
-            backtracking_info = parse_backtracking_info(
-                llm_response=spec_conversation.get_latest_llm_response(),
-            )
+        case BacktrackToCallee(callee, hint):
             # TODO: Fetching the callee from the same file in which the function under spec. gen.
             # is defined is a brittle assumption that should be fixed with multi-file ParseC
             # support.
             result_file = _get_result_file(function=spec_conversation.function)
-            callee = ParsecFile(result_file).get_function_or_none(
-                function_name=backtracking_info.callee_name
-            )
+            callee = ParsecFile(result_file).get_function_or_none(function_name=callee)
             if not callee:
                 msg = (
                     f"'{result_file}' was missing a definition for callee: "
-                    f"'{backtracking_info.callee_name}' during backtracking"
+                    f"'{callee}' during backtracking"
                 )
                 raise ValueError(msg)
-            work_item_for_callee = WorkItem(
-                function=callee,
-                hint=backtracking_info.postcondition_strengthening_description,
-            )
+            work_item_for_callee = WorkItem(function=callee, hint=hint)
             workstack_for_next_proof_state = prev_proof_state.get_workstack().push(
                 work_item_for_callee
             )

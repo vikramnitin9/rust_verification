@@ -15,6 +15,9 @@ from models import (
     UserMessage,
 )
 from util import (
+    AcceptVerifiedSpec,
+    AssumeSpecAsIs,
+    BacktrackToCallee,
     CFunction,
     FunctionSpecification,
     ParsecFile,
@@ -188,12 +191,6 @@ class LlmSpecificationGenerator:
             msg = f"Failed to generate specifications for '{function.name}'"
             raise RuntimeError(msg) from me
 
-    # MDE: The name and first line of documentation of this function omit important functionality of
-    # choosing the next step if no verified specification could be generated.  Currently, that
-    # functionality is independent of the rest of the functionality of this function.  (It occurs in
-    # the call to `_call_llm_for_backtracking_strategy()` at the very end of the function.)
-    # Therefore, I suggest keeping the name and spec of this function simple:  it just tries to do
-    # repair.  Move the unrelated choice of whethere to backtrack into a client.
     def _repair_spec(
         self,
         spec_conversation: SpecConversation,
@@ -209,7 +206,7 @@ class LlmSpecificationGenerator:
         Returns:
             list[SpecConversation]: A list of specifications that successfully verify (they either
                 verified in the first place, or were repaired), or a list of specifications that
-                ultimately failed to be repaired with a next step set for specification generation.
+                ultimately failed repair.
         """
         # Below are the two possible return values of this method.
         verified_spec_conversations: list[SpecConversation] = []
@@ -225,7 +222,7 @@ class LlmSpecificationGenerator:
         if vresult.succeeded:
             # MDE: I don't think this assignment is needed.  Other code can cheaply check whether
             # verification succeeded.
-            spec_conversation.next_step = SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
+            spec_conversation.next_step = AcceptVerifiedSpec()
             verified_spec_conversations.append(spec_conversation)
             return verified_spec_conversations
 
@@ -256,7 +253,7 @@ class LlmSpecificationGenerator:
                 # No need to iterate further, there is nothing to repair.
                 # MDE: I don't think this assignment is needed.  Other code can cheaply check
                 # whether verification succeeded.
-                spec_under_repair.next_step = SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
+                spec_under_repair.next_step = AcceptVerifiedSpec()
                 verified_spec_conversations.append(spec_under_repair)
                 continue
 
@@ -409,7 +406,18 @@ class LlmSpecificationGenerator:
         llm_response = llm_response.removeprefix("```json").removesuffix("```")
 
         try:
-            return SpecificationGenerationNextStep(json.loads(llm_response)["next_step"])
+            llm_response_dict = json.loads(llm_response)
+            match llm_response_dict["next_step"]:
+                case "ASSUME_SPEC_AS_IS":
+                    return AssumeSpecAsIs()
+                case "BACKTRACK_TO_CALLEE":
+                    return BacktrackToCallee(
+                        callee=llm_response_dict["callee"],
+                        hint=llm_response_dict["postcondition_change_for_callee"],
+                    )
+                case unexpected_step:
+                    msg = f"Unexpected next step for specification generation = '{unexpected_step}'"
+                    raise RuntimeError(msg)
         except json.JSONDecodeError as je:
             msg = f"The LLM failed to return a valid JSON object: {llm_response}, error = {je}"
             raise RuntimeError(msg) from je
