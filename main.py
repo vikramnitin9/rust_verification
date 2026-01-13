@@ -16,7 +16,7 @@ from specifications import LlmSpecificationGenerator
 from util import (
     CFunction,
     FunctionSpecification,
-    ParsecFile,
+    ParsecResult,
     SpecConversation,
     SpecificationGenerationNextStep,
     copy_file_to_folder,
@@ -55,17 +55,21 @@ tempfile.tempdir = DEFAULT_RESULT_DIR
 
 
 def main() -> None:
-    """Generate specifications for a given C file using an LLM and verify them with CBMC.
-
-    The current implementation operates over all the C functions in one file.
+    """Generate specifications for a given C project using an LLM and verify them with CBMC.
     """
     parser = argparse.ArgumentParser(
-        prog="main.py", description="Generate and verify CBMC specifications for a C file."
+        prog="main.py", description="Generate and verify CBMC specifications for a C project."
     )
     parser.add_argument(
-        "--file",
-        required=True,
-        help="The C file for which to generate and verify specifications.",
+        "--project-root",
+        required=False,
+        help="The root directory of the C project for which to generate and verify specifications. \
+            Must contain compile_commands.json. Note that this cannot be used along with --input-file-path.",
+    )
+    parser.add_argument(
+        "--input-file-path",
+        required=False,
+        help="The path to the C file to analyze. Note that this cannot be used along with --project-root.",
     )
     parser.add_argument(
         "--num-specification-candidates",
@@ -95,24 +99,40 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    input_file_path = Path(args.file)
-    output_file_path = copy_file_to_folder(input_file_path, DEFAULT_RESULT_DIR)
-    header_lines = [f"#include <{header}>" for header in DEFAULT_HEADERS_IN_OUTPUT]
-    ensure_lines_at_beginning(header_lines, output_file_path)
-    parsec_file = ParsecFile(input_file_path)
+    if args.project_root and args.input_file_path:
+        msg = "Please provide either --project-root or --input-file-path, not both."
+        raise ValueError(msg)
+    if not args.project_root and not args.input_file_path:
+        msg = "Please provide either --project-root or --input-file-path."
+        raise ValueError(msg)
+
+    if args.input_file_path:
+        input_file_path = Path(args.input_file_path)
+        output_file_path = copy_file_to_folder(input_file_path, DEFAULT_RESULT_DIR)
+        header_lines = [f"#include <{header}>" for header in DEFAULT_HEADERS_IN_OUTPUT]
+        ensure_lines_at_beginning(header_lines, output_file_path)
+        parsec_result = ParsecResult(input_file_path)
+    elif args.project_root:
+        project_root = Path(args.project_root).resolve()
+        output_directory = copy_folder_to_folder(project_root, DEFAULT_RESULT_DIR)
+        header_lines = [f"#include <{header}>" for header in DEFAULT_HEADERS_IN_OUTPUT]
+        for c_file in output_directory.rglob("*.c"):
+            ensure_lines_at_beginning(header_lines, c_file)
+        parsec_result = ParsecResult(project_root)
+    
     verifier: VerificationClient = CbmcVerificationClient(cache=VERIFIER_CACHE)
     specification_generator = LlmSpecificationGenerator(
         MODEL,
         system_prompt=DEFAULT_SYSTEM_PROMPT,
         verifier=verifier,
-        parsec_file=parsec_file,
+        parsec_result=parsec_result,
         num_specification_candidates=args.num_specification_candidates,
         num_repair_candidates=args.num_repair_candidates,
         num_repair_iterations=args.num_specification_repair_iterations,
         disable_cache=args.disable_llm_sample_cache,
     )
 
-    functions_in_reverse_topological_order = parsec_file.get_functions_in_topological_order(
+    functions_in_reverse_topological_order = parsec_result.get_functions_in_topological_order(
         reverse_order=True
     )
     _verify_program(functions_in_reverse_topological_order, specification_generator)
@@ -342,18 +362,18 @@ def _write_verified_or_assumed_spec(
         # Create the result file by copying over the original file.
         shutil.copy(path_to_original_file, result_file)
 
-    parsec_file = ParsecFile(result_file)
+    parsec_result = ParsecResult(result_file)
     function_with_verified_spec = function_util.get_source_code_with_inserted_spec(
         function_name=function.name,
         specification=specification,
-        parsec_file=parsec_file,
+        parsec_result=parsec_result,
         comment_out_spec=True,
     )
 
     function_util.update_function_declaration(
         function_name=function.name,
         updated_function_content=function_with_verified_spec,
-        parsec_file=parsec_file,
+        parsec_result=parsec_result,
         file=result_file,
     )
 

@@ -20,6 +20,19 @@ def copy_file_to_folder(input_file_path: Path, destination_folder_name: str) -> 
     shutil.copy(input_file_path, output_file_path)
     return output_file_path
 
+def copy_folder_to_folder(input_folder_path: Path, destination_folder_name: str) -> Path:
+    """Return the folder that is copied from the input folder to the destination folder.
+    Args:
+        input_folder_path (Path): The input folder path.
+        destination_folder_name (str): The destination folder under which to copy the folder.
+    
+    Returns:
+        Path: The folder that is copied from the input folder to the destination folder.
+    """
+    output_folder = Path(destination_folder_name) / input_folder_path.name
+    shutil.copytree(input_folder_path, output_folder, dirs_exist_ok=True)
+    return output_folder
+
 
 def ensure_lines_at_beginning(lines_to_insert: list[str], file_path: Path) -> None:
     """Ensure the given lines appear in the given file.

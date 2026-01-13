@@ -8,7 +8,7 @@ from tree_sitter import Language, Parser, Query, QueryCursor
 
 from .c_function import CFunction
 from .function_specification import FunctionSpecification
-from .parsec_file import ParsecFile
+from .parsec_file import ParsecResult
 
 PRECONDITION_PREFIX = "__CPROVER_requires"
 POSTCONDITION_PREFIXES = ["__CPROVER_ensures", "__CPROVER_assigns"]
@@ -106,18 +106,18 @@ def get_signature_and_body(source_code: str, lang: str) -> tuple[str, str]:
 def get_source_code_with_inserted_spec(
     function_name: str,
     specification: FunctionSpecification,
-    parsec_file: ParsecFile,
+    parsec_file: ParsecResult,
     *,
     comment_out_spec: bool = False,
 ) -> str:
     """Return the source code of a function with the specification inserted.
 
-    Note: This does *not* update the ParsecFile with the specified function declaration.
+    Note: This does *not* update the ParsecResult with the specified function declaration.
 
     Args:
         function_name (str): The name of the function for which to return the updated source code.
         specification (FunctionSpecification): The specification for the function.
-        parsec_file (ParsecFile): The ParsecFile.
+        parsec_file (ParsecResult): The ParsecResult.
         comment_out_spec (bool): Whether to comment out CBMC specs.
 
     Returns:
@@ -134,14 +134,14 @@ def get_source_code_with_inserted_spec(
 
 def get_source_file_content_with_specifications(
     specified_functions: dict[CFunction, FunctionSpecification],
-    parsec_file: ParsecFile,
+    parsec_file: ParsecResult,
     original_source_file_path: Path,
 ) -> str:
     """Return the content of the given source code file after specification insertion.
 
     Args:
         specified_functions (dict[CFunction, FunctionSpecification]): The map of functions to specs.
-        parsec_file (ParsecFile): The ParsecFile parse from the original source code file.
+        parsec_file (ParsecResult): The ParsecResult parse from the original source code file.
         original_source_file_path (Path): The path to the original source code file.
 
     Returns:
@@ -173,14 +173,14 @@ def get_source_file_content_with_specifications(
 
 
 def update_parsec_file(
-    function_name: str, updated_function_content: str, parsec_file: ParsecFile
+    function_name: str, updated_function_content: str, parsec_file: ParsecResult
 ) -> None:
-    """Update the entry for a function in the ParsecFile with its updated version.
+    """Update the entry for a function in the ParsecResult with its updated version.
 
     Args:
-        function_name (str): The function to update in the ParsecFile.
+        function_name (str): The function to update in the ParsecResult.
         updated_function_content (str): The updated function content.
-        parsec_file (ParsecFile): The parsec file to update.
+        parsec_file (ParsecResult): The parsec file to update.
     """
     original_function = parsec_file.get_function(function_name)
     prev_start_line = original_function.start_line
@@ -221,14 +221,14 @@ def update_parsec_file(
 
 
 def update_function_declaration(
-    function_name: str, updated_function_content: str, parsec_file: ParsecFile, file: Path
+    function_name: str, updated_function_content: str, parsec_file: ParsecResult, file: Path
 ) -> str:
     """Return the contents of the file after updating the function declaration.
 
     Args:
         function_name (str): The name of the function to update.
         updated_function_content (str): The new contents of the function.
-        parsec_file (ParsecFile): The ParseC file containing function definitions.
+        parsec_file (ParsecResult): The ParseC file containing function definitions.
         file (Path): The file that contains the function (and possibly other functions).
 
     Returns:

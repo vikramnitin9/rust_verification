@@ -4,7 +4,7 @@ from .file_util import copy_file_to_folder, ensure_lines_at_beginning
 from .function_util import extract_specification
 from .parsec_error import ParsecError
 from .c_function import CFunction
-from .parsec_file import ParsecFile
+from .parsec_file import ParsecResult
 from .function_specification import FunctionSpecification
 from .spec_conversation import SpecConversation
 from .json_util import parse_object
@@ -17,7 +17,7 @@ __all__ = [
     "SpecConversation",
     "ParsecError",
     "CFunction",
-    "ParsecFile",
+    "ParsecResult",
     "copy_file_to_folder",
     "extract_function_source_code",
     "extract_specification",

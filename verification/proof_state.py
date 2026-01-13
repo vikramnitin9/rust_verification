@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
 
-from util import CFunction, FunctionSpecification, ParsecFile
+from util import CFunction, FunctionSpecification, ParsecResult
 
 from .verification_input import VerificationContext
 
@@ -177,7 +177,7 @@ class ProofState:
         Returns:
             VerificationContext: The current verification context for the function.
         """
-        parsec_file = ParsecFile(file_path=Path(function.file_name))
+        parsec_file = ParsecResult(file_path=Path(function.file_name))
         callees_for_function = parsec_file.get_callees(function=function)
         callee_specs = {
             callee: callee_spec

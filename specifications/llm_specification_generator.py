@@ -14,7 +14,7 @@ from models import (
 from util import (
     CFunction,
     FunctionSpecification,
-    ParsecFile,
+    ParsecResult,
     SpecConversation,
     SpecificationGenerationNextStep,
     extract_function_source_code,
@@ -30,7 +30,7 @@ class LlmSpecificationGenerator:
     a set of potential specifications for it. Each specification may or may not verify.
 
     Attributes:
-        _parsec_file (ParsecFile): The ParseC file to use to obtain functions.
+        _parsec_result (ParsecResult): The ParseC result to use to obtain functions.
         _prompt_builder (PromptBuilder): Used in creating specification generation/repair prompts.
         _verifier (VerificationClient): The client for specification verification.
         _num_specification_candidates (int): The number of specifications to initially generate.
@@ -43,7 +43,7 @@ class LlmSpecificationGenerator:
         _llm_client (LlmClient): The client used to invoke LLMs.
     """
 
-    _parsec_file: ParsecFile
+    _parsec_result: ParsecResult
     _prompt_builder: PromptBuilder
     _verifier: VerificationClient
     _num_specification_candidates: int
@@ -58,7 +58,7 @@ class LlmSpecificationGenerator:
         model: str,
         system_prompt: str,
         verifier: VerificationClient,
-        parsec_file: ParsecFile,
+        parsec_result: ParsecResult,
         num_specification_candidates: int,
         num_repair_candidates: int,
         num_repair_iterations: int,
@@ -67,7 +67,7 @@ class LlmSpecificationGenerator:
         """Create a new LlmSpecificationGenerator."""
         self._system_prompt = system_prompt
         self._verifier = verifier
-        self._parsec_file = parsec_file
+        self._parsec_result = parsec_result
         self._prompt_builder = PromptBuilder()
         self._num_specification_candidates = num_specification_candidates
         self._num_repair_candidates = num_repair_candidates
@@ -139,7 +139,7 @@ class LlmSpecificationGenerator:
         """
         conversation: list[ConversationMessage] = [SystemMessage(content=self._system_prompt)]
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
-            function, self._parsec_file
+            function, self._parsec_result
         )
         if hint:
             specification_generation_prompt += "\n\n" + hint
@@ -198,7 +198,7 @@ class LlmSpecificationGenerator:
 
                 contents_of_file_to_verify = self._get_content_of_file_to_verify(
                     spec_conversation=current_spec_conversation,
-                    original_file_path=self._parsec_file.file_path,
+                    original_file_path=self._parsec_result.file_path,
                     proof_state=proof_state,
                 )
                 function_under_repair = current_spec_conversation.function
@@ -206,7 +206,7 @@ class LlmSpecificationGenerator:
                     function_util.get_source_code_with_inserted_spec(
                         function_name=function_under_repair.name,
                         specification=current_spec_conversation.specification,
-                        parsec_file=self._parsec_file,
+                        parsec_result=self._parsec_result,
                     )
                 )
                 current_spec_conversation.contents_of_file_to_verify = contents_of_file_to_verify
@@ -369,10 +369,10 @@ class LlmSpecificationGenerator:
             str: The content of the file that should be verified.
 
         """
-        parsec_file = ParsecFile(original_file_path)
+        parsec_result = ParsecResult(original_file_path)
         callees_to_specs = {
             callee: spec
-            for callee in parsec_file.get_callees(function=spec_conversation.function)
+            for callee in parsec_result.get_callees(function=spec_conversation.function)
             if (spec := proof_state.get_specification(function=callee))
         }
 
@@ -382,6 +382,6 @@ class LlmSpecificationGenerator:
 
         return function_util.get_source_file_content_with_specifications(
             specified_functions=functions_with_specs,
-            parsec_file=parsec_file,
+            parsec_result=parsec_result,
             original_source_file_path=original_file_path,
         )
