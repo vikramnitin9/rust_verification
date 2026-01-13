@@ -66,12 +66,7 @@ def main() -> None:
         prog="main.py", description="Generate and verify CBMC specifications for a C file."
     )
     parser.add_argument(
-        # MDE: I don't feel "--file" is informative.  It doesn't indicate whether the file is used
-        # for input or output (that omission somewhat implies both) or what is in the file.  I
-        # suggest that the file names be passed directly on the command line, as a non-flag
-        # argument.
-        "--file",
-        required=True,
+        "file",
         help="The C file for which to generate and verify specifications.",
     )
     parser.add_argument(
