@@ -135,7 +135,7 @@ immutable class SpecConversation:
   * `ASSUME_SPEC_AS_IS`: For specs that should be assumed during verification (when repair or
     backtracking has repeatedly failed).
   * `BACKTRACK_TO_CALLEE`: When the specifications should be regenerated for a callee of the
-    function with this conversations's spec, which has the following fields:
+    function with this conversation's spec, which has the following fields:
     * `callee`: The name of the callee to backtrack to.
     * `hint`: The reasoning given by the LLM that generally describes the
       postcondition-strengthening change to the callee specification.
