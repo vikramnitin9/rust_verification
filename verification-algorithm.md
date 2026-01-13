@@ -24,7 +24,7 @@ heuristic prunes or prioritizes the possibilities).
 Two integers parameterize the algorithm:
 
 * `num_llm_samples`: each call to `llm()` returns a list of this length.
-  The algorithm pursues all these possibilities in parallel.
+  The algorithm should eventually pursue all these possibilities in parallel.
   As a general rule, after each call to `llm()`, our algorithm heuristically
   prunes the returned list of samples to reduce the exploration space.
   * The implementation calls the LLM for different purposes and therefore has multiple variables,
@@ -118,12 +118,9 @@ Possible fields for ProofState:
 immutable class WorkItem:
 
 * `function`: ParsecFunction
-* `backtrack_hint`: str
-  Each hint is text provided to the LLM to guide it.  I don't have a data
-  structure (beyond string) in mind for it yet.
-  Example hints:
-  * "Please weaken/strengthen the postcondition"
-  * "This function is only ever called with non-null values",
+* `hint`: str
+  Each hint is text provided to the LLM to guide it in the backtracking process; its value is
+  populated by the `hint` field in the `BacktrackToCallee` class.
 
 immutable class SpecConversation:
 

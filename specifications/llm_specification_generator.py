@@ -220,8 +220,6 @@ class LlmSpecificationGenerator:
             source_file_content=spec_conversation.contents_of_file_to_verify,
         )
         if vresult.succeeded:
-            # MDE: I don't think this assignment is needed.  Other code can cheaply check whether
-            # verification succeeded.
             spec_conversation.next_step = AcceptVerifiedSpec()
             verified_spec_conversations.append(spec_conversation)
             return verified_spec_conversations
@@ -251,8 +249,6 @@ class LlmSpecificationGenerator:
 
             if vresult.succeeded:
                 # No need to iterate further, there is nothing to repair.
-                # MDE: I don't think this assignment is needed.  Other code can cheaply check
-                # whether verification succeeded.
                 spec_under_repair.next_step = AcceptVerifiedSpec()
                 verified_spec_conversations.append(spec_under_repair)
                 continue

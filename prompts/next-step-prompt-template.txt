@@ -33,6 +33,4 @@ If you choose (2), your response should be in the following format:
     "next_step": "BACKTRACK_TO_CALLEE",
     "postcondition_change_for_callee": "<DESCRIPTION>",
     "callee": "<CALLEE_NAME>",
-    # TODO(maybe): Ask it to generate the strengthened spec for the callee, then run the verifier on
-    # the failing function, assuming the strengthened spec, then backtrack based on that result.
 }

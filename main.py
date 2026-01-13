@@ -38,8 +38,7 @@ DEFAULT_NUM_SPECIFICATION_CANDIDATES = 10
 DEFAULT_NUM_REPAIR_CANDIDATES = 1  # MDE: This seems too low to me.
 DEFAULT_MODEL_TEMPERATURE = 1.0
 DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS = 3  # MDE: This might be too high.
-# MDE: Is this a timeout per function, per file, or per program?
-# Default timeout of 5 minutes for specification generation and repair.
+# Default timeout of 5 minutes for specification generation and repair for an entire program.
 DEFAULT_SPECIFICATION_GENERATION_TIMEOUT_SEC = 300
 DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
 DEFAULT_RESULT_DIR = "specs"
@@ -92,8 +91,10 @@ def main() -> None:
     parser.add_argument(
         "--specification-generation-timeout-sec",
         required=False,
-        # MDE: Is this per function or per program?
-        help="The timeout for specification generation (in seconds, defaults to 5 minutes).",
+        help=(
+            "The timeout for specification generation for a given program in seconds, "
+            "defaults to 5 minutes"
+        ),
         default=DEFAULT_SPECIFICATION_GENERATION_TIMEOUT_SEC,
         type=float,
     )
@@ -340,15 +341,13 @@ def _write_spec_to_disk(spec_conversation: SpecConversation) -> None:
     """Write a function specification to a file on disk.
 
     # MDE: What is the reason for this stricture?  Because this function hard-codes the file name?
-    This function should be called to update the files which will be the end-result of verification,
-    not the temporary files used in iteratively verifying candidate specifications.
+    This function should be called to update the files which will eventually comprise the end-result
+    of program verification, not the temporary files used in iteratively verifying candidate
+    specifications.
 
     The contents of the file that is being written to are identical to the corresponding file in the
     unverified (input) program, but some functions may be specified (i.e., have CBMC annotations)
-    as specification generation progresses.
-    # MDE: "as specification generation progresses" is in conflict with "the end-result of
-    # verification".  Please clarify.  Is one of them about function verification and the other
-    # about program verification, or is one of the comments just wrong?
+    as specification generation runs for each function in the program.
 
     # MDE: This is very bad for parallelism.  Two parallel processes might both find different
     # successful specs at the same time.
