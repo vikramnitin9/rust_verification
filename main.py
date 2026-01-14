@@ -3,6 +3,7 @@
 """Main entry point for specification generation and verification."""
 
 import argparse
+import os
 import shutil
 import tempfile
 import time
@@ -340,19 +341,15 @@ def _get_next_proof_state(
 def _write_spec_to_disk(spec_conversation: SpecConversation) -> None:
     """Write a function specification to a file on disk.
 
-    # MDE: What is the reason for this stricture?  Because this function hard-codes the file name?
-    This function should be called to update the files which will eventually comprise the end-result
-    of program verification, not the temporary files used in iteratively verifying candidate
-    specifications.
+    This function iteratively builds up the final output of verification, which is the set of
+    input files that are specified with CBMC annotations. The contents of the file that is being
+    written to are identical to the corresponding file in the unverified (input) program, but some
+    functions may be specified (i.e., have CBMC annotations) as specification generation runs for
 
-    The contents of the file that is being written to are identical to the corresponding file in the
-    unverified (input) program, but some functions may be specified (i.e., have CBMC annotations)
-    as specification generation runs for each function in the program.
-
-    # MDE: This is very bad for parallelism.  Two parallel processes might both find different
-    # successful specs at the same time.
     Specifications are written to a file under the `DEFAULT_RESULT_DIR` directory that has the same
-    same name (and path) as the original (non-specified) file.
+    same name (and path) as the original (non-specified) file under a directory that is specific to
+    each process (i.e., the directory's name is the pid of the process where specification
+    generation is running).
 
     Args:
         spec_conversation (SpecConversation): The SpecConversation comprising the specification that
@@ -396,11 +393,12 @@ def _get_result_file(function: CFunction) -> Path:
         Path: The result file.
     """
     # Examples of original and result file names:
-    # * "my_research/myfile.c" => "specs/my_research/myfile.c"
-    # * "/home/jquser/my_research/myfile.c" => "specs/home/jquser/my_research/myfile.c"
+    # * "my_research/myfile.c" => "specs/<PID>/my_research/myfile.c"
+    # * "/home/jquser/my_research/myfile.c" => "specs/<PID>/home/jquser/my_research/myfile.c"
     path_to_original_file = Path(function.file_name)
     original_file_dir = str(path_to_original_file.parent).lstrip("/")
-    result_file_dir = Path(DEFAULT_RESULT_DIR) / Path(original_file_dir)
+    pid_dir = Path(str(os.getpid()))
+    result_file_dir = Path(DEFAULT_RESULT_DIR) / pid_dir / Path(original_file_dir)
     return result_file_dir / path_to_original_file.name
 
 
