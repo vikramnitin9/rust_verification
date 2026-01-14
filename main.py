@@ -36,9 +36,9 @@ from verification import (
 MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
 DEFAULT_NUM_SPECIFICATION_CANDIDATES = 10
-DEFAULT_NUM_REPAIR_CANDIDATES = 1  # MDE: This seems too low to me.
+DEFAULT_NUM_REPAIR_CANDIDATES = 10
 DEFAULT_MODEL_TEMPERATURE = 1.0
-DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS = 3  # MDE: This might be too high.
+DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS = 2
 # Default timeout of 5 minutes for specification generation and repair for an entire program.
 DEFAULT_SPECIFICATION_GENERATION_TIMEOUT_SEC = 300
 DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
