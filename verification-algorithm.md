@@ -196,16 +196,15 @@ def step(proofstate: ProofState) -> List[ProofState]:
     result.append(next_proofstate)
   return result
 
-# MDE: I suspect this needs a ProofState as an input.
-def generate_and_repair_spec(fn, backtrack_hint) -> List[SpecConversation]:
+def generate_and_repair_spec(fn, backtrack_hint, proofstate) -> List[SpecConversation]:
   """
   Generate a specification for a function.
   Input: a function and hints about how to specify it.  The hints are non-empty only when backtracking.
   Output: a list of potential specs for the function.  Some may verify and some may not verify.
   """
-  generated_speccs = generate_speccs(fn, backtrack_hint)
+  generated_speccs = generate_speccs(fn, backtrack_hint, proofstate)
   pruned_speccs = prune_heuristically(fn, generated_speccs)
-  repaired_speccs = [*repair_spec(fn, spec) for spec in pruned_speccs]
+  repaired_speccs = [*repair_spec(fn, spec, proofstate) for spec in pruned_speccs]
   return repaired_speccs
 
 def prune_heuristically(fn, speccs: List[SpecConversation]) -> List[SpecConversation]:
@@ -213,8 +212,7 @@ def prune_heuristically(fn, speccs: List[SpecConversation]) -> List[SpecConversa
   #  * If any spec verifies, return a list containing only the specs that verify.
   #  * Otherwise, return all the specs.
 
-# MDE: I suspect this needs a ProofState as an input.
-def generate_speccs(fn, backtrack_hint) -> List[SpecConversation]:
+def generate_speccs(fn, backtrack_hint, proofstate) -> List[SpecConversation]:
   """
   An LLM guesses a specification.
   Input: a function and a hint.  The hint is plaintext.
