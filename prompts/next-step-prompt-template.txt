@@ -17,7 +17,7 @@ Given this information, select from the two options:
 <KEY POINTS>
 
 You should almost always select (1) unless you have strong evidence that (2) will result in a
-specification that verifies for $function_name
+specification that verifies for $function_name.
 
 </KEY POINTS>
 
