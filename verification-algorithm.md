@@ -24,7 +24,7 @@ heuristic prunes or prioritizes the possibilities).
 Two integers parameterize the algorithm:
 
 * `num_llm_samples`: each call to `llm()` returns a list of this length.
-  The algrithm pursues all these possibilities in parallel.
+  The algorithm should eventually pursue all these possibilities in parallel.
   As a general rule, after each call to `llm()`, our algorithm heuristically
   prunes the returned list of samples to reduce the exploration space.
   * The implementation calls the LLM for different purposes and therefore has multiple variables,
@@ -118,18 +118,24 @@ Possible fields for ProofState:
 immutable class WorkItem:
 
 * `function`: ParsecFunction
-* `backtrack_hint`: str
-  Each hint is text provided to the LLM to guide it.  I don't have a data
-  structure (beyond string) in mind for it yet.
-  Example hints:
-  * "Please weaken/strengthen the postcondition"
-  * "This function is only ever called with non-null values",
+* `hint`: str
+  Each hint is text provided to the LLM to guide it in the backtracking process; its value is
+  populated by the `hint` field in the `BacktrackToCallee` class.
 
 immutable class SpecConversation:
 
 * `spec`: Specification
 * `conversation`: a conversation history with an LLM, that led to the given spec
-* `hint`: Any hints for regenerating specifications, either for repair or for callees.
+* `next_step`: The next step in the specification generation process. Valid values for the next step
+  are:
+  * `ACCEPT_VERIFIED_SPEC`: For specs that successfully verify with CBMC.
+  * `ASSUME_SPEC_AS_IS`: For specs that should be assumed during verification (when repair or
+    backtracking has repeatedly failed).
+  * `BACKTRACK_TO_CALLEE`: When the specifications should be regenerated for a callee of the
+    function with this conversation's spec, which has the following fields:
+    * `callee`: The name of the callee to backtrack to.
+    * `hint`: The reasoning given by the LLM that generally describes the
+      postcondition-strengthening change to the callee specification.
 
 ## Code
 
@@ -142,7 +148,7 @@ def verify_program(program) -> List[Map[Fn, Spec]]:
   """
   # Since workstacks are immutable, a workstack can be represented as a tuple rather than as a Stack.
   initial_workstack: Stack[WorkItem] = all functions in `program`, in reverse topological
-                                                order (that is, children first), with empty backtrack_hint.
+                                       order (that is, children first), with empty backtrack_hint.
   initial_proofstate = ProofState(initial_workstack)
   global.proofstates_worklist.add(initial_proofstate)
 
@@ -190,15 +196,15 @@ def step(proofstate: ProofState) -> List[ProofState]:
     result.append(next_proofstate)
   return result
 
-def generate_and_repair_spec(fn, backtrack_hint) -> List[SpecConversation]:
+def generate_and_repair_spec(fn, backtrack_hint, proofstate) -> List[SpecConversation]:
   """
   Generate a specification for a function.
   Input: a function and hints about how to specify it.  The hints are non-empty only when backtracking.
   Output: a list of potential specs for the function.  Some may verify and some may not verify.
   """
-  generated_speccs = generate_speccs(fn, backtrack_hint)
+  generated_speccs = generate_speccs(fn, backtrack_hint, proofstate)
   pruned_speccs = prune_heuristically(fn, generated_speccs)
-  repaired_speccs = [*repair_spec(fn, spec) for spec in pruned_speccs]
+  repaired_speccs = [*repair_spec(fn, spec, proofstate) for spec in pruned_speccs]
   return repaired_speccs
 
 def prune_heuristically(fn, speccs: List[SpecConversation]) -> List[SpecConversation]:
@@ -206,7 +212,7 @@ def prune_heuristically(fn, speccs: List[SpecConversation]) -> List[SpecConversa
   #  * If any spec verifies, return a list containing only the specs that verify.
   #  * Otherwise, return all the specs.
 
-def generate_speccs(fn, backtrack_hint) -> List[SpecConversation]:
+def generate_speccs(fn, backtrack_hint, proofstate) -> List[SpecConversation]:
   """
   An LLM guesses a specification.
   Input: a function and a hint.  The hint is plaintext.
@@ -240,6 +246,9 @@ def repair_spec(fn, specc, proofstate) -> List[SpecConversation]:
   specs_that_failed_repair = []
 
   while specs_to_repair:
+    # The value of `spec_under_repair.next_step` is None; this field is set only when a spec
+    # is successfully verifies (ACCEPT_VERIFIED_SPEC) or when an LLM decides on a next step for
+    # a spec that fails repair (resulting in either ACCEPT_SPEC_AS_IS or BACKTRACK_TO_CALLEE).
     spec_under_repair, num_repair_attempts = specs_to_repair.remove_head() # In Python: popleft()
     vresult = call_verifier(fn, spec_under_repair, proofstate)
     if is_success(vresult):
@@ -259,6 +268,8 @@ def repair_spec(fn, specc, proofstate) -> List[SpecConversation]:
     newly_repaired_speccs = call_llm(conversation_with_repair_prompt)
 
     for newly_repaired_spec, response in newly_repaired_speccs:
+      # A newly-created SpecConversation's next_step field defaults to `None`, since its
+      # specification has yet to be verified.
       next_specc = SpecConversation(
         spec_under_repair,
         newly_repaired_spec,

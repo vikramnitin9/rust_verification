@@ -15,6 +15,9 @@ from models import (
     UserMessage,
 )
 from util import (
+    AcceptVerifiedSpec,
+    AssumeSpecAsIs,
+    BacktrackToCallee,
     CFunction,
     FunctionSpecification,
     ParsecFile,
@@ -203,7 +206,7 @@ class LlmSpecificationGenerator:
         Returns:
             list[SpecConversation]: A list of specifications that successfully verify (they either
                 verified in the first place, or were repaired), or a list of specifications that
-                ultimately failed to be repaired with a next step set for specification generation.
+                ultimately failed repair.
         """
         # Below are the two possible return values of this method.
         verified_spec_conversations: list[SpecConversation] = []
@@ -217,9 +220,7 @@ class LlmSpecificationGenerator:
             source_file_content=spec_conversation.contents_of_file_to_verify,
         )
         if vresult.succeeded:
-            spec_conversation.specgen_next_step = (
-                SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
-            )
+            spec_conversation.next_step = AcceptVerifiedSpec()
             verified_spec_conversations.append(spec_conversation)
             return verified_spec_conversations
 
@@ -248,9 +249,7 @@ class LlmSpecificationGenerator:
 
             if vresult.succeeded:
                 # No need to iterate further, there is nothing to repair.
-                spec_under_repair.specgen_next_step = (
-                    SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
-                )
+                spec_under_repair.next_step = AcceptVerifiedSpec()
                 verified_spec_conversations.append(spec_under_repair)
                 continue
 
@@ -287,12 +286,7 @@ class LlmSpecificationGenerator:
                 )
                 specs_to_repair.append((next_spec_conversation, num_repair_attempts + 1))
 
-        return verified_spec_conversations or [
-            self._call_llm_for_backtracking_strategy(
-                spec_conversation=unrepairable_spec, proof_state=proof_state
-            )
-            for unrepairable_spec in specs_that_failed_repair
-        ]
+        return verified_spec_conversations or specs_that_failed_repair
 
     def _call_llm_for_repair(
         self, function: CFunction, conversation: tuple[ConversationMessage, ...]
@@ -334,7 +328,7 @@ class LlmSpecificationGenerator:
             msg = f"Failed to repair specifications for '{function.name}'"
             raise RuntimeError(msg) from me
 
-    def _call_llm_for_backtracking_strategy(
+    def call_llm_for_backtracking_strategy(
         self, spec_conversation: SpecConversation, proof_state: ProofState
     ) -> SpecConversation:
         """Return a SpecConversation that resulted from asking an LLM for a backtracking strategy.
@@ -375,7 +369,7 @@ class LlmSpecificationGenerator:
                 LlmMessage(content=backtracking_decision),
             ),
             contents_of_file_to_verify=spec_conversation.contents_of_file_to_verify,
-            specgen_next_step=self._parse_next_step(backtracking_decision),
+            next_step=self._parse_next_step(backtracking_decision),
         )
 
     def _parse_specification_from_response(self, llm_response: str) -> FunctionSpecification | None:
@@ -408,7 +402,18 @@ class LlmSpecificationGenerator:
         llm_response = llm_response.removeprefix("```json").removesuffix("```")
 
         try:
-            return SpecificationGenerationNextStep(json.loads(llm_response)["next_step"])
+            llm_response_dict = json.loads(llm_response)
+            match llm_response_dict["next_step"]:
+                case "ASSUME_SPEC_AS_IS":
+                    return AssumeSpecAsIs()
+                case "BACKTRACK_TO_CALLEE":
+                    return BacktrackToCallee(
+                        callee=llm_response_dict["callee"],
+                        hint=llm_response_dict["postcondition_change_for_callee"],
+                    )
+                case unexpected_step:
+                    msg = f"Unexpected next step for specification generation = '{unexpected_step}'"
+                    raise RuntimeError(msg)
         except json.JSONDecodeError as je:
             msg = f"The LLM failed to return a valid JSON object: {llm_response}, error = {je}"
             raise RuntimeError(msg) from je

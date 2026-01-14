@@ -3,6 +3,7 @@
 """Main entry point for specification generation and verification."""
 
 import argparse
+import os
 import shutil
 import tempfile
 import time
@@ -14,14 +15,15 @@ from loguru import logger
 
 from specifications import LlmSpecificationGenerator
 from util import (
+    AcceptVerifiedSpec,
+    AssumeSpecAsIs,
+    BacktrackToCallee,
     CFunction,
     ParsecFile,
     SpecConversation,
-    SpecificationGenerationNextStep,
     copy_file_to_folder,
     ensure_lines_at_beginning,
     function_util,
-    parse_backtracking_info,
 )
 from verification import (
     CbmcVerificationClient,
@@ -34,13 +36,12 @@ from verification import (
 MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
 DEFAULT_NUM_SPECIFICATION_CANDIDATES = 10
-DEFAULT_NUM_REPAIR_CANDIDATES = 1
-DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS = 3
+DEFAULT_NUM_REPAIR_CANDIDATES = 1  # MDE: This seems too low to me.
 DEFAULT_MODEL_TEMPERATURE = 1.0
-# Default timeout of 5 minutes for specification generation and repair.
+DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS = 3  # MDE: This might be too high.
+# Default timeout of 5 minutes for specification generation and repair for an entire program.
 DEFAULT_SPECIFICATION_GENERATION_TIMEOUT_SEC = 300
 DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
-DEFAULT_VERIFIER_CACHE_DIR = "data/caching/verifier"
 DEFAULT_RESULT_DIR = "specs"
 DEFAULT_VERIFIER_RESULT_CACHE_DIR = "data/caching/verifier"
 
@@ -48,7 +49,7 @@ GLOBAL_OBSERVED_PROOFSTATES: set[ProofState] = set()
 # Every ProofState in this queue is incomplete (i.e., their worklists are non-empty.)
 GLOBAL_INCOMPLETE_PROOFSTATES: deque[ProofState] = deque()
 # Every ProofState in this queue is complete (i.e., their worklists are empty.)
-GLOBAL_COMPLETE_PROOFSTATES: deque[ProofState] = deque()
+GLOBAL_COMPLETE_PROOFSTATES: list[ProofState] = []
 # The keys for VERIFIER_CACHE are `VerificationInput` and the values are `VerificationResult`.
 VERIFIER_CACHE: Cache = Cache(directory=DEFAULT_VERIFIER_RESULT_CACHE_DIR)
 
@@ -64,8 +65,7 @@ def main() -> None:
         prog="main.py", description="Generate and verify CBMC specifications for a C file."
     )
     parser.add_argument(
-        "--file",
-        required=True,
+        "file",
         help="The C file for which to generate and verify specifications.",
     )
     parser.add_argument(
@@ -92,7 +92,10 @@ def main() -> None:
     parser.add_argument(
         "--specification-generation-timeout-sec",
         required=False,
-        help="The timeout for specification generation (in seconds, defaults to 5 minutes).",
+        help=(
+            "The timeout for specification generation for a given program in seconds, "
+            "defaults to 5 minutes"
+        ),
         default=DEFAULT_SPECIFICATION_GENERATION_TIMEOUT_SEC,
         type=float,
     )
@@ -106,6 +109,8 @@ def main() -> None:
     input_file_path = Path(args.file)
     parsec_file = ParsecFile(input_file_path)
 
+    # MDE: Will this path be repeatedly overwritten during the verification process?  If so, that is
+    # a serious problem for concurrency.
     output_file_path = copy_file_to_folder(input_file_path, DEFAULT_RESULT_DIR)
     header_lines = [f"#include <{header}>" for header in DEFAULT_HEADERS_IN_OUTPUT]
     ensure_lines_at_beginning(header_lines, output_file_path)
@@ -139,7 +144,8 @@ def _verify_program(
 ) -> tuple[ProofState, ...]:
     """Return a set of ProofStates, each of which has a specification for each function.
 
-    This function exits when GLOBAL_INCOMPLETE_PROOFSTATES is empty.
+    This function exits when GLOBAL_INCOMPLETE_PROOFSTATES is empty or when execution time
+    exceeds DEFAULT_SPECIFICATION_GENERATION_TIMEOUT_SEC.
 
     Args:
         functions (list[CFunction]): The functions for which to generate and verify specifications,
@@ -217,19 +223,58 @@ def _step(
         )
     )
 
-    pruned_spec_conversations_for_function = _prune_specs_heuristically(
-        proof_state=proof_state,
-        spec_conversations=spec_conversations_for_function,
-    )
+    specc_with_next_steps = [
+        _get_specc_with_next_step(
+            spec_conversation=specc,
+            proof_state=proof_state,
+            specification_generator=specification_generator,
+        )
+        for specc in spec_conversations_for_function
+    ]
 
     result: list[ProofState] = [
         _get_next_proof_state(
             prev_proof_state=proof_state,
-            spec_conversation=spec_conversation,
+            spec_conversation=specc,
         )
-        for spec_conversation in pruned_spec_conversations_for_function
+        for specc in specc_with_next_steps
     ]
     return result
+
+
+def _get_specc_with_next_step(
+    spec_conversation: SpecConversation,
+    proof_state: ProofState,
+    specification_generator: LlmSpecificationGenerator,
+) -> SpecConversation:
+    """Return the given SpecConversation with its next step field set.
+
+    Args:
+        spec_conversation (SpecConversation): The SpecConversation whose next step field to set.
+        proof_state (ProofState): The ProofState.
+        specification_generator (LlmSpecificationGenerator): The specification generator.
+
+    Raises:
+        RuntimeError: Raised when a previously-verified spec is missing from the verifier cache.
+
+    Returns:
+        SpecConversation: The given SpecConversation with its next step field set.
+    """
+    vinput = VerificationInput(
+        function=spec_conversation.function,
+        spec=spec_conversation.specification,
+        context=proof_state.get_current_context(function=spec_conversation.function),
+        contents_of_file_to_verify=spec_conversation.contents_of_file_to_verify,
+    )
+    if vresult := VERIFIER_CACHE.get(vinput):
+        if vresult.succeeded:
+            spec_conversation.next_step = AcceptVerifiedSpec()
+            return spec_conversation
+        return specification_generator.call_llm_for_backtracking_strategy(
+            spec_conversation=spec_conversation, proof_state=proof_state
+        )
+    msg = f"Previously-verified spec: '{spec_conversation}' was missing from the verifier cache"
+    raise RuntimeError(msg)
 
 
 def _get_next_proof_state(
@@ -256,14 +301,11 @@ def _get_next_proof_state(
     specs_for_next_proof_state = prev_proof_state.get_specifications() | {
         spec_conversation.function: spec_conversation.specification
     }
-    match spec_conversation.specgen_next_step:
+    match spec_conversation.next_step:
         case None:
             msg = f"{spec_conversation} was missing a next step"
             raise ValueError(msg)
-        case (
-            SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
-            | SpecificationGenerationNextStep.ASSUME_SPEC_AS_IS
-        ):
+        case AcceptVerifiedSpec() | AssumeSpecAsIs():
             # There could be more than one valid specification generated (i.e., when we sample more
             # than once from the LLM). For now, we take the last (valid) specification and write it.
             _write_spec_to_disk(spec_conversation=spec_conversation)
@@ -271,27 +313,19 @@ def _get_next_proof_state(
             return ProofState(
                 specs=specs_for_next_proof_state, workstack=workstack_for_next_proof_state
             )
-        case SpecificationGenerationNextStep.BACKTRACK_TO_CALLEE:
-            backtracking_info = parse_backtracking_info(
-                llm_response=spec_conversation.get_latest_llm_response(),
-            )
+        case BacktrackToCallee(callee, hint):
             # TODO: Fetching the callee from the same file in which the function under spec. gen.
             # is defined is a brittle assumption that should be fixed with multi-file ParseC
             # support.
             result_file = _get_result_file(function=spec_conversation.function)
-            callee = ParsecFile(result_file).get_function_or_none(
-                function_name=backtracking_info.callee_name
-            )
+            callee = ParsecFile(result_file).get_function_or_none(function_name=callee)
             if not callee:
                 msg = (
                     f"'{result_file}' was missing a definition for callee: "
-                    f"'{backtracking_info.callee_name}' during backtracking"
+                    f"'{callee}' during backtracking"
                 )
                 raise ValueError(msg)
-            work_item_for_callee = WorkItem(
-                function=callee,
-                hint=backtracking_info.postcondition_strengthening_description,
-            )
+            work_item_for_callee = WorkItem(function=callee, hint=hint)
             workstack_for_next_proof_state = prev_proof_state.get_workstack().push(
                 work_item_for_callee
             )
@@ -300,62 +334,22 @@ def _get_next_proof_state(
                 workstack=workstack_for_next_proof_state,
             )
         case _:
-            msg = f"Unexpected next step strategy: '{SpecConversation.specgen_next_step}'"
+            msg = f"Unexpected next step strategy: '{SpecConversation.next_step}'"
             raise ValueError(msg)
-
-
-def _prune_specs_heuristically(
-    proof_state: ProofState,
-    spec_conversations: list[SpecConversation],
-) -> list[SpecConversation]:
-    """Given a list of SpecConversations, returns a subset of them (which prunes the others).
-
-    Note: The current strategy is:
-    If any specification verifies, return all the specifications that verify.
-    Otherwise, return all the input specifications.
-
-    Args:
-        proof_state (ProofState): The ProofState. The topmost function on its workstack is the
-            function for which specifications are being generated/repaired.
-        spec_conversations (list[SpecConversation]): The SpecConversations to prune.
-
-    Raises:
-        RuntimeError: Raised when a previously-verified input does not have a cache entry.
-
-    Returns:
-        list[SpecConversation]: A subset of the given SpecConversations.
-    """
-    pruned_specs = []
-    for spec_conversation in spec_conversations:
-        function = spec_conversation.function
-        vcontext = proof_state.get_current_context(function=function)
-        vinput = VerificationInput(
-            function=function,
-            spec=spec_conversation.specification,
-            context=vcontext,
-            contents_of_file_to_verify=spec_conversation.contents_of_file_to_verify,
-        )
-        if vresult := VERIFIER_CACHE.get(vinput):
-            if vresult.succeeded:
-                pruned_specs.append(spec_conversation)
-        else:
-            msg = f"Cache miss for previously-executed vinput: {vinput}"
-            raise RuntimeError(msg)
-    return pruned_specs or spec_conversations
 
 
 def _write_spec_to_disk(spec_conversation: SpecConversation) -> None:
     """Write a function specification to a file on disk.
 
-    This function should be called to update the files which will be the end-result of verification,
-    not the temporary files used in iteratively verifying candidate specifications.
-
-    The contents of the file that is being written to are identical to the corresponding file in the
-    unverified (input) program, but some functions may be specified (i.e., have CBMC annotations)
-    as specification generation progresses.
+    This function iteratively builds up the final output of verification, which is the set of
+    input files that are specified with CBMC annotations. The contents of the file that is being
+    written to are identical to the corresponding file in the unverified (input) program, but some
+    functions may be specified (i.e., have CBMC annotations) as specification generation runs for
 
     Specifications are written to a file under the `DEFAULT_RESULT_DIR` directory that has the same
-    same name (and path) as the original (non-specified) file.
+    same name (and path) as the original (non-specified) file under a directory that is specific to
+    each process (i.e., the directory's name is the pid of the process where specification
+    generation is running).
 
     Args:
         spec_conversation (SpecConversation): The SpecConversation comprising the specification that
@@ -399,11 +393,12 @@ def _get_result_file(function: CFunction) -> Path:
         Path: The result file.
     """
     # Examples of original and result file names:
-    # * "my_research/myfile.c" => "specs/my_research/myfile.c"
-    # * "/home/jquser/my_research/myfile.c" => "specs/home/jquser/my_research/myfile.c"
+    # * "my_research/myfile.c" => "specs/<PID>/my_research/myfile.c"
+    # * "/home/jquser/my_research/myfile.c" => "specs/<PID>/home/jquser/my_research/myfile.c"
     path_to_original_file = Path(function.file_name)
     original_file_dir = str(path_to_original_file.parent).lstrip("/")
-    result_file_dir = Path(DEFAULT_RESULT_DIR) / Path(original_file_dir)
+    pid_dir = Path(str(os.getpid()))
+    result_file_dir = Path(DEFAULT_RESULT_DIR) / pid_dir / Path(original_file_dir)
     return result_file_dir / path_to_original_file.name
 
 

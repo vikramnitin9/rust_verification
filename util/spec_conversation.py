@@ -21,16 +21,16 @@ class SpecConversation:
         conversation (tuple[ConversationMessage, ...]): The conversation that resulted in the
             specification.  The last message is the latest response from the LLM.
         contents_of_file_to_verify (str | None): The content of the file to be verified.
-        specgen_next_step (SpecificationGenerationNextStep | None): The next step in the
-            specification generation process. It value is set upon a successful verification run,
-            or when an LLM produces a backtracking decision (on a spec that fails repair).
+        next_step (SpecificationGenerationNextStep | None): The next step in the specification
+            generation process. It value is set upon a successful verification run, or when an LLM
+            produces a backtracking decision (on a spec that fails repair).
     """
 
     function: CFunction
     specification: FunctionSpecification
     conversation: tuple[ConversationMessage, ...]
     contents_of_file_to_verify: str
-    specgen_next_step: SpecificationGenerationNextStep | None
+    next_step: SpecificationGenerationNextStep | None
 
     def __init__(
         self,
@@ -38,13 +38,13 @@ class SpecConversation:
         specification: FunctionSpecification,
         conversation: tuple[ConversationMessage, ...],
         contents_of_file_to_verify: str,
-        specgen_next_step: SpecificationGenerationNextStep | None = None,
+        next_step: SpecificationGenerationNextStep | None = None,
     ) -> None:
         """Create a new SpecConversation."""
         self.function = function
         self.specification = specification
         self.conversation = conversation
-        self.specgen_next_step = specgen_next_step
+        self.next_step = next_step
         self.contents_of_file_to_verify = contents_of_file_to_verify
 
     @classmethod
@@ -135,4 +135,4 @@ class SpecConversation:
         Returns:
             bool: True iff this conversation includes the LLM deciding on a next step.
         """
-        return self.specgen_next_step is not None
+        return self.next_step is not None
