@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 from string import Template
 
-from util import CFunction, ParsecFile, text_util
+from util import CFunction, ParsecResult, text_util
 
 from .verification_result import VerificationResult
 
@@ -24,7 +24,7 @@ class PromptBuilder:
     SOURCE_PLACEHOLDER = "<<SOURCE>>"
     CALLEE_CONTEXT_PLACEHOLDER = "<<CALLEE_CONTEXT>>"
 
-    def specification_generation_prompt(self, function: CFunction, parsec_file: ParsecFile) -> str:
+    def specification_generation_prompt(self, function: CFunction, parsec_file: ParsecResult) -> str:
         """Return the prompt used for specification generation.
 
         The prompt consists of the C function and the "context", which is the specifications of its
@@ -32,8 +32,8 @@ class PromptBuilder:
 
         Args:
             function (CFunction): The function for which to generate specifications.
-            parsec_file (ParsecFile): The top-level ParseC file.
-                # MDE: As elsewhere, perhaps the ParsecFile can be a field of the CFunction.
+            parsec_file (ParsecResult): The top-level ParseC file.
+                # MDE: As elsewhere, perhaps the ParsecResult can be a field of the CFunction.
 
         Returns:
             str: The initial prompt used for specification generation.
@@ -68,7 +68,7 @@ class PromptBuilder:
             )
             tmp_f.write(source_code_cbmc_commented_out)
             tmp_f.flush()
-            parsec_file = ParsecFile(Path(tmp_f.name))
+            parsec_file = ParsecResult(Path(tmp_f.name))
             function = parsec_file.get_function_or_none(
                 function_name=verification_result.get_function().name
             )

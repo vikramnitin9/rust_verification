@@ -4,7 +4,7 @@ import shutil
 import filecmp
 
 from pathlib import Path
-from util import FunctionSpecification, ParsecFile, function_util
+from util import FunctionSpecification, ParsecResult, function_util
 
 import pytest
 
@@ -135,7 +135,7 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     *b = t;
 }"""
 
-    parsec_file = ParsecFile(file_containing_function)
+    parsec_file = ParsecResult(file_containing_function)
     function_util.update_function_declaration(
         "swap", updated_function, parsec_file, file_containing_function
     )
@@ -181,7 +181,7 @@ def test_get_source_code_with_inserted_specs() -> None:
         ],
     )
     swap_with_specs = function_util.get_source_code_with_inserted_spec(
-        "swap", swap_specs, ParsecFile(file_path=Path(path_to_swap_no_specs))
+        "swap", swap_specs, ParsecResult(file_path=Path(path_to_swap_no_specs))
     )
     assert (
         swap_with_specs
@@ -216,7 +216,7 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     *b = t;
 }"""
 
-    parsec_file = ParsecFile(file_containing_function)
+    parsec_file = ParsecResult(file_containing_function)
     function_util.update_function_declaration(
         "swap", updated_function, parsec_file, file_containing_function
     )
@@ -246,7 +246,7 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     *b = t;
 }"""
 
-    parsec_file = ParsecFile(file_containing_function)
+    parsec_file = ParsecResult(file_containing_function)
     function_util.update_function_declaration(
         "swap", updated_function, parsec_file, file_containing_function
     )
