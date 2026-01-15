@@ -145,7 +145,8 @@ class CBMCNormalizer:
         return f"+{self.visit(node.operand)}"
 
     def visit_MemberOp(self, node: cbmc_ast.MemberOp) -> str:
-        return f"{self.visit(node.value)}.{self.visit(node.attr)}"
+        attr = node.attr.name if isinstance(node.attr, cbmc_ast.Name) else node.attr
+        return f"{self.visit(node.value)}.{attr}"
 
     def visit_PtrMemberOp(self, node: cbmc_ast.PtrMemberOp) -> str:
         # attr is a string in PtrMemberOp according to cbmc_ast.py
@@ -223,7 +224,6 @@ _PARSER: Parser[cbmc_ast.CBMCAst] = Parser(
     start="cbmc_clause",
     transformer=ToAst(),
 )
-_CBMC_NORMALIZER: CBMCNormalizer = CBMCNormalizer()
 
 
 def normalize_cbmc_spec(spec_string: str) -> str:
@@ -245,7 +245,9 @@ def normalize_cbmc_spec(spec_string: str) -> str:
         # parser.parser.parse returns a Tree.
         # parser.transformer.transform converts Tree -> CBMCAst
         cbmc_ast_node = _PARSER.transformer.transform(ast)
-        return _CBMC_NORMALIZER.normalize(cbmc_ast_node)
+
+        # A per-call instance of normalizer is required due to scope counting.
+        return CBMCNormalizer().normalize(cbmc_ast_node)
     except Exception as e:
         msg = f"Failed to normalize specification '{spec_string}': {e}"
         raise RuntimeError(msg) from e
