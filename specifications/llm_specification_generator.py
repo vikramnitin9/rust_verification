@@ -26,7 +26,7 @@ from util import (
     extract_function_source_code,
     function_util,
 )
-from verification import PromptBuilder, ProofState, VerificationClient
+from verification import PromptBuilder, ProofState, VerificationClient, VerificationInput
 
 
 class LlmSpecificationGenerator:
@@ -104,12 +104,12 @@ class LlmSpecificationGenerator:
             list[SpecConversation]: A list of potential specifications for the function.
                 Each may or may not verify.
         """
-        candidate_specs = self._generate_unrepaired_specs(
+        candidate_spec_convos = self._generate_unrepaired_specs(
             function=function, hint=hint, proof_state=proof_state
         )
 
         # TODO: Actually perform some pruning here of the candidate specs.
-        pruned_specs = candidate_specs
+        pruned_specs = candidate_spec_convos
 
         repaired_specs = []
         for pruned_spec in pruned_specs:
@@ -213,12 +213,13 @@ class LlmSpecificationGenerator:
         specs_that_failed_repair: list[SpecConversation] = []
 
         # Check whether the given spec even needs repair.
-        vresult = self._verifier.verify(
+        vinput = VerificationInput(
             function=spec_conversation.function,
             spec=spec_conversation.specification,
-            proof_state=proof_state,
-            source_file_content=spec_conversation.contents_of_file_to_verify,
+            context=proof_state.get_current_context(spec_conversation.function),
+            contents_of_file_to_verify=spec_conversation.contents_of_file_to_verify,
         )
+        vresult = self._verifier.verify(vinput=vinput)
         if vresult.succeeded:
             spec_conversation.next_step = AcceptVerifiedSpec()
             verified_spec_conversations.append(spec_conversation)
@@ -240,12 +241,13 @@ class LlmSpecificationGenerator:
 
             # Re-verifying the function might seem wasteful, but the result of verification is
             # cached by default, and likely computed in the prior loop.
-            vresult = self._verifier.verify(
+            vinput = VerificationInput(
                 function=spec_under_repair.function,
                 spec=spec_under_repair.specification,
-                proof_state=proof_state,
-                source_file_content=spec_under_repair.contents_of_file_to_verify,
+                context=proof_state.get_current_context(spec_under_repair.function),
+                contents_of_file_to_verify=spec_under_repair.contents_of_file_to_verify,
             )
+            vresult = self._verifier.verify(vinput=vinput)
 
             if vresult.succeeded:
                 # No need to iterate further, there is nothing to repair.
@@ -342,12 +344,13 @@ class LlmSpecificationGenerator:
             SpecConversation: A SpecConversation that includes the backtracking strategy decided by
                 an LLM.
         """
-        vresult = self._verifier.verify(
+        vinput = VerificationInput(
             function=spec_conversation.function,
             spec=spec_conversation.specification,
-            proof_state=proof_state,
-            source_file_content=spec_conversation.contents_of_file_to_verify,
+            context=proof_state.get_current_context(spec_conversation.function),
+            contents_of_file_to_verify=spec_conversation.contents_of_file_to_verify,
         )
+        vresult = self._verifier.verify(vinput=vinput)
         next_step_prompt = self._prompt_builder.next_step_prompt(verification_result=vresult)
         conversation_with_next_step_prompt = (
             spec_conversation.get_conversation_with_message_appended(
