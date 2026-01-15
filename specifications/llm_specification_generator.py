@@ -108,19 +108,21 @@ class LlmSpecificationGenerator:
             function=function, hint=hint, proof_state=proof_state
         )
 
-        # TODO: Actually perform some pruning here of the candidate specs.
-        pruned_specs = candidate_spec_convos
+        # Right now, the "pruning" strategy is just to partition the candidate specs into a set
+        # of verifying and invalid specs.
+        verifying_speccs, invalid_speccs = self._get_verifying_and_invalid_speccs(
+            spec_conversations=tuple(candidate_spec_convos), proof_state=proof_state
+        )
 
         repaired_specs = []
-        for pruned_spec in pruned_specs:
+        for invalid_specc in invalid_speccs:
             repaired_specs.extend(
-                # `_repair_spec()` is called whether or not the spec verifies.
                 self._repair_spec(
-                    spec_conversation=pruned_spec,
+                    spec_conversation=invalid_specc,
                     proof_state=proof_state,
                 )
             )
-        return repaired_specs
+        return [*verifying_speccs, *repaired_specs]
 
     def _generate_unrepaired_specs(
         self,
@@ -428,3 +430,34 @@ class LlmSpecificationGenerator:
         except ValueError as ve:
             msg = f"The LLM likely returned an invalid next step: {llm_response}"
             raise RuntimeError(msg) from ve
+
+    def _get_verifying_and_invalid_speccs(
+        self, spec_conversations: tuple[SpecConversation, ...], proof_state: ProofState
+    ) -> tuple[tuple[SpecConversation, ...], tuple[SpecConversation, ...]]:
+        """Return a tuple of verifying specs and invalid specs.
+
+        Args:
+            spec_conversations (tuple[SpecConversation, ...]): The list of spec conversations, each
+                may or may not verify.
+            proof_state (ProofState): The proof state.
+
+        Returns:
+            tuple[tuple[SpecConversation, ...], tuple[SpecConversation, ...]]: A tuple comprising
+                specs that verify and specs that are invalid.
+        """
+        verified_specs = []
+        invalid_specs = []
+        for specc in spec_conversations:
+            vinput = VerificationInput(
+                function=specc.function,
+                spec=specc.specification,
+                context=proof_state.get_current_context(specc.function),
+                contents_of_file_to_verify=specc.contents_of_file_to_verify,
+            )
+            vresult = self._verifier.verify(vinput=vinput)
+            if vresult.succeeded:
+                verified_specs.append(specc)
+            else:
+                invalid_specs.append(specc)
+
+        return tuple(verified_specs), tuple(invalid_specs)
