@@ -5,6 +5,7 @@ import filecmp
 
 from pathlib import Path
 from util import FunctionSpecification, ParsecFile, function_util
+from translation import normalize_function_specification
 
 import pytest
 
@@ -256,3 +257,37 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     ), (f"Expected files '{path_to_expected_updated_file}' and '{file_containing_function}' to be "
         "identical")
     remove_file(file_containing_function)
+
+def test_normalize_spaces() -> None:
+    spec_with_spaces = FunctionSpecification(
+        preconditions=[
+            "__CPROVER_requires( __CPROVER_is_fresh(a,     sizeof(*a)))",
+            "__CPROVER_requires( __CPROVER_is_fresh (b,  sizeof(*b )))"
+        ],
+        postconditions=[]
+    )
+    spec_without_spaces = FunctionSpecification(
+        preconditions=[
+            "__CPROVER_requires(__CPROVER_is_fresh(a, sizeof(*a)))",
+            "__CPROVER_requires(__CPROVER_is_fresh(b, sizeof(*b)))"
+        ],
+        postconditions=[]
+    )
+    assert normalize_function_specification(spec=spec_with_spaces) == spec_without_spaces
+
+def test_normalize_quantifiers() -> None:
+    spec_with_quantifier_i = FunctionSpecification(
+        preconditions=[],
+        postconditions=[
+            "__CPROVER_ensures(__CPROVER_forall { int i; (__CPROVER_return_value < i && i <= high) ==> (arr[i] > arr[__CPROVER_return_value]) })",
+            "__CPROVER_ensures(__CPROVER_forall { int i; (low <= i && i <= __CPROVER_return_value) ==> (arr[i] <= arr[__CPROVER_return_value]) })",
+        ]
+    )
+    spec_with_quantifier_j = FunctionSpecification(
+        preconditions=[],
+        postconditions=[
+            "__CPROVER_ensures(__CPROVER_forall { int j;          (__CPROVER_return_value < j && j <= high) ==> (arr[j] > arr[__CPROVER_return_value]) })",
+            "__CPROVER_ensures(__CPROVER_forall { int j; (low <= j&& j <= __CPROVER_return_value) ==> (arr[j] <= arr[__CPROVER_return_value]) })",
+        ]
+    )
+    assert normalize_function_specification(spec_with_quantifier_i) == normalize_function_specification(spec_with_quantifier_j)
