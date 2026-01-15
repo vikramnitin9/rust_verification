@@ -22,7 +22,7 @@ class SpecConversation:
             specification.  The last message is the latest response from the LLM.
         contents_of_file_to_verify (str | None): The content of the file to be verified.
         next_step (SpecificationGenerationNextStep | None): The next step in the specification
-            generation process. It value is set upon a successful verification run, or when an LLM
+            generation process. Its value is set upon a successful verification run, or when an LLM
             produces a backtracking decision (on a spec that fails repair).
     """
 
