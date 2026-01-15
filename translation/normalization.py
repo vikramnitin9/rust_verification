@@ -1,4 +1,4 @@
-# ruff: noqa
+# ruff: noqa: N802, D102
 # There are warnings in this file which cannot be avoided; the names of methods are directly
 # mapped to the CBMC AST class names (the implementation requires this as it uses reflection),
 # and the ruff requirement for snake_case conflicts with this.
@@ -145,7 +145,7 @@ class CBMCNormalizer:
         return f"+{self.visit(node.operand)}"
 
     def visit_MemberOp(self, node: cbmc_ast.MemberOp) -> str:
-        attr = node.attr.name if isinstance(node.attr, cbmc_ast.Name) else node.attr
+        attr = node.attr.name if isinstance(node.attr, cbmc_ast.Name) else self.visit(node.attr)
         return f"{self.visit(node.value)}.{attr}"
 
     def visit_PtrMemberOp(self, node: cbmc_ast.PtrMemberOp) -> str:
@@ -202,6 +202,7 @@ class CBMCNormalizer:
         return f"__CPROVER_old({self.visit(node.expr)})"  # Assuming standard old syntax
 
     def visit_ReturnValue(self, node: cbmc_ast.ReturnValue) -> str:
+        del node  # This is unused.
         return "__CPROVER_return_value"
 
     def visit_AssignsExpr(self, node: cbmc_ast.AssignsExpr) -> str:
