@@ -11,6 +11,11 @@ class SpecificationGenerationNextStep(StrEnum):
     REPAIR_SPEC = "REPAIR_SPEC"
     REGENERATE_CALLEE_SPEC = "REGENERATE_CALLEE_SPEC"
 
+    # MDE: As mentioned elsewhere, the REGENERATE_CALLEE_SPEC strategy leads to a change in the
+    # workstack, but the REPAIR_SPEC strategy does not lead to a change in the workstack (only a
+    # change to the SpecConversation).  Therefore, I think that a routine that lumps them together
+    # is not needed or desirable.  I suggest that clients should separately handle those two cases
+    # rather than lumping them together.
     @property
     def is_regenerate_strategy(self) -> bool:
         """True iff this strategy involves specification regeneration.
