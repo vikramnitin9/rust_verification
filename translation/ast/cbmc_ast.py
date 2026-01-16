@@ -33,6 +33,12 @@ class EnsuresClause(CBMCAst, ast_utils.WithMeta):
 
 
 @dataclass
+class AssignsClause(CBMCAst, ast_utils.WithMeta):
+    meta: Meta
+    targets: Any
+
+
+@dataclass
 class Name(CBMCAst):
     name: str
 
@@ -298,7 +304,6 @@ class AssignsTargetList(CBMCAst):
 
 @dataclass
 class AssignsExpr(CBMCAst):
-    condition: Any | None
     targets: AssignsTargetList
 
 
@@ -346,25 +351,17 @@ class _ToAst(Transformer):
             return QuantifierDecl(typenode=b, name=a)
         raise ValueError(f"Unexpected quantifier_decl children: {type(a)} {type(b)}")
 
-    @v_args(inline=True)
-    def assigns_empty(self):  # type: ignore[no-untyped-def]
-        return AssignsExpr(condition=None, targets=AssignsTargetList(items=ExprList([])))
+    # @v_args(inline=True)
+    # def assigns_empty(self):  # type: ignore[no-untyped-def]
+    #     return AssignsClause(meta=None, targets=AssignsTargetList(items=ExprList([])))
 
-    @v_args(inline=True)
-    def assigns_unconditional(self, *targets):  # type: ignore[no-untyped-def]
-        target_list = list(targets)
-        # The targets must be side-effect free.
-        for target in target_list:
-            self._validate_side_effect_free(target)
-        return AssignsExpr(condition=None, targets=AssignsTargetList(*target_list))
-
-    @v_args(inline=True)
-    def assigns_conditional(self, condition, *targets):  # type: ignore[no-untyped-def]
-        target_list = list(targets)
-        # Validate targets are side-effect free
-        for target in target_list:
-            self._validate_side_effect_free(target)
-        return AssignsExpr(condition=condition, targets=AssignsTargetList(*target_list))
+    # @v_args(inline=True)
+    # def assigns_nonempty(self, *targets):  # type: ignore[no-untyped-def]
+    #     target_list = list(targets)
+    #     # The targets must be side-effect free.
+    #     for target in target_list:
+    #         self._validate_side_effect_free(target)
+    #     return AssignsClause(meta=None, targets=AssignsTargetList(*target_list))
 
     def _validate_side_effect_free(self, expr: Any) -> None:
         """Raise ValueError if an expression contains a function call.

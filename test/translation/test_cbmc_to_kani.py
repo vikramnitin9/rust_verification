@@ -80,8 +80,8 @@ def test_exists() -> None:
 
 def test_assigns() -> None:
     cbmc_specs = [
-        "__CPROVER_ensures(__CPROVER_assigns(*out))",
-        "__CPROVER_ensures(__CPROVER_assigns(*out1, *out2))",
+        "__CPROVER_assigns(*out)",
+        "__CPROVER_assigns(*out1, *out2)",
     ]
     kani_specs = [
         "kani::ensures(kani::modifies(*out))",
@@ -92,7 +92,7 @@ def test_assigns() -> None:
 
 def test_assigns_to_side_effectful_operation() -> None:
     cbmc_specs = [
-        "__CPROVER_ensures(__CPROVER_assigns(*side_effect()))",
+        "__CPROVER_assigns(*side_effect())",
     ]
     with pytest.raises(ValueError):
         translator.translate(cbmc_specs)

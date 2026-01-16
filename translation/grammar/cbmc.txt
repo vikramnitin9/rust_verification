@@ -1,7 +1,8 @@
-?cbmc_clause : requires_clause | ensures_clause
+?cbmc_clause : requires_clause | ensures_clause | assigns_clause
 
 requires_clause : "__CPROVER_requires" "(" bool_expr ")"
 ensures_clause : "__CPROVER_ensures" "(" bool_expr ")"
+assigns_clause : "__CPROVER_assigns" "(" assigns_content ")"
 
 ?bool_expr : expr
 

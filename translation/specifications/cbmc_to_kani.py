@@ -91,10 +91,7 @@ class CBMCToKani:
                 if isinstance(expr, cbmc_ast.Quantifier):
                     return kani_condition
                 return f"kani::ensures({kani_condition})"
-            case cbmc_ast.AssignsExpr(condition=cond, targets=target_list):
-                if cond:
-                    msg = f"Conditional assignment(s) in: {spec} are not supported in Kani"
-                    raise TranslationError(msg)
+            case cbmc_ast.AssignsClause(targets=target_list):
                 kani_writeable_set = self._to_kani_str(target_list)
                 return f"kani::modifies({kani_writeable_set})"
             case cbmc_ast.AssignsTargetList(targets):
