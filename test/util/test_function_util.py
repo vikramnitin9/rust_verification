@@ -141,10 +141,11 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
         "swap", updated_function, parsec_file, file_containing_function
     )
 
-    assert filecmp.cmp(
-        f1=path_to_expected_updated_file, f2=file_containing_function
-    ), (f"Expected files '{path_to_expected_updated_file}' and '{file_containing_function}' to be "
-        "identical")
+    assert filecmp.cmp(f1=path_to_expected_updated_file, f2=file_containing_function), (
+        f"Expected files '{path_to_expected_updated_file}' and '{file_containing_function}' to be "
+        "identical"
+    )
+
 
 def test_get_signature_simple() -> None:
     src = """int main(int* a, int* b)\n{\n    printf("test")\n    return 0;\n}"""
@@ -222,10 +223,10 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
         "swap", updated_function, parsec_file, file_containing_function
     )
 
-    assert filecmp.cmp(
-        f1=path_to_expected_updated_file, f2=file_containing_function
-    ), (f"Expected files '{path_to_expected_updated_file}' and '{file_containing_function}' to be "
-        "identical")
+    assert filecmp.cmp(f1=path_to_expected_updated_file, f2=file_containing_function), (
+        f"Expected files '{path_to_expected_updated_file}' and '{file_containing_function}' to be "
+        "identical"
+    )
     remove_file(file_containing_function)
 
 
@@ -252,28 +253,30 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
         "swap", updated_function, parsec_file, file_containing_function
     )
 
-    assert filecmp.cmp(
-        f1=path_to_expected_updated_file, f2=file_containing_function
-    ), (f"Expected files '{path_to_expected_updated_file}' and '{file_containing_function}' to be "
-        "identical")
+    assert filecmp.cmp(f1=path_to_expected_updated_file, f2=file_containing_function), (
+        f"Expected files '{path_to_expected_updated_file}' and '{file_containing_function}' to be "
+        "identical"
+    )
     remove_file(file_containing_function)
+
 
 def test_normalize_spaces() -> None:
     spec_with_spaces = FunctionSpecification(
         preconditions=[
             "__CPROVER_requires( __CPROVER_is_fresh(a,     sizeof(*a)))",
-            "__CPROVER_requires( __CPROVER_is_fresh (b,  sizeof(*b )))"
+            "__CPROVER_requires( __CPROVER_is_fresh (b,  sizeof(*b )))",
         ],
-        postconditions=[]
+        postconditions=[],
     )
     spec_without_spaces = FunctionSpecification(
         preconditions=[
             "__CPROVER_requires(__CPROVER_is_fresh(a, sizeof(*a)))",
-            "__CPROVER_requires(__CPROVER_is_fresh(b, sizeof(*b)))"
+            "__CPROVER_requires(__CPROVER_is_fresh(b, sizeof(*b)))",
         ],
-        postconditions=[]
+        postconditions=[],
     )
     assert normalize_function_specification(spec=spec_with_spaces) == spec_without_spaces
+
 
 def test_normalize_quantifiers() -> None:
     spec_with_quantifier_i = FunctionSpecification(
@@ -281,13 +284,122 @@ def test_normalize_quantifiers() -> None:
         postconditions=[
             "__CPROVER_ensures(__CPROVER_forall { int i; (__CPROVER_return_value < i && i <= high) ==> (arr[i] > arr[__CPROVER_return_value]) })",
             "__CPROVER_ensures(__CPROVER_forall { int i; (low <= i && i <= __CPROVER_return_value) ==> (arr[i] <= arr[__CPROVER_return_value]) })",
-        ]
+        ],
     )
     spec_with_quantifier_j = FunctionSpecification(
         preconditions=[],
         postconditions=[
             "__CPROVER_ensures(__CPROVER_forall { int j;          (__CPROVER_return_value < j && j <= high) ==> (arr[j] > arr[__CPROVER_return_value]) })",
             "__CPROVER_ensures(__CPROVER_forall { int j; (low <= j&& j <= __CPROVER_return_value) ==> (arr[j] <= arr[__CPROVER_return_value]) })",
-        ]
+        ],
     )
-    assert normalize_function_specification(spec_with_quantifier_i) == normalize_function_specification(spec_with_quantifier_j)
+    assert normalize_function_specification(
+        spec_with_quantifier_i
+    ) == normalize_function_specification(spec_with_quantifier_j)
+
+
+### Test actual output for the `partition` procedure
+
+spec_partition_canonical = FunctionSpecification(
+    preconditions=[],
+    postconditions=[
+        "__CPROVER_assigns(arr[low..high])",
+        "__CPROVER_ensures(__CPROVER_forall {int k; (__CPROVER_return_value < k && k <= high) ==> arr[k] > arr[__CPROVER_return_value]})",
+        "__CPROVER_ensures(__CPROVER_forall {int k; (low <= k && k < __CPROVER_return_value) ==> arr[k] <= arr[__CPROVER_return_value]})",
+        "__CPROVER_ensures(__CPROVER_return_value >= low && __CPROVER_return_value <= high)",
+    ],
+)
+
+spec_partition_1 = FunctionSpecification(
+    preconditions=[],
+    postconditions=[
+        "__CPROVER_assigns(arr[low..high])",
+        "__CPROVER_ensures(__CPROVER_forall{int k; (__CPROVER_return_value < k && k <= high) ==> arr[k] > arr[__CPROVER_return_value]})",
+        "__CPROVER_ensures(__CPROVER_forall{int k; (low <= k && k < __CPROVER_return_value) ==> arr[k] <= arr[__CPROVER_return_value]})",
+        "__CPROVER_ensures(__CPROVER_return_value >= low && __CPROVER_return_value <= high)",
+    ],
+)
+spec_partition_2 = FunctionSpecification(
+    preconditions=[],
+    postconditions=[
+        "__CPROVER_assigns(arr[low..high])",
+        "__CPROVER_ensures(__CPROVER_forall {int k;(__CPROVER_return_value < k && k <= high) ==> arr[k] > arr[__CPROVER_return_value]})",
+        "__CPROVER_ensures(__CPROVER_forall {int k;(low <= k && k < __CPROVER_return_value) ==> arr[k] <= arr[__CPROVER_return_value]})",
+        "__CPROVER_ensures(__CPROVER_return_value >= low && __CPROVER_return_value <= high)",
+    ],
+)
+spec_partition_3 = FunctionSpecification(
+    preconditions=[],
+    postconditions=[
+        "__CPROVER_assigns(arr[low..high])",
+        "__CPROVER_ensures(__CPROVER_forall { int i; (__CPROVER_return_value < i && i <= high) ==> arr[i] > arr[__CPROVER_return_value] })",
+        "__CPROVER_ensures(__CPROVER_forall { int i; (low <= i && i < __CPROVER_return_value) ==> arr[i] <= arr[__CPROVER_return_value] })",
+        "__CPROVER_ensures(__CPROVER_return_value >= low && __CPROVER_return_value <= high)",
+    ],
+)
+spec_partition_4 = FunctionSpecification(
+    preconditions=[],
+    postconditions=[
+        "__CPROVER_assigns(arr[low...high])",
+        "__CPROVER_ensures(__CPROVER_forall {int k;(__CPROVER_return_value < k && k <= high) ==> (arr[k] > arr[__CPROVER_return_value])})",
+        "__CPROVER_ensures(__CPROVER_forall {int k;(low <= k && k < __CPROVER_return_value) ==> (arr[k] <= arr[__CPROVER_return_value])})",
+        "__CPROVER_ensures(__CPROVER_return_value >= low && __CPROVER_return_value <= high)",
+    ],
+)
+spec_partition_5 = FunctionSpecification(
+    preconditions=[],
+    postconditions=[
+        "__CPROVER_assigns(arr[low .. high])",
+        "__CPROVER_ensures(__CPROVER_forall {int k; (__CPROVER_return_value < k && k <= high) ==> (arr[k] > arr[__CPROVER_return_value])})",
+        "__CPROVER_ensures(__CPROVER_forall {int k; (low <= k && k < __CPROVER_return_value) ==> (arr[k] <= arr[__CPROVER_return_value])})",
+        "__CPROVER_ensures(__CPROVER_return_value >= low && __CPROVER_return_value <= high)",
+    ],
+)
+spec_partition_6 = FunctionSpecification(
+    preconditions=[],
+    postconditions=[
+        "__CPROVER_assigns(arr[low .. high])",
+        "__CPROVER_ensures(__CPROVER_forall { int k; __CPROVER_return_value < k && k <= high ==> arr[k] > arr[__CPROVER_return_value] })",
+        "__CPROVER_ensures(__CPROVER_forall { int k; low <= k && k < __CPROVER_return_value ==> arr[k] <= arr[__CPROVER_return_value] })",
+        "__CPROVER_ensures(__CPROVER_return_value >= low && __CPROVER_return_value <= high)",
+    ],
+)
+spec_partition_7 = FunctionSpecification(
+    preconditions=[],
+    postconditions=[
+        "__CPROVER_assigns(arr[low..high])",
+        "__CPROVER_ensures(__CPROVER_forall {int i;(__CPROVER_return_value < i && i <= high) ==> (arr[i] > arr[__CPROVER_return_value])})",
+        "__CPROVER_ensures(__CPROVER_forall {int i;(low <= i && i < __CPROVER_return_value) ==> (arr[i] <= arr[__CPROVER_return_value])})",
+        "__CPROVER_ensures(low <= __CPROVER_return_value && __CPROVER_return_value <= high)",
+    ],
+)
+spec_partition_9 = FunctionSpecification(
+    preconditions=[],
+    postconditions=[
+        "__CPROVER_assigns(arr[low .. high])",
+        "__CPROVER_ensures(__CPROVER_forall { int i; (__CPROVER_return_value < i && i <= high) ==> (arr[i] > arr[__CPROVER_return_value]) })",
+        "__CPROVER_ensures(__CPROVER_forall { int i; (low <= i && i <= __CPROVER_return_value) ==> (arr[i] <= arr[__CPROVER_return_value]) })",
+        "__CPROVER_ensures(__CPROVER_return_value >= low && __CPROVER_return_value <= high)",
+    ],
+)
+spec_partition_10 = FunctionSpecification(
+    preconditions=[],
+    postconditions=[
+        "__CPROVER_assigns(arr[low..high])",
+        "__CPROVER_ensures(__CPROVER_forall { int k; (__CPROVER_return_value < k && k <= high) ==> (arr[k] > arr[__CPROVER_return_value]) })",
+        "__CPROVER_ensures(__CPROVER_forall { int k; (low <= k && k < __CPROVER_return_value) ==> (arr[k] <= arr[__CPROVER_return_value]) })",
+        "__CPROVER_ensures(__CPROVER_return_value >= low && __CPROVER_return_value <= high)",
+    ],
+)
+
+
+def test_normalize_function_specification_for_partition() -> None:
+    assert normalize_function_specification(spec=spec1) == spec_canonical
+    assert normalize_function_specification(spec=spec2) == spec_canonical
+    assert normalize_function_specification(spec=spec3) == spec_canonical
+    assert normalize_function_specification(spec=spec4) == spec_canonical
+    assert normalize_function_specification(spec=spec5) == spec_canonical
+    assert normalize_function_specification(spec=spec6) == spec_canonical
+    assert normalize_function_specification(spec=spec7) == spec_canonical
+    assert normalize_function_specification(spec=spec9) == spec_canonical
+    assert normalize_function_specification(spec=spec10) == spec_canonical
