@@ -33,6 +33,24 @@ class EnsuresClause(CBMCAst, ast_utils.WithMeta):
 
 
 @dataclass
+class ExprList(CBMCAst, ast_utils.AsList):
+    items: list[CBMCAst]
+
+
+@dataclass
+class AssignsTargetList(CBMCAst):
+    items: ExprList
+
+
+@dataclass
+class Assigns(CBMCAst):
+    """Definition for a top-level __CPROVER_assigns clause."""
+
+    condition: Any | None
+    targets: AssignsTargetList
+
+
+@dataclass
 class Name(CBMCAst):
     name: str
 
@@ -286,22 +304,6 @@ class ReturnValue(CBMCAst):
     pass
 
 
-@dataclass
-class ExprList(CBMCAst, ast_utils.AsList):
-    items: list[CBMCAst]
-
-
-@dataclass
-class AssignsTargetList(CBMCAst):
-    items: ExprList
-
-
-@dataclass
-class AssignsExpr(CBMCAst):
-    condition: Any | None
-    targets: AssignsTargetList
-
-
 class _ToAst(Transformer):
     def NAME(self, tok: Any) -> Name | Bool:
         txt = str(tok)
@@ -347,24 +349,25 @@ class _ToAst(Transformer):
         raise ValueError(f"Unexpected quantifier_decl children: {type(a)} {type(b)}")
 
     @v_args(inline=True)
+    def assigns_clause(self, content):  # type: ignore[no-untyped-def]
+        # The content is already an Assigns from assigns_empty/assigns_unconditional/assigns_conditional
+        return content
+
+    @v_args(inline=True)
     def assigns_empty(self):  # type: ignore[no-untyped-def]
-        return AssignsExpr(condition=None, targets=AssignsTargetList(items=ExprList([])))
+        return Assigns(condition=None, targets=AssignsTargetList(items=ExprList([])))
 
     @v_args(inline=True)
-    def assigns_unconditional(self, *targets):  # type: ignore[no-untyped-def]
-        target_list = list(targets)
-        # The targets must be side-effect free.
-        for target in target_list:
-            self._validate_side_effect_free(target)
-        return AssignsExpr(condition=None, targets=AssignsTargetList(*target_list))
+    def assigns_unconditional(self, expr_list):  # type: ignore[no-untyped-def]
+        # Validate that all targets are side-effect free
+        self._validate_side_effect_free(expr_list)
+        return Assigns(condition=None, targets=AssignsTargetList(items=expr_list))
 
     @v_args(inline=True)
-    def assigns_conditional(self, condition, *targets):  # type: ignore[no-untyped-def]
-        target_list = list(targets)
-        # Validate targets are side-effect free
-        for target in target_list:
-            self._validate_side_effect_free(target)
-        return AssignsExpr(condition=condition, targets=AssignsTargetList(*target_list))
+    def assigns_conditional(self, condition, expr_list):  # type: ignore[no-untyped-def]
+        # Validate that all targets are side-effect free
+        self._validate_side_effect_free(expr_list)
+        return Assigns(condition=condition, targets=AssignsTargetList(items=expr_list))
 
     def _validate_side_effect_free(self, expr: Any) -> None:
         """Raise ValueError if an expression contains a function call.
