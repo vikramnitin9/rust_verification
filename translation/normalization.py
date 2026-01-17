@@ -205,7 +205,7 @@ class CBMCNormalizer:
         del node  # This is unused.
         return "__CPROVER_return_value"
 
-    def visit_AssignsExpr(self, node: cbmc_ast.AssignsExpr) -> str:
+    def visit_Assigns(self, node: cbmc_ast.Assigns) -> str:
         targets = self.visit(node.targets)
         if node.condition:
             cond = self.visit(node.condition)
