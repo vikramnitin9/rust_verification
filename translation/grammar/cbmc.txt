@@ -1,7 +1,8 @@
-?cbmc_clause : requires_clause | ensures_clause
+?cbmc_clause : requires_clause | ensures_clause | assigns_clause
 
 requires_clause : "__CPROVER_requires" "(" bool_expr ")"
 ensures_clause : "__CPROVER_ensures" "(" bool_expr ")"
+assigns_clause : "__CPROVER_assigns" "(" assigns_content ")"
 
 ?bool_expr : expr
 
@@ -54,11 +55,18 @@ ensures_clause : "__CPROVER_ensures" "(" bool_expr ")"
 
 // ---------- Primary values ----------
 ?primary: quantifier_expr
-        | assigns_expr
         | NAME
         | NUMBER
         | BOOL
         | "(" expr ")"
+
+// --------- Assigns Contents -------------------------
+
+?assigns_content:                             -> assigns_empty
+                | expr_list                   -> assigns_unconditional
+                | bool_expr ":" expr_list     -> assigns_conditional
+
+expr_list: expr ("," expr)*
 
 // ---------- Quantifiers ------------
 ?quantifier_expr : forall_expr | exists_expr
@@ -67,14 +75,6 @@ exists_expr : "__CPROVER_exists" "{" quantifier_decl ";" "(" bool_expr ")" "&&" 
 
 quantifier_decl : typ NAME
 
-// ---------- Assigns expressions ------------
-?assigns_expr : "__CPROVER_assigns" "(" assigns_content ")"
-
-?assigns_content:                                                           -> assigns_empty
-                | expr_list                                                 -> assigns_unconditional
-                | bool_expr ":" expr_list                                   -> assigns_conditional
-
-expr_list: expr ("," expr)*
 
 // ---------- Types ----------
 // Token for builtin type keywords (prevents them being lexed as NAME)
