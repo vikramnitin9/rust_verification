@@ -394,12 +394,12 @@ spec_partition_10 = FunctionSpecification(
 
 
 def test_normalize_function_specification_for_partition() -> None:
-    assert normalize_function_specification(spec=spec1) == spec_canonical
-    assert normalize_function_specification(spec=spec2) == spec_canonical
-    assert normalize_function_specification(spec=spec3) == spec_canonical
-    assert normalize_function_specification(spec=spec4) == spec_canonical
-    assert normalize_function_specification(spec=spec5) == spec_canonical
-    assert normalize_function_specification(spec=spec6) == spec_canonical
-    assert normalize_function_specification(spec=spec7) == spec_canonical
-    assert normalize_function_specification(spec=spec9) == spec_canonical
-    assert normalize_function_specification(spec=spec10) == spec_canonical
+    assert normalize_function_specification(spec=spec_partition_1) == spec_partition_canonical
+    assert normalize_function_specification(spec=spec_partition_2) == spec_partition_canonical
+    assert normalize_function_specification(spec=spec_partition_3) == spec_partition_canonical
+    assert normalize_function_specification(spec=spec_partition_4) == spec_partition_canonical
+    assert normalize_function_specification(spec=spec_partition_5) == spec_partition_canonical
+    assert normalize_function_specification(spec=spec_partition_6) == spec_partition_canonical
+    assert normalize_function_specification(spec=spec_partition_7) == spec_partition_canonical
+    assert normalize_function_specification(spec=spec_partition_9) == spec_partition_canonical
+    assert normalize_function_specification(spec=spec_partition_10) == spec_partition_canonical
