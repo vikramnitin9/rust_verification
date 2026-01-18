@@ -412,6 +412,6 @@ def test_normalize_function_specification_for_partition() -> None:
         if normalized_spec != expected_spec:
             msg = f"Actual:\n{normalized_spec}\nExpected:\n{expected_spec}"
             if normalized_spec.eq_setwise(expected_spec):
-                msg += "\nSame clauses, but different order."
+                msg = "Same clauses, but different order.\n" + msg
             print(msg)
             raise AssertionError(msg)
