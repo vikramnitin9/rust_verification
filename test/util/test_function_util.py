@@ -141,7 +141,9 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
         "swap", updated_function, parsec_file, file_containing_function
     )
 
-    assert filecmp.cmp(f1=path_to_expected_updated_file, f2=file_containing_function), (
+    assert filecmp.cmp(
+        f1=path_to_expected_updated_file, f2=file_containing_function, shallow=False
+    ), (
         f"Expected files '{path_to_expected_updated_file}' and '{file_containing_function}' to be "
         "identical"
     )
