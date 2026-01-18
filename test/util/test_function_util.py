@@ -96,9 +96,9 @@ def test_extract_spec_multiple_multi_line_specs() -> None:
         "__CPROVER_requires(__CPROVER_is_fresh(b, sizeof(int)))",
     ], f"Unexpected preconditions: {spec.preconditions}"
     assert spec.postconditions == [
-        "__CPROVER_assigns(a)",
         "__CPROVER_ensures(*a == __CPROVER_old(*b))",
         "__CPROVER_ensures(*b ==__CPROVER_old(*a))",
+        "__CPROVER_assigns(a)",
     ], f"Unexpected postconditions: {spec.postconditions}"
 
 
@@ -107,14 +107,13 @@ def test_extract_multi_line_quantifiers() -> None:
     spec = function_util.extract_specification(lines)
     assert spec, f"Missing specifications from {lines}"
     assert spec.preconditions == [
-        "__CPROVER_requires(__CPROVER_is_fresh(arr, (high + 1) * sizeof(int)))",
         "__CPROVER_requires(low >= 0 && high >= low)",
+        "__CPROVER_requires(__CPROVER_is_fresh(arr, (high + 1) * sizeof(int)))",
     ], f"Unexpected preconditions: {spec.preconditions}"
-    print(spec.preconditions)
     assert spec.postconditions == [
+        "__CPROVER_ensures(__CPROVER_return_value >= low && __CPROVER_return_value <= high)",
         "__CPROVER_ensures(__CPROVER_forall {int k;(low <= k && k < __CPROVER_return_value) ==> (arr[k] <= arr[__CPROVER_return_value])})",
         "__CPROVER_ensures(__CPROVER_forall {int m;(__CPROVER_return_value < m && m <= high) ==> (arr[m] > arr[__CPROVER_return_value])})",
-        "__CPROVER_ensures(__CPROVER_return_value >= low && __CPROVER_return_value <= high)",
     ], f"Unexpected postconditions: {spec.postconditions}"
 
 
