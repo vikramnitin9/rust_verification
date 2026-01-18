@@ -205,6 +205,12 @@ class CBMCNormalizer:
         return "__CPROVER_return_value"
 
     def visit_Assigns(self, node: cbmc_ast.Assigns) -> str:
+        # This processes the top-level `__CPROVER_assigns` clause. Ideally, it would be named
+        # visit_AssignsClause. However, the AST node must be named `Assigns` since naming it
+        # `AssignsClause` will conflict with Lark's auto-generated class names used under the hood
+        # for its parser. The same issue does not occur with `EnsuresClause` and `RequiresClause`
+        # because we do not define our own methods for them (i.e., the auto-generated ones are
+        # adequate for our needs).
         targets = self.visit(node.targets)
         if node.condition:
             cond = self.visit(node.condition)
@@ -231,9 +237,6 @@ def normalize_cbmc_spec(spec_string: str) -> str:
 
     Args:
         spec_string (str): The CBMC specification, as a string.
-
-    Raises:
-        RuntimeError: Raised when normalizing the given CBMC specification fails.
 
     Returns:
         str: The normalized CBMC specification.
