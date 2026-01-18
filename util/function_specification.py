@@ -2,6 +2,8 @@
 
 from collections.abc import Iterator
 from dataclasses import dataclass
+from string import Template
+from textwrap import dedent
 
 
 @dataclass
@@ -26,8 +28,8 @@ class FunctionSpecification:
         if not preconditions and not postconditions:
             msg = "Both the pre and postconditions of a function specification cannot be empty"
             raise ValueError(msg)
-        self.preconditions = sorted(preconditions)
-        self.postconditions = sorted(postconditions)
+        self.preconditions = preconditions
+        self.postconditions = postconditions
 
     def __iter__(self) -> Iterator[list[str]]:
         """Return a singleton iterator that yields a list of this specification's clauses.
@@ -74,6 +76,15 @@ class FunctionSpecification:
         Returns:
             str: This function specification as it is summarized in a prompt.
         """
-        pres = ", ".join(self.preconditions)
-        posts = ", ".join(self.postconditions)
-        return f"Preconditions:\n{pres}\nPostconditions:\n{posts}"
+        pres = "\n".join(self.preconditions)
+        posts = "\n".join(self.postconditions)
+        template = dedent("""\
+            <PRECONDITIONS>
+            $preconditions
+            </PRECONDITIONS>
+
+            <POSTCONDITIONS>
+            $postconditions
+            </POSTCONDITIONS>
+                      """)
+        return Template(template).substitute(preconditions=pres, postconditions=posts)
