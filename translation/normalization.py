@@ -6,7 +6,6 @@
 """Normalization logic for CBMC specifications."""
 
 from pathlib import Path
-from typing import Any
 
 from translation import Parser
 from translation.ast import cbmc_ast
@@ -29,11 +28,11 @@ class CBMCNormalizer:
         self._scopes: list[dict[str, str]] = []
         self._counter = 0
 
-    def normalize(self, node: Any) -> str:
+    def normalize(self, node: cbmc_ast.CBMCAst) -> str:
         """Return the normalized string representation of a CBMC AST.
 
         Args:
-            node (Any): A CBMC AST node.
+            node (cbmc_ast.CBMCAst): A CBMC AST node.
 
         Returns:
             str: The normalized string representation of the given CBMC AST node.
@@ -42,11 +41,11 @@ class CBMCNormalizer:
         self._counter = 0
         return self.visit(node)
 
-    def visit(self, node: Any) -> str:
+    def visit(self, node: cbmc_ast.CBMCAst) -> str:
         """Return the result of visiting (and applying normalization to) a CBMC AST node.
 
         Args:
-            node (Any): A CBMC AST node.
+            node (cbmc_ast.CBMCAst): A CBMC AST node.
 
         Returns:
             str: The normalized string representation of the given CBMC AST Node.
@@ -58,7 +57,7 @@ class CBMCNormalizer:
         visitor = getattr(self, method_name, self.generic_visit)
         return visitor(node)
 
-    def generic_visit(self, node: Any) -> str:
+    def generic_visit(self, node: cbmc_ast.CBMCAst) -> str:
         msg = f"Unimplemented visitor for {node.__class__.__name__}"
         raise NotImplementedError(msg)
 
