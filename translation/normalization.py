@@ -240,12 +240,7 @@ def normalize_cbmc_spec(spec_string: str) -> str:
         str: The normalized CBMC specification.
     """
     try:
-        ast = _PARSER.parser.parse(spec_string)
-
-        # Transform using the attached transformer logic
-        # parser.parser.parse returns a Tree.
-        # parser.transformer.transform converts Tree -> CBMCAst
-        cbmc_ast_node = _PARSER.transformer.transform(ast)
+        cbmc_ast_node = _PARSER.parse(spec_string)
 
         # A per-call instance of normalizer is required due to scope counting.
         return CBMCNormalizer().normalize(cbmc_ast_node)
