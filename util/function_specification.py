@@ -49,7 +49,8 @@ class FunctionSpecification:
             other (object): The object to which to compare this specification to.
 
         Returns:
-            bool: True iff the other specification comprises the same pre and postconditions.
+            bool: True iff the other specification comprises the same pre and postconditions,
+                in the same order.
         """
         if not isinstance(other, FunctionSpecification):
             return False
@@ -77,3 +78,19 @@ class FunctionSpecification:
         pres = ", ".join(self.preconditions)
         posts = ", ".join(self.postconditions)
         return f"Preconditions:\n{pres}\nPostconditions:\n{posts}"
+
+    def eq_setwise_inde_(self, other: object) -> bool:
+        """Return True iff the other specification has the same pre and postconditions in any order.
+
+        Args:
+            other (object): The object to which to compare this specification to.
+
+        Returns:
+            bool: True iff the other specification comprises the same pre and postconditions,
+                in any order.
+        """
+        if not isinstance(other, FunctionSpecification):
+            return False
+        return set(self.preconditions) == set(other.preconditions) and set(
+            self.postconditions
+        ) == set(other.postconditions)
