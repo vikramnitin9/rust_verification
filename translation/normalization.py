@@ -30,13 +30,13 @@ class CBMCNormalizer:
         self._counter = 0
 
     def normalize(self, node: Any) -> str:
-        """Return a string representation of a normalized CBMC AST.
+        """Return the normalized string representation of a CBMC AST.
 
         Args:
             node (Any): A CBMC AST node.
 
         Returns:
-            str: A string representation of a normalized CBMC AST node.
+            str: The normalized string representation of the given CBMC AST node.
         """
         self._scopes = []
         self._counter = 0
@@ -49,7 +49,7 @@ class CBMCNormalizer:
             node (Any): A CBMC AST node.
 
         Returns:
-            str: A string representation of a normalized CBMC AST Node.
+            str: The normalized string representation of the given CBMC AST Node.
         """
         if node is None:
             return ""
@@ -87,7 +87,7 @@ class CBMCNormalizer:
     # --- Operations ---
 
     def _visit_binop(self, node: cbmc_ast.BinOp) -> str:
-        # Enforce parentheses for strict canonical form
+        # Enforce parentheses for strict canonical form.
         return f"({self.visit(node.left)} {node.operator()} {self.visit(node.right)})"
 
     def visit_OrOp(self, node: cbmc_ast.OrOp) -> str:
