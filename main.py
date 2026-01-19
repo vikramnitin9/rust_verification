@@ -205,25 +205,23 @@ def _step(
     # Each SpecConversation represents a completed attempt at generating and verifying a spec for
     # the function.  That is, the next step focuses on a different function, even if it is possible
     # that the algorithm may revisit this function later due to backtracking.
-    spec_conversations_for_function: list[SpecConversation] = (
-        specification_generator.generate_and_repair_spec(
-            function=work_item.function,
-            hint=work_item.hint,
-            proof_state=proof_state,
-        )
+    speccs_for_function: list[SpecConversation] = specification_generator.generate_and_repair_spec(
+        function=work_item.function,
+        hint=work_item.hint,
+        proof_state=proof_state,
     )
 
-    pruned_spec_conversations_for_function = _prune_specs(
+    pruned_speccs_for_function = _prune_specs(
         proof_state=proof_state,
-        spec_conversations=spec_conversations_for_function,
+        speccs=speccs_for_function,
     )
 
     result: list[ProofState] = []
 
-    for spec_conversation in pruned_spec_conversations_for_function:
+    for specc in pruned_speccs_for_function:
         next_proof_state = _get_next_proof_state(
             prev_proof_state=proof_state,
-            spec_conversation=spec_conversation,
+            spec_conversation=specc,
         )
         result.append(next_proof_state)
     return result
@@ -303,7 +301,7 @@ def _parse_reasoning(llm_response: str) -> str | None:
 
 def _prune_specs(
     proof_state: ProofState,
-    spec_conversations: list[SpecConversation],
+    speccs: list[SpecConversation],
 ) -> list[SpecConversation]:
     """Given a list of SpecConversations, returns a subset of them (which prunes the others).
 
@@ -312,7 +310,7 @@ def _prune_specs(
     Args:
         proof_state (ProofState): The ProofState. The topmost function on its workstack is the
             function for which specifications are being generated/repaired.
-        spec_conversations (list[SpecConversation]): The SpecConversations to prune.
+        speccs (list[SpecConversation]): The SpecConversations to prune.
 
     Raises:
         ValueError: Raised when a SpecConversation does not have any file contents that were run
@@ -322,26 +320,26 @@ def _prune_specs(
         list[SpecConversation]: A subset of the given SpecConversations.
     """
     pruned_specs = []
-    for spec_conversation in spec_conversations:
-        function = spec_conversation.function
-        contents_of_verified_file = spec_conversation.contents_of_file_to_verify
+    for specc in speccs:
+        function = specc.function
+        contents_of_verified_file = specc.contents_of_file_to_verify
         if contents_of_verified_file is None:
-            msg = f"{spec_conversation} was missing file contents that were run under verification"
+            msg = f"{specc} was missing file contents that were run under verification"
             raise ValueError(msg)
         vcontext = proof_state.get_current_context(function=function)
         vinput = VerificationInput(
             function=function,
-            spec=spec_conversation.specification,
+            spec=specc.specification,
             context=vcontext,
             contents_of_file_to_verify=contents_of_verified_file,
         )
         if vresult := VERIFIER_CACHE.get(vinput):
             if vresult.succeeded:
-                pruned_specs.append(spec_conversation)
+                pruned_specs.append(specc)
         else:
             msg = f"Cache miss for previously-executed vinput: {vinput}"
             raise RuntimeError(msg)
-    return pruned_specs or spec_conversations
+    return pruned_specs or speccs
 
 
 def _write_verified_or_assumed_spec(
