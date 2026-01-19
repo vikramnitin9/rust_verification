@@ -170,6 +170,7 @@ def _verify_program(
         next_proofstates = _step(
             proof_state=proof_state,
             specification_generator=specification_generator,
+            parsec_file=parsec_file,
         )
 
         for next_proofstate in next_proofstates:
@@ -190,6 +191,7 @@ def _verify_program(
 def _step(
     proof_state: ProofState,
     specification_generator: LlmSpecificationGenerator,
+    parsec_file: ParsecFile,
 ) -> list[ProofState]:
     """Given a ProofState, returns of list of ProofStates, each of which makes a "step" of progress.
 
@@ -207,6 +209,7 @@ def _step(
     Args:
         proof_state (ProofState): The proof state from which to generate new proof states.
         specification_generator (LlmSpecificationGenerator): The specification generator.
+        parsec_file (ParsecFile): The file being verified.
 
     Returns:
         list[ProofState]: The list of new proof states to explore.
@@ -218,6 +221,7 @@ def _step(
     # that the algorithm may revisit this function later due to backtracking.
     speccs_for_function: list[SpecConversation] = specification_generator.generate_and_repair_spec(
         function=work_item.function,
+        parsec_file=parsec_file,
         hint=work_item.hint,
         proof_state=proof_state,
     )
