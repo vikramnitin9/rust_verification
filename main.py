@@ -212,14 +212,12 @@ def _step(
 
     """
     work_item = proof_state.peek_workstack()
-    # Each SpecConversation in this list represents a completed attempt at generating and verifying
+    # Each SpecConversation represents a completed attempt at generating and verifying
     # a spec for the function.
-    spec_conversations_for_function: list[SpecConversation] = (
-        specification_generator.generate_and_repair_spec(
-            function=work_item.function,
-            hint=work_item.hint,
-            proof_state=proof_state,
-        )
+    speccs_for_function: list[SpecConversation] = specification_generator.generate_and_repair_spec(
+        function=work_item.function,
+        hint=work_item.hint,
+        proof_state=proof_state,
     )
 
     speccs_with_next_steps = [
@@ -228,7 +226,7 @@ def _step(
             proof_state=proof_state,
             specification_generator=specification_generator,
         )
-        for specc in spec_conversations_for_function
+        for specc in speccs_for_function
     ]
 
     result: list[ProofState] = [
