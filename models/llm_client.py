@@ -15,13 +15,13 @@ class LlmClient:
         _llm (LLMGen): The internal LLM interface (see https://docs.litellm.ai/docs/).
         _top_k (int): The number of samples to obtain from the LLM.
         _temperature (float): The temperature (cannot be 0 if top_k > 1).
-        _sample_cache (Cache | None): A cache of LLM responses.
+        _llm_cache (Cache | None): A cache of LLM responses.
     """
 
     _llm: LLMGen
     _top_k: int
     _temperature: float
-    _sample_cache: Cache | None
+    _llm_cache: Cache | None
 
     def __init__(
         self, model_name: str, top_k: int, temperature: float, disable_llm_cache: bool = False
@@ -36,7 +36,7 @@ class LlmClient:
         self._llm = LLMGen.get_llm_generation_with_model(model_name=model_name)
         self._top_k = top_k
         self._temperature = temperature
-        self._sample_cache = None if disable_llm_cache else Cache(directory=DEFAULT_CACHE_DIR)
+        self._llm_cache = None if disable_llm_cache else Cache(directory=DEFAULT_CACHE_DIR)
 
     def get(
         self,
@@ -67,11 +67,11 @@ class LlmClient:
         temperature = temperature or self._temperature
         top_k = top_k or self._top_k
         cache_key = None
-        if self._sample_cache is not None:
+        if self._llm_cache is not None:
             cache_key = self._get_cache_key(
                 conversation=conversation, temperature=temperature, top_k=top_k
             )
-            if cached_response := self._sample_cache.get(cache_key):
+            if cached_response := self._llm_cache.get(cache_key):
                 return cached_response
 
         result = self._llm.gen(
@@ -80,8 +80,8 @@ class LlmClient:
             top_k=top_k or self._top_k,
         )
 
-        if self._sample_cache is not None:
-            self._sample_cache[cache_key] = result
+        if self._llm_cache is not None:
+            self._llm_cache[cache_key] = result
 
         return result
 
