@@ -281,7 +281,7 @@ def repair_spec(fn, specc, proofstate) -> List[SpecConversation]:
       return verified_speccs
 
     return [
-      call_llm_for_backtracking_strategy(
+      call_llm_for_next_step(
         spec_conversation=unrepairable_spec, proof_state=proof_state)
       for unrepairable_spec in specs_that_failed_repair
     ]

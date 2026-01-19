@@ -267,7 +267,7 @@ def _set_next_step(
         if vresult.succeeded:
             spec_conversation.next_step = AcceptVerifiedSpec()
             return spec_conversation
-        return specification_generator.call_llm_for_backtracking_strategy(
+        return specification_generator.call_llm_for_next_step(
             spec_conversation=spec_conversation, proof_state=proof_state
         )
     msg = f"Previously-verified spec '{spec_conversation}' was missing from the verifier cache"
@@ -277,7 +277,7 @@ def _set_next_step(
 def _get_next_proof_state(
     prev_proof_state: ProofState, spec_conversation: SpecConversation
 ) -> ProofState:
-    """Return the next proof state by modifying `prev_proof_state` based on `spec_conversation`.
+    """Return the next proof state after `prev_proof_state` based on `spec_conversation`.
 
         The new proof state is a copy of the given proof state with two differences:
 
@@ -300,7 +300,7 @@ def _get_next_proof_state(
     }
     match spec_conversation.next_step:
         case None:
-            msg = f"{spec_conversation} was missing a next step"
+            msg = f"{spec_conversation} `next_step` field is not set"
             raise ValueError(msg)
         case AcceptVerifiedSpec() | AssumeSpecAsIs():
             # There could be more than one valid specification generated (i.e., when we sample more
@@ -315,21 +315,18 @@ def _get_next_proof_state(
             # is defined is a brittle assumption that should be fixed with multi-file ParseC
             # support.
             result_file = _get_result_file(function=spec_conversation.function)
-            callee = ParsecFile(result_file).get_function_or_none(function_name=callee)
-            if not callee:
-                msg = (
-                    f"'{result_file}' was missing a definition for callee: "
-                    f"'{callee}' during backtracking"
+            if callee := ParsecFile(result_file).get_function_or_none(function_name=callee):
+                work_item_for_callee = WorkItem(function=callee, hint=hint)
+                workstack_for_next_proof_state = prev_proof_state.get_workstack().push(
+                    work_item_for_callee
                 )
-                raise ValueError(msg)
-            work_item_for_callee = WorkItem(function=callee, hint=hint)
-            workstack_for_next_proof_state = prev_proof_state.get_workstack().push(
-                work_item_for_callee
-            )
-            return ProofState(
-                specs=specs_for_next_proof_state,
-                workstack=workstack_for_next_proof_state,
-            )
+                return ProofState(
+                    specs=specs_for_next_proof_state,
+                    workstack=workstack_for_next_proof_state,
+                )
+            msg = f"'{result_file}' lacks a definition for callee '{callee}'"
+            raise ValueError(msg)
+
         case _:
             msg = f"Unexpected next step strategy: '{SpecConversation.next_step}'"
             raise ValueError(msg)
@@ -338,10 +335,8 @@ def _get_next_proof_state(
 def _write_spec_to_disk(spec_conversation: SpecConversation) -> None:
     """Write a function specification to a file on disk.
 
-    This function iteratively builds up the final output of verification, which is the set of
-    input files that are specified with CBMC annotations. The contents of the file that is being
-    written to are identical to the corresponding file in the unverified (input) program, but some
-    functions may be specified (i.e., have CBMC annotations) as specification generation runs for
+    The resulting file is identical to the corresponding file in the unverified (input) program, but
+    some functions may be specified (i.e., have CBMC annotations).
 
     Specifications are written to a file under the `DEFAULT_RESULT_DIR` directory that has the same
     same name (and path) as the original (non-specified) file under a directory that is specific to

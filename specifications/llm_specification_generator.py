@@ -106,7 +106,9 @@ class LlmSpecificationGenerator:
         # Right now, the "pruning" strategy is just to partition the candidate specs into a set
         # of verifying and invalid specs.
         verifying_speccs, invalid_speccs = self._get_verifying_and_invalid_speccs(
-            spec_conversations=tuple(candidate_speccs), proof_state=proof_state
+            # MDE: Why call `tuple` here?  The client only iterates over `candidate_speccs`.
+            speccs=tuple(candidate_speccs),
+            proof_state=proof_state,
         )
 
         repaired_speccs = []
@@ -328,10 +330,10 @@ class LlmSpecificationGenerator:
             msg = f"Failed to repair specifications for '{function.name}'"
             raise RuntimeError(msg) from me
 
-    def call_llm_for_backtracking_strategy(
+    def call_llm_for_next_step(
         self, spec_conversation: SpecConversation, proof_state: ProofState
     ) -> SpecConversation:
-        """Return a SpecConversation that resulted from asking an LLM for a backtracking strategy.
+        """Return a SpecConversation from asking an LLM for a next step (e.g., backtracking).
 
         Args:
             spec_conversation (SpecConversation): The SpecConversation for a specification that
@@ -339,8 +341,8 @@ class LlmSpecificationGenerator:
             proof_state (ProofState): The proof state under which verification fails.
 
         Returns:
-            SpecConversation: A SpecConversation that includes the backtracking strategy decided by
-                an LLM.
+            SpecConversation: A SpecConversation that includes the next step (e.g., backtracking)
+                decided by an LLM.
         """
         vinput = VerificationInput(
             function=spec_conversation.function,
@@ -428,12 +430,12 @@ class LlmSpecificationGenerator:
             raise RuntimeError(msg) from ve
 
     def _get_verifying_and_invalid_speccs(
-        self, spec_conversations: tuple[SpecConversation, ...], proof_state: ProofState
+        self, speccs: tuple[SpecConversation, ...], proof_state: ProofState
     ) -> tuple[tuple[SpecConversation, ...], tuple[SpecConversation, ...]]:
         """Return a tuple of verifying specs and invalid specs.
 
         Args:
-            spec_conversations (tuple[SpecConversation, ...]): The list of spec conversations, each
+            speccs (tuple[SpecConversation, ...]): The list of spec conversations, each
                 may or may not verify.
             proof_state (ProofState): The proof state.
 
@@ -441,9 +443,9 @@ class LlmSpecificationGenerator:
             tuple[tuple[SpecConversation, ...], tuple[SpecConversation, ...]]: A tuple comprising
                 specs that verify and specs that are invalid.
         """
-        verified_specs = []
-        invalid_specs = []
-        for spec_conversation in spec_conversations:
+        verified_speccs = []
+        invalid_speccs = []
+        for spec_conversation in speccs:
             vinput = VerificationInput(
                 function=spec_conversation.function,
                 spec=spec_conversation.specification,
@@ -452,8 +454,8 @@ class LlmSpecificationGenerator:
             )
             vresult = self._verifier.verify(vinput=vinput)
             if vresult.succeeded:
-                verified_specs.append(spec_conversation)
+                verified_speccs.append(spec_conversation)
             else:
-                invalid_specs.append(spec_conversation)
+                invalid_speccs.append(spec_conversation)
 
-        return tuple(verified_specs), tuple(invalid_specs)
+        return tuple(verified_speccs), tuple(invalid_speccs)
