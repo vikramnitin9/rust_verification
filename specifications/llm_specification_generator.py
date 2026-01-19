@@ -99,21 +99,21 @@ class LlmSpecificationGenerator:
         Returns:
             list[SpecConversation]: A list of potential specifications for the function.
         """
-        candidate_specs = self._generate_unrepaired_specs(function=function, hint=hint)
+        candidate_speccs = self._generate_unrepaired_specs(function=function, hint=hint)
 
         # TODO: Actually perform some pruning here of the candidate specs.
-        pruned_specs = candidate_specs
+        pruned_speccs = candidate_speccs
 
-        repaired_specs = []
-        for pruned_spec in pruned_specs:
-            repaired_specs.extend(
+        repaired_speccs = []
+        for pruned_specc in pruned_speccs:
+            repaired_speccs.extend(
                 # `_repair_spec()` is called whether or not the spec verifies.
                 self._repair_spec(
-                    spec_conversation=pruned_spec,
+                    specc=pruned_specc,
                     proof_state=proof_state,
                 )
             )
-        return repaired_specs
+        return repaired_speccs
 
     def _generate_unrepaired_specs(
         self,
@@ -177,13 +177,13 @@ class LlmSpecificationGenerator:
 
     def _repair_spec(
         self,
-        spec_conversation: SpecConversation,
+        specc: SpecConversation,
         proof_state: ProofState,
     ) -> list[SpecConversation]:
         """If the spec verifies, return it.  If the spec does not verify, try to repair it.
 
         Args:
-            spec_conversation (SpecConversation): The SpecConversation that ends with the spec that
+            specc (SpecConversation): The SpecConversation that ends with the spec that
                 may fail to verify.
             proof_state (ProofState): The proof state for the specification.
 
@@ -195,55 +195,55 @@ class LlmSpecificationGenerator:
                 # method should return a list of specs that verify, which may be empty.
         """
         # This is the return value of the method.
-        verified_spec_conversations: list[SpecConversation] = []
+        verified_speccs: list[SpecConversation] = []
 
-        observed_spec_conversations: list[SpecConversation] = []
-        current_spec_conversations: list[SpecConversation] = [spec_conversation]
+        observed_speccs: list[SpecConversation] = []
+        current_speccs: list[SpecConversation] = [specc]
         # MDE: Please document how the above three variables are used.  (I did one of them in the
         # other branch, which should be merged before this comment is addressed.)
         for i in range(self._num_specification_repair_iterations + 1):
-            unverified_spec_conversations: list[SpecConversation] = []
-            for current_spec_conversation in current_spec_conversations:
-                if current_spec_conversation in observed_spec_conversations:
-                    # MDE: I don't understand how this can happen.  `current_spec_conversation` is
+            unverified_speccs: list[SpecConversation] = []
+            for current_specc in current_speccs:
+                if current_specc in observed_speccs:
+                    # MDE: I don't understand how this can happen.  `current_specc` is
                     # created by extending some existing conversation, so it will never have been
                     # previously observed.  What am I missing?
                     continue
 
                 contents_of_file_to_verify = self._get_content_of_file_to_verify(
-                    spec_conversation=current_spec_conversation,
+                    specc=current_specc,
                     original_file_path=self._parsec_file.file_path,
                     proof_state=proof_state,
                 )
-                function_under_repair = current_spec_conversation.function
+                function_under_repair = current_specc.function
                 function_under_repair.set_source_code(
                     function_util.get_source_code_with_inserted_spec(
                         function_name=function_under_repair.name,
-                        specification=current_spec_conversation.specification,
+                        specification=current_specc.specification,
                         parsec_file=self._parsec_file,
                     )
                 )
-                current_spec_conversation.contents_of_file_to_verify = contents_of_file_to_verify
+                current_specc.contents_of_file_to_verify = contents_of_file_to_verify
 
                 # `verify` does not consume a `SpecConversation` because it is designed to be
                 # independent from any specification generation strategy.
                 vresult = self._verifier.verify(
                     function=function_under_repair,
-                    spec=current_spec_conversation.specification,
+                    spec=current_specc.specification,
                     proof_state=proof_state,
                     # MDE: Is the source code available in the `function` argument in this call?
-                    source_file_content=current_spec_conversation.contents_of_file_to_verify,
+                    source_file_content=current_specc.contents_of_file_to_verify,
                 )
 
                 if vresult.succeeded:
-                    current_spec_conversation.specgen_next_step = (
+                    current_specc.specgen_next_step = (
                         SpecificationGenerationNextStep.ACCEPT_VERIFIED_SPEC
                     )
-                    verified_spec_conversations.append(current_spec_conversation)
+                    verified_speccs.append(current_specc)
                 else:
-                    unverified_spec_conversations.append(current_spec_conversation)
+                    unverified_speccs.append(current_specc)
 
-                observed_spec_conversations.append(current_spec_conversation)
+                observed_speccs.append(current_specc)
 
             # MDE: This looks very suspicious to me.  i is assigned from `_num_repair_iterations`,
             # but here it is compared to `_num_repair_candidates`.  Those are conceptually different
@@ -252,8 +252,8 @@ class LlmSpecificationGenerator:
             if i == self._num_specification_repair_candidates:
                 break
 
-            current_spec_conversations = []
-            for unverified_spec_conversation in unverified_spec_conversations:
+            current_speccs = []
+            for unverified_spec_conversation in unverified_speccs:
                 contents_of_file_to_verify = unverified_spec_conversation.contents_of_file_to_verify
                 if contents_of_file_to_verify is None:
                     msg = "A spec that failed to verify is missing its contents"
@@ -281,7 +281,7 @@ class LlmSpecificationGenerator:
                 )
                 # MDE: Write a brief comment about why this doesn't use `append()`.  Probably
                 # because it wants to create a new list rather than modify an existing list.
-                current_spec_conversations += [
+                current_speccs += [
                     SpecConversation(
                         function=unverified_spec_conversation.function,
                         specification=specification,
@@ -293,11 +293,7 @@ class LlmSpecificationGenerator:
                     )
                     for specification, response in model_responses
                 ]
-        return verified_spec_conversations or [
-            spec_conversation
-            for spec_conversation in observed_spec_conversations
-            if spec_conversation.has_next_step()
-        ]
+        return verified_speccs or [specc for specc in observed_speccs if specc.has_next_step()]
 
     def _call_llm_for_repair(
         self, function: CFunction, conversation: tuple[ConversationMessage, ...]
@@ -384,7 +380,7 @@ class LlmSpecificationGenerator:
 
     def _get_content_of_file_to_verify(
         self,
-        spec_conversation: SpecConversation,
+        specc: SpecConversation,
         original_file_path: Path,
         proof_state: ProofState,
     ) -> str:
@@ -394,7 +390,7 @@ class LlmSpecificationGenerator:
         # some inserted specifications and, if so, which ones?
 
         Args:
-            spec_conversation (SpecConversation): The spec conversation comprising the function and
+            specc (SpecConversation): The spec conversation comprising the function and
                 the specification under verification.
             original_file_path (Path): The path to the original file where the function is declared.
             proof_state (ProofState): The proof state under which the function is verified.
@@ -408,13 +404,11 @@ class LlmSpecificationGenerator:
         parsec_file = ParsecFile(original_file_path)
         callees_to_specs = {
             callee: spec
-            for callee in parsec_file.get_callees(function=spec_conversation.function)
+            for callee in parsec_file.get_callees(function=specc.function)
             if (spec := proof_state.get_specification(function=callee))
         }
 
-        functions_with_specs = {
-            spec_conversation.function: spec_conversation.specification
-        } | callees_to_specs
+        functions_with_specs = {specc.function: specc.specification} | callees_to_specs
 
         return function_util.get_source_file_content_with_specifications(
             specified_functions=functions_with_specs,
