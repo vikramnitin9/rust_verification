@@ -152,11 +152,12 @@ def _verify_program(
             function.
 
     """
-    functions = parsec_file.get_functions_in_topological_order(reverse_order=True)
-
-    # Since `functions` is in reverse topological order,
+    # Since the initial list of functions is in reverse topological order,
     # the first element processed will be a leaf.
-    initial_proof_state = ProofState.from_functions(functions=functions[::-1])
+    functions = parsec_file.get_functions_in_topological_order()
+
+    initial_proof_state = ProofState.from_functions(functions=functions)
+
     GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)
     # This is the global worklist.
     GLOBAL_INCOMPLETE_PROOFSTATES.append(initial_proof_state)
@@ -212,8 +213,9 @@ def _step(
 
     """
     work_item = proof_state.peek_workstack()
-    # Each SpecConversation represents a completed attempt at generating and verifying
-    # a spec for the function.
+    # Each SpecConversation represents a completed attempt at generating and verifying a spec for
+    # the function.  That is, the next step focuses on a different function, even if it is possible
+    # that the algorithm may revisit this function later due to backtracking.
     speccs_for_function: list[SpecConversation] = specification_generator.generate_and_repair_spec(
         function=work_item.function,
         hint=work_item.hint,

@@ -445,17 +445,17 @@ class LlmSpecificationGenerator:
         """
         verified_speccs = []
         non_verifying_speccs = []
-        for spec_conversation in speccs:
+        for specc in speccs:
             vinput = VerificationInput(
-                function=spec_conversation.function,
-                spec=spec_conversation.specification,
-                context=proof_state.get_current_context(spec_conversation.function),
-                contents_of_file_to_verify=spec_conversation.contents_of_file_to_verify,
+                function=specc.function,
+                spec=specc.specification,
+                context=proof_state.get_current_context(specc.function),
+                contents_of_file_to_verify=specc.contents_of_file_to_verify,
             )
             vresult = self._verifier.verify(vinput=vinput)
             if vresult.succeeded:
-                verified_speccs.append(spec_conversation)
+                verified_speccs.append(specc)
             else:
-                non_verifying_speccs.append(spec_conversation)
+                non_verifying_speccs.append(specc)
 
         return tuple(verified_speccs), tuple(non_verifying_speccs)

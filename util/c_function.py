@@ -56,6 +56,7 @@ class CFunction:
         self.end_col = raw_analysis["endCol"]
         self.preconditions = []
         self.postconditions = []
+        self.source_code = ""
         self.callee_names = []
         self.arg_names = raw_analysis.get("argNames", [])
         self.arg_types = raw_analysis.get("argTypes", [])
@@ -72,7 +73,6 @@ class CFunction:
             self.callee_names.append(func["name"])
         self.global_vars = raw_analysis.get("globals", [])
         self.structs = raw_analysis.get("structs", [])
-
         self.parsec_file = parsec_file
 
     def get_original_source_code(
