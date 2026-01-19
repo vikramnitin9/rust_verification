@@ -140,7 +140,7 @@ def _verify_program(
     """Return a set of ProofStates, each of which has a specification for each function.
 
     This function exits when GLOBAL_INCOMPLETE_PROOFSTATES is empty or when execution time
-    exceeds DEFAULT_SPECIFICATION_GENERATION_TIMEOUT_SEC.
+    exceeds the user-specified or defaulted specification generation timeout.
 
     Args:
         parsec_file (ParsecFile): The file to verify.
@@ -148,13 +148,14 @@ def _verify_program(
         specgen_timeout_sec (float): The timeout for specification generation (in seconds).
 
     Returns:
-        tuple[ProofState, ...]: A set of ProofStates with specifications for each function.
+        tuple[ProofState, ...]: A set of ProofStates, each of which has specifications for each
+            function.
 
     """
     functions = parsec_file.get_functions_in_topological_order(reverse_order=True)
 
     # Since `functions` is in reverse topological order,
-    # the first element popped from the stack will be a leaf.
+    # the first element processed will be a leaf.
     initial_proof_state = ProofState.from_functions(functions=functions[::-1])
     GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)
     # This is the global worklist.
@@ -162,8 +163,6 @@ def _verify_program(
 
     specgen_timeout_limit = time.time() + specgen_timeout_sec
 
-    # Since `functions` is in reverse topological order,
-    # the first element popped from the stack will be a leaf.
     while GLOBAL_INCOMPLETE_PROOFSTATES and not _is_timeout_reached(specgen_timeout_limit):
         # Use BFS to avoid getting stuck in an unproductive search over a proof state.
         proof_state = GLOBAL_INCOMPLETE_PROOFSTATES.popleft()
@@ -193,14 +192,16 @@ def _step(
 ) -> list[ProofState]:
     """Given a ProofState, returns of list of ProofStates, each of which makes a "step" of progress.
 
-    A step of progress is one of (where `top_fn` is the function ot the top of the workstack):
+    Let `top_fn` is the function ot the top of the workstack.
+
+    A step of progress is one of:
     * Generate a verifiable spec for `top_fn` and pop the workstack.
     * Generate an assumed spec for `top_fn` and pop the workstack.
     * Backtrack: add a previously-completed function to the workstack, with the goal of obtaining a
       specification for it that is more useful to `top_fn`.
 
-    The next step focuses on a different function, even if it is possible that the algorithm may
-    revisit this function later due to backtracking.
+    The next step will focus on a different function than `top_fn`, even if it is possible that the
+    algorithm may revisit `top_fn` later due to backtracking.
 
     Args:
         proof_state (ProofState): The proof state from which to generate new proof states.
@@ -221,8 +222,8 @@ def _step(
         )
     )
 
-    specc_with_next_steps = [
-        _get_specc_with_next_step(
+    speccs_with_next_steps = [
+        _set_next_step(
             spec_conversation=specc,
             proof_state=proof_state,
             specification_generator=specification_generator,
@@ -235,20 +236,20 @@ def _step(
             prev_proof_state=proof_state,
             spec_conversation=specc,
         )
-        for specc in specc_with_next_steps
+        for specc in speccs_with_next_steps
     ]
     return result
 
 
-def _get_specc_with_next_step(
+def _set_next_step(
     spec_conversation: SpecConversation,
     proof_state: ProofState,
     specification_generator: LlmSpecificationGenerator,
 ) -> SpecConversation:
-    """Return the given SpecConversation with its next step field set.
+    """Return the given SpecConversation with its `next_step` field set.
 
     Args:
-        spec_conversation (SpecConversation): The SpecConversation whose next step field to set.
+        spec_conversation (SpecConversation): The SpecConversation whose next `step_field` to set.
         proof_state (ProofState): The ProofState.
         specification_generator (LlmSpecificationGenerator): The specification generator.
 
@@ -256,7 +257,7 @@ def _get_specc_with_next_step(
         RuntimeError: Raised when a previously-verified spec is missing from the verifier cache.
 
     Returns:
-        SpecConversation: The given SpecConversation with its next step field set.
+        SpecConversation: The given SpecConversation with its `next_step` field set.
     """
     vinput = VerificationInput(
         function=spec_conversation.function,
@@ -271,7 +272,7 @@ def _get_specc_with_next_step(
         return specification_generator.call_llm_for_backtracking_strategy(
             spec_conversation=spec_conversation, proof_state=proof_state
         )
-    msg = f"Previously-verified spec: '{spec_conversation}' was missing from the verifier cache"
+    msg = f"Previously-verified spec '{spec_conversation}' was missing from the verifier cache"
     raise RuntimeError(msg)
 
 
