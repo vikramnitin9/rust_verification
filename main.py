@@ -119,25 +119,21 @@ def main() -> None:
         MODEL,
         system_prompt=DEFAULT_SYSTEM_PROMPT,
         verifier=verifier,
-        parsec_file=parsec_file,
         num_specification_candidates=args.num_specification_candidates,
         num_specification_repair_candidates=args.num_repair_candidates,
         num_specification_repair_iterations=args.num_specification_repair_iterations,
         disable_llm_cache=args.disable_llm_cache,
     )
 
-    functions_in_reverse_topological_order = parsec_file.get_functions_in_topological_order(
-        reverse_order=True
-    )
     _verify_program(
-        functions=functions_in_reverse_topological_order,
+        parsec_file=parsec_file,
         specification_generator=specification_generator,
         specgen_timeout_sec=args.specification_generation_timeout_sec,
     )
 
 
 def _verify_program(
-    functions: list[CFunction],
+    parsec_file: ParsecFile,
     specification_generator: LlmSpecificationGenerator,
     specgen_timeout_sec: float,
 ) -> tuple[ProofState, ...]:
@@ -147,8 +143,7 @@ def _verify_program(
     exceeds DEFAULT_SPECIFICATION_GENERATION_TIMEOUT_SEC.
 
     Args:
-        functions (list[CFunction]): The functions for which to generate and verify specifications,
-            in reverse topological order.
+        parsec_file (ParsecFile): The file to verify.
         specification_generator (LlmSpecificationGenerator): The LLM specification generator.
         specgen_timeout_sec (float): The timeout for specification generation (in seconds).
 
@@ -156,6 +151,10 @@ def _verify_program(
         tuple[ProofState, ...]: A set of ProofStates with specifications for each function.
 
     """
+    functions = parsec_file.get_functions_in_topological_order(reverse_order=True)
+
+    # Since `functions` is in reverse topological order,
+    # the first element popped from the stack will be a leaf.
     initial_proof_state = ProofState.from_functions(functions=functions[::-1])
     GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)
     # This is the global worklist.

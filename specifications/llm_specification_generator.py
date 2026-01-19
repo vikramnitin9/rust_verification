@@ -20,7 +20,6 @@ from util import (
     BacktrackToCallee,
     CFunction,
     FunctionSpecification,
-    ParsecFile,
     SpecConversation,
     SpecificationGenerationNextStep,
     extract_function_source_code,
@@ -36,7 +35,6 @@ class LlmSpecificationGenerator:
     a set of potential specifications for it. Each specification may or may not verify.
 
     Attributes:
-        _parsec_file (ParsecFile): The ParseC file to use to obtain functions.
         _prompt_builder (PromptBuilder): Used in creating specification generation/repair prompts.
         _verifier (VerificationClient): The client for specification verification.
         _num_specification_candidates (int): The number of specifications to initially generate.
@@ -49,7 +47,6 @@ class LlmSpecificationGenerator:
         _llm_client (LlmClient): The client used to invoke LLMs.
     """
 
-    _parsec_file: ParsecFile
     _prompt_builder: PromptBuilder
     _verifier: VerificationClient
     _num_specification_candidates: int
@@ -64,7 +61,6 @@ class LlmSpecificationGenerator:
         model: str,
         system_prompt: str,
         verifier: VerificationClient,
-        parsec_file: ParsecFile,
         num_specification_candidates: int,
         num_specification_repair_candidates: int,
         num_specification_repair_iterations: int,
@@ -73,7 +69,6 @@ class LlmSpecificationGenerator:
         """Create a new LlmSpecificationGenerator."""
         self._system_prompt = system_prompt
         self._verifier = verifier
-        self._parsec_file = parsec_file
         self._prompt_builder = PromptBuilder()
         self._num_specification_candidates = num_specification_candidates
         self._num_specification_repair_candidates = num_specification_repair_candidates
@@ -148,7 +143,7 @@ class LlmSpecificationGenerator:
         """
         conversation: list[ConversationMessage] = [SystemMessage(content=self._system_prompt)]
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
-            function, self._parsec_file
+            function
         )
         if hint:
             specification_generation_prompt += "\n\n" + hint
@@ -171,7 +166,7 @@ class LlmSpecificationGenerator:
                     function_code_with_specs = function_util.get_source_code_with_inserted_spec(
                         function_name=function.name,
                         specification=candidate_spec,
-                        parsec_file=self._parsec_file,
+                        parsec_file=function.parsec_file,
                     )
                     function.set_specifications(specifications=candidate_spec)
                     function.set_source_code(function_code_with_specs)
@@ -180,7 +175,7 @@ class LlmSpecificationGenerator:
                             function=function,
                             specification=candidate_spec,
                             conversation=(*conversation, LlmMessage(content=sample)),
-                            parsec_file=self._parsec_file,
+                            parsec_file=function.parsec_file,
                             existing_specs=proof_state.get_specifications(),
                         )
                     )
@@ -285,7 +280,7 @@ class LlmSpecificationGenerator:
                         *conversation_updated_with_repair_prompt,
                         LlmMessage(content=response),
                     ),
-                    parsec_file=self._parsec_file,
+                    parsec_file=spec_conversation.function.parsec_file,
                     existing_specs=proof_state.get_specifications(),
                 )
                 specs_to_repair.append((next_spec_conversation, num_repair_attempts + 1))

@@ -24,7 +24,7 @@ class PromptBuilder:
     SOURCE_PLACEHOLDER = "<<SOURCE>>"
     CALLEE_CONTEXT_PLACEHOLDER = "<<CALLEE_CONTEXT>>"
 
-    def specification_generation_prompt(self, function: CFunction, parsec_file: ParsecFile) -> str:
+    def specification_generation_prompt(self, function: CFunction) -> str:
         """Return the prompt used for specification generation.
 
         The prompt consists of the C function and the "context", which is the specifications of its
@@ -32,8 +32,6 @@ class PromptBuilder:
 
         Args:
             function (CFunction): The function for which to generate specifications.
-            parsec_file (ParsecFile): The top-level ParseC file.
-                # MDE: As elsewhere, perhaps the ParsecFile can be a field of the CFunction.
 
         Returns:
             str: The initial prompt used for specification generation.
@@ -45,7 +43,7 @@ class PromptBuilder:
         )
 
         callee_context = ""
-        if callees := parsec_file.get_callees(function):
+        if callees := function.parsec_file.get_callees(function):
             if callees_with_specs := [callee for callee in callees if callee.has_specification()]:
                 callee_context = self._get_callee_specs(function.name, callees_with_specs)
 
