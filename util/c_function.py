@@ -3,7 +3,10 @@
 import filecmp
 import pathlib
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    import util
 
 from .function_specification import FunctionSpecification
 from .parsec_error import ParsecError
@@ -30,6 +33,7 @@ class CFunction:
     preconditions: list[str]
     postconditions: list[str]
     source_code: str
+    parsec_file: "util.ParsecFile"
     arg_names: list[str] = field(default_factory=list)
     arg_types: list[str] = field(default_factory=list)
     enums: list[Any] = field(default_factory=list)
@@ -39,7 +43,7 @@ class CFunction:
     )  # Cannot call this `globals` as it is a Python keyword.
     structs: list[Any] = field(default_factory=list)
 
-    def __init__(self, raw_analysis: dict[str, Any]) -> None:
+    def __init__(self, raw_analysis: dict[str, Any], parsec_file: "util.ParsecFile") -> None:
         """Create a new CFunction."""
         self.name = raw_analysis["name"]
         self.num_args = raw_analysis["num_args"]
@@ -67,6 +71,8 @@ class CFunction:
             self.callee_names.append(func["name"])
         self.global_vars = raw_analysis.get("globals", [])
         self.structs = raw_analysis.get("structs", [])
+
+        self.parsec_file = parsec_file
 
     def get_original_source_code(
         self,

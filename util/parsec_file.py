@@ -61,7 +61,7 @@ class ParsecFile:
         """
         self.file_path = file_path
         parsec_analysis = self._run_parsec(file_path)
-        function_analyses = [CFunction(f) for f in parsec_analysis.get("functions", [])]
+        function_analyses = [CFunction(f, self) for f in parsec_analysis.get("functions", [])]
         self.enums = parsec_analysis.get("enums", [])
         self.files = parsec_analysis.get("files", [])
         self.functions = {analysis.name: analysis for analysis in function_analyses}

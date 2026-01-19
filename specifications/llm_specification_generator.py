@@ -32,7 +32,6 @@ class LlmSpecificationGenerator:
     a set of potential specifications for it. Each specification may or may not verify.
 
     Attributes:
-        _parsec_file (ParsecFile): The ParseC file to use to obtain functions.
         _prompt_builder (PromptBuilder): Used in creating specification generation/repair prompts.
         _verifier (VerificationClient): The client for specification verification.
         _num_specification_candidates (int): The number of specifications to initially generate.
@@ -45,7 +44,6 @@ class LlmSpecificationGenerator:
         _llm_client (LlmClient): The client used to invoke LLMs.
     """
 
-    _parsec_file: ParsecFile
     _prompt_builder: PromptBuilder
     _verifier: VerificationClient
     _num_specification_candidates: int
@@ -60,7 +58,6 @@ class LlmSpecificationGenerator:
         model: str,
         system_prompt: str,
         verifier: VerificationClient,
-        parsec_file: ParsecFile,
         num_specification_candidates: int,
         num_specification_repair_candidates: int,
         num_specification_repair_iterations: int,
@@ -69,7 +66,6 @@ class LlmSpecificationGenerator:
         """Create a new LlmSpecificationGenerator."""
         self._system_prompt = system_prompt
         self._verifier = verifier
-        self._parsec_file = parsec_file
         self._prompt_builder = PromptBuilder()
         self._num_specification_candidates = num_specification_candidates
         self._num_specification_repair_candidates = num_specification_repair_candidates
@@ -144,7 +140,7 @@ class LlmSpecificationGenerator:
         """
         conversation: list[ConversationMessage] = [SystemMessage(content=self._system_prompt)]
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
-            function, self._parsec_file
+            function
         )
         if hint:
             specification_generation_prompt += "\n\n" + hint
@@ -212,7 +208,7 @@ class LlmSpecificationGenerator:
 
                 contents_of_file_to_verify = self._get_content_of_file_to_verify(
                     spec_conversation=current_spec_conversation,
-                    original_file_path=self._parsec_file.file_path,
+                    original_file_path=spec_conversation.function.parsec_file.file_path,
                     proof_state=proof_state,
                 )
                 function_under_repair = current_spec_conversation.function
@@ -220,7 +216,7 @@ class LlmSpecificationGenerator:
                     function_util.get_source_code_with_inserted_spec(
                         function_name=function_under_repair.name,
                         specification=current_spec_conversation.specification,
-                        parsec_file=self._parsec_file,
+                        parsec_file=spec_conversation.function.parsec_file,
                     )
                 )
                 current_spec_conversation.contents_of_file_to_verify = contents_of_file_to_verify
