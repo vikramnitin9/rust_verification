@@ -31,7 +31,7 @@ def parse_backtracking_info(llm_response: str) -> BacktrackingInformation:
             'postcondition_strengthening_description' keys.
 
     Returns:
-        BacktrackingInformation: Backtracking information parsed from an LLM response.
+        BacktrackingInformation: Backtracking information parsed from the LLM response.
     """
     llm_response_dict = parse_object(llm_response)
     callee_name = llm_response_dict.get("callee")

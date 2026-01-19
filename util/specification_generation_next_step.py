@@ -11,7 +11,8 @@ class SpecificationGenerationNextStep:
         """Prevent creating instances of SpecificationGenerationNextStep (abstract class).
 
         Raises:
-            RuntimeError: Raised when an instance of SpecificationGenerationNextStep is created.
+            RuntimeError: Raised when an instance of abstract class SpecificationGenerationNextStep
+                is created.
         """
         if type(self) is SpecificationGenerationNextStep:
             msg = f"'{self.__class__.__name__}' is an abstract class"

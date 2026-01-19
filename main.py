@@ -339,14 +339,13 @@ def _write_spec_to_disk(spec_conversation: SpecConversation) -> None:
     some functions may be specified (i.e., have CBMC annotations).
 
     Specifications are written to a file under the `DEFAULT_RESULT_DIR` directory that has the same
-    same name (and path) as the original (non-specified) file under a directory that is specific to
+    name (and path) as the original (non-specified) file under a directory that is specific to
     each process (i.e., the directory's name is the pid of the process where specification
     generation is running).
 
     Args:
         spec_conversation (SpecConversation): The SpecConversation comprising the specification that
             should be written to the result file.
-
     """
     function = spec_conversation.function
     path_to_original_file = Path(function.file_name)
