@@ -41,7 +41,7 @@ class LlmSpecificationGenerator:
         _num_specification_repair_candidates (int): The number of repaired specs sampled from an LLM
             in each repair round.
         _system_prompt (str): The system prompt for the LLM.
-        _disable_cache (bool): True iff caching should be disabled for LLM responses.
+        _disable_llm_cache (bool): True iff caching should be disabled for LLM responses.
         _llm_client (LlmClient): The client used to invoke LLMs.
     """
 
@@ -52,7 +52,7 @@ class LlmSpecificationGenerator:
     _num_specification_repair_iterations: int
     _num_specification_repair_candidates: int
     _system_prompt: str
-    _disable_cache: bool
+    _disable_llm_cache: bool
     _llm_client: LlmClient
 
     def __init__(
@@ -64,7 +64,7 @@ class LlmSpecificationGenerator:
         num_specification_candidates: int,
         num_specification_repair_candidates: int,
         num_specification_repair_iterations: int,
-        disable_cache: bool = False,
+        disable_llm_cache: bool = False,
     ) -> None:
         """Create a new LlmSpecificationGenerator."""
         self._system_prompt = system_prompt
@@ -78,7 +78,7 @@ class LlmSpecificationGenerator:
             model_name=model,
             top_k=num_specification_candidates,
             temperature=0.8,
-            disable_cache=disable_cache,
+            disable_llm_cache=disable_llm_cache,
         )
 
     def generate_and_repair_spec(
