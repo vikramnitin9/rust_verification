@@ -109,7 +109,7 @@ class LlmSpecificationGenerator:
             repaired_speccs.extend(
                 # `_repair_spec()` is called whether or not the spec verifies.
                 self._repair_spec(
-                    spec_conversation=pruned_specc,
+                    specc=pruned_specc,
                     proof_state=proof_state,
                 )
             )
