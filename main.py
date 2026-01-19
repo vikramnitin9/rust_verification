@@ -146,12 +146,9 @@ def _verify_program(
         tuple[ProofState, ...]: A set of ProofStates with specifications for each function.
 
     """
-    functions = parsec_file.get_functions_in_topological_order(reverse_order=True)
+    functions = parsec_file.get_functions_in_topological_order()
 
-    # Since `functions` is in reverse topological order,
-    # the first element popped from the stack will be a leaf.
-    initial_proof_state = ProofState.from_functions(functions=functions[::-1])
-
+    initial_proof_state = ProofState.from_functions(functions=functions)
     GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)
     GLOBAL_INCOMPLETE_PROOFSTATES.append(initial_proof_state)
 
