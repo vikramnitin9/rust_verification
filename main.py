@@ -99,7 +99,7 @@ def main() -> None:
         type=float,
     )
     parser.add_argument(
-        "--disable-llm-sample-cache",
+        "--disable-llm-cache",
         action="store_true",
         help=("Always call the LLM, do not use cached answers (defaults to False)."),
     )
@@ -118,7 +118,7 @@ def main() -> None:
         num_specification_candidates=args.num_specification_candidates,
         num_specification_repair_candidates=args.num_repair_candidates,
         num_specification_repair_iterations=args.num_specification_repair_iterations,
-        disable_cache=args.disable_llm_sample_cache,
+        disable_llm_cache=args.disable_llm_cache,
     )
 
     _verify_program(
