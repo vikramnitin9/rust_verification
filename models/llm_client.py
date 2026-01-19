@@ -24,7 +24,7 @@ class LlmClient:
     _sample_cache: Cache | None
 
     def __init__(
-        self, model_name: str, top_k: int, temperature: float, disable_cache: bool = False
+        self, model_name: str, top_k: int, temperature: float, disable_llm_cache: bool = False
     ):
         """Create a new LlmClient."""
         if top_k > 1 and temperature == 0:
@@ -36,7 +36,7 @@ class LlmClient:
         self._llm = LLMGen.get_llm_generation_with_model(model_name=model_name)
         self._top_k = top_k
         self._temperature = temperature
-        self._sample_cache = None if disable_cache else Cache(directory=DEFAULT_CACHE_DIR)
+        self._sample_cache = None if disable_llm_cache else Cache(directory=DEFAULT_CACHE_DIR)
 
     def get(
         self,

@@ -47,7 +47,7 @@ class ParsecFile:
     # but this needs to be kept in mind for complex projects.
     functions: dict[str, CFunction] = field(default_factory=dict)
 
-    # Enums, structs, and global_vars are all represented as lists of dictionaries
+    # Enums, structs, and global_vars are all represented as lists of dictionaries.
     # For the exact format of these dictionaries, see the ParseC documentation (linked above).
     enums: list[dict[str, Any]] = field(default_factory=list)
     structs: list[dict[str, Any]] = field(default_factory=list)

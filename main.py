@@ -34,7 +34,7 @@ from verification import (
 )
 
 MODEL = "gpt-4o"
-DEFAULT_HEADERS_IN_OUTPUT = ["stdlib.h", "limits.h"]
+DEFAULT_HEADERS_IN_OUTPUT = ["#include <stdlib.h>", "#include <limits.h>"]
 DEFAULT_NUM_SPECIFICATION_CANDIDATES = 10
 DEFAULT_NUM_REPAIR_CANDIDATES = 10
 DEFAULT_MODEL_TEMPERATURE = 1.0
@@ -100,7 +100,7 @@ def main() -> None:
         type=float,
     )
     parser.add_argument(
-        "--disable-llm-sample-cache",
+        "--disable-llm-cache",
         action="store_true",
         help=("Always call the LLM, do not use cached answers (defaults to False)."),
     )
@@ -112,8 +112,7 @@ def main() -> None:
     # MDE: Will this path be repeatedly overwritten during the verification process?  If so, that is
     # a serious problem for concurrency.
     output_file_path = copy_file_to_folder(input_file_path, DEFAULT_RESULT_DIR)
-    header_lines = [f"#include <{header}>" for header in DEFAULT_HEADERS_IN_OUTPUT]
-    ensure_lines_at_beginning(header_lines, output_file_path)
+    ensure_lines_at_beginning(DEFAULT_HEADERS_IN_OUTPUT, output_file_path)
 
     verifier: VerificationClient = CbmcVerificationClient(cache=VERIFIER_CACHE)
     specification_generator = LlmSpecificationGenerator(
@@ -124,7 +123,7 @@ def main() -> None:
         num_specification_candidates=args.num_specification_candidates,
         num_specification_repair_candidates=args.num_repair_candidates,
         num_specification_repair_iterations=args.num_specification_repair_iterations,
-        disable_cache=args.disable_llm_sample_cache,
+        disable_llm_cache=args.disable_llm_cache,
     )
 
     functions_in_reverse_topological_order = parsec_file.get_functions_in_topological_order(
