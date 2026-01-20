@@ -271,9 +271,11 @@ def _set_next_step(
         if vresult.succeeded:
             spec_conversation.next_step = AcceptVerifiedSpec()
             return spec_conversation
-        return specification_generator.call_llm_for_next_step(
+        # We currently determine a *single* next step. But, this might change in the future.
+        next_steps = specification_generator.call_llm_for_next_steps(
             spec_conversation=spec_conversation, proof_state=proof_state
         )
+        return next_steps[0]
     msg = f"Previously-verified spec '{spec_conversation}' was missing from the verifier cache"
     raise RuntimeError(msg)
 

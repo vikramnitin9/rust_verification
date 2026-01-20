@@ -337,10 +337,10 @@ class LlmSpecificationGenerator:
             msg = f"Failed to repair specifications for '{function.name}'"
             raise RuntimeError(msg) from me
 
-    def call_llm_for_next_step(
+    def call_llm_for_next_steps(
         self, spec_conversation: SpecConversation, proof_state: ProofState
-    ) -> SpecConversation:
-        """Return a SpecConversation from asking an LLM for a next step (e.g., backtracking).
+    ) -> tuple[SpecConversation, ...]:
+        """Return SpecConversations produced by asking an LLM for next steps (e.g., backtracking).
 
         Args:
             spec_conversation (SpecConversation): A SpecConversation that ends with a specification
@@ -348,8 +348,8 @@ class LlmSpecificationGenerator:
             proof_state (ProofState): The proof state under which verification fails.
 
         Returns:
-            SpecConversation: A SpecConversation that includes the next step (e.g., backtracking)
-                decided by an LLM.
+            tuple[SpecConversation,...]: SpecConversations that includes next steps
+                (e.g., backtracking) decided by an LLM.
         """
         vinput = VerificationInput(
             function=spec_conversation.function,
@@ -371,15 +371,18 @@ class LlmSpecificationGenerator:
         )
         next_step_decision = next_step_llm_responses[0]
 
-        return SpecConversation(
-            function=spec_conversation.function,
-            specification=spec_conversation.specification,
-            conversation=(
-                *conversation_with_next_step_prompt,
-                LlmMessage(content=next_step_decision),
+        # We currently determine a *single* next step. But, this might change in the future.
+        return (
+            SpecConversation(
+                function=spec_conversation.function,
+                specification=spec_conversation.specification,
+                conversation=(
+                    *conversation_with_next_step_prompt,
+                    LlmMessage(content=next_step_decision),
+                ),
+                contents_of_file_to_verify=spec_conversation.contents_of_file_to_verify,
+                next_step=self._parse_next_step(next_step_decision),
             ),
-            contents_of_file_to_verify=spec_conversation.contents_of_file_to_verify,
-            next_step=self._parse_next_step(next_step_decision),
         )
 
     def _parse_specification_from_response(self, llm_response: str) -> FunctionSpecification | None:
