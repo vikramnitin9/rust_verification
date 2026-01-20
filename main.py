@@ -154,10 +154,8 @@ def _verify_program(
     """
     # Since the initial list of functions is in reverse topological order,
     # the first element processed will be a leaf.
-    functions = parsec_file.get_functions_in_topological_order()
-
+    functions = parsec_file.get_functions_in_topological_order(reverse_order=True)
     initial_proof_state = ProofState.from_functions(functions=functions)
-
     GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)
     # This is the global worklist.
     GLOBAL_INCOMPLETE_PROOFSTATES.append(initial_proof_state)
