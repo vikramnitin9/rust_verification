@@ -308,7 +308,8 @@ def _get_next_proof_state(
             raise ValueError(msg)
         case AcceptVerifiedSpec() | AssumeSpecAsIs():
             # There could be more than one valid specification generated (i.e., when we sample more
-            # than once from the LLM). For now, we take the last (valid) specification and write it.
+            # than once from the LLM). For now, we take the last (valid) specification and write it
+            # to disk (see below).
             _write_spec_to_disk(spec_conversation=spec_conversation)
             workstack_for_next_proof_state = prev_proof_state.get_workstack().pop()
             return ProofState(
@@ -337,7 +338,7 @@ def _get_next_proof_state(
 
 
 def _write_spec_to_disk(spec_conversation: SpecConversation) -> None:
-    """Write a function specification to a file on disk.
+    """Write a single function specification's to a file on disk.
 
     The resulting file is identical to the corresponding file in the unverified (input) program, but
     some functions may be specified (i.e., have CBMC annotations).
@@ -348,8 +349,8 @@ def _write_spec_to_disk(spec_conversation: SpecConversation) -> None:
     generation is running).
 
     Args:
-        spec_conversation (SpecConversation): The SpecConversation comprising the specification that
-            should be written to the result file.
+        spec_conversation (SpecConversation): The SpecConversation comprising the function
+            specification to be written to the result file.
     """
     function = spec_conversation.function
     path_to_original_file = Path(function.file_name)
