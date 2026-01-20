@@ -65,6 +65,8 @@ class ParsecFile:
         self.enums = parsec_analysis.get("enums", [])
         self.files = parsec_analysis.get("files", [])
         self.functions = {analysis.name: analysis for analysis in function_analyses}
+        self.global_vars = parsec_analysis.get("global_vars", [])
+        self.structs = parsec_analysis.get("structs", [])
         # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
         # NOTE: Each node in call_graph is a CFunction.
         self.call_graph: nx.DiGraph = nx.DiGraph()  # type: ignore[type-arg]

@@ -30,6 +30,10 @@ class CFunction:
     preconditions: list[str]
     postconditions: list[str]
     source_code: str
+
+    # Do not include parsec_file because it may interfere with caching.
+    # parsec_file: "util.ParsecFile"
+
     arg_names: list[str] = field(default_factory=list)
     arg_types: list[str] = field(default_factory=list)
     enums: list[Any] = field(default_factory=list)
@@ -52,6 +56,7 @@ class CFunction:
         self.end_col = raw_analysis["endCol"]
         self.preconditions = []
         self.postconditions = []
+        self.source_code = ""
         self.callee_names = []
         self.arg_names = raw_analysis.get("argNames", [])
         self.arg_types = raw_analysis.get("argTypes", [])
