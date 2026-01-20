@@ -115,25 +115,21 @@ def main() -> None:
         MODEL,
         system_prompt=DEFAULT_SYSTEM_PROMPT,
         verifier=verifier,
-        parsec_file=parsec_file,
         num_specification_candidates=args.num_specification_candidates,
         num_specification_repair_candidates=args.num_repair_candidates,
         num_specification_repair_iterations=args.num_specification_repair_iterations,
         disable_llm_cache=args.disable_llm_cache,
     )
 
-    functions_in_reverse_topological_order = parsec_file.get_functions_in_topological_order(
-        reverse_order=True
-    )
     _verify_program(
-        functions=functions_in_reverse_topological_order,
+        parsec_file=parsec_file,
         specification_generator=specification_generator,
         specgen_timeout_sec=args.specification_generation_timeout_sec,
     )
 
 
 def _verify_program(
-    functions: list[CFunction],
+    parsec_file: ParsecFile,
     specification_generator: LlmSpecificationGenerator,
     specgen_timeout_sec: float,
 ) -> tuple[ProofState, ...]:
@@ -142,8 +138,7 @@ def _verify_program(
     This function exits when GLOBAL_INCOMPLETE_PROOFSTATES is empty.
 
     Args:
-        functions (list[CFunction]): The functions for which to generate and verify specifications,
-            in reverse topological order.
+        parsec_file (ParsecFile): The file to verify.
         specification_generator (LlmSpecificationGenerator): The specification generator.
         specgen_timeout_sec (float): The timeout for specification generation (in seconds).
 
@@ -151,10 +146,9 @@ def _verify_program(
         tuple[ProofState, ...]: A set of ProofStates with specifications for each function.
 
     """
-    # Since `functions` is in reverse topological order,
-    # the first element popped from the stack will be a leaf.
-    initial_proof_state = ProofState.from_functions(functions=functions[::-1])
+    functions = parsec_file.get_functions_in_topological_order()
 
+    initial_proof_state = ProofState.from_functions(functions=functions)
     GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)
     GLOBAL_INCOMPLETE_PROOFSTATES.append(initial_proof_state)
 
@@ -165,6 +159,7 @@ def _verify_program(
         next_proofstates = _step(
             proof_state=proof_state,
             specification_generator=specification_generator,
+            parsec_file=parsec_file,
         )
 
         for next_proofstate in next_proofstates:
@@ -185,6 +180,7 @@ def _verify_program(
 def _step(
     proof_state: ProofState,
     specification_generator: LlmSpecificationGenerator,
+    parsec_file: ParsecFile,
 ) -> list[ProofState]:
     """Given a ProofState, returns of list of ProofStates, each of which makes a "step" of progress.
 
@@ -202,6 +198,7 @@ def _step(
     Args:
         proof_state (ProofState): The proof state from which to generate new proof states.
         specification_generator (LlmSpecificationGenerator): The specification generator.
+        parsec_file (ParsecFile): The file being verified.
 
     Returns:
         list[ProofState]: The list of new proof states to explore.
@@ -213,6 +210,7 @@ def _step(
     # that the algorithm may revisit this function later due to backtracking.
     speccs_for_function: list[SpecConversation] = specification_generator.generate_and_repair_spec(
         function=work_item.function,
+        parsec_file=parsec_file,
         hint=work_item.hint,
         proof_state=proof_state,
     )

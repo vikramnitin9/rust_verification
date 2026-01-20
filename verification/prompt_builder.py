@@ -32,8 +32,8 @@ class PromptBuilder:
 
         Args:
             function (CFunction): The function for which to generate specifications.
-            parsec_file (ParsecFile): The top-level ParseC file.
-                # MDE: As elsewhere, perhaps the ParsecFile can be a field of the CFunction.
+            parsec_file (ParsecFile): The file that contains `function`.
+
 
         Returns:
             str: The initial prompt used for specification generation.

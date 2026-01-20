@@ -32,7 +32,6 @@ class LlmSpecificationGenerator:
     a set of potential specifications for it. Each specification may or may not verify.
 
     Attributes:
-        _parsec_file (ParsecFile): The ParseC file to use to obtain functions.
         _prompt_builder (PromptBuilder): Used in creating specification generation/repair prompts.
         _verifier (VerificationClient): The client for specification verification.
         _num_specification_candidates (int): The number of specifications to initially generate.
@@ -45,7 +44,6 @@ class LlmSpecificationGenerator:
         _llm_client (LlmClient): The client used to invoke LLMs.
     """
 
-    _parsec_file: ParsecFile
     _prompt_builder: PromptBuilder
     _verifier: VerificationClient
     _num_specification_candidates: int
@@ -60,7 +58,6 @@ class LlmSpecificationGenerator:
         model: str,
         system_prompt: str,
         verifier: VerificationClient,
-        parsec_file: ParsecFile,
         num_specification_candidates: int,
         num_specification_repair_candidates: int,
         num_specification_repair_iterations: int,
@@ -69,7 +66,6 @@ class LlmSpecificationGenerator:
         """Create a new LlmSpecificationGenerator."""
         self._system_prompt = system_prompt
         self._verifier = verifier
-        self._parsec_file = parsec_file
         self._prompt_builder = PromptBuilder()
         self._num_specification_candidates = num_specification_candidates
         self._num_specification_repair_candidates = num_specification_repair_candidates
@@ -84,6 +80,7 @@ class LlmSpecificationGenerator:
     def generate_and_repair_spec(
         self,
         function: CFunction,
+        parsec_file: ParsecFile,
         hint: str,
         proof_state: ProofState,
     ) -> list[SpecConversation]:
@@ -91,6 +88,7 @@ class LlmSpecificationGenerator:
 
         Args:
             function (CFunction): The function for which to generate potential specs.
+            parsec_file (ParsecFile): The file that contains `function`.
             hint (str): Hints to help guide specification regeneration (i.e., when a
                 specification is not accepted or assumed as-is, and is either being repaired or when
                 a callee specification is re-generated).
@@ -99,7 +97,9 @@ class LlmSpecificationGenerator:
         Returns:
             list[SpecConversation]: A list of potential specifications for the function.
         """
-        candidate_speccs = self._generate_unrepaired_specs(function=function, hint=hint)
+        candidate_speccs = self._generate_unrepaired_specs(
+            function=function, parsec_file=parsec_file, hint=hint
+        )
 
         # TODO: Actually perform some pruning here of the candidate specs.
         pruned_speccs = candidate_speccs
@@ -109,8 +109,7 @@ class LlmSpecificationGenerator:
             repaired_speccs.extend(
                 # `_repair_spec()` is called whether or not the spec verifies.
                 self._repair_spec(
-                    specc=pruned_specc,
-                    proof_state=proof_state,
+                    specc=pruned_specc, proof_state=proof_state, parsec_file=parsec_file
                 )
             )
         return repaired_speccs
@@ -118,6 +117,7 @@ class LlmSpecificationGenerator:
     def _generate_unrepaired_specs(
         self,
         function: CFunction,
+        parsec_file: ParsecFile,
         hint: str,
     ) -> list[SpecConversation]:
         """Generate potential specifications for the given function.
@@ -132,6 +132,7 @@ class LlmSpecificationGenerator:
 
         Args:
             function (CFunction): The function for which to generate specifications.
+            parsec_file (ParsecFile): The file that contains `function`.
             hint (str): Hints to guide specification generation. Only non-empty when
                 generating specs during backtracking (i.e., a specification is not accepted or
                 assumed as-is, and is either being repaired or when a callee specification is
@@ -144,7 +145,7 @@ class LlmSpecificationGenerator:
         """
         conversation: list[ConversationMessage] = [SystemMessage(content=self._system_prompt)]
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
-            function, self._parsec_file
+            function, parsec_file
         )
         if hint:
             specification_generation_prompt += "\n\n" + hint
@@ -179,6 +180,7 @@ class LlmSpecificationGenerator:
         self,
         specc: SpecConversation,
         proof_state: ProofState,
+        parsec_file: ParsecFile,
     ) -> list[SpecConversation]:
         """If the spec verifies, return it.  If the spec does not verify, try to repair it.
 
@@ -186,6 +188,7 @@ class LlmSpecificationGenerator:
             specc (SpecConversation): The SpecConversation that ends with the spec that
                 may fail to verify.
             proof_state (ProofState): The proof state for the specification.
+            parsec_file (ParsecFile): The file being verified.
 
         Returns:
             list[SpecConversation]: The repaired specifications.
@@ -212,7 +215,7 @@ class LlmSpecificationGenerator:
 
                 contents_of_file_to_verify = self._get_content_of_file_to_verify(
                     specc=current_specc,
-                    original_file_path=self._parsec_file.file_path,
+                    original_file_path=parsec_file.file_path,
                     proof_state=proof_state,
                 )
                 function_under_repair = current_specc.function
@@ -220,7 +223,7 @@ class LlmSpecificationGenerator:
                     function_util.get_source_code_with_inserted_spec(
                         function_name=function_under_repair.name,
                         specification=current_specc.specification,
-                        parsec_file=self._parsec_file,
+                        parsec_file=parsec_file,
                     )
                 )
                 current_specc.contents_of_file_to_verify = contents_of_file_to_verify
@@ -296,7 +299,9 @@ class LlmSpecificationGenerator:
         return verified_speccs or [specc for specc in observed_speccs if specc.has_next_step()]
 
     def _call_llm_for_repair(
-        self, function: CFunction, conversation: tuple[ConversationMessage, ...]
+        self,
+        function: CFunction,
+        conversation: tuple[ConversationMessage, ...],
     ) -> tuple[tuple[FunctionSpecification, str], ...]:
         """Call an LLM to repair a failing spec.
 
