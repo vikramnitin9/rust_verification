@@ -61,7 +61,6 @@ class CFunction:
         self.arg_names = raw_analysis.get("argNames", [])
         self.arg_types = raw_analysis.get("argTypes", [])
         self.enums = raw_analysis.get("enums", [])
-        self.source_code = ""
         if "callees" not in raw_analysis:
             msg = f"ParseC analysis: {raw_analysis} was missing a 'callees' key"
             raise ParsecError(msg)

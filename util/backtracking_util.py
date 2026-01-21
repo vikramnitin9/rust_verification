@@ -35,7 +35,9 @@ def parse_backtracking_info(llm_response: str) -> BacktrackingInformation:
     """
     llm_response_dict = parse_object(llm_response)
     callee_name = llm_response_dict.get("callee")
-    postcondition_change_for_callee = llm_response_dict.get("postcondition_change_for_callee")
+    postcondition_change_for_callee = llm_response_dict.get(
+        "postcondition_strengthening_description"
+    )
     if callee_name and postcondition_change_for_callee:
         return BacktrackingInformation(
             callee_name=callee_name,

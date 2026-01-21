@@ -422,7 +422,7 @@ class LlmSpecificationGenerator:
                 case "BACKTRACK_TO_CALLEE":
                     return BacktrackToCallee(
                         callee=llm_response_dict["callee"],
-                        hint=llm_response_dict["postcondition_change_for_callee"],
+                        hint=llm_response_dict["postcondition_strengthening_description"],
                     )
                 case unexpected_step:
                     msg = f"Unexpected next step for specification generation = '{unexpected_step}'"

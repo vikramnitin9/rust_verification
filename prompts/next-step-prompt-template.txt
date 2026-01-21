@@ -31,6 +31,6 @@ If you choose (2), your response should be in the following format:
 
 {
     "next_step": "BACKTRACK_TO_CALLEE",
-    "postcondition_change_for_callee": "<DESCRIPTION>",
+    "postcondition_strengthening_description": "<DESCRIPTION>",
     "callee": "<CALLEE_NAME>",
 }

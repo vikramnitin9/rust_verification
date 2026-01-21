@@ -34,7 +34,7 @@ class CbmcVerificationClient(VerificationClient):
         """Return the result of verifying the given verification input.
 
         Args:
-            vinput (VerificationINput): The verification input.
+            vinput (VerificationInput): The verification input.
 
         Returns:
             VerificationResult: The result of verifying the given verification input.
