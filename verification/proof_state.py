@@ -105,7 +105,8 @@ class ProofState:
         """Create a new ProofState with a workstack constructed from the given functions.
 
         Args:
-            functions (list[CFunction]): The functions from which to construct a new ProofState.
+            functions (list[CFunction]): The functions from which to construct a new ProofState,
+                in reverse topological order.
 
         Returns:
             Self: A new ProofState with a workstack constructed from the given functions.

@@ -1,6 +1,14 @@
+Repair the specifications for $function_name using the information below:
+
 Error while running verification for function: $function_name
-STDOUT: $failure_lines
-STDERR: $stderr
+
+---- beginning of standard output ----
+$stdout
+---- end of standard output ----
+---- beginning of standard error ----
+$stderr
+---- end of standard error ----
+
 Remember to add the contracts (__CPROVER_requires and __CPROVER_ensures) in the function header,
 not the function body.
 

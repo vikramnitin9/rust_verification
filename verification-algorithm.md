@@ -24,13 +24,17 @@ heuristic prunes or prioritizes the possibilities).
 Two integers parameterize the algorithm:
 
 * `num_llm_samples`: each call to `llm()` returns a list of this length.
+  The algorithm should eventually pursue all these possibilities in parallel.
   As a general rule, after each call to `llm()`, our algorithm heuristically
   prunes the returned list of samples to reduce the exploration space.
+  * The implementation calls the LLM for different purposes and therefore has multiple variables,
+    one for each type of LLM query.
 * `num_repair_iterations`: the number of times that the LLM tries to repair a
   specification, using feedback from running the verifier.
 
 The implementation also contains:
 
+* which model to use
 * the model temperature, which cannot be set to 0 for sampling/generating candidates.
 
 ## Data structures
@@ -41,13 +45,12 @@ immutable class VerificationInput:
 * spec for function
 * context: Context
 
-Context (defined just below) represents specifications other relevant parts
-(other than the method under verification).  Each context is a subset of a
-ProofState, created by calling `current_context(fn, proofstate)`.  The program
-does not directly manipulate contexts; they are an internal detail of caching.
-They are used as keys for caching (rather than a ProofState) because they
-contain only the relevant parts of a ProofState, which reduces the number of
-possible keys and the likelihood of hitting in the cache.
+Context (defined just below) represents specifications of other relevant parts (other than the
+method under verification).  Each context is a subset of a ProofState, created by calling
+`current_context(fn, proofstate)`.  The verification algorithm does not directly manipulate
+contexts; they are an internal detail of caching.  They are used as keys for caching (rather than a
+ProofState) because they contain only the relevant parts of a ProofState, which reduces the number
+of possible keys and increases the likelihood of hitting in the cache.
 
 immutable class Context:
 
@@ -67,23 +70,23 @@ immutable class VerificationResult:
 
 It doesn't make sense to say that a function specification in isolation is
 verified or not, because the verification result depends on the full verifier
-input, which includes the specifications of the callees and callers.
+input, which includes the specifications of the callees.
 
 Global data structures:
 
-* `verifier_outputs`:  Map[VerificationInput, VerificationResult].
-  A cache for efficiency.  Is only added to, never removed from.
-  This cache eliminates the need to pass VerificationResults through the program,
-  since they can just be looked up.
-* `llm_cache`: Map[LlmInput, List[LlmOutput]]: for efficiency.  Is only added to, never removed from.
-  The input type (the key) is probably String.  Each value in the map is a list
-  of strings, with length `num_llm_samples`.
-  * Cache responses for testing + in cases where we make the same call to the LLM (given that it's
-    the same LLM and not an "improved" model or the same call made some timeframe after the last
-    call).
 * `proofstates_worklist`:  set of ProofStates yet to be explored.
   Trying to add an element that has ever been previously added has no effect.
   (We could imagine making this a priority queue if we have a good heuristic for ordering.)
+* `verifier_outputs`:  Map[VerificationInput, VerificationResult].
+  A cache.  Is only added to, never removed from.
+  This cache eliminates the need to pass VerificationResults through the program,
+  since they can just be looked up.
+* `llm_cache`: Map[LlmInput, List[LlmOutput]]: for efficiency.  Is only added to, never removed
+  from.  The input type (the key) is probably a tuple that includes the string sent to the model,
+  the model name, and its temperature.  Each value in the map is a list of strings, with length
+  `num_llm_samples`.
+  * If a vendor (e.g., OpenAI) changes a model without changing its name, than cache entries for it
+    need to be removed.
 
 Each access to a global data structure must use locking; or we could store them
 persistently, say using SQLite, which permits using multiprocessing rather than
@@ -96,34 +99,43 @@ immutable class ProofState:
   * When `workstack` is pushed or popped, one entry of the map is updated,
     corresponding to the function that was pushed or popped.  (But, since
     ProofState is immutable, this is by comparison to a previous ProofState.)
-  * We can compute the verified/unverified/not-yet processed functions from a ProofState's `specs` map.
-  * TODO: think about whether it's possible to obtain a list of assumed specs.
+  * There might be a specification for a function that is on the workstack.  This is important to
+    handle recursion and even when the call graph is a dag rather than a tree.
+  * TODO: add information to distinguish verified/assumed/unverified/not-yet processed functions?
 * workstack: Stack[WorkItem]
   A stack of functions that need to be (re)processed.
-  * Immutable, so can be represented as a tuple rather than as a Stack.
-  Each hint is text provided to the LLM to guide it.  I don't have a data
-  structure (beyond string) in mind for it yet.
-  Example hints:
-  * "Please weaken/strengthen the postcondition"
-  * "This function is only ever called with non-null values",
-  Invariant:  all the pairs with a non-empty `backtrack_hint` are above all the pairs with None.
+  * Immutable, so can be represented more efficiently than as a Stack.
+    It could be a tuple of all the elements, or it could be implemented as a manual linked list, as
+    a pair of one element and a pointer to the remainder of the list.
+  Invariant:  all the WorkItems with a non-empty `backtrack_hint` are above all the pairs with None.
   This is because every push onto the workstack has a non-None `backtrack_hint`.
 
-Possible fields:
+Possible fields for ProofState:
 
 * `verified_functions`: a list of functions that have been verified.
 * `assumed_functions`: a list of functions with unverified, but trusted, specifications.
-
-immutable class SpecConversation:
-
-* `spec`: Specification
-* `conversation`: a conversation history with an LLM, that led to the given spec
-* `hint`: Any hints for regenerating specifications, either for repair or for callees.
 
 immutable class WorkItem:
 
 * `function`: ParsecFunction
 * `hint`: str
+  Each hint is text provided to the LLM to guide it in the backtracking process; its value is
+  populated by the `hint` field in the `BacktrackToCallee` class.
+
+immutable class SpecConversation:
+
+* `spec`: Specification
+* `conversation`: a conversation history with an LLM, that led to the given spec
+* `next_step`: The next step in the specification generation process. Valid values for the next step
+  are:
+  * `ACCEPT_VERIFIED_SPEC`: For specs that successfully verify with CBMC.
+  * `ASSUME_SPEC_AS_IS`: For specs that should be assumed during verification (when repair or
+    backtracking has repeatedly failed).
+  * `BACKTRACK_TO_CALLEE`: When the specifications should be regenerated for a callee of the
+    function with this conversation's spec, which has the following fields:
+    * `callee`: The name of the callee to backtrack to.
+    * `hint`: The reasoning given by the LLM that generally describes the
+      postcondition-strengthening change to the callee specification.
 
 ## Code
 
@@ -135,8 +147,8 @@ def verify_program(program) -> List[Map[Fn, Spec]]:
   Output: a list of program specifications.  A program specification contains a specification for each function in the program
   """
   # Since workstacks are immutable, a workstack can be represented as a tuple rather than as a Stack.
-  initial_workstack: Stack[(function, backtrack_hint)] = all functions in `program`, in reverse topological
-                                                order (that is, children first), with empty backtrack_hint.
+  initial_workstack: Stack[WorkItem] = all functions in `program`, in reverse topological
+                                       order (that is, children first), with empty backtrack_hint.
   initial_proofstate = ProofState(initial_workstack)
   global.proofstates_worklist.add(initial_proofstate)
 
@@ -157,11 +169,13 @@ def step(proofstate: ProofState) -> List[ProofState]:
   This is the key unit of parallelism.
   Input: a ProofState
   Output: a list of ProofStates resulting from the verification attempt.
-    Let f be the top of the input's workstack.
-    The output ProofState has a smaller workstack if f was successfully verified or if f's spec will be assumed.
-    The output ProofState has a larger workstack (representing backtracking) if f was not successfully verified.
+    Let `top_fn` be the function on the top of the input's workstack.
+    The output ProofState has a smaller workstack if top_fn was successfully verified or if top_fn's
+    spec will be assumed.
+    The output ProofState has a larger workstack (representing backtracking) if `top_fn` was not 
+    verified or assumed.
   """
-  (fn, backtrack_hint) = proofstate.workstack.top();
+  (fn, backtrack_hint): WorkItem = proofstate.workstack.top();
   new_speccs: List[SpecConversation] = generate_and_repair_spec(fn, backtrack_hint)
   pruned_speccs = prune_heuristically(fn, candidate_speccs, proofstate)
 
@@ -169,41 +183,44 @@ def step(proofstate: ProofState) -> List[ProofState]:
   for specc in pruned_speccs:
     # Produce a new ProofState from `specc.spec` and `specc.conversation`.
 
+    # Updating the specs is important even if backtracking will occur.
     next_proofstate_specs = proofstate.specs | {fn: specc.spec}
 
     last_llm_response = specc.conversation.last()
     if last_llm_response contains "backtrack":
-      next_proofstate_workstack = proofstate.workstack + [(last_llm_response.get_function(), last_llm_response)]
+      next_proofstate_workstack =
+          proofstate.workstack + [WorkItem(last_llm_response.get_function(), last_llm_response)]
     else:
       next_proofstate_workstack = proofstate.workstack[:-1] # pop off fn
     next_proofstate = ProofState(next_proofstate_specs, next_proofstate_workstack)
     result.append(next_proofstate)
   return result
 
-def generate_and_repair_spec(fn, backtrack_hint) -> List[SpecConversation]:
+def generate_and_repair_spec(fn, backtrack_hint, proofstate) -> List[SpecConversation]:
   """
   Generate a specification for a function.
   Input: a function and hints about how to specify it.  The hints are non-empty only when backtracking.
   Output: a list of potential specs for the function.  Some may verify and some may not verify.
   """
-  generated_speccs = generate_speccs(fn, hint)
-  pruned_specs = prune_heuristically(fn, generated_speccs)
-  repaired_specs = [*repair_spec(fn, spec) for spec in pruned_specs]
-  return repaired_specs
+  generated_speccs = generate_speccs(fn, backtrack_hint, proofstate)
+  pruned_speccs = prune_heuristically(fn, generated_speccs)
+  repaired_speccs = [*repair_spec(fn, spec, proofstate) for spec in pruned_speccs]
+  return repaired_speccs
 
 def prune_heuristically(fn, speccs: List[SpecConversation]) -> List[SpecConversation]:
   # Here is one example of a very simple heuristic for pruning:
   #  * If any spec verifies, return a list containing only the specs that verify.
   #  * Otherwise, return all the specs.
 
-def generate_speccs(fn, hint) -> List[SpecConversation]:
+def generate_speccs(fn, backtrack_hint, proofstate) -> List[SpecConversation]:
   """
   An LLM guesses a specification.
   Input: a function and a hint.  The hint is plaintext.
-  Output: a list of candidate specifications of length `num_llm_samples`.
+  Output: a list of candidate specifications of length `num_llm_samples`.  Each candidate
+  SpecConversation has length 1.
   Implementation note: see LlmSpecificationGenerator.
   """
-  llm_input = ("guess the specification for", fn, current_context(fn, proofstate), hint)
+  llm_input = ("guess the specification for", fn, current_context(fn, proofstate), backtrack_hint)
   specs = llm(llm_input) # call the LLM
   return [SpecConversation(spec, [llm_input]) for spec in specs]
 
@@ -211,49 +228,68 @@ def repair_spec(fn, specc, proofstate) -> List[SpecConversation]:
   """
   Given a specification, iteratively repair it.
   Input: a function and a specification.  The specification may or may not verify.
-  Output: a list of repaired specifications.  Each may or may not verify.
+  Output: a list of repaired specifications (that verify) or a list of faulty specs that have a
+          backtracking step associated with them.
   """
-  # Implementation note: See `_get_repaired_specification` in `generate_speccs.py`.
-  all_speccs = []  # Return every spec that was observed ...
-  verified_speccs = []  # ... unless some were verified, in which case return only them.
-  current_speccs = [specc]
-  for i = 1 to num_repair_iterations:
-    unverified_speccs = []  # Pairs of spec and conversation.
-    for specc in current_speccs:
-      if specc in all_speccs:
-        # We have already seen this spec with this conversation, so don't re-process it.
-        continue
-      all_speccs.append(specc)
-      vresult = call_verifier(fn, specc, proofstate) # e.g., CBMC
-      if is_success(vresult):
-        verified_speccs.append(specc)
-      else:
-        unverified_speccs.append(specc)
-    current_speccs = []
-    for (spec, conversation) in unverified_speccs:
-      vresult = call_verifier(fn, spec, proofstate) # this VerificationResult is a verification failure
-      # Update the conversation history and pass the full history to the LLM.
-      new_conversation = conversation + [
-        {
-          "role": "user",
-          "content": f"Verification error for {fn.name}: {error}. Either"
-          + " (1) Repair the specification for {fn.name}.  Return the repaired specification for {fn.name}.  Or"
-          + " (2) Retain the current specification for {fn.name} and choose a callee that needs a stronger specification in order to make {fn.name} verify."
-          + " State the reasoning for why this is the case, and return the word 'backtrack', the callee function, and its stronger specification."
-        }
-      ]
-      responses = llm(new_conversation, fn, spec) # TODO: Why pass in `fn` and `spec`? They appear in the conversation.
-      # Each response forks a new conversation history
-      current_speccs += [(response, new_conversation + [{"assistant": response}]) for response in responses]
-  if verified_speccs:
-    return verified_speccs:
-  else:
-    return all_speccs
+  # Implementation note: See `_repair_spec` in `main.py`.
+
+  vresult = call_verifier(fn, specc, proofstate)
+  if is_success(vresult):
+    return [specc]
+  
+  # specs_to_repair comprises a pair, the first element is a spec, and the second element is a
+  # number denoting the number of times a repair was attempted.
+  specs_to_repair = queue((specc, 0)) # Note: the same pair can never be added to the queue more 
+      # than once.  (Or, more likely, the same specc can never be added to the queue more than once, 
+    # regardless of the iteration number.)
+  verified_speccs = []
+  specs_that_failed_repair = []
+
+  while specs_to_repair:
+    # The value of `spec_under_repair.next_step` is None; this field is set only when a spec
+    # is successfully verifies (ACCEPT_VERIFIED_SPEC) or when an LLM decides on a next step for
+    # a spec that fails repair (resulting in either ACCEPT_SPEC_AS_IS or BACKTRACK_TO_CALLEE).
+    spec_under_repair, num_repair_attempts = specs_to_repair.remove_head() # In Python: popleft()
+    vresult = call_verifier(fn, spec_under_repair, proofstate)
+    if is_success(vresult):
+      # No need to continue with the current spec under repair, continue with the remainder.
+      spec_under_repair.next_step = ACCEPT_VERIFIED_SPEC
+      verified_speccs.append(spec_under_repair)
+      continue
+
+    if num_repair_attempts >= num_repair_iterations:
+      # Dead end, repair failed.
+      specs_that_failed_repair.append(spec_under_repair)
+      continue
+  
+    # Try repair.
+    repair_prompt = get_repair_prompt(spec_under_repair, vresult)
+    conversation_with_repair_prompt = spec_under_repair.conversation + repair_prompt
+    newly_repaired_speccs = call_llm(conversation_with_repair_prompt)
+
+    for newly_repaired_spec, response in newly_repaired_speccs:
+      # A newly-created SpecConversation's next_step field defaults to `None`, since its
+      # specification has yet to be verified.
+      next_specc = SpecConversation(
+        spec_under_repair,
+        newly_repaired_spec,
+        conversation_with_repair_prompt + response
+      )
+      specs_to_repair.append((next_specc, num_repair_attempts + 1))
+    
+    if verified_speccs:
+      return verified_speccs
+
+    return [
+      call_llm_for_next_step(
+        spec_conversation=unrepairable_spec, proof_state=proof_state)
+      for unrepairable_spec in specs_that_failed_repair
+    ]
 
 def call_verifier(fn, specc, proofstate) -> VerificationResult:
   """
   Calls a verification tool such as CBMC.  Uses a cache to avoid recomputation.
-  Input: the function, a specification, and context.
+  Input: the function, its specification, and the current proof state.
   Output: a verification result.
   """
   context = current_context(fn, proofstate)
@@ -270,45 +306,22 @@ def current_context(fn, proofstate) -> context:
   Input: A function
   Output: the function's current verification context: the specs of callers and callees.
   """
-  # Look up from proofstate's fields, such as `specs` or `verified_functions` and `assumed_functions`.
+  # Look up from proofstate's `specs` field.
 
 def llm(...):
-  This is a function that calls the API we're using for LLMs.  It should use a cache.
+  This function calls the API we're using for LLMs.  It should use a cache.
 ```
 
 Suppose that, after creating a VerificationInput, the system changes some
 specification in the context.  Then the old VerificationInput is no longer
 applicable.  A call to `call_verifier()` will create a new VerificationInput
 and the verifier will be re-run.  (This is one reason that verification
-results are not passed around in the algorithm, but are re-computed -- to
-avoid the bookkeeping of figuring out what has to be updated.)
+results are not passed around in the algorithm, but are re-computed from a
+ProofState -- to avoid the bookkeeping of figuring out what has to be updated.)
 
 ## Parallelization
 
 Many for loops and list comprehensions (but not the for loop in `repair`) can be parallelized.
-
-<!--
-## OLD, NO LONGER RELEVANT
-
-More about forking processes:
-
-At each point that the LLM is invoked, the algorithm could call the LLM multiple times and pursue each of the possibilities (possibly in parallel).
-Currently this is hard-coded in `generate_and_repair_spec()`, which is the client of `generate_speccs()` which calls the LLM to produce multiple results.
-However, it is not done for other LLM calls in `repair_spec()` and `choose_next_step()`.
-
-It would be better for the algorithm to apply sample-exploration more uniformly.
-
-* One way is to hard-code the other LLM uses, just as `generate_speccs()` and its client `generate_and_repair_spec()` are.
-* Another way is to modify the algorithm to fork multiple processes, like so:
-  * Rewrite the algorithm to treat each LLM query call as returning exactly one value.  (This actually simplifies `generate_and_repair_spec()` and its client `verify_program()`.
-  * Actually, each LLM query returns a list (which is different than the above rewriting).
-    Fork N processes, one for for each element of the list.
-    Each forked process has its own process state, which starts as a copy of the global variables and call stack.
-  * Pruning processes:
-    Whenever a process successfully completes a task (I'm not exactly sure what is the definition of "task" here), possibly prune all the siblings of this process that are still running, because they are no longer needed.
-    This is similar to a process manager that prunes processes that have been superseded (that, is prune a process if some other process already solved the problem).
-    A process manager would also prune processes that have run for too long.
--->
 
 <!--
 LocalWords:  workstack llm num VerificationInput VerificationResult boolean fn doesn SQLite multithreading WorkItem
