@@ -7,8 +7,6 @@ from pathlib import Path
 from diskcache import Cache  # ty: ignore
 from loguru import logger
 
-from util import CFunction, FunctionSpecification
-from verification.proof_state import ProofState
 from verification.verification_result import VerificationResult
 
 from .verification_client import VerificationClient
@@ -32,34 +30,20 @@ class CbmcVerificationClient(VerificationClient):
         """Create a new CbmcVerificationClient."""
         self._cache = cache
 
-    def verify(
-        self,
-        function: CFunction,
-        spec: FunctionSpecification,
-        proof_state: ProofState,
-        source_file_content: str,
-    ) -> VerificationResult:
-        """Return the result of verifying the given function.
+    def verify(self, vinput: VerificationInput) -> VerificationResult:
+        """Return the result of verifying the given verification input.
 
         Args:
-            function (CFunction): The function to verify.
-            spec (FunctionSpecification): The specification for the function to verify.
-            proof_state (ProofState): The proof state.
-            source_file_content (str): The source code content of the entire file to verify.
+            vinput (VerificationInput): The verification input.
 
         Returns:
-            VerificationResult: The result of verifying the given function.
+            VerificationResult: The result of verifying the given verification input.
         """
+        function = vinput.function
         with tempfile.NamedTemporaryFile(mode="w+t", prefix=function.name, suffix=".c") as tmp_f:
-            tmp_f.write(source_file_content)
+            tmp_f.write(vinput.contents_of_file_to_verify)
             tmp_f.seek(0)
             path_to_file = Path(tmp_f.name)
-            vinput = VerificationInput(
-                function=function,
-                spec=spec,
-                context=proof_state.get_current_context(function=function),
-                contents_of_file_to_verify=source_file_content,
-            )
             if vinput not in self._cache:
                 logger.debug(f"vresult cache miss for: {vinput.function}")
                 vcommand = self._get_cbmc_verification_command(
@@ -68,13 +52,11 @@ class CbmcVerificationClient(VerificationClient):
                 try:
                     logger.debug(f"Running command: {vcommand}")
                     result = subprocess.run(vcommand, shell=True, capture_output=True, text=True)
-                    failure_messages = (
-                        None
-                        if result.returncode == 0
-                        else f"STDOUT: {result.stdout}\nSTDERR: {result.stderr}"
-                    )
                     self._cache[vinput] = VerificationResult(
-                        vinput, succeeded=result.returncode == 0, failure_messages=failure_messages
+                        vinput,
+                        succeeded=result.returncode == 0,
+                        stdout=result.stdout,
+                        stderr=result.stderr,
                     )
                     logger.debug(f"Caching vresult for: {vinput.function}")
                 except Exception as e:
