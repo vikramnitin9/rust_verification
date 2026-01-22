@@ -1,5 +1,7 @@
 """Utility functions for extracting source code from text."""
 
+from loguru import logger
+
 from .function_specification import FunctionSpecification
 from .json_util import parse_object
 
@@ -12,14 +14,6 @@ def extract_function_source_code(text: str) -> str:
         { "function_with_specs": "<SOURCE CODE>" }
 
     This function extracts the <SOURCE CODE> part.
-
-    An alternate implementation would be to have the LLM generate *just* the specifications
-    (i.e., avoid having it generate the original function, as well). The initial implementation
-    asked the LLM to re-generate the entire function, so we kept it as such.
-
-    An issue to possibly implement the future approach is open at:
-
-        https://github.com/vikramnitin9/rust_verification/issues/66
 
     Args:
         text (str): The full response from an LLM.
@@ -34,7 +28,7 @@ def extract_function_source_code(text: str) -> str:
     raise RuntimeError(msg)
 
 
-def parse_specs(text: str) -> FunctionSpecification:
+def parse_specs(text: str) -> FunctionSpecification | None:
     """Parse the specifications in an LLM response.
 
     An LLM is prompted to return a string in the following JSON format:
@@ -51,25 +45,28 @@ def parse_specs(text: str) -> FunctionSpecification:
         text (str): The full response from an LLM.
 
     Returns:
-        FunctionSpecification: The FunctionSpecification comprising the pre and postconditions
-            parsed from an LLM response.
+        FunctionSpecification | None: The FunctionSpecification comprising the pre and
+            postconditions parsed from an LLM response.
     """
     llm_response = parse_object(text)
     preconditions = llm_response.get("preconditions")
     postconditions = llm_response.get("postconditions")
-    if preconditions and postconditions:
+    if preconditions is not None and postconditions is not None:
         if not isinstance(preconditions, list) or not all(
             isinstance(item, str) for item in preconditions
         ):
-            msg = f"'{preconditions}' did not have the expected type: list[str]"
-            raise RuntimeError(msg)
+            logger.warning(f"'{preconditions}' did not have the expected type: list[str]")
+            return None
         if not isinstance(postconditions, list) or not all(
             isinstance(item, str) for item in postconditions
         ):
-            msg = f"'{postconditions}' did not have the expected type: list[str]"
-            raise RuntimeError(msg)
+            logger.warning(f"'{postconditions}' did not have the expected type: list[str]")
+            return None
+        if len(preconditions) == 0 and len(postconditions) == 0:
+            return None
         return FunctionSpecification(preconditions, postconditions)
-    raise RuntimeError(
+    logger.warning(
         "The LLM returned valid JSON, but it was missing the 'preconditions' and/or "
         "'postconditions' key"
     )
+    return None
