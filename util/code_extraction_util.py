@@ -58,15 +58,15 @@ def parse_specs(text: str) -> FunctionSpecification:
     preconditions = llm_response.get("preconditions")
     postconditions = llm_response.get("postconditions")
     if preconditions and postconditions:
-        if not isinstance(preconditions, list) and not all(
+        if not isinstance(preconditions, list) or not all(
             isinstance(item, str) for item in preconditions
         ):
             msg = f"'{preconditions}' did not have the expected type: list[str]"
             raise RuntimeError(msg)
-        if not isinstance(postconditions, list) and not all(
+        if not isinstance(postconditions, list) or not all(
             isinstance(item, str) for item in postconditions
         ):
-            msg = f"'{preconditions}' did not have the expected type: list[str]"
+            msg = f"'{postconditions}' did not have the expected type: list[str]"
             raise RuntimeError(msg)
         return FunctionSpecification(preconditions, postconditions)
     raise RuntimeError(

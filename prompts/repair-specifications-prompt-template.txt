@@ -20,11 +20,14 @@ Your response is in the following format:
 
 {
     "preconditions": [...],
-    "postconditions": [...],
+    "postconditions": [...]
 }
 
 Try to use the tips below if they might be useful:
 * Use INT_MAX and/or INT_MIN to reason about overflows.
+* CBMC symbolically expands all of the preconditions, (e.g., the argument of __CPROVER_is_fresh)
+  before it applies the constraints from later clauses. Make sure you constrain any values before
+  you use them in later pre or postconditions.
 
 There is no need to delimit the format with tags, return the plain object and nothing else.
 Do not include any explanations or re-define other functions.

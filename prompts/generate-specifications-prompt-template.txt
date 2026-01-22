@@ -888,7 +888,7 @@ Your response will be in the following format:
 
 {
   "preconditions": [...],
-  "postconditions": [...],
+  "postconditions": [...]
 }
 
 So, for example, you would return the following for the `sum` function:
@@ -904,7 +904,7 @@ So, for example, you would return the following for the `sum` function:
     "__CPROVER_ensures((__CPROVER_return_value == FAILURE) ==> (*out == __CPROVER_old(*out)))",
     "__CPROVER_ensures(*out > 0)",
     "__CPROVER_assigns(*out)"
-  ],
+  ]
 }
 
 There is no need to delimit the format with tags, return the plain object and nothing else.
