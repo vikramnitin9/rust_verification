@@ -326,6 +326,9 @@ class _ToAst(Transformer):
     def BOOL(self, tok: Any) -> Bool:
         return Bool(value=(str(tok) == "1"))
 
+    def STRING(self, tok: Any) -> StringLit:
+        return StringLit(value=str(tok))
+
     def TYPE_KW(self, tok: Any) -> BuiltinType:  # builtin type keyword
         return BuiltinType(name=str(tok))
 
