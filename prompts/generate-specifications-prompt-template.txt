@@ -851,14 +851,13 @@ Internally, CBMC turns user-defined predicates into:
 
 <END OF DOCUMENTATION>
 
-Now, could you write a "__CPROVER_requires" and "__CPROVER_ensures" contract for the following C function?
+Your task is to produce a set of CBMC preconditions and postconditions for the following C function:
+
 ```c
 <<SOURCE>>
 ```
 
 <<CALLEE_CONTEXT>>
-
-Remember to add the contracts ("__CPROVER_requires" and "__CPROVER_ensures") in the function header, not the function body.
 
 Here's an example. Given the following C function:
 
@@ -872,26 +871,41 @@ int sum(const uint32_t a, const uint32_t b, uint32_t* out)
 }
 ```
 
-A resulting C function with a CBMC specification is:
+A set of valid preconditions might be:
 
-```c
-int sum(const uint32_t a, const uint32_t b, uint32_t* out)
 __CPROVER_requires(__CPROVER_is_fresh(out, sizeof(*out)))
-__CPROVER_ensures(__CPROVER_return_value == SUCCESS || __CPROVER_return_value == FAILURE)
+__CPROVER_requires(a > 0)
+__CPROVER_requires(b > 0)
+
+And a set of valid postconditions might be:
+
 __CPROVER_ensures((__CPROVER_return_value == SUCCESS) ==> (*out == (a + b)))
 __CPROVER_ensures((__CPROVER_return_value == FAILURE) ==> (*out == __CPROVER_old(*out)))
+__CPROVER_ensures(*out > 0)
 __CPROVER_assigns(*out)
+
+Your response will be in the following format:
+
 {
-  const uint64_t result = ((uint64_t) a) + ((uint64_t) b);
-  if (result > UINT32_MAX) return FAILURE;
-  *out = (uint32_t) result;
-  return SUCCESS;
+  "preconditions": [...],
+  "postconditions": [...],
 }
-```
 
-Give me the entire function with specifications in the format below:
+So, for example, you would return the following for the `sum` function:
 
-{ "function_with_specs": "<SOURCE CODE HERE>" }
+{
+  "preconditions": [
+    "__CPROVER_requires(__CPROVER_is_fresh(out, sizeof(*out)))",
+    "__CPROVER_requires(a > 0)",
+    "__CPROVER_requires(b > 0)"
+  ],
+  "postconditions": [
+    "__CPROVER_ensures((__CPROVER_return_value == SUCCESS) ==> (*out == (a + b)))",
+    "__CPROVER_ensures((__CPROVER_return_value == FAILURE) ==> (*out == __CPROVER_old(*out)))",
+    "__CPROVER_ensures(*out > 0)",
+    "__CPROVER_assigns(*out)"
+  ],
+}
 
 There is no need to delimit the format with tags, return the plain object and nothing else.
 Do not redefine any other functions; assume they are already available elsewhere in the program.

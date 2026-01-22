@@ -23,8 +23,8 @@ from util import (
     ParsecFile,
     SpecConversation,
     SpecificationGenerationNextStep,
-    extract_function_source_code,
     function_util,
+    parse_specs,
 )
 from verification import PromptBuilder, ProofState, VerificationClient, VerificationInput
 
@@ -159,13 +159,8 @@ class LlmSpecificationGenerator:
             conversation.append(specification_generation_message)
             llm_responses = self._llm_client.get(conversation=tuple(conversation))
 
-            specified_functions_with_llm_responses = [
-                (extract_function_source_code(llm_response), llm_response)
-                for llm_response in llm_responses
-            ]
             specs_with_llm_responses = [
-                (function_util.extract_specification(function_from_response.splitlines()), response)
-                for function_from_response, response in specified_functions_with_llm_responses
+                (parse_specs(llm_response), llm_response) for llm_response in llm_responses
             ]
             result_spec_conversations = []
             for candidate_spec, llm_response in specs_with_llm_responses:
@@ -328,7 +323,7 @@ class LlmSpecificationGenerator:
             )
             repaired_specs_with_llm_responses: list[tuple[FunctionSpecification, str]] = []
             for response in responses:
-                if repaired_spec := self._parse_specification_from_response(response):
+                if repaired_spec := parse_specs(response):
                     repaired_specs_with_llm_responses.append((repaired_spec, response))
                 else:
                     logger.warning(f"Failed to parse a specification from: {response}")
@@ -384,18 +379,6 @@ class LlmSpecificationGenerator:
                 next_step=self._parse_next_step(next_step_decision),
             ),
         )
-
-    def _parse_specification_from_response(self, llm_response: str) -> FunctionSpecification | None:
-        """Return the specification parsed from an LLM response.
-
-        Args:
-            llm_response (str): The LLM response from which to parse a specification.
-
-        Returns:
-            FunctionSpecification | None: The parsed specification, or None.
-        """
-        function_in_response = extract_function_source_code(llm_response)
-        return function_util.extract_specification(function_in_response.splitlines())
 
     def _parse_next_step(self, llm_response: str) -> SpecificationGenerationNextStep:
         """Parse the next steps for a prompt from an LLM response.
