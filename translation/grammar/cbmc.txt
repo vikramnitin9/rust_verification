@@ -58,6 +58,7 @@ assigns_clause : "__CPROVER_assigns" "(" assigns_content ")"
         | NAME
         | NUMBER
         | BOOL
+        | STRING
         | "(" expr ")"
 
 // --------- Assigns Contents -------------------------
@@ -87,6 +88,8 @@ typ: TYPE_KW | NAME
 BOOL: "1" | "0"
 
 NAME: /[A-Za-z_][A-Za-z0-9_]*/
+
+STRING: /"[^"]*"/
 
 NUMBER: /[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?/
 %import common.WS_INLINE
