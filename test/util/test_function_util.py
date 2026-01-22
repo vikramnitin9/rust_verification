@@ -299,6 +299,17 @@ def test_normalize_quantifiers() -> None:
         spec_with_quantifier_i
     ) == normalize_function_specification(spec_with_quantifier_j)
 
+def test_normalize_specs_with_string_literal() -> None:
+    test_spec = FunctionSpecification(
+        preconditions=[],
+        postconditions=['__CPROVER_ensures(  '
+        '__CPROVER_return_value ==   \n\n "returns")']
+    )
+    assert normalize_function_specification(test_spec) == FunctionSpecification(
+        preconditions=[],
+        postconditions=['__CPROVER_ensures((__CPROVER_return_value == "returns"))']
+    )
+
 
 ### Test actual output for the `partition` procedure
 

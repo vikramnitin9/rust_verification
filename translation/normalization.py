@@ -16,6 +16,12 @@ from util.function_specification import FunctionSpecification
 class CBMCNormalizer:
     """Visitor that implements normalization of CBMC ASTs.
 
+    Attributes:
+        _scopes (list[dict[str, str]]): A stack of dictionaries for variables in specs, from their
+            names as they appear in the unnormalized spec to their normalized names. Each dictionary
+            corresponds to one scope level (within a quantifier, if necessary).
+        _counter (int): A counter used to generate unique normalized variable names.
+
     This normalizer enforces:
 
         1. Consistent whitespace.
@@ -81,7 +87,8 @@ class CBMCNormalizer:
         return "1" if node.value else "0"
 
     def visit_StringLit(self, node: cbmc_ast.StringLit) -> str:
-        return f'"{node.value}"'
+        # The grammar already quotes string literals, there is no need to quote here again.
+        return f"{node.value}"
 
     # --- Operations ---
 
@@ -138,10 +145,10 @@ class CBMCNormalizer:
         return f"*{self.visit(node.operand)}"
 
     def visit_NegOp(self, node: cbmc_ast.NegOp) -> str:
-        return f"-{self.visit(node.operand)}"
+        return f"-({self.visit(node.operand)})"
 
     def visit_PosOp(self, node: cbmc_ast.PosOp) -> str:
-        return f"+{self.visit(node.operand)}"
+        return f"+({self.visit(node.operand)})"
 
     def visit_MemberOp(self, node: cbmc_ast.MemberOp) -> str:
         attr = node.attr.name if isinstance(node.attr, cbmc_ast.Name) else self.visit(node.attr)
