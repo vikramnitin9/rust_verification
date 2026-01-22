@@ -177,7 +177,8 @@ class CBMCNormalizer:
 
     def visit_QuantifierDecl(self, node: cbmc_ast.QuantifierDecl) -> str:
         typ_str = self.visit(node.typenode)
-        # The name in the declaration must match the currently pushed scope bound name
+        # The variable in the quantifier declaration (i.e., the bound) should use the current
+        # scope's normalized name, so we look it up in the scopes.
         name_str = node.name.name
         if self._scopes and name_str in self._scopes[-1]:
             name_str = self._scopes[-1][name_str]
