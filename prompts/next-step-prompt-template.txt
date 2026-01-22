@@ -24,7 +24,7 @@ specification that verifies for $function_name.
 If you choose (1), your response should be in the following format:
 
 {
-    "next_step": "ASSUME_SPEC_AS_IS",
+    "next_step": "ASSUME_SPEC_AS_IS"
 }
 
 If you choose (2), your response should be in the following format:
@@ -32,5 +32,5 @@ If you choose (2), your response should be in the following format:
 {
     "next_step": "BACKTRACK_TO_CALLEE",
     "postcondition_strengthening_description": "<DESCRIPTION>",
-    "callee": "<CALLEE_NAME>",
+    "callee": "<CALLEE_NAME>"
 }

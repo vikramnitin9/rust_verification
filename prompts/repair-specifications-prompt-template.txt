@@ -18,7 +18,10 @@ $function_implementation
 
 Your response is in the following format:
 
-{ "function_with_specs": "<SOURCE CODE HERE>" }
+{
+    "preconditions": [...],
+    "postconditions": [...]
+}
 
 Try to use the tips below if they might be useful:
 * Use INT_MAX and/or INT_MIN to reason about overflows.
