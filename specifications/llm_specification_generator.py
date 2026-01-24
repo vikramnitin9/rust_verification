@@ -380,8 +380,6 @@ class LlmSpecificationGenerator:
             spec_conversation.function: spec_conversation.specification
         } | callees_to_specs
 
-        return function_util.get_source_file_content_with_specifications(
-            specified_functions=functions_with_specs,
-            parsec_result=parsec_result,
-            original_source_file_path=original_file_path,
+        return function_util.get_source_content_with_specifications(
+            specified_functions=functions_with_specs, parsec_result=parsec_result
         )

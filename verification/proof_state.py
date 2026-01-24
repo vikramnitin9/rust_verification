@@ -177,8 +177,8 @@ class ProofState:
         Returns:
             VerificationContext: The current verification context for the function.
         """
-        parsec_file = ParsecResult(file_path=Path(function.file_name))
-        callees_for_function = parsec_file.get_callees(function=function)
+        parsec_result = ParsecResult(input_path=Path(function.file_name))
+        callees_for_function = parsec_result.get_callees(function=function)
         callee_specs = {
             callee: callee_spec
             for callee in callees_for_function

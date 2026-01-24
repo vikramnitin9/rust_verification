@@ -20,6 +20,7 @@ from util import (
     SpecConversation,
     SpecificationGenerationNextStep,
     copy_file_to_folder,
+    copy_folder_to_folder,
     ensure_lines_at_beginning,
     function_util,
     parse_object,
@@ -55,8 +56,7 @@ tempfile.tempdir = DEFAULT_RESULT_DIR
 
 
 def main() -> None:
-    """Generate specifications for a given C project using an LLM and verify them with CBMC.
-    """
+    """Generate specifications for a given C project using an LLM and verify them with CBMC."""
     parser = argparse.ArgumentParser(
         prog="main.py", description="Generate and verify CBMC specifications for a C project."
     )
@@ -64,12 +64,14 @@ def main() -> None:
         "--project-root",
         required=False,
         help="The root directory of the C project for which to generate and verify specifications. \
-            Must contain compile_commands.json. Note that this cannot be used along with --input-file-path.",
+            Must contain compile_commands.json. Note that this cannot be used \
+            along with --input-file-path.",
     )
     parser.add_argument(
         "--input-file-path",
         required=False,
-        help="The path to the C file to analyze. Note that this cannot be used along with --project-root.",
+        help="The path to the C file to analyze. Note that this cannot be used \
+            along with --project-root.",
     )
     parser.add_argument(
         "--num-specification-candidates",
@@ -119,7 +121,7 @@ def main() -> None:
         for c_file in output_directory.rglob("*.c"):
             ensure_lines_at_beginning(header_lines, c_file)
         parsec_result = ParsecResult(project_root)
-    
+
     verifier: VerificationClient = CbmcVerificationClient(cache=VERIFIER_CACHE)
     specification_generator = LlmSpecificationGenerator(
         MODEL,

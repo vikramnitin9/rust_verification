@@ -135,9 +135,9 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     *b = t;
 }"""
 
-    parsec_file = ParsecResult(file_containing_function)
+    parsec_result = ParsecResult(file_containing_function)
     function_util.update_function_declaration(
-        "swap", updated_function, parsec_file, file_containing_function
+        "swap", updated_function, parsec_result, file_containing_function
     )
 
     assert filecmp.cmp(
@@ -216,9 +216,9 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     *b = t;
 }"""
 
-    parsec_file = ParsecResult(file_containing_function)
+    parsec_result = ParsecResult(file_containing_function)
     function_util.update_function_declaration(
-        "swap", updated_function, parsec_file, file_containing_function
+        "swap", updated_function, parsec_result, file_containing_function
     )
 
     assert filecmp.cmp(
@@ -246,9 +246,9 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     *b = t;
 }"""
 
-    parsec_file = ParsecResult(file_containing_function)
+    parsec_result = ParsecResult(file_containing_function)
     function_util.update_function_declaration(
-        "swap", updated_function, parsec_file, file_containing_function
+        "swap", updated_function, parsec_result, file_containing_function
     )
 
     assert filecmp.cmp(

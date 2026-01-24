@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import copy
 import json
-import os
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -51,6 +50,7 @@ class ParsecResult:
 
     def __init__(self, input_path: Path):
         """Create an instance of ParsecResult from the directory or file at `input_path`.
+
         If the path is a directory, all C files in the directory are analyzed.
         In this case, the directory must contain a compile_commands.json compilation database.
 
@@ -58,9 +58,9 @@ class ParsecResult:
             input_path (Path): The path to a directory or file to be analyzed.
         """
         if input_path.is_dir():
-            compile_commands_path = project_root / "compile_commands.json"
+            compile_commands_path = input_path / "compile_commands.json"
             if not compile_commands_path.exists():
-                msg = f"compile_commands.json not found in {project_root}"
+                msg = f"compile_commands.json not found in {input_path}"
                 raise FileNotFoundError(msg)
             self.project_root = input_path
             parsec_analysis = self._run_parsec_on_project(input_path)
@@ -191,7 +191,7 @@ class ParsecResult:
             functions = list(nx.dfs_postorder_nodes(call_graph_copy))
 
         return list(reversed(functions)) if reverse_order else functions
-    
+
     def _run_parsec_on_project(self, project_root: Path) -> dict[str, Any]:
         """Run the parsec executable on a full project and return its results.
 
@@ -201,12 +201,11 @@ class ParsecResult:
         Returns:
             dict[str, Any]: The JSON output produced by ParseC as a dictionary.
         """
-        parsec_executable = os.environ.get("PARSEC_EXECUTABLE")
-        if not parsec_executable:
-            raise Exception("$PARSEC_EXECUTABLE not set.")
         try:
-            cmd = f"{parsec_executable} --rename-main=false --add-instr=false *.c"
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=project_root)
+            cmd = "parsec --rename-main=false --add-instr=false *.c"
+            result = subprocess.run(
+                cmd, shell=True, capture_output=True, text=True, cwd=project_root
+            )
             if result.returncode != 0:
                 msg = f"Error running parsec: {result.stderr} {result.stdout}"
                 raise Exception(msg)
@@ -231,11 +230,8 @@ class ParsecResult:
         Returns:
             dict[str, Any]: The JSON output produced by ParseC as a dictionary.
         """
-        parsec_executable = os.environ.get("PARSEC_EXECUTABLE")
-        if not parsec_executable:
-            raise Exception("$PARSEC_EXECUTABLE not set.")
         try:
-            cmd = f"{parsec_executable} --rename-main=false --add-instr=false {file_path}"
+            cmd = f"parsec --rename-main=false --add-instr=false {file_path}"
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
             if result.returncode != 0:
                 msg = f"Error running parsec: {result.stderr} {result.stdout}"
