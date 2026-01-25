@@ -60,6 +60,7 @@ class LlmSpecificationGenerator:
     def __init__(
         self,
         model: str,
+        temperature: float,
         system_prompt: str,
         verifier: VerificationClient,
         num_specification_candidates: int,
@@ -77,8 +78,7 @@ class LlmSpecificationGenerator:
         self._llm_client = LlmClient(
             model_name=model,
             top_k=num_specification_candidates,
-            # MDE: Why is this hard-coded rather than a configuration parameter?
-            temperature=0.8,
+            temperature=temperature,
             disable_llm_cache=disable_llm_cache,
         )
 

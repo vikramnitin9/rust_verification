@@ -13,6 +13,7 @@ from pathlib import Path
 from diskcache import Cache  # ty: ignore
 from loguru import logger
 
+from models import OPENAI_MODEL_TEMPERATURE_RANGE
 from specifications import LlmSpecificationGenerator
 from util import (
     AcceptVerifiedSpec,
@@ -37,7 +38,7 @@ MODEL = "gpt-4o"
 DEFAULT_HEADERS_IN_OUTPUT = ["#include <stdlib.h>", "#include <limits.h>"]
 DEFAULT_NUM_SPECIFICATION_CANDIDATES = 10
 DEFAULT_NUM_REPAIR_CANDIDATES = 10
-DEFAULT_MODEL_TEMPERATURE = 1.0
+DEFAULT_MODEL_TEMPERATURE = 0.8
 DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS = 2
 # Default timeout of 5 minutes for specification generation and repair for an entire program.
 DEFAULT_SPECIFICATION_GENERATION_TIMEOUT_SEC = 300
@@ -100,6 +101,16 @@ def main() -> None:
         type=float,
     )
     parser.add_argument(
+        "--model-temperature",
+        required=False,
+        help=(
+            "The temperature to use in invoking a model for specification generation and repair. "
+            f"Defaults to {DEFAULT_MODEL_TEMPERATURE}."
+        ),
+        default=DEFAULT_MODEL_TEMPERATURE,
+        type=OPENAI_MODEL_TEMPERATURE_RANGE.validate_temperature,
+    )
+    parser.add_argument(
         "--disable-llm-cache",
         action="store_true",
         help=("Always call the LLM, do not use cached answers (defaults to False)."),
@@ -117,6 +128,7 @@ def main() -> None:
     verifier: VerificationClient = CbmcVerificationClient(cache=VERIFIER_CACHE)
     specification_generator = LlmSpecificationGenerator(
         MODEL,
+        temperature=args.model_temperature,
         system_prompt=DEFAULT_SYSTEM_PROMPT,
         verifier=verifier,
         num_specification_candidates=args.num_specification_candidates,
