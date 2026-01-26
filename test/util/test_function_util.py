@@ -181,7 +181,7 @@ def test_get_source_code_with_inserted_specs() -> None:
         ],
     )
     swap_with_specs = function_util.get_source_code_with_inserted_spec(
-        "swap", swap_specs, ParsecResult(file_path=Path(path_to_swap_no_specs))
+        "swap", swap_specs, ParsecResult(input_path=Path(path_to_swap_no_specs))
     )
     assert (
         swap_with_specs
