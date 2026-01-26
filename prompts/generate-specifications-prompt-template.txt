@@ -911,7 +911,10 @@ So, for example, you would return the following for the `sum` function:
 }
 
 You'll remember the following guidelines:
+* CBMC symbolically expands all of the preconditions, (e.g., the argument of __CPROVER_is_fresh)
+  before it applies the constraints from later clauses. Make sure you constrain any values before
+  you use them in later pre or postconditions.
 * There is no need to delimit the format with tags, return the plain object and nothing else.
 * Do not redefine any other functions; assume they are already available elsewhere in the program.
 * Do not include any header files; assume that all necessary headers are already included.
-* Do not include explanations.
+* Do not include explanations or commentary.
