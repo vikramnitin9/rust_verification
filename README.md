@@ -28,14 +28,14 @@ Then run the Python script
 ```sh
 make run
 # Inside the container:
-python generate_specs.py --file data/qsort.c
+python main.py --input-file-path data/qsort.c
 ```
 
 You can also write a record of the conversation used to generate specifications by passing in the
 `--save-conversation` flag:
 
 ```sh
-python generate_specs.py --file data/qsort.c --save-conversation
+python main.py --file data/qsort.c --save-conversation
 ```
 
 Which saves the conversation record to `logs/specifications`

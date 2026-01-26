@@ -181,8 +181,8 @@ def get_source_content_with_specifications(
             tmp_f.truncate()
             tmp_f.write(content_with_specs)
             tmp_f.flush()
-        tmp_f.seek(0)
-        combined_content += tmp_f.read() + "\n"
+            tmp_f.seek(0)
+            combined_content += tmp_f.read() + "\n"
     return combined_content
 
 
