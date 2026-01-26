@@ -70,3 +70,58 @@ def parse_specs(text: str) -> FunctionSpecification | None:
         "'postconditions' key"
     )
     return None
+
+
+def parse_expressions_for_spec(text: str) -> FunctionSpecification | None:
+    """Parse the specifications in an LLM response.
+
+    An LLM is prompted to return a string in the following JSON format:
+
+        {
+            "precondition_expressions": [...],
+            "postcondition_expressions": [...],
+            "assigned_variables": []
+        }
+
+    This function attempts to create an instance of FunctionSpecification with pre and
+        postconditions constructed from the expressions in the response.
+
+    Args:
+        text (str): The full response from an LLM.
+
+    Returns:
+        FunctionSpecification | None: The FunctionSpecification comprising the pre and
+            postconditions parsed from an LLM response.
+    """
+    llm_response = parse_object(text)
+    precondition_exprs = llm_response.get("precondition_expressions")
+    postcondition_exprs = llm_response.get("postcondition_expressions")
+    assigned_variables = llm_response.get("assigned_variables")
+    if precondition_exprs is not None and postcondition_exprs is not None:
+        if not isinstance(precondition_exprs, list) or not all(
+            isinstance(item, str) for item in precondition_exprs
+        ):
+            logger.warning(f"'{precondition_exprs}' did not have the expected type: list[str]")
+            return None
+        if not isinstance(postcondition_exprs, list) or not all(
+            isinstance(item, str) for item in postcondition_exprs
+        ):
+            logger.warning(f"'{postcondition_exprs}' did not have the expected type: list[str]")
+            return None
+        if len(precondition_exprs) == 0 and len(postcondition_exprs) == 0:
+            return None
+        preconditions = [f"__CPROVER_requires({expr})" for expr in precondition_exprs]
+        postconditions = [f"__CPROVER_ensures({expr})" for expr in precondition_exprs]
+        if assigned_variables and all(isinstance(var_name, str) for var_name in assigned_variables):
+            assigns_targets = [
+                var_name if var_name.startswith("*") else f"*{var_name}"
+                for var_name in assigned_variables
+            ]
+            assigns_clause = f"__CPROVER_assigns({','.join(assigns_targets)})"
+            postconditions = [*postconditions, assigns_clause]
+        return FunctionSpecification(preconditions, postconditions)
+    logger.warning(
+        "The LLM returned valid JSON, but it was missing the 'precondition_expressions' and/or "
+        "'postcondition_expressions' key"
+    )
+    return None
