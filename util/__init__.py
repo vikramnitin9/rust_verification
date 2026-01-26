@@ -7,6 +7,7 @@ from .c_function import CFunction
 from .parsec_file import ParsecFile
 from .function_specification import FunctionSpecification
 from .spec_conversation import SpecConversation
+from .spec_sanitizer import sanitize
 from .json_util import parse_object
 from .backtracking_util import parse_backtracking_info
 
@@ -27,4 +28,5 @@ __all__ = [
     "ensure_lines_at_beginning",
     "parse_object",
     "parse_backtracking_info",
+    "sanitize"
 ]
