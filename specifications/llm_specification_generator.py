@@ -24,7 +24,7 @@ from util import (
     SpecConversation,
     SpecificationGenerationNextStep,
     function_util,
-    parse_specs,
+    parse_expressions_for_spec,
 )
 from verification import PromptBuilder, ProofState, VerificationClient, VerificationInput
 
@@ -160,7 +160,8 @@ class LlmSpecificationGenerator:
             llm_responses = self._llm_client.get(conversation=tuple(conversation))
 
             specs_with_llm_responses = [
-                (parse_specs(llm_response), llm_response) for llm_response in llm_responses
+                (parse_expressions_for_spec(llm_response), llm_response)
+                for llm_response in llm_responses
             ]
             result_spec_conversations = []
             for candidate_spec, llm_response in specs_with_llm_responses:
@@ -323,7 +324,7 @@ class LlmSpecificationGenerator:
             )
             repaired_specs_with_llm_responses: list[tuple[FunctionSpecification, str]] = []
             for response in responses:
-                if repaired_spec := parse_specs(response):
+                if repaired_spec := parse_expressions_for_spec(response):
                     repaired_specs_with_llm_responses.append((repaired_spec, response))
                 else:
                     logger.warning(f"Failed to parse a specification from: {response}")
