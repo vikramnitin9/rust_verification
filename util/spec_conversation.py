@@ -63,7 +63,7 @@ class SpecConversation:
             specification (FunctionSpecification): The specifications generated for the CFunction.
             conversation (tuple[ConversationMessage, ...]): The conversation from which the
                 specifications were generated.
-            parsec_project (ParsecProject): The parsec project that contains `function`.
+            parsec_project (ParsecProject): The ParseC project that contains `function`.
             existing_specs (MappingProxyType[CFunction, FunctionSpecification]): The existing
                 specs.
 

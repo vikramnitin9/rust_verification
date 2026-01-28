@@ -18,7 +18,7 @@ from util.c_function import CFunction
 
 @dataclass
 class ParsecProject:
-    """Represents the top-level result obtained by running `parsec` on one or more C source files.
+    """Represents the result of parsing a "project": one or more C source files.
 
     For more details on these fields, see the ParseC documentation:
     https://github.com/vikramnitin9/parsec/blob/main/README.md
@@ -26,7 +26,7 @@ class ParsecProject:
     Note: The functions in a `ParsecProject` do not have specifications. This is due to the the fact
     that LLVM cannot parse CBMC specs, which are not instances of valid C grammar.
 
-    ParseC is a LLVM/Clang-based tool to parse a C program (hence the name).
+    ParseC is a LLVM/Clang-based tool to parse a C program.
     It extracts functions, structures, etc. along with their inter-dependencies.
     """
 
@@ -35,27 +35,26 @@ class ParsecProject:
     call_graph: nx.DiGraph  # type: ignore[type-arg]
     file_path: Path
     files: list[str] = field(default_factory=list)
-    # ParseC returns a list of dictionaries with one list item per function.
+    # ParseC returns one dictionary per function.
     # We parse these into CFunction objects and index them by function name.
     # This could have problems for static functions with the same name in different files.
     # The projects we are currently using to test our tool do not have static functions,
     # but this needs to be kept in mind for complex projects.
     functions: dict[str, CFunction] = field(default_factory=dict)
 
-    # Enums, structs, and global_vars are all represented as lists of dictionaries.
     # For the exact format of these dictionaries, see the ParseC documentation (linked above).
     enums: list[dict[str, Any]] = field(default_factory=list)
     structs: list[dict[str, Any]] = field(default_factory=list)
     global_vars: list[dict[str, Any]] = field(default_factory=list)
 
     def __init__(self, input_path: Path):
-        """Create an instance of ParsecProject from the directory or file at `input_path`.
+        """Create a ParsecProject from the given file or directory.
 
         If the path is a directory, all C files in the directory are analyzed.
         In this case, the directory must contain a compile_commands.json compilation database.
 
         Args:
-            input_path (Path): The path to a directory or file to be analyzed.
+            input_path (Path): The path to a file or directory to be analyzed.
         """
         if input_path.is_dir():
             compile_commands_path = input_path / "compile_commands.json"
@@ -63,7 +62,7 @@ class ParsecProject:
                 msg = f"compile_commands.json not found in {input_path}"
                 raise FileNotFoundError(msg)
             self.project_root = input_path
-            parsec_analysis = self._run_parsec_on_project(input_path)
+            parsec_analysis = self._run_parsec_on_directory(input_path)
         else:
             self.file_path = input_path
             parsec_analysis = self._run_parsec_on_file(input_path)
@@ -75,7 +74,7 @@ class ParsecProject:
         self.global_vars = parsec_analysis.get("global_vars", [])
         self.structs = parsec_analysis.get("structs", [])
         # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
-        # NOTE: Each node in call_graph is a CFunction.
+        # Each node in call_graph is a CFunction.
         self.call_graph: nx.DiGraph = nx.DiGraph()  # type: ignore[type-arg]
         for func in self.functions.values():
             self.call_graph.add_node(func)
@@ -87,10 +86,9 @@ class ParsecProject:
     def parse_source_with_cbmc_annotations(
         path_to_file_with_cbmc_annotations: Path,
     ) -> ParsecProject:
-        """Create an instance of ParsecProject by parsing a .c file with CBMC annotations.
+        """Create a ParsecProject by parsing a .c file with CBMC annotations.
 
-        Parsec relies on an LLVM parser, which does not admit C programs with CBMC annotations.
-        A workaround is to comment-out the CBMC annotations.
+        Any CBMC annotations are ignored and do not appear in the result.
 
         Args:
             path_to_file_with_cbmc_annotations (Path): The file with CBMC annotations.
@@ -117,7 +115,7 @@ class ParsecProject:
         """Return the CFunction representation for a function with the given name.
 
         Args:
-            function_name (str): The name of the function for which to return the CFunction.
+            function_name (str): The name of the function.
 
         Returns:
             CFunction | None: The CFunction with the given name, or None if no function
@@ -129,7 +127,7 @@ class ParsecProject:
         """Return the CFunction representation for a function with the given name.
 
         Args:
-            function_name (str): The name of the function for which to return the CFunction.
+            function_name (str): The name of the function.
 
         Returns:
             CFunction: The CFunction with the given name.
@@ -147,7 +145,7 @@ class ParsecProject:
         """Return the callees of the given function.
 
         Args:
-            function (CFunction): The function for which to return the callees.
+            function (CFunction): The function whose callees are returned.
 
         Returns:
             list[CFunction]: The callees of the given function.
@@ -194,7 +192,7 @@ class ParsecProject:
 
         return list(reversed(functions)) if reverse_order else functions
 
-    def _run_parsec_on_project(self, project_root: Path) -> dict[str, Any]:
+    def _run_parsec_on_directory(self, project_root: Path) -> dict[str, Any]:
         """Run the parsec executable on a full project and return its results.
 
         Args:
