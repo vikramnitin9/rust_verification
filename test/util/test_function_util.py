@@ -4,7 +4,7 @@ import shutil
 import filecmp
 
 from pathlib import Path
-from util import FunctionSpecification, ParsecResult, function_util
+from util import FunctionSpecification, ParsecProject, function_util
 from translation import normalize_function_specification
 
 import pytest
@@ -136,9 +136,9 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     *b = t;
 }"""
 
-    parsec_result = ParsecResult(file_containing_function)
+    parsec_project = ParsecProject(file_containing_function)
     function_util.update_function_declaration(
-        "swap", updated_function, parsec_result, file_containing_function
+        "swap", updated_function, parsec_project, file_containing_function
     )
 
     assert filecmp.cmp(
@@ -185,7 +185,7 @@ def test_get_source_code_with_inserted_specs() -> None:
         ],
     )
     swap_with_specs = function_util.get_source_code_with_inserted_spec(
-        "swap", swap_specs, ParsecResult(input_path=Path(path_to_swap_no_specs))
+        "swap", swap_specs, ParsecProject(input_path=Path(path_to_swap_no_specs))
     )
     assert (
         swap_with_specs
@@ -220,9 +220,9 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     *b = t;
 }"""
 
-    parsec_result = ParsecResult(file_containing_function)
+    parsec_project = ParsecProject(file_containing_function)
     function_util.update_function_declaration(
-        "swap", updated_function, parsec_result, file_containing_function
+        "swap", updated_function, parsec_project, file_containing_function
     )
 
     assert filecmp.cmp(f1=path_to_expected_updated_file, f2=file_containing_function), (
@@ -250,9 +250,9 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     *b = t;
 }"""
 
-    parsec_result = ParsecResult(file_containing_function)
+    parsec_project = ParsecProject(file_containing_function)
     function_util.update_function_declaration(
-        "swap", updated_function, parsec_result, file_containing_function
+        "swap", updated_function, parsec_project, file_containing_function
     )
 
     assert filecmp.cmp(f1=path_to_expected_updated_file, f2=file_containing_function), (

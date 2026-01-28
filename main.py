@@ -21,7 +21,7 @@ from util import (
     AssumeSpecAsIs,
     BacktrackToCallee,
     CFunction,
-    ParsecResult,
+    ParsecProject,
     SpecConversation,
     copy_file_to_folder,
     ensure_lines_at_beginning,
@@ -119,7 +119,7 @@ def main() -> None:
     args = parser.parse_args()
 
     input_file_path = Path(args.file)
-    parsec_result = ParsecResult(input_file_path)
+    parsec_project = ParsecProject(input_file_path)
 
     # MDE: Will this path be repeatedly overwritten during the verification process?  If so, that is
     # a serious problem for concurrency.
@@ -139,7 +139,7 @@ def main() -> None:
     )
 
     complete_proofstates = _verify_program(
-        parsec_result=parsec_result,
+        parsec_project=parsec_project,
         specification_generator=specification_generator,
         specgen_timeout_sec=args.specification_generation_timeout_sec,
     )
@@ -148,7 +148,7 @@ def main() -> None:
 
 
 def _verify_program(
-    parsec_result: ParsecResult,
+    parsec_project: ParsecProject,
     specification_generator: LlmSpecificationGenerator,
     specgen_timeout_sec: float,
 ) -> tuple[ProofState, ...]:
@@ -158,7 +158,7 @@ def _verify_program(
     exceeds the user-specified or defaulted specification generation timeout.
 
     Args:
-        parsec_result (ParsecFile): The file to verify.
+        parsec_project (ParsecFile): The file to verify.
         specification_generator (LlmSpecificationGenerator): The LLM specification generator.
         specgen_timeout_sec (float): The timeout for specification generation (in seconds).
 
@@ -169,7 +169,7 @@ def _verify_program(
     """
     # Since the initial list of functions is in reverse topological order,
     # the first element processed will be a leaf.
-    functions = parsec_result.get_functions_in_topological_order()
+    functions = parsec_project.get_functions_in_topological_order()
     initial_proof_state = ProofState.from_functions(functions=functions)
     GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)
     # This is the global worklist.
@@ -183,7 +183,7 @@ def _verify_program(
         next_proofstates = _step(
             proof_state=proof_state,
             specification_generator=specification_generator,
-            parsec_result=parsec_result,
+            parsec_project=parsec_project,
         )
 
         for next_proofstate in next_proofstates:
@@ -204,7 +204,7 @@ def _verify_program(
 def _step(
     proof_state: ProofState,
     specification_generator: LlmSpecificationGenerator,
-    parsec_result: ParsecResult,
+    parsec_project: ParsecProject,
 ) -> list[ProofState]:
     """Given a ProofState, returns of list of ProofStates, each of which makes a "step" of progress.
 
@@ -222,7 +222,7 @@ def _step(
     Args:
         proof_state (ProofState): The proof state from which to generate new proof states.
         specification_generator (LlmSpecificationGenerator): The specification generator.
-        parsec_result (ParsecFile): The file being verified.
+        parsec_project (ParsecFile): The file being verified.
 
     Returns:
         list[ProofState]: The list of new proof states to explore.
@@ -234,7 +234,7 @@ def _step(
     # that the algorithm may revisit this function later due to backtracking.
     speccs_for_function: list[SpecConversation] = specification_generator.generate_and_repair_spec(
         function=work_item.function,
-        parsec_result=parsec_result,
+        parsec_project=parsec_project,
         hint=work_item.hint,
         proof_state=proof_state,
     )
@@ -337,7 +337,7 @@ def _get_next_proof_state(
             # is defined is a brittle assumption that should be fixed with multi-file ParseC
             # support.
             result_file = _get_result_file(function=spec_conversation.function)
-            if callee := ParsecResult(result_file).get_function_or_none(function_name=callee):
+            if callee := ParsecProject(result_file).get_function_or_none(function_name=callee):
                 work_item_for_callee = WorkItem(function=callee, hint=hint)
                 workstack_for_next_proof_state = prev_proof_state.get_workstack().push(
                     work_item_for_callee
@@ -378,18 +378,18 @@ def _write_spec_to_disk(spec_conversation: SpecConversation) -> None:
         result_file.parent.mkdir(exist_ok=True, parents=True)
         shutil.copy(path_to_original_file, result_file)
 
-    parsec_result = ParsecResult(result_file)
+    parsec_project = ParsecProject(result_file)
     function_with_verified_spec = function_util.get_source_code_with_inserted_spec(
         function_name=function.name,
         specification=spec_conversation.specification,
-        parsec_result=parsec_result,
+        parsec_project=parsec_project,
         comment_out_spec=True,
     )
 
     function_util.update_function_declaration(
         function_name=function.name,
         updated_function_content=function_with_verified_spec,
-        parsec_result=parsec_result,
+        parsec_project=parsec_project,
         file=result_file,
     )
 

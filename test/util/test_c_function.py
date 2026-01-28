@@ -1,11 +1,11 @@
 from pathlib import Path
 from textwrap import dedent
 
-from util.parsec_result import ParsecResult
+from util.parsec_project import ParsecProject
 
 
 def test_get_source_code() -> None:
-    parsec_result = ParsecResult(Path("data/qsort.c"))
+    parsec_project = ParsecProject(Path("data/qsort.c"))
     expected_source_code = dedent("""\
         void swap(int* a, int* b)
         {
@@ -13,14 +13,14 @@ def test_get_source_code() -> None:
             *a = *b;
             *b = t;
         }""")
-    expected_function = parsec_result.get_function_or_none("swap")
+    expected_function = parsec_project.get_function_or_none("swap")
     assert expected_function, "Function 'swap' should be declared in data/qsort.c"
     assert expected_function.get_original_source_code() == expected_source_code
 
 
 def test_get_source_code_with_docs_double_slash() -> None:
-    parsec_result = ParsecResult(Path("test/data/get_source_code/test_with_doc_comments.c"))
-    expected_function = parsec_result.get_function_or_none("f1")
+    parsec_project = ParsecProject(Path("test/data/get_source_code/test_with_doc_comments.c"))
+    expected_function = parsec_project.get_function_or_none("f1")
     assert expected_function, "Function 'f1' should be declared in test/data/get_source_code/test_with_doc_comments.c"
     expected_source_code = dedent("""\
         // This is a documentation
@@ -30,8 +30,8 @@ def test_get_source_code_with_docs_double_slash() -> None:
 
 
 def test_get_source_code_with_docs_multi_line() -> None:
-    parsec_result = ParsecResult(Path("test/data/get_source_code/test_with_doc_comments.c"))
-    expected_function = parsec_result.get_function_or_none("f2")
+    parsec_project = ParsecProject(Path("test/data/get_source_code/test_with_doc_comments.c"))
+    expected_function = parsec_project.get_function_or_none("f2")
     assert expected_function, "Function 'f2' should be declared in test/data/get_source_code/test_with_doc_comments.c"
     expected_source_code = dedent("""\
         /** this comment
@@ -45,8 +45,8 @@ def test_get_source_code_with_docs_multi_line() -> None:
 
 
 def test_get_source_code_with_docs_multi_line_with_line_numbers() -> None:
-    parsec_result = ParsecResult(Path("test/data/get_source_code/test_with_doc_comments.c"))
-    expected_function = parsec_result.get_function_or_none("f2")
+    parsec_project = ParsecProject(Path("test/data/get_source_code/test_with_doc_comments.c"))
+    expected_function = parsec_project.get_function_or_none("f2")
     assert expected_function, "Function 'f2' should be declared in test/data/get_source_code/test_with_doc_comments.c"
     expected_source_code = dedent("""\
         7 : /** this comment
@@ -60,24 +60,24 @@ def test_get_source_code_with_docs_multi_line_with_line_numbers() -> None:
 
 
 def test_get_source_code_with_docs_inline_comment_above() -> None:
-    parsec_result = ParsecResult(Path("test/data/get_source_code/test_with_doc_comments.c"))
-    expected_function = parsec_result.get_function_or_none("f3")
+    parsec_project = ParsecProject(Path("test/data/get_source_code/test_with_doc_comments.c"))
+    expected_function = parsec_project.get_function_or_none("f3")
     assert expected_function, "Function 'f3' should be declared in test/data/get_source_code/test_with_doc_comments.c"
     expected_source_code = "void f3() {}"
     assert expected_function.get_original_source_code(include_documentation_comments=True) == expected_source_code
 
 
 def test_get_source_code_on_one_line() -> None:
-    parsec_result = ParsecResult(Path("test/data/get_source_code/test.c"))
-    expected_function = parsec_result.get_function_or_none("single_line_main")
+    parsec_project = ParsecProject(Path("test/data/get_source_code/test.c"))
+    expected_function = parsec_project.get_function_or_none("single_line_main")
     assert expected_function, "Function 'single_line_main' should be declared in test/data/get_source_code/test.c"
     expected_source_code = 'void single_line_main() { printf("Hello, world!"); }'
     assert expected_function.get_original_source_code() == expected_source_code
 
 
 def test_get_source_code_at_end_of_file() -> None:
-    parsec_result = ParsecResult(Path("test/data/get_source_code/test.c"))
-    expected_function = parsec_result.get_function_or_none("fn_at_end")
+    parsec_project = ParsecProject(Path("test/data/get_source_code/test.c"))
+    expected_function = parsec_project.get_function_or_none("fn_at_end")
     assert expected_function, "Function 'fn_at_end' should be declared in test/data/get_source_code/test.c"
     expected_source_code = dedent("""\
         void fn_at_end()
@@ -90,15 +90,15 @@ def test_get_source_code_at_end_of_file() -> None:
 
 
 def test_get_comment_no_comments() -> None:
-    parsec_result = ParsecResult(Path("test/data/get_comments/test.c"))
-    expected_function = parsec_result.get_function_or_none("f2")
+    parsec_project = ParsecProject(Path("test/data/get_comments/test.c"))
+    expected_function = parsec_project.get_function_or_none("f2")
     assert expected_function, "Function 'f2' should be declared in test/data/get_comments/test.c"
     assert expected_function.get_preceding_lines_starting_with_comment_delimiters() is None
 
 
 def test_get_comment_double_slash() -> None:
-    parsec_result = ParsecResult(Path("test/data/get_comments/test.c"))
-    expected_function = parsec_result.get_function_or_none("f1")
+    parsec_project = ParsecProject(Path("test/data/get_comments/test.c"))
+    expected_function = parsec_project.get_function_or_none("f1")
     assert expected_function, "Function 'f1' should be declared in test/data/get_comments/test.c"
     expected_comments = dedent("""\
         // Double-slash comment
@@ -108,8 +108,8 @@ def test_get_comment_double_slash() -> None:
 
 
 def test_get_comment_multi_line() -> None:
-    parsec_result = ParsecResult(Path("test/data/get_comments/test.c"))
-    expected_function = parsec_result.get_function_or_none("f3")
+    parsec_project = ParsecProject(Path("test/data/get_comments/test.c"))
+    expected_function = parsec_project.get_function_or_none("f3")
     assert expected_function, "Function 'f3' should be declared in test/data/get_comments/test.c"
     expected_comment = dedent("""\
         /**
@@ -125,8 +125,8 @@ def test_get_comment_multi_line() -> None:
 
 
 def test_get_comment_multi_line_pathological() -> None:
-    parsec_result = ParsecResult(Path("test/data/get_comments/test.c"))
-    expected_function = parsec_result.get_function_or_none("f4")
+    parsec_project = ParsecProject(Path("test/data/get_comments/test.c"))
+    expected_function = parsec_project.get_function_or_none("f4")
     assert expected_function, "Function 'f4' should be declared in test/data/get_comments/test.c"
     expected_comment = dedent("""\
         /*
@@ -139,14 +139,14 @@ def test_get_comment_multi_line_pathological() -> None:
 
 
 def test_is_self_recursive_is_true() -> None:
-    parsec_result = ParsecResult(Path("test/data/callgraph/self_recursion.c"))
-    expected_function = parsec_result.get_function_or_none("recursive_function")
+    parsec_project = ParsecProject(Path("test/data/callgraph/self_recursion.c"))
+    expected_function = parsec_project.get_function_or_none("recursive_function")
     assert expected_function, "Function 'recursive_function' should be declared in test/data/callgraph/self_recursion.c"
     assert expected_function.is_self_recursive()
 
 
 def test_is_self_recursive_is_false() -> None:
-    parsec_result = ParsecResult(Path("test/data/callgraph/simple.c"))
-    expected_function = parsec_result.get_function_or_none("a")
+    parsec_project = ParsecProject(Path("test/data/callgraph/simple.c"))
+    expected_function = parsec_project.get_function_or_none("a")
     assert expected_function, "Function 'a' should be declared in test/data/callgraph/simple.c"
     assert not expected_function.is_self_recursive()

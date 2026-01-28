@@ -17,13 +17,13 @@ from util.c_function import CFunction
 
 
 @dataclass
-class ParsecResult:
+class ParsecProject:
     """Represents the top-level result obtained by running `parsec` on one or more C source files.
 
     For more details on these fields, see the ParseC documentation:
     https://github.com/vikramnitin9/parsec/blob/main/README.md
 
-    Note: The functions in a `ParsecResult` do not have specifications. This is due to the the fact
+    Note: The functions in a `ParsecProject` do not have specifications. This is due to the the fact
     that LLVM cannot parse CBMC specs, which are not instances of valid C grammar.
 
     ParseC is a LLVM/Clang-based tool to parse a C program (hence the name).
@@ -49,7 +49,7 @@ class ParsecResult:
     global_vars: list[dict[str, Any]] = field(default_factory=list)
 
     def __init__(self, input_path: Path):
-        """Create an instance of ParsecResult from the directory or file at `input_path`.
+        """Create an instance of ParsecProject from the directory or file at `input_path`.
 
         If the path is a directory, all C files in the directory are analyzed.
         In this case, the directory must contain a compile_commands.json compilation database.
@@ -86,8 +86,8 @@ class ParsecResult:
     @staticmethod
     def parse_source_with_cbmc_annotations(
         path_to_file_with_cbmc_annotations: Path,
-    ) -> ParsecResult:
-        """Create an instance of ParsecResult by parsing a .c file with CBMC annotations.
+    ) -> ParsecProject:
+        """Create an instance of ParsecProject by parsing a .c file with CBMC annotations.
 
         Parsec relies on an LLVM parser, which does not admit C programs with CBMC annotations.
         A workaround is to comment-out the CBMC annotations.
@@ -96,7 +96,7 @@ class ParsecResult:
             path_to_file_with_cbmc_annotations (Path): The file with CBMC annotations.
 
         Returns:
-            ParsecResult: The ParsecResult.
+            ParsecProject: The ParsecProject.
         """
         content_of_file_with_cbmc_annotations = path_to_file_with_cbmc_annotations.read_text(
             encoding="utf-8"
@@ -111,7 +111,7 @@ class ParsecResult:
             file_lines_with_commented_out_annotations,
             encoding="utf-8",
         )
-        return ParsecResult(tmp_file_with_commented_out_cbmc_annotations)
+        return ParsecProject(tmp_file_with_commented_out_cbmc_annotations)
 
     def get_function_or_none(self, function_name: str) -> CFunction | None:
         """Return the CFunction representation for a function with the given name.
@@ -161,7 +161,7 @@ class ParsecResult:
         return callees
 
     def get_functions_in_topological_order(self, reverse_order: bool = False) -> list[CFunction]:
-        """Return the CFunctions in this ParsecResult's call graph in topological order.
+        """Return the CFunctions in this ParsecProject's call graph in topological order.
 
         Note: If a topological ordering is impossible, this function defaults to returning the
         functions collected via a postorder DFS traversal.
@@ -171,7 +171,7 @@ class ParsecResult:
                 Defaults to False.
 
         Returns:
-            list[CFunction]: The CFunctions in this ParsecResult's call graph in topological order.
+            list[CFunction]: The CFunctions in this ParsecProject's call graph in topological order.
         """
         if not self.call_graph.nodes():
             return []

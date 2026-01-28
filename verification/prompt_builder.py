@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 from string import Template
 
-from util import CFunction, ParsecResult, text_util
+from util import CFunction, ParsecProject, text_util
 
 from .verification_result import VerificationResult
 
@@ -25,7 +25,7 @@ class PromptBuilder:
     CALLEE_CONTEXT_PLACEHOLDER = "<<CALLEE_CONTEXT>>"
 
     def specification_generation_prompt(
-        self, function: CFunction, parsec_result: ParsecResult
+        self, function: CFunction, parsec_project: ParsecProject
     ) -> str:
         """Return the prompt used for specification generation.
 
@@ -34,7 +34,7 @@ class PromptBuilder:
 
         Args:
             function (CFunction): The function for which to generate specifications.
-            parsec_result (ParsecResult): The top-level ParseC file.
+            parsec_project (ParsecProject): The Parsec Project.
 
         Returns:
             str: The initial prompt used for specification generation.
@@ -46,7 +46,7 @@ class PromptBuilder:
         )
 
         callee_context = ""
-        if callees := parsec_result.get_callees(function):
+        if callees := parsec_project.get_callees(function):
             if callees_with_specs := [callee for callee in callees if callee.has_specification()]:
                 callee_context = self._get_callee_specs(function.name, callees_with_specs)
 
@@ -69,8 +69,8 @@ class PromptBuilder:
             )
             tmp_f.write(source_code_cbmc_commented_out)
             tmp_f.flush()
-            parsec_result = ParsecResult(Path(tmp_f.name))
-            function = parsec_result.get_function_or_none(
+            parsec_project = ParsecProject(Path(tmp_f.name))
+            function = parsec_project.get_function_or_none(
                 function_name=verification_result.get_function().name
             )
             if not function:
@@ -112,7 +112,7 @@ class PromptBuilder:
             )
             tmp_f.write(source_code_cbmc_commented_out)
             tmp_f.flush()
-            parsec_file = ParsecResult(Path(tmp_f.name))
+            parsec_file = ParsecProject(Path(tmp_f.name))
             function = parsec_file.get_function_or_none(
                 function_name=verification_result.get_function().name
             )

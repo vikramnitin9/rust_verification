@@ -1,13 +1,13 @@
 from pathlib import Path
 
-from util import FunctionSpecification, ParsecResult, CFunction
+from util import FunctionSpecification, ParsecProject, CFunction
 from verification import VerificationContext, VerificationInput
 
 
 def get_function_or_none(file_path: str, function_name: str) -> CFunction:
     """Utility method for tests."""
-    parsec_result = ParsecResult(input_path=Path(file_path))
-    return parsec_result.get_function(function_name=function_name)
+    parsec_project = ParsecProject(input_path=Path(file_path))
+    return parsec_project.get_function(function_name=function_name)
 
 
 def test_verification_input_eq() -> None:
