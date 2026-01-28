@@ -22,14 +22,14 @@ def copy_file_to_folder(input_file_path: Path, destination_folder_name: str) -> 
 
 
 def copy_folder_to_folder(input_folder_path: Path, destination_folder_name: str) -> Path:
-    """Return the folder that is copied from the input folder to the destination folder.
+    """Return the path of the copy of the input folder.
 
     Args:
         input_folder_path (Path): The input folder path.
         destination_folder_name (str): The destination folder under which to copy the folder.
 
     Returns:
-        Path: The folder that is copied from the input folder to the destination folder.
+        Path: The path of the copy of the input folder.
     """
     output_folder = Path(destination_folder_name) / input_folder_path.name
     shutil.copytree(input_folder_path, output_folder, dirs_exist_ok=True)

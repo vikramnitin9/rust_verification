@@ -34,7 +34,7 @@ class PromptBuilder:
 
         Args:
             function (CFunction): The function for which to generate specifications.
-            parsec_project (ParsecProject): The Parsec Project.
+            parsec_project (ParsecProject): The ParseC project that contains `function`.
 
         Returns:
             str: The initial prompt used for specification generation.

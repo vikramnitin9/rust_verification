@@ -242,7 +242,7 @@ def update_function_declaration(
     Args:
         function_name (str): The name of the function to update.
         updated_function_content (str): The new contents of the function.
-        parsec_project (ParsecProject): The Parsec project function definitions.
+        parsec_project (ParsecProject): The ParseC project containing function definitions.
         file (Path): The file that contains the function (and possibly other functions).
 
     Returns:
@@ -262,7 +262,7 @@ def update_function_declaration(
     end_line = function.end_line
     end_col = function.end_col
 
-    # Update the line/col info for this function in the Parsec project.
+    # Update the line/col info for this function in the ParseC project.
     function_lines = updated_function_content.splitlines()
     num_lines = len(function_lines)
     new_end_line = start_line + num_lines - 1

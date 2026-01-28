@@ -93,7 +93,7 @@ class LlmSpecificationGenerator:
 
         Args:
             function (CFunction): The function for which to generate potential specs.
-            parsec_project (ParsecProject): The parsec project that contains `function`.
+            parsec_project (ParsecProject): The ParseC project that contains `function`.
             hint (str): Hints to help guide specification regeneration (i.e., when a
                 specification is not accepted or assumed as-is, and is either being repaired or when
                 a callee specification is re-generated).
@@ -140,7 +140,7 @@ class LlmSpecificationGenerator:
 
         Args:
             function (CFunction): The function for which to generate specifications.
-            parsec_project (ParsecProject): The parsec project that contains `function`.
+            parsec_project (ParsecProject): The ParseC project that contains `function`.
             hint (str): Hints to guide specification generation. Only non-empty when
                 generating specs during backtracking (i.e., a callee specification is being
                 re-generated).
@@ -204,7 +204,7 @@ class LlmSpecificationGenerator:
             specc (SpecConversation): The SpecConversation that ends with the spec that
                 may fail to verify.
             proof_state (ProofState): The proof state for the specification.
-            parsec_project (ParsecProject): The parsec project that contains `function`.
+            parsec_project (ParsecProject): The ParseC project that contains `function`.
 
         Returns:
             list[SpecConversation]: A list of specifications that successfully verify (they either
