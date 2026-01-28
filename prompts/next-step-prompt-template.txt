@@ -8,32 +8,29 @@ The following failures are reported by CBMC:
 
 $failure_information
 
-Given this information, select from the three options:
+Given this information, select from the two options:
 
     1. Assume the specification as-is, and proceed with verifying the rest of the program.
-    2. Return a repaired specification that verifies successfully.
-    3. Choose a callee of $function_name that might require a stronger postcondition, and state in what way the postcondition must be strengthened.
+    2. Choose a callee of $function_name, and state in what way the postcondition must be
+       strengthened in order for $function_name's specifications to verify.
 
+<KEY POINTS>
+
+You should almost always select (1) unless you have strong evidence that (2) will result in a
+specification that verifies for $function_name.
+
+</KEY POINTS>
 
 If you choose (1), your response should be in the following format:
 
 {
-    "next_step": "ASSUME_SPEC_AS_IS",
+    "next_step": "ASSUME_SPEC_AS_IS"
 }
 
 If you choose (2), your response should be in the following format:
 
 {
-    "next_step": "REPAIR_SPEC",
-    "reasoning": "<REASONING>",
-    "function_with_specs": "<FUNCTION_WITH_REPAIRED_SPEC>"
-}
-
-If you choose (3), your response should be in the following format:
-
-{
-    "next_step": "REGENERATE_CALLEE_SPEC",
-    "reasoning": "<REASONING>",
-    "callee": "<CALLEE_NAME>",
-    "function_with_specs": "<CALLEE_WITH_REGENERATED_SPECS>",
+    "next_step": "BACKTRACK_TO_CALLEE",
+    "postcondition_strengthening_description": "<DESCRIPTION>",
+    "callee": "<CALLEE_NAME>"
 }

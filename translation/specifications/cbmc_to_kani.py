@@ -91,7 +91,7 @@ class CBMCToKani:
                 if isinstance(expr, cbmc_ast.Quantifier):
                     return kani_condition
                 return f"kani::ensures({kani_condition})"
-            case cbmc_ast.AssignsExpr(condition=cond, targets=target_list):
+            case cbmc_ast.Assigns(condition=cond, targets=target_list):
                 if cond:
                     msg = f"Conditional assignment(s) in: {spec} are not supported in Kani"
                     raise TranslationError(msg)

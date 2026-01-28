@@ -2,10 +2,7 @@
 
 from typing import Protocol
 
-from util import CFunction, FunctionSpecification
-
-from .proof_state import ProofState
-from .verification_result import VerificationResult
+from .verification_result import VerificationInput, VerificationResult
 
 
 class VerificationClient(Protocol):
@@ -13,20 +10,14 @@ class VerificationClient(Protocol):
 
     def verify(
         self,
-        function: CFunction,
-        spec: FunctionSpecification,
-        proof_state: ProofState,
-        source_code_content: str,
+        vinput: VerificationInput,
     ) -> VerificationResult:
-        """Return the result of verifying the given function.
+        """Return the result of verifying the verification input.
 
         Args:
-            function (CFunction): The function to verify.
-            spec (FunctionSpecification): The specification for the function to verify.
-            proof_state (ProofState): The proof state.
-            source_code_content (str): The source code for the file passed as input to the verifier.
+            vinput (VerificationInput): The verification input.
 
         Returns:
-            VerificationResult: The result of verifying the given function.
+            VerificationResult: The result of verifying the given verification input.
         """
         ...

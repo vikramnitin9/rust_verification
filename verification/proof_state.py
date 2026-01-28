@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
+from typing import Self
 
 from util import CFunction, FunctionSpecification, ParsecResult
 
@@ -98,6 +99,20 @@ class ProofState:
         """Create a new ProofState."""
         self._specs = MappingProxyType(specs)
         self._workstack = workstack
+
+    @classmethod
+    def from_functions(cls, functions: list[CFunction]) -> Self:
+        """Create a new ProofState with a workstack constructed from the given functions.
+
+        Args:
+            functions (list[CFunction]): The functions from which to construct a new ProofState,
+                in reverse topological order.
+
+        Returns:
+            Self: A new ProofState with a workstack constructed from the given functions.
+        """
+        initial_workstack = WorkStack(tuple(WorkItem(function, "") for function in functions))
+        return cls(specs={}, workstack=initial_workstack)
 
     def peek_workstack(self) -> WorkItem:
         """Return the top element of the workstack.

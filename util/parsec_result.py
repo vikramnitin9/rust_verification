@@ -42,7 +42,7 @@ class ParsecResult:
     # but this needs to be kept in mind for complex projects.
     functions: dict[str, CFunction] = field(default_factory=dict)
 
-    # Enums, structs, and global_vars are all represented as lists of dictionaries
+    # Enums, structs, and global_vars are all represented as lists of dictionaries.
     # For the exact format of these dictionaries, see the ParseC documentation (linked above).
     enums: list[dict[str, Any]] = field(default_factory=list)
     structs: list[dict[str, Any]] = field(default_factory=list)
@@ -72,6 +72,8 @@ class ParsecResult:
         self.enums = parsec_analysis.get("enums", [])
         self.files = parsec_analysis.get("files", [])
         self.functions = {analysis.name: analysis for analysis in function_analyses}
+        self.global_vars = parsec_analysis.get("global_vars", [])
+        self.structs = parsec_analysis.get("structs", [])
         # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
         # NOTE: Each node in call_graph is a CFunction.
         self.call_graph: nx.DiGraph = nx.DiGraph()  # type: ignore[type-arg]

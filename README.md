@@ -28,17 +28,8 @@ Then run the Python script
 ```sh
 make run
 # Inside the container:
-python main.py --input-file-path data/qsort.c
+./main.py data/qsort.c
 ```
-
-You can also write a record of the conversation used to generate specifications by passing in the
-`--save-conversation` flag:
-
-```sh
-python main.py --file data/qsort.c --save-conversation
-```
-
-Which saves the conversation record to `logs/specifications`
 
 ## Step 2: Converting C (CProver) specifications to Rust (Kani)
 
@@ -95,7 +86,7 @@ To debug a specification generation run (e.g., for `data/qsort.c`),
   first run the following command:
 
 ```sh
-% bash run.sh python -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 --wait-for-client ./main.py --file data/qsort.c
+% bash run.sh python -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 --wait-for-client ./main.py data/qsort.c
 ```
 
 This effectively starts the container,

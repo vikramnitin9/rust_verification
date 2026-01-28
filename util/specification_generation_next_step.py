@@ -1,34 +1,42 @@
-"""Enums to represent the next step to take during specification generation."""
+"""Classes to represent the next step to take during specification generation."""
 
-from enum import StrEnum
+from dataclasses import dataclass
 
 
-class SpecificationGenerationNextStep(StrEnum):
-    """Enum to represent the next step to take during specification generation."""
+@dataclass(frozen=True)
+class SpecificationGenerationNextStep:
+    """Base class for next step strategies."""
 
-    ACCEPT_VERIFIED_SPEC = "ACCEPT_VERIFIED_SPEC"
-    ASSUME_SPEC_AS_IS = "ASSUME_SPEC_AS_IS"
-    REPAIR_SPEC = "REPAIR_SPEC"
-    REGENERATE_CALLEE_SPEC = "REGENERATE_CALLEE_SPEC"
+    def __post_init__(self) -> None:
+        """Prevent creating instances of SpecificationGenerationNextStep (abstract class).
 
-    @property
-    def is_regenerate_strategy(self) -> bool:
-        """True iff this strategy involves specification regeneration.
-
-        Note: A specification is said to be "regenerated" if the current specification is not
-        accepted as-is by a verifier. A specification may be accepted as-is by a verifier if it
-        successfully verifies, or is assumed.
-
-        For now, the only strategies that involve specification regeneration are REPAIR_SPEC and
-        REGENERATE_CALLEE_SPEC.
-
-        Returns:
-            bool: True iff this strategy involves the regeneration of a specification.
-
+        Raises:
+            RuntimeError: Raised when an instance of abstract class SpecificationGenerationNextStep
+                is created.
         """
-        return self in frozenset(
-            {
-                SpecificationGenerationNextStep.REPAIR_SPEC,
-                SpecificationGenerationNextStep.REGENERATE_CALLEE_SPEC,
-            }
-        )
+        if type(self) is SpecificationGenerationNextStep:
+            msg = f"'{self.__class__.__name__}' is an abstract class"
+            raise RuntimeError(msg)
+
+
+@dataclass(frozen=True)
+class AcceptVerifiedSpec(SpecificationGenerationNextStep):
+    """Represent the case when a spec is successfully verified."""
+
+
+@dataclass(frozen=True)
+class AssumeSpecAsIs(SpecificationGenerationNextStep):
+    """Represent the case when a spec is assumed, regardless of its correctness."""
+
+
+@dataclass(frozen=True)
+class BacktrackToCallee(SpecificationGenerationNextStep):
+    """Represent the case when the next step is to backtrack and regenerate specs for a callee.
+
+    Attributes:
+        callee (str): The callee to backtrack to.
+        hint (str): The description of how the callee specification should be strengthened.
+    """
+
+    callee: str
+    hint: str
