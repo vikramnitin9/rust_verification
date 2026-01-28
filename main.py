@@ -4,7 +4,6 @@
 
 import argparse
 import os
-import pickle as pkl
 import shutil
 import tempfile
 import time
@@ -138,13 +137,11 @@ def main() -> None:
         disable_llm_cache=args.disable_llm_cache,
     )
 
-    complete_proofstates = _verify_program(
+    _verify_program(
         parsec_project=parsec_project,
         specification_generator=specification_generator,
         specgen_timeout_sec=args.specification_generation_timeout_sec,
     )
-    with Path(f"{DEFAULT_RESULT_DIR}/complete-proofstates.pkl").open("wb") as f:
-        pkl.dump(complete_proofstates, f)
 
 
 def _verify_program(
