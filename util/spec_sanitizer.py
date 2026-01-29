@@ -26,11 +26,10 @@ ILLEGAL_ELLIPSES_PATTERN = r"(?<!\[)[,\s]*\.{3}[,\s]*(?!\])"
 def sanitize(spec: FunctionSpecification) -> FunctionSpecification:
     """Return a sanitized FunctionSpecification.
 
-    A sanitized FunctionSpecification comprises a spec which has been modified to remove common
-    error patterns observed in generated specs.
+    A sanitized FunctionSpecification comprises a spec which has been modified to fix common
+    syntax errors.
 
-    For example, a clause of the form `__CPROVER_assigns(arr[lo:hi])` is illegal, since the
-    expression `arr[lo:hi]` is not valid C code.
+    For example, converts `arr[lo:hi]` (which is not valid C code) to `*arr`.
 
     Args:
         spec (FunctionSpecification): The specification to sanitize.
