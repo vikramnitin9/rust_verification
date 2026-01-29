@@ -51,10 +51,10 @@ def _fix_clause(clause: str) -> str:
     Returns:
         str: The fixed clause.
     """
-    if clause.startswith("__CPROVER_assigns"):
+    if clause.startswith(CProverClause.ASSIGNS.value):
         if match := re.search(PARENTHESIZED_CONTENT, clause):
             return _fix_expr_in_assigns_clause(match.group(1))
-        msg = f"Malformed __CPROVER_assigns clause: {clause}"
+        msg = f"Malformed {CProverClause.ASSIGNS.value} clause: {clause}"
         raise ValueError(msg)
     # We do not fix other clauses, for now.
     return clause
@@ -69,7 +69,7 @@ def _fix_expr_in_assigns_clause(assigns_expr: str) -> str:
     Returns:
         str: The fixed version of an expression.
     """
-    expr = _remove_ellipsis(assigns_expr)
+    expr = _remove_ellipsis_outside_brackets(assigns_expr)
     if illegal_array_pattern := re.search(ILLEGAL_ARRAY_RANGE_PATTERN, expr):
         array_name = illegal_array_pattern.group(1)
         # TODO: What if there's a spec that has both illegal patterns?
@@ -96,11 +96,15 @@ def _is_inside_brackets(position: int, text: str) -> bool:
     return depth > 0
 
 
-def _remove_ellipsis(text: str) -> str:
-    """Remove ellipsis ("...") from the given text.
+def _remove_ellipsis_outside_brackets(text: str) -> str:
+    """Remove ellipsis ("...") from the given text if it appears outside brackets ("[]").
+
+    For example, the text `arr[1...2]` is not modified, since the ellipses appear inside brackets.
+    This is an illegal syntax pattern for array ranges that is handled in
+    `_fix_expr_in_assigns_clause`.
 
     Args:
-        text (str): The text from which to remove ellipsis.
+        text (str): The text from which to remove ellipsis, if it appears outside brackets ("[]").
 
     Returns:
         str: The text with ellipsis removed.
@@ -121,6 +125,8 @@ def _remove_ellipsis(text: str) -> str:
             offset += (match.end() - match.start()) - 1  # -1 for the comma we insert.
 
     # Clean up
-    result = re.sub(r",\s*,", ",", result)
-    result = re.sub(r"\s+", " ", result)
-    return result.strip(", ")
+    if result != text:
+        result = re.sub(r",\s*,", ",", result)
+        result = re.sub(r"\s+", " ", result)
+        result = result.strip(", ")
+    return result
