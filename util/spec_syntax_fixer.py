@@ -54,11 +54,13 @@ def _fix_clause(clause: str) -> str:
     Returns:
         str: The fixed clause.
     """
-    match _get_clause_expression(clause):
-        case (CProverClause.ASSIGNS, expr):
-            return _fix_expr_in_assigns_clause(expr)
-        case _:
-            return clause
+    if clause.startswith("__CPROVER_assigns"):
+        if match := re.search(PARENTHESIZED_CONTENT, clause):
+            return _fix_expr_in_assigns_clause(match.group(1))
+        msg = f"Malformed __CPROVER_assigns clause: {clause}"
+        raise ValueError(msg)
+    # We do not care about other clauses, for now.
+    return clause
 
 
 def _fix_expr_in_assigns_clause(assigns_expr: str) -> str:
@@ -76,29 +78,6 @@ def _fix_expr_in_assigns_clause(assigns_expr: str) -> str:
         # TODO: What if there's a spec that has both illegal patterns?
         expr = f"*{array_name}"
     return f"{CProverClause.ASSIGNS.value}({expr})"
-
-
-def _get_clause_expression(clause: str) -> tuple[CProverClause, str] | str:
-    """Return the expression inside a CProver clause.
-
-    Args:
-        clause (str): The clause from which to extract the expression.
-
-    Returns:
-        tuple[CProverClause, str] | None: A tuple of the top-level CProver clause
-            and the expression, or None if not a recognized clause.
-    """
-    if clause.startswith("__CPROVER_requires"):
-        if match := re.search(PARENTHESIZED_CONTENT, clause):
-            return CProverClause.REQUIRES, match.group(1)
-    elif clause.startswith("__CPROVER_ensures"):
-        if match := re.search(PARENTHESIZED_CONTENT, clause):
-            return CProverClause.ENSURES, match.group(1)
-    elif clause.startswith("__CPROVER_assigns"):
-        if match := re.search(PARENTHESIZED_CONTENT, clause):
-            return CProverClause.ASSIGNS, match.group(1)
-    # Here, we could have a quantifier, skip for now.
-    return clause
 
 
 def _is_inside_brackets(position: int, text: str) -> bool:
