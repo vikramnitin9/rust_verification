@@ -115,6 +115,14 @@ def main() -> None:
         action="store_true",
         help=("Always call the LLM, do not use cached answers (defaults to False)."),
     )
+    parser.add_argument(
+        "--fix-illegal-syntax",
+        action="store_true",
+        help=(
+            "Apply syntax fixes to generated specification, e.g., "
+            "illegal array range syntax, ellipses. (defaults to False)."
+        ),
+    )
     args = parser.parse_args()
 
     input_file_path = Path(args.file)
@@ -134,6 +142,7 @@ def main() -> None:
         num_specification_candidates=args.num_specification_candidates,
         num_specification_repair_candidates=args.num_repair_candidates,
         num_specification_repair_iterations=args.num_specification_repair_iterations,
+        fix_illegal_syntax=args.fix_illegal_syntax,
         disable_llm_cache=args.disable_llm_cache,
     )
 
