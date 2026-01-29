@@ -126,8 +126,11 @@ class PromptBuilder:
             )
             return PromptBuilder.SPECIFICATION_REPAIR_PROMPT_TEMPLATE.substitute(
                 function_name=function.name,
-                stdout=verification_result.stdout,
-                stderr=verification_result.stderr,
+                errors="\n".join(
+                    line
+                    for line in verification_result.stdout.splitlines()
+                    if line.endswith("FAILURE")
+                ),
                 function_implementation="\n".join(
                     f"{line}: {content}" for line, content in source_code_with_line_numbers
                 ),
