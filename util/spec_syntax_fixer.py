@@ -1,4 +1,4 @@
-"""Module for basic repair of common syntax errors observed in generated specs."""
+"""Module for fixing  syntax errors in specs."""
 
 import re
 from enum import Enum
@@ -26,10 +26,7 @@ ILLEGAL_ELLIPSES_PATTERN = r"(?<!\[)[,\s]*\.\.\.?[,\s]*(?!\])"
 
 
 def fix_syntax(spec: FunctionSpecification) -> FunctionSpecification:
-    """Return a fixed (i.e., syntax-corrected) FunctionSpecification.
-
-    A fixed FunctionSpecification comprises a spec which has been modified to fix common
-    syntax errors.
+    """Fix syntax errors in the given FunctionSpecification.
 
     For example, converts `arr[lo:hi]` (which is not valid C code) to `*arr`.
 
@@ -59,7 +56,7 @@ def _fix_clause(clause: str) -> str:
             return _fix_expr_in_assigns_clause(match.group(1))
         msg = f"Malformed __CPROVER_assigns clause: {clause}"
         raise ValueError(msg)
-    # We do not care about other clauses, for now.
+    # We do not fix other clauses, for now.
     return clause
 
 
@@ -67,10 +64,10 @@ def _fix_expr_in_assigns_clause(assigns_expr: str) -> str:
     """Return the fixed version of an expression in a `__CPROVER_assigns` clause.
 
     Args:
-        assigns_expr (str): The expression to fix in a `__CPROVER_assigns` clause.
+        assigns_expr (str): The expression to fix.
 
     Returns:
-        str: The fixed version of an expression in a `__CPROVER_assigns` clause.
+        str: The fixed version of an expression.
     """
     expr = _remove_ellipsis(assigns_expr)
     if illegal_array_pattern := re.search(ILLEGAL_ARRAY_RANGE_PATTERN, expr):
@@ -114,6 +111,7 @@ def _remove_ellipsis(text: str) -> str:
     result = text
     offset = 0
 
+    # Replace "..." by ", ".  Searches in `text` but makes changes in `result`.
     for match in re.finditer(ILLEGAL_ELLIPSES_PATTERN, text):
         if not _is_inside_brackets(match.start(), text):
             # Calculate adjusted position due to previous replacements
