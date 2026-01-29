@@ -9,6 +9,7 @@ from .function_specification import FunctionSpecification
 from .spec_conversation import SpecConversation
 from .json_util import parse_object
 from .backtracking_util import parse_backtracking_info
+from .execution.execution_util import run_with_timeout
 
 __all__ = [
     "SpecificationGenerationNextStep",
@@ -28,4 +29,5 @@ __all__ = [
     "ensure_lines_at_beginning",
     "parse_object",
     "parse_backtracking_info",
+    "run_with_timeout"
 ]

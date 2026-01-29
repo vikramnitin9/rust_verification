@@ -6,7 +6,6 @@ import argparse
 import os
 import shutil
 import tempfile
-import time
 from collections import deque
 from pathlib import Path
 
@@ -25,6 +24,7 @@ from util import (
     copy_file_to_folder,
     ensure_lines_at_beginning,
     function_util,
+    run_with_timeout,
 )
 from verification import (
     CbmcVerificationClient,
@@ -137,17 +137,17 @@ def main() -> None:
         disable_llm_cache=args.disable_llm_cache,
     )
 
-    _verify_program(
-        parsec_file=parsec_file,
-        specification_generator=specification_generator,
-        specgen_timeout_sec=args.specification_generation_timeout_sec,
+    run_with_timeout(
+        _verify_program,
+        parsec_file,
+        specification_generator,
+        timeout_sec=args.specification_generation_timeout_sec,
     )
 
 
 def _verify_program(
     parsec_file: ParsecFile,
     specification_generator: LlmSpecificationGenerator,
-    specgen_timeout_sec: float,
 ) -> tuple[ProofState, ...]:
     """Return a set of ProofStates, each of which has a specification for each function.
 
@@ -157,7 +157,6 @@ def _verify_program(
     Args:
         parsec_file (ParsecFile): The file to verify.
         specification_generator (LlmSpecificationGenerator): The LLM specification generator.
-        specgen_timeout_sec (float): The timeout for specification generation (in seconds).
 
     Returns:
         tuple[ProofState, ...]: A set of ProofStates, each of which has specifications for each
@@ -172,9 +171,7 @@ def _verify_program(
     # This is the global worklist.
     GLOBAL_INCOMPLETE_PROOFSTATES.append(initial_proof_state)
 
-    specgen_timeout_limit = time.time() + specgen_timeout_sec
-
-    while GLOBAL_INCOMPLETE_PROOFSTATES and not _is_timeout_reached(specgen_timeout_limit):
+    while GLOBAL_INCOMPLETE_PROOFSTATES:
         # Use BFS to avoid getting stuck in an unproductive search over a proof state.
         proof_state = GLOBAL_INCOMPLETE_PROOFSTATES.popleft()
         next_proofstates = _step(
@@ -410,18 +407,6 @@ def _get_result_file(function: CFunction) -> Path:
     pid_dir = Path(str(os.getpid()))
     result_file_dir = Path(DEFAULT_RESULT_DIR) / pid_dir / Path(original_file_dir)
     return result_file_dir / path_to_original_file.name
-
-
-def _is_timeout_reached(timeout_limit_sec: float) -> bool:
-    """Return True iff the timeout limit has been reached (or exceeded).
-
-    Args:
-        timeout_limit_sec (float): The timeout limit (in seconds).
-
-    Returns:
-        bool: True iff the timeout limit has been reached (or exceeded).
-    """
-    return time.time() >= timeout_limit_sec
 
 
 if __name__ == "__main__":
