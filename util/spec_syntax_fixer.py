@@ -1,4 +1,4 @@
-"""Module for fixing  syntax errors in specs."""
+"""Module for fixing syntax errors in specs."""
 
 import re
 from enum import Enum
@@ -20,9 +20,10 @@ PARENTHESIZED_CONTENT = r"\((.+?)\)"
 # Below are illegal syntax patterns that should be fixed.
 
 # E.g., arr[lo..hi], some_obj[0 ... max]
-ILLEGAL_ARRAY_RANGE_PATTERN = r"([a-zA-Z_]\w*)\[.+(\.\.\.?|:).+\]"
+ILLEGAL_ARRAY_RANGE_PATTERN = r"([a-zA-Z_]\w*)\[[^\]]*(?:\.\.\.?|:)[^\]]*\]"
 # E.g., "...", " ..., "
 ILLEGAL_ELLIPSES_PATTERN = r"(?<!\[)[,\s]*\.\.\.?[,\s]*(?!\])"
+REPLACEMENT_FOR_ELLIPSES = ", "
 
 
 def fix_syntax(spec: FunctionSpecification) -> FunctionSpecification:
@@ -69,12 +70,20 @@ def _fix_expr_in_assigns_clause(assigns_expr: str) -> str:
     Returns:
         str: The fixed version of an expression.
     """
-    expr = _remove_ellipsis_outside_brackets(assigns_expr)
-    if illegal_array_pattern := re.search(ILLEGAL_ARRAY_RANGE_PATTERN, expr):
-        array_name = illegal_array_pattern.group(1)
-        # TODO: What if there's a spec that has both illegal patterns?
-        expr = f"*{array_name}"
-    return f"{CProverClause.ASSIGNS.value}({expr})"
+    expr_without_ellipsis = _remove_ellipsis_outside_brackets(assigns_expr)
+
+    fixed_expr = expr_without_ellipsis
+    offset = 0
+    for match in re.finditer(ILLEGAL_ARRAY_RANGE_PATTERN, expr_without_ellipsis):
+        array_name = match.group(1)
+        replacement_array_expr = array_name if array_name.startswith("*") else f"*{array_name}"
+        # Calculate adjusted position due to previous replacements
+        adj_start = match.start() - offset
+        adj_end = match.end() - offset
+        fixed_expr = fixed_expr[:adj_start] + replacement_array_expr + fixed_expr[adj_end:]
+        offset += (match.end() - match.start()) - len(replacement_array_expr)
+
+    return f"{CProverClause.ASSIGNS.value}({fixed_expr})"
 
 
 def _is_inside_brackets(position: int, text: str) -> bool:
@@ -115,18 +124,18 @@ def _remove_ellipsis_outside_brackets(text: str) -> str:
     result = text
     offset = 0
 
-    # Replace "..." by ", ".  Searches in `text` but makes changes in `result`.
+    # Replace "..." by REPLACEMENT_FOR_ELLIPSES.  Searches in `text` but makes changes in `result`.
     for match in re.finditer(ILLEGAL_ELLIPSES_PATTERN, text):
         if not _is_inside_brackets(match.start(), text):
             # Calculate adjusted position due to previous replacements
             adj_start = match.start() - offset
             adj_end = match.end() - offset
-            result = result[:adj_start] + ", " + result[adj_end:]
-            offset += (match.end() - match.start()) - 1  # -1 for the comma we insert.
+            result = result[:adj_start] + REPLACEMENT_FOR_ELLIPSES + result[adj_end:]
+            offset += (match.end() - match.start()) - len(REPLACEMENT_FOR_ELLIPSES)
 
     # Clean up
     if result != text:
         result = re.sub(r",\s*,", ",", result)
         result = re.sub(r"\s+", " ", result)
-        result = result.strip(", ")
+        result = result.strip(REPLACEMENT_FOR_ELLIPSES)
     return result

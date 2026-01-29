@@ -117,7 +117,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--fix-illegal-syntax",
-        action="store_false",
+        action="store_true",
         help=(
             "Apply syntax fixes to generated specification, e.g., "
             "illegal array range syntax, ellipses. (defaults to False)."
