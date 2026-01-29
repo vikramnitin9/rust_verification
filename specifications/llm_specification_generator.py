@@ -23,9 +23,9 @@ from util import (
     ParsecFile,
     SpecConversation,
     SpecificationGenerationNextStep,
+    fix_syntax,
     function_util,
     parse_specs,
-    fix_syntax,
 )
 from verification import PromptBuilder, ProofState, VerificationClient, VerificationInput
 
