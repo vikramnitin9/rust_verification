@@ -23,6 +23,7 @@ from util import (
     ParsecFile,
     SpecConversation,
     SpecificationGenerationNextStep,
+    fix_syntax,
     function_util,
     parse_specs,
 )
@@ -165,17 +166,18 @@ class LlmSpecificationGenerator:
             result_spec_conversations = []
             for candidate_spec, llm_response in specs_with_llm_responses:
                 if candidate_spec:
+                    fixed_candidate_spec = fix_syntax(candidate_spec)
                     function_code_with_specs = function_util.get_source_code_with_inserted_spec(
                         function_name=function.name,
-                        specification=candidate_spec,
+                        specification=fixed_candidate_spec,
                         parsec_file=parsec_file,
                     )
-                    function.set_specifications(specifications=candidate_spec)
+                    function.set_specifications(specifications=fixed_candidate_spec)
                     function.set_source_code(function_code_with_specs)
                     result_spec_conversations.append(
                         SpecConversation.create(
                             function=function,
-                            specification=candidate_spec,
+                            specification=fixed_candidate_spec,
                             conversation=(*conversation, LlmMessage(content=llm_response)),
                             parsec_file=parsec_file,
                             existing_specs=proof_state.get_specifications(),
