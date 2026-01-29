@@ -23,6 +23,7 @@ from util import (
     ParsecFile,
     SpecConversation,
     SpecificationGenerationNextStep,
+    fix_syntax,
     function_util,
     parse_specs,
 )
@@ -45,6 +46,7 @@ class LlmSpecificationGenerator:
             in each repair round.
         _system_prompt (str): The system prompt for the LLM.
         _disable_llm_cache (bool): True iff caching should be disabled for LLM responses.
+        _fix_illegal_syntax (bool): True iff syntax fixing should be enabled for specifications.
         _llm_client (LlmClient): The client used to invoke LLMs.
     """
 
@@ -55,6 +57,7 @@ class LlmSpecificationGenerator:
     _num_specification_repair_candidates: int
     _system_prompt: str
     _disable_llm_cache: bool
+    _fix_illegal_syntax: bool
     _llm_client: LlmClient
 
     def __init__(
@@ -66,6 +69,7 @@ class LlmSpecificationGenerator:
         num_specification_candidates: int,
         num_specification_repair_candidates: int,
         num_specification_repair_iterations: int,
+        fix_illegal_syntax: bool,
         disable_llm_cache: bool = False,
     ) -> None:
         """Create a new LlmSpecificationGenerator."""
@@ -75,6 +79,7 @@ class LlmSpecificationGenerator:
         self._num_specification_candidates = num_specification_candidates
         self._num_specification_repair_candidates = num_specification_repair_candidates
         self._num_specification_repair_iterations = num_specification_repair_iterations
+        self._fix_illegal_syntax = fix_illegal_syntax
         self._llm_client = LlmClient(
             model_name=model,
             top_k=num_specification_candidates,
@@ -165,6 +170,8 @@ class LlmSpecificationGenerator:
             result_spec_conversations = []
             for candidate_spec, llm_response in specs_with_llm_responses:
                 if candidate_spec:
+                    if self._fix_illegal_syntax:
+                        candidate_spec = fix_syntax(candidate_spec)
                     function_code_with_specs = function_util.get_source_code_with_inserted_spec(
                         function_name=function.name,
                         specification=candidate_spec,
@@ -274,6 +281,8 @@ class LlmSpecificationGenerator:
 
             # Add all repaired specs to the queue, increment repair count.
             for newly_repaired_spec, response in newly_repaired_specs_with_llm_responses:
+                if self._fix_illegal_syntax:
+                    newly_repaired_spec = fix_syntax(newly_repaired_spec)
                 function_under_repair_copy = deepcopy(specc_under_repair.function)
                 function_under_repair_copy.set_specifications(newly_repaired_spec)
                 next_specc = SpecConversation.create(
