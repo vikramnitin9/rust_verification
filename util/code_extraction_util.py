@@ -121,11 +121,6 @@ def parse_expressions_for_spec(text: str) -> FunctionSpecification | None:
         return None
     preconditions = [f"__CPROVER_requires({expr})" for expr in precondition_exprs]
     postconditions = [f"__CPROVER_ensures({expr})" for expr in precondition_exprs]
-    if assigned_variables and all(isinstance(var_name, str) for var_name in assigned_variables):
-        assigns_targets = [
-            var_name if var_name.startswith("*") else f"*{var_name}"
-            for var_name in assigned_variables
-        ]
-        assigns_clause = f"__CPROVER_assigns({','.join(assigns_targets)})"
-        postconditions = [*postconditions, assigns_clause]
+    assigns_clause = f"__CPROVER_assigns({','.join(assigned_variables)})"
+    postconditions = [*postconditions, assigns_clause]
     return FunctionSpecification(preconditions, postconditions)
