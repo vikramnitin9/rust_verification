@@ -23,34 +23,34 @@ ILLEGAL_ARRAY_RANGE_PATTERN = r"([a-zA-Z_]\w*)\[.+(\.\.\.?|:).+\]"
 ILLEGAL_ELLIPSES_PATTERN = r"(?<!\[)[,\s]*\.{3}[,\s]*(?!\])"
 
 
-def sanitize(spec: FunctionSpecification) -> FunctionSpecification:
-    """Return a sanitized FunctionSpecification.
+def fix_syntax(spec: FunctionSpecification) -> FunctionSpecification:
+    """Return a fixed (i.e., syntax-corrected) FunctionSpecification.
 
-    A sanitized FunctionSpecification comprises a spec which has been modified to fix common
+    A fixed FunctionSpecification comprises a spec which has been modified to fix common
     syntax errors.
 
     For example, converts `arr[lo:hi]` (which is not valid C code) to `*arr`.
 
     Args:
-        spec (FunctionSpecification): The specification to sanitize.
+        spec (FunctionSpecification): The specification to fix.
 
     Returns:
-        FunctionSpecification: The sanitized function specification.
+        FunctionSpecification: The fixed function specification.
     """
     return FunctionSpecification(
-        preconditions=[_sanitize_clause(clause) for clause in spec.preconditions],
-        postconditions=[_sanitize_clause(clause) for clause in spec.postconditions],
+        preconditions=[_fix_clause(clause) for clause in spec.preconditions],
+        postconditions=[_fix_clause(clause) for clause in spec.postconditions],
     )
 
 
-def _sanitize_clause(clause: str) -> str:
-    """Return a sanitized clause.
+def _fix_clause(clause: str) -> str:
+    """Return a fixed clause.
 
     Args:
-        clause (str): The clause to sanitize.
+        clause (str): The clause to fix.
 
     Returns:
-        str: The sanitized clause.
+        str: The fixed clause.
     """
     match _get_clause_expression(clause):
         case (CProverClause.ASSIGNS, expr):
