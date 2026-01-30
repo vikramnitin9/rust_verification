@@ -21,24 +21,6 @@ Your response is in the following format:
   "assigned_variables": []
 }
 
-Where each expression can be independently input to a __CPROVER clause.
-
-Here's an example of a legal response:
-
-{
-  "precondition_expressions": [
-    "__CPROVER_is_fresh(out, sizeof(*out))",
-    "a > 0",
-    "b > 0"
-  ],
-  "postcondition_expressions": [
-    "(__CPROVER_return_value == SUCCESS) ==> (*out == (a + b))",
-    "(__CPROVER_return_value == FAILURE) ==> (*out == __CPROVER_old(*out))",
-    "*out > 0"
-  ],
-  "assigned_variables": ["out"]
-}
-
 You'll remember the following guidelines:
 * CBMC symbolically expands all of the preconditions, (e.g., the argument of __CPROVER_is_fresh)
   before it applies the constraints from later clauses. Make sure you constrain any values before
@@ -48,6 +30,3 @@ You'll remember the following guidelines:
 * Do not redefine any other functions; assume they are already available elsewhere in the program.
 * Do not include any header files; assume that all necessary headers are already included.
 * Do not include explanations or comments.
-
-There is no need to delimit the format with tags, return the plain object and nothing else.
-Do not include any explanations or re-define other functions.
