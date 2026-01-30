@@ -16,10 +16,11 @@ def run_with_timeout(function: Callable[..., Any], *args: Any, timeout_sec: floa
         timeout_sec (float): The timeout, given in seconds.
         **kwargs (Any): The keyword arguments with which to call the function.
     """
+    func_name = getattr(function, "__name__", repr(function))
+    logger.debug(f"Calling '{func_name}' with timeout = {timeout_sec} (sec)")
     with futures.ThreadPoolExecutor() as executor:
         future = executor.submit(function, *args, **kwargs)
         try:
             future.result(timeout=timeout_sec)
         except futures.TimeoutError:
-            func_name = getattr(function, "__name__", repr(function))
             logger.error(f"Call to '{func_name}' timed out after {timeout_sec} seconds")
