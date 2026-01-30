@@ -16,8 +16,27 @@ $function_implementation
 Your response is in the following format:
 
 {
-    "preconditions": [...],
-    "postconditions": [...]
+  "precondition_expressions": [...],
+  "postcondition_expressions": [...],
+  "assigned_variables": []
+}
+
+Where each expression can be independently input to a __CPROVER clause.
+
+Here's an example of a legal response:
+
+{
+  "precondition_expressions": [
+    "__CPROVER_is_fresh(out, sizeof(*out))",
+    "a > 0",
+    "b > 0"
+  ],
+  "postcondition_expressions": [
+    "(__CPROVER_return_value == SUCCESS) ==> (*out == (a + b))",
+    "(__CPROVER_return_value == FAILURE) ==> (*out == __CPROVER_old(*out))",
+    "*out > 0"
+  ],
+  "assigned_variables": ["out"]
 }
 
 You'll remember the following guidelines:

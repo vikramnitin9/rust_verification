@@ -887,24 +887,27 @@ __CPROVER_assigns(*out)
 Your response will be in the following format:
 
 {
-  "preconditions": [...],
-  "postconditions": [...]
+  "precondition_expressions": [...],
+  "postcondition_expressions": [...],
+  "assigned_variables": []
 }
+
+Where each expression can be independently input to a __CPROVER clause.
 
 So, for example, you would return the following for the `sum` function:
 
 {
-  "preconditions": [
-    "__CPROVER_requires(__CPROVER_is_fresh(out, sizeof(*out)))",
-    "__CPROVER_requires(a > 0)",
-    "__CPROVER_requires(b > 0)"
+  "precondition_expressions": [
+    "__CPROVER_is_fresh(out, sizeof(*out))",
+    "a > 0",
+    "b > 0"
   ],
-  "postconditions": [
-    "__CPROVER_ensures((__CPROVER_return_value == SUCCESS) ==> (*out == (a + b)))",
-    "__CPROVER_ensures((__CPROVER_return_value == FAILURE) ==> (*out == __CPROVER_old(*out)))",
-    "__CPROVER_ensures(*out > 0)",
-    "__CPROVER_assigns(*out)"
-  ]
+  "postcondition_expressions": [
+    "(__CPROVER_return_value == SUCCESS) ==> (*out == (a + b))",
+    "(__CPROVER_return_value == FAILURE) ==> (*out == __CPROVER_old(*out))",
+    "*out > 0"
+  ],
+  "assigned_variables": ["out"]
 }
 
 You'll remember the following guidelines:
