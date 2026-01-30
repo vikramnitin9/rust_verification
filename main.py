@@ -5,6 +5,7 @@
 import argparse
 import os
 import shutil
+import sys
 import tempfile
 from collections import deque
 from pathlib import Path
@@ -152,6 +153,7 @@ def main() -> None:
         specification_generator,
         timeout_sec=args.specification_generation_timeout_sec,
     )
+    sys.exit(0)
 
 
 def _verify_program(
