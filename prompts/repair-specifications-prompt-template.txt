@@ -6,7 +6,6 @@ $errors
 
 </ERROR INFORMATION>
 
-
 Remember to add the contracts (__CPROVER_requires and __CPROVER_ensures) in the function header,
 not the function body.
 
