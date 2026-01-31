@@ -58,3 +58,7 @@ __pycache__/
 
 # Local caches
 data/caching/
+
+# Files created by running tests
+test/data/function_util/update_function_declaration/swap_bottom-copy.c
+test/data/function_util/update_function_declaration/swap_middle-copy.c
