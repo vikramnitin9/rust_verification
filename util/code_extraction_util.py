@@ -82,7 +82,7 @@ def parse_expressions_for_spec(text: str) -> FunctionSpecification | None:
         {
             "precondition_expressions": [...],
             "postcondition_expressions": [...],
-            "assigned_variables": []
+            "assigned_variables": [...]
         }
 
     This function attempts to create an instance of FunctionSpecification with pre and

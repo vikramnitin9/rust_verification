@@ -889,7 +889,7 @@ Your response will be in the following format:
 {
   "precondition_expressions": [...],
   "postcondition_expressions": [...],
-  "assigned_variables": []
+  "assigned_variables": [...]
 }
 
 Where each expression can be independently input to a __CPROVER clause.
