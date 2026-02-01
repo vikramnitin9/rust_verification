@@ -61,7 +61,7 @@ def test_extract_specs_empty_specs() -> None:
         "postconditions": []
     }
     """
-    assert code_extraction_util.parse_specs(text) == None, (
+    assert code_extraction_util.parse_clauses_for_spec(text) is None, (
         f"A response with empty pre and postconditions cannot be parsed into a valid specification"
     )
 
@@ -73,7 +73,7 @@ def test_extract_specs_empty_preconditions() -> None:
         "postconditions": ["__CPROVER_assigns(*out)"]
     }
     """
-    assert code_extraction_util.parse_specs(text) == FunctionSpecification(
+    assert code_extraction_util.parse_clauses_for_spec(text) == FunctionSpecification(
         preconditions=[], postconditions=["__CPROVER_assigns(*out)"]
     )
 
@@ -85,7 +85,7 @@ def test_extract_specs_empty_postconditions() -> None:
         "postconditions": []
     }
     """
-    assert code_extraction_util.parse_specs(text) == FunctionSpecification(
+    assert code_extraction_util.parse_clauses_for_spec(text) == FunctionSpecification(
         preconditions=["__CPROVER_requires(a > 0)"], postconditions=[]
     )
 
@@ -97,7 +97,7 @@ def test_extract_specs_malformed_response() -> None:
         "nonsense": []
     }
     """
-    assert code_extraction_util.parse_specs(text) == None
+    assert code_extraction_util.parse_clauses_for_spec(text) == None
 
 
 def test_extract_specs_well_formed_response() -> None:
@@ -107,7 +107,7 @@ def test_extract_specs_well_formed_response() -> None:
         "postconditions": ["__CPROVER_ensures(__CPROVER_return_value != 0)", "__CPROVER_ensures(a > 0)"]
     }
     """
-    assert code_extraction_util.parse_specs(text) == FunctionSpecification(
+    assert code_extraction_util.parse_clauses_for_spec(text) == FunctionSpecification(
         preconditions=["__CPROVER_requires(a > 0)"],
         postconditions=[
             "__CPROVER_ensures(__CPROVER_return_value != 0)",

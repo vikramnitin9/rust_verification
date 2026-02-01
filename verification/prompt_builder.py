@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 from string import Template
 
-from util import CFunction, ParsecFile, text_util
+from util import CFunction, ParsecFile, SpecGenGranularity, text_util
 
 from .verification_result import VerificationResult
 
@@ -12,20 +12,30 @@ from .verification_result import VerificationResult
 class PromptBuilder:
     """A collection of functions used in constructing prompts for LLM calls."""
 
-    SPECIFICATION_GENERATION_PROMPT_TEMPLATE = Path(
-        "./prompts/generate-specifications-prompt-template.txt"
-    ).read_text()
-    SPECIFICATION_REPAIR_PROMPT_TEMPLATE = Template(
+    # Specification generation/repair prompts for clause-level generation.
+    CLAUSE_LEVEL_SPECIFICATION_GENERATION_PROMPT_TEMPLATE = Template(
+        Path("./prompts/generate-specifications-prompt-template.txt").read_text()
+    )
+    CLAUSE_LEVEL_SPECIFICATION_REPAIR_PROMPT_TEMPLATE = Template(
         Path("./prompts/repair-specifications-prompt-template.txt").read_text()
     )
+
+    # Specification generation/repair prompts for expression-level generation.
+    EXPRESSION_LEVEL_SPECIFICATION_GENERATION_PROMPT_TEMPLATE = Template(
+        Path("./prompts/generate-specifications-prompt-with-expressions-template.txt").read_text()
+    )
+    EXPRESSION_LEVEL_SPECIFICATION_REPAIR_PROMPT_TEMPLATE = Template(
+        Path("./prompts/repair-specifications-prompt-with-expressions-template.txt").read_text()
+    )
+
     NEXT_STEP_PROMPT_TEMPLATE = Template(
         Path("./prompts/next-step-prompt-template.txt").read_text()
     )
-    SOURCE_PLACEHOLDER = "<<SOURCE>>"
-    CALLEE_CONTEXT_PLACEHOLDER = "<<CALLEE_CONTEXT>>"
     CBMC_OUTPUT_FAILURE_MARKER = "FAILURE"
 
-    def specification_generation_prompt(self, function: CFunction, parsec_file: ParsecFile) -> str:
+    def specification_generation_prompt(
+        self, function: CFunction, specgen_granularity: SpecGenGranularity, parsec_file: ParsecFile
+    ) -> str:
         """Return the prompt used for specification generation.
 
         The prompt consists of the C function and the "context", which is the specifications of its
@@ -33,6 +43,8 @@ class PromptBuilder:
 
         Args:
             function (CFunction): The function for which to generate specifications.
+            specgen_granularity (SpecGenGranularity): The granularity at which specification
+                generation occurs.
             parsec_file (ParsecFile): The file that contains `function`.
 
 
@@ -41,16 +53,13 @@ class PromptBuilder:
 
         """
         source_code = function.get_original_source_code(include_documentation_comments=True)
-        prompt = PromptBuilder.SPECIFICATION_GENERATION_PROMPT_TEMPLATE.replace(
-            PromptBuilder.SOURCE_PLACEHOLDER, source_code
-        )
-
         callee_context = ""
         if callees := parsec_file.get_callees(function):
             if callees_with_specs := [callee for callee in callees if callee.has_specification()]:
                 callee_context = self._get_callee_specs(function.name, callees_with_specs)
 
-        return prompt.replace(PromptBuilder.CALLEE_CONTEXT_PLACEHOLDER, callee_context)
+        template = self._get_generation_prompt_template(specgen_granularity)
+        return template.substitute(source=source_code, callee_context=callee_context)
 
     def next_step_prompt(self, verification_result: VerificationResult) -> str:
         """Return prompt text asking the LLM to decide on next steps for a failing specification.
@@ -94,12 +103,16 @@ class PromptBuilder:
             failure_information=verification_result.stdout + "\n" + verification_result.stderr,
         )
 
-    def repair_prompt(self, verification_result: VerificationResult) -> str:
+    def repair_prompt(
+        self, verification_result: VerificationResult, specgen_granularity: SpecGenGranularity
+    ) -> str:
         """Return the prompt used in iteratively repairing a specification.
 
         Args:
             verification_result (VerificationResult): The verification result with failure
                 information.
+            specgen_granularity (SpecGenGranularity): The granularity at which specification
+                generation occurs.
 
         Returns:
             str: The prompt used in iteratively repairing a specification.
@@ -125,7 +138,8 @@ class PromptBuilder:
             source_code_with_line_numbers = text_util.prepend_line_numbers(
                 lines=source_code_lines, start=1, end=len(source_code_lines)
             )
-            return PromptBuilder.SPECIFICATION_REPAIR_PROMPT_TEMPLATE.substitute(
+            template = self._get_repair_prompt_template(specgen_granularity)
+            return template.substitute(
                 function_name=function.name,
                 errors="\n".join(
                     line
@@ -149,3 +163,45 @@ class PromptBuilder:
         """
         callee_context = "\n".join(callee.get_summary_for_prompt() for callee in callees_with_specs)
         return f"{caller} has the following callees:\n{callee_context}"
+
+    def _get_generation_prompt_template(self, specgen_granularity: SpecGenGranularity) -> Template:
+        """Return the specification generation template for the given granularity.
+
+        Args:
+            specgen_granularity (SpecGenGranularity): The specification generation granularity.
+
+        Returns:
+            Template: The specification generation template for the given granularity.
+        """
+        match specgen_granularity:
+            case SpecGenGranularity.CLAUSE:
+                return PromptBuilder.CLAUSE_LEVEL_SPECIFICATION_GENERATION_PROMPT_TEMPLATE
+            case SpecGenGranularity.EXPRESSION:
+                return PromptBuilder.EXPRESSION_LEVEL_SPECIFICATION_GENERATION_PROMPT_TEMPLATE
+            case _:
+                msg = (
+                    "Unsupported specification generation/repair granularity: "
+                    f"{specgen_granularity}"
+                )
+                raise ValueError(msg)
+
+    def _get_repair_prompt_template(self, specgen_granularity: SpecGenGranularity) -> Template:
+        """Return the specification repair template for the given granularity.
+
+        Args:
+            specgen_granularity (SpecGenGranularity): The specification repair granularity.
+
+        Returns:
+            Template: The specification repair template for the given granularity.
+        """
+        match specgen_granularity:
+            case SpecGenGranularity.CLAUSE:
+                return PromptBuilder.CLAUSE_LEVEL_SPECIFICATION_REPAIR_PROMPT_TEMPLATE
+            case SpecGenGranularity.EXPRESSION:
+                return PromptBuilder.EXPRESSION_LEVEL_SPECIFICATION_REPAIR_PROMPT_TEMPLATE
+            case _:
+                msg = (
+                    "Unsupported specification generation/repair granularity: "
+                    f"{specgen_granularity}"
+                )
+                raise ValueError(msg)

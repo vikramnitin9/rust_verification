@@ -854,10 +854,10 @@ Internally, CBMC turns user-defined predicates into:
 Your task is to produce a set of CBMC preconditions and postconditions for the following C function:
 
 ```c
-<<SOURCE>>
+$source
 ```
 
-<<CALLEE_CONTEXT>>
+$callee_context
 
 Here's an example. Given the following C function:
 
