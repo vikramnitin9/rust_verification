@@ -22,6 +22,7 @@ from util import (
     CFunction,
     ParsecProject,
     SpecConversation,
+    SpecGenGranularity,
     copy_file_to_folder,
     ensure_lines_at_beginning,
     function_util,
@@ -124,10 +125,18 @@ def main() -> None:
             "illegal array range syntax, ellipses. (defaults to False)."
         ),
     )
+    parser.add_argument(
+        "--specgen-granularity",
+        required=False,
+        default=SpecGenGranularity.CLAUSE.value,
+        choices=[granularity.value for granularity in SpecGenGranularity],
+        help=("The granularity at which specification generation occurs (defaults to clauses)."),
+    )
     args = parser.parse_args()
 
     input_file_path = Path(args.file)
     parsec_project = ParsecProject(input_file_path)
+    specgen_granularity = SpecGenGranularity(args.specgen_granularity)
 
     # MDE: Will this path be repeatedly overwritten during the verification process?  If so, that is
     # a serious problem for concurrency.
@@ -145,6 +154,7 @@ def main() -> None:
         num_specification_repair_iterations=args.num_specification_repair_iterations,
         fix_illegal_syntax=args.fix_illegal_syntax,
         disable_llm_cache=args.disable_llm_cache,
+        specgen_granularity=specgen_granularity,
     )
 
     run_with_timeout(
