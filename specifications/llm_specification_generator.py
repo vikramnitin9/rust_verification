@@ -162,7 +162,7 @@ class LlmSpecificationGenerator:
         """
         conversation: list[ConversationMessage] = [SystemMessage(content=self._system_prompt)]
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
-            function, self._specgen_granularity, parsec_project
+            function, parsec_project, self._specgen_granularity
         )
         if hint:
             specification_generation_prompt += "\n\n" + hint

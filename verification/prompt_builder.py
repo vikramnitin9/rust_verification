@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 from string import Template
 
-from util import CFunction, ParsecProject, text_util, SpecGenGranularity
+from util import CFunction, ParsecProject, SpecGenGranularity, text_util
 
 from .verification_result import VerificationResult
 
@@ -34,7 +34,10 @@ class PromptBuilder:
     CBMC_OUTPUT_FAILURE_MARKER = "FAILURE"
 
     def specification_generation_prompt(
-        self, function: CFunction, parsec_project: ParsecProject, specgen_granularity: SpecGenGranularity
+        self,
+        function: CFunction,
+        parsec_project: ParsecProject,
+        specgen_granularity: SpecGenGranularity,
     ) -> str:
         """Return the prompt used for specification generation.
 
