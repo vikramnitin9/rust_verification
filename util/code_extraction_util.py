@@ -28,7 +28,7 @@ def extract_function_source_code(text: str) -> str:
     raise RuntimeError(msg)
 
 
-def parse_specs(text: str) -> FunctionSpecification | None:
+def parse_clauses_for_spec(text: str) -> FunctionSpecification | None:
     """Parse the specifications in an LLM response.
 
     An LLM is prompted to return a string in the following JSON format:

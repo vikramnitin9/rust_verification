@@ -14,6 +14,7 @@ from models import (
     SystemMessage,
     UserMessage,
 )
+from specifications import specification_extractor
 from util import (
     AcceptVerifiedSpec,
     AssumeSpecAsIs,
@@ -22,10 +23,10 @@ from util import (
     FunctionSpecification,
     ParsecFile,
     SpecConversation,
+    SpecGenGranularity,
     SpecificationGenerationNextStep,
     fix_syntax,
     function_util,
-    parse_expressions_for_spec,
 )
 from verification import PromptBuilder, ProofState, VerificationClient, VerificationInput
 
@@ -47,6 +48,8 @@ class LlmSpecificationGenerator:
         _system_prompt (str): The system prompt for the LLM.
         _disable_llm_cache (bool): True iff caching should be disabled for LLM responses.
         _fix_illegal_syntax (bool): True iff syntax fixing should be enabled for specifications.
+        _specgen_granularity (bool): The granularity of specification generation (e.g., clauses,
+            expressions input to clauses.)
         _llm_client (LlmClient): The client used to invoke LLMs.
     """
 
@@ -58,6 +61,7 @@ class LlmSpecificationGenerator:
     _system_prompt: str
     _disable_llm_cache: bool
     _fix_illegal_syntax: bool
+    _specgen_granularity: SpecGenGranularity
     _llm_client: LlmClient
 
     def __init__(
@@ -70,6 +74,7 @@ class LlmSpecificationGenerator:
         num_specification_repair_candidates: int,
         num_specification_repair_iterations: int,
         fix_illegal_syntax: bool,
+        specgen_granularity: SpecGenGranularity,
         disable_llm_cache: bool = False,
     ) -> None:
         """Create a new LlmSpecificationGenerator."""
@@ -80,6 +85,7 @@ class LlmSpecificationGenerator:
         self._num_specification_repair_candidates = num_specification_repair_candidates
         self._num_specification_repair_iterations = num_specification_repair_iterations
         self._fix_illegal_syntax = fix_illegal_syntax
+        self._specgen_granularity = specgen_granularity
         self._llm_client = LlmClient(
             model_name=model,
             top_k=num_specification_candidates,
@@ -154,7 +160,7 @@ class LlmSpecificationGenerator:
         """
         conversation: list[ConversationMessage] = [SystemMessage(content=self._system_prompt)]
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
-            function, parsec_file
+            function, self._specgen_granularity, parsec_file
         )
         if hint:
             specification_generation_prompt += "\n\n" + hint
@@ -165,7 +171,12 @@ class LlmSpecificationGenerator:
             llm_responses = self._llm_client.get(conversation=tuple(conversation))
 
             specs_with_llm_responses = [
-                (parse_expressions_for_spec(llm_response), llm_response)
+                (
+                    specification_extractor.extract_spec_from_response(
+                        llm_response, self._specgen_granularity
+                    ),
+                    llm_response,
+                )
                 for llm_response in llm_responses
             ]
             result_spec_conversations = []
@@ -269,7 +280,9 @@ class LlmSpecificationGenerator:
                 continue
 
             # Attempt repair.
-            repair_prompt = self._prompt_builder.repair_prompt(verification_result=vresult)
+            repair_prompt = self._prompt_builder.repair_prompt(
+                verification_result=vresult, specgen_granularity=self._specgen_granularity
+            )
             conversation_updated_with_repair_prompt = (
                 specc_under_repair.get_conversation_with_message_appended(
                     message=UserMessage(content=repair_prompt)
@@ -333,7 +346,9 @@ class LlmSpecificationGenerator:
             )
             repaired_specs_with_llm_responses: list[tuple[FunctionSpecification, str]] = []
             for response in responses:
-                if repaired_spec := parse_expressions_for_spec(response):
+                if repaired_spec := specification_extractor.extract_spec_from_response(
+                    response, self._specgen_granularity
+                ):
                     repaired_specs_with_llm_responses.append((repaired_spec, response))
                 else:
                     logger.warning(f"Failed to parse a specification from: {response}")
