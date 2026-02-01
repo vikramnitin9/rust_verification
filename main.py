@@ -128,7 +128,7 @@ def main() -> None:
     parser.add_argument(
         "--specgen-granularity",
         required=False,
-        default=SpecGenGranularity.CLAUSE,
+        default=SpecGenGranularity.CLAUSE.value,
         choices=[granularity.value for granularity in SpecGenGranularity],
         help=("The granularity at which specification generation occurs (defaults to clauses)."),
     )
@@ -136,6 +136,7 @@ def main() -> None:
 
     input_file_path = Path(args.file)
     parsec_file = ParsecFile(input_file_path)
+    specgen_granularity = SpecGenGranularity(args.specgen_granularity)
 
     # MDE: Will this path be repeatedly overwritten during the verification process?  If so, that is
     # a serious problem for concurrency.
@@ -153,7 +154,7 @@ def main() -> None:
         num_specification_repair_iterations=args.num_specification_repair_iterations,
         fix_illegal_syntax=args.fix_illegal_syntax,
         disable_llm_cache=args.disable_llm_cache,
-        specgen_granularity=args.specgen_granularity,
+        specgen_granularity=specgen_granularity,
     )
 
     run_with_timeout(

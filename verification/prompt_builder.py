@@ -53,15 +53,13 @@ class PromptBuilder:
 
         """
         source_code = function.get_original_source_code(include_documentation_comments=True)
-        template = self._get_generation_prompt_template(specgen_granularity)
-        prompt = template.safe_substitute(source=source_code)
-
         callee_context = ""
         if callees := parsec_file.get_callees(function):
             if callees_with_specs := [callee for callee in callees if callee.has_specification()]:
                 callee_context = self._get_callee_specs(function.name, callees_with_specs)
 
-        return prompt.replace("$callee_context", callee_context)
+        template = self._get_generation_prompt_template(specgen_granularity)
+        return template.substitute(source=source_code, callee_context=callee_context)
 
     def next_step_prompt(self, verification_result: VerificationResult) -> str:
         """Return prompt text asking the LLM to decide on next steps for a failing specification.

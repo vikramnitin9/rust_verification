@@ -61,7 +61,7 @@ def test_extract_specs_empty_specs() -> None:
         "postconditions": []
     }
     """
-    assert code_extraction_util.parse_clauses_for_spec(text) == None, (
+    assert code_extraction_util.parse_clauses_for_spec(text) is None, (
         f"A response with empty pre and postconditions cannot be parsed into a valid specification"
     )
 

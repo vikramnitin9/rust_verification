@@ -48,8 +48,8 @@ class LlmSpecificationGenerator:
         _system_prompt (str): The system prompt for the LLM.
         _disable_llm_cache (bool): True iff caching should be disabled for LLM responses.
         _fix_illegal_syntax (bool): True iff syntax fixing should be enabled for specifications.
-        _specgen_granularity (bool): The granularity of specification generation (e.g., clauses,
-            expressions input to clauses.)
+        _specgen_granularity (SpecGenGranularity): The granularity of specification generation
+            (e.g., clauses, expressions input to clauses.)
         _llm_client (LlmClient): The client used to invoke LLMs.
     """
 
