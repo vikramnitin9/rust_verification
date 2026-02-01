@@ -1,5 +1,5 @@
+#!/opt/miniconda3/bin/python
 # ruff: noqa
-# !/opt/miniconda3/bin/python
 
 from diskcache import Cache  # ty: ignore
 
