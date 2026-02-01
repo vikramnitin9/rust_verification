@@ -126,6 +126,14 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--normalize-specs",
+        action="store_true",
+        help=(
+            "Normalize generated specs, i.e., enforce consistent whitespaces and unique "
+            "quantifier bounds. (defaults to False)."
+        ),
+    )
+    parser.add_argument(
         "--specgen-granularity",
         required=False,
         default=SpecGenGranularity.CLAUSE.value,
@@ -153,6 +161,7 @@ def main() -> None:
         num_specification_repair_candidates=args.num_repair_candidates,
         num_specification_repair_iterations=args.num_specification_repair_iterations,
         fix_illegal_syntax=args.fix_illegal_syntax,
+        normalize_specs=args.normalize_specs,
         disable_llm_cache=args.disable_llm_cache,
         specgen_granularity=specgen_granularity,
     )
