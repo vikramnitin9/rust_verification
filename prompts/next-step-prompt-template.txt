@@ -21,13 +21,13 @@ specification that verifies for $function_name.
 
 </KEY POINTS>
 
-If you choose (1), your response should be in the following format:
+If you choose (1), your response is in valid JSON with the following schema:
 
 {
     "next_step": "ASSUME_SPEC_AS_IS"
 }
 
-If you choose (2), your response should be in the following format:
+If you choose (2), your response is in valid JSON with the following schema:
 
 {
     "next_step": "BACKTRACK_TO_CALLEE",
