@@ -157,13 +157,18 @@ def main() -> None:
         specgen_granularity=specgen_granularity,
     )
 
-    run_with_timeout(
-        _verify_program,
-        parsec_file,
-        specification_generator,
-        timeout_sec=args.specification_generation_timeout_sec,
-    )
-    sys.exit(0)
+    try:
+        run_with_timeout(
+            _verify_program,
+            parsec_file,
+            specification_generator,
+            timeout_sec=args.specification_generation_timeout_sec,
+        )
+    except TimeoutError as te:
+        logger.error(
+            f"'_verify_program' timed out after {args.specification_generation_timeout_sec}", te
+        )
+        sys.exit(0)
 
 
 def _verify_program(
