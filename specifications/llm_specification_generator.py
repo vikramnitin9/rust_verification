@@ -121,7 +121,9 @@ class LlmSpecificationGenerator:
         # Right now, the "pruning" strategy is just to partition the candidate specs into a set
         # of verifying and invalid specs.
         verifying_speccs, non_verifying_speccs = self._get_verifying_and_non_verifying_speccs(
-            # MDE: Why call `tuple` here?  The client only iterates over `candidate_speccs`.
+            # The `tuple` constructor is, strictly speaking, unnecessary, since the client only
+            # iterates over the speccs. However, it communicates the immutability of specc at this
+            # call-site.
             speccs=tuple(candidate_speccs),
             proof_state=proof_state,
         )
