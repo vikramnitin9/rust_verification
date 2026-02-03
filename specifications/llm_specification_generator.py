@@ -15,6 +15,7 @@ from models import (
     UserMessage,
 )
 from specifications import specification_extractor
+from translation import normalize_function_specification
 from util import (
     AcceptVerifiedSpec,
     AssumeSpecAsIs,
@@ -48,6 +49,7 @@ class LlmSpecificationGenerator:
         _system_prompt (str): The system prompt for the LLM.
         _disable_llm_cache (bool): True iff caching should be disabled for LLM responses.
         _fix_illegal_syntax (bool): True iff syntax fixing should be enabled for specifications.
+        _normalize_specs (bool): True iff specifications should be normalized.
         _specgen_granularity (SpecGenGranularity): The granularity of specification generation
             (e.g., clauses, expressions input to clauses.)
         _llm_client (LlmClient): The client used to invoke LLMs.
@@ -61,6 +63,7 @@ class LlmSpecificationGenerator:
     _system_prompt: str
     _disable_llm_cache: bool
     _fix_illegal_syntax: bool
+    _normalize_specs: bool
     _specgen_granularity: SpecGenGranularity
     _llm_client: LlmClient
 
@@ -74,6 +77,7 @@ class LlmSpecificationGenerator:
         num_specification_repair_candidates: int,
         num_specification_repair_iterations: int,
         fix_illegal_syntax: bool,
+        normalize_specs: bool,
         specgen_granularity: SpecGenGranularity,
         disable_llm_cache: bool = False,
     ) -> None:
@@ -85,6 +89,7 @@ class LlmSpecificationGenerator:
         self._num_specification_repair_candidates = num_specification_repair_candidates
         self._num_specification_repair_iterations = num_specification_repair_iterations
         self._fix_illegal_syntax = fix_illegal_syntax
+        self._normalize_specs = normalize_specs
         self._specgen_granularity = specgen_granularity
         self._llm_client = LlmClient(
             model_name=model,
@@ -183,11 +188,11 @@ class LlmSpecificationGenerator:
                 )
                 for llm_response in llm_responses
             ]
+
             result_spec_conversations = []
             for candidate_spec, llm_response in specs_with_llm_responses:
                 if candidate_spec:
-                    if self._fix_illegal_syntax:
-                        candidate_spec = fix_syntax(candidate_spec)
+                    candidate_spec = self._apply_optional_transformations(candidate_spec)
                     function_code_with_specs = function_util.get_source_code_with_inserted_spec(
                         function_name=function.name,
                         specification=candidate_spec,
@@ -297,10 +302,14 @@ class LlmSpecificationGenerator:
                 conversation=conversation_updated_with_repair_prompt,
             )
 
+            # Apply any client-specified transformations to the specs.
+            newly_repaired_specs_with_llm_responses = [
+                (self._apply_optional_transformations(spec), response)
+                for spec, response in newly_repaired_specs_with_llm_responses
+            ]
+
             # Add all repaired specs to the queue, increment repair count.
             for newly_repaired_spec, response in newly_repaired_specs_with_llm_responses:
-                if self._fix_illegal_syntax:
-                    newly_repaired_spec = fix_syntax(newly_repaired_spec)
                 function_under_repair_copy = deepcopy(specc_under_repair.function)
                 function_under_repair_copy.set_specifications(newly_repaired_spec)
                 next_specc = SpecConversation.create(
@@ -481,3 +490,21 @@ class LlmSpecificationGenerator:
                 non_verifying_speccs.append(specc)
 
         return tuple(verified_speccs), tuple(non_verifying_speccs)
+
+    def _apply_optional_transformations(self, spec: FunctionSpecification) -> FunctionSpecification:
+        """Return the specification after applying any (optional) client-specified transformations.
+
+        Args:
+            spec (FunctionSpecification): The specification to which to apply
+                transformations.
+
+        Returns:
+            FunctionSpecification: The specifications after applying any client-specified
+                transformations.
+        """
+        transformed_spec = spec
+        if self._fix_illegal_syntax:
+            transformed_spec = fix_syntax(transformed_spec)
+        if self._normalize_specs:
+            transformed_spec = normalize_function_specification(transformed_spec)
+        return transformed_spec

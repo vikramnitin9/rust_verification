@@ -126,6 +126,14 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--normalize-specs",
+        action="store_true",
+        help=(
+            "Normalize generated specs, i.e., enforce consistent whitespaces and unique "
+            "quantifier bounds. (defaults to False)."
+        ),
+    )
+    parser.add_argument(
         "--specgen-granularity",
         required=False,
         default=SpecGenGranularity.CLAUSE.value,
@@ -153,17 +161,23 @@ def main() -> None:
         num_specification_repair_candidates=args.num_repair_candidates,
         num_specification_repair_iterations=args.num_specification_repair_iterations,
         fix_illegal_syntax=args.fix_illegal_syntax,
+        normalize_specs=args.normalize_specs,
         disable_llm_cache=args.disable_llm_cache,
         specgen_granularity=specgen_granularity,
     )
 
-    run_with_timeout(
-        _verify_program,
-        parsec_project,
-        specification_generator,
-        timeout_sec=args.specification_generation_timeout_sec,
-    )
-    sys.exit(0)
+    try:
+        run_with_timeout(
+            _verify_program,
+            parsec_project,
+            specification_generator,
+            timeout_sec=args.specification_generation_timeout_sec,
+        )
+    except TimeoutError as te:
+        logger.error(
+            f"'_verify_program' timed out after {args.specification_generation_timeout_sec}", te
+        )
+        sys.exit(0)
 
 
 def _verify_program(

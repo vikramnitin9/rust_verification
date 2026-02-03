@@ -13,7 +13,7 @@ Here's the current implementation of $function_name:
 
 $function_implementation
 
-Your response is in the following format:
+Your response is in valid JSON with the following schema:
 
 {
     "preconditions": [...],
