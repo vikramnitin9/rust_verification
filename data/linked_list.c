@@ -43,34 +43,3 @@ void* get(struct Node *head, int index)
     }
     return curr->data;
 }
-
-void print_list(struct Node *head)
-{
-    struct Node *curr = head;
-    while (curr != NULL)
-    {
-        printf("%s", curr->data);
-        if (curr->next != NULL)
-        {
-            printf("->");
-        }
-        curr = curr->next;
-    }
-    printf("->NULL\n");
-}
-
-
-int main()
-{
-    struct Node *head = malloc(sizeof(struct Node));
-    head->data = "Hello";
-    head->next = NULL;
-
-    printf("Length of list (before insertion): %d\n", len(head));
-    printf("Inserting value %s into list\n", "SECOND");
-    insert(head, "SECOND");
-    printf("Length of list (after insertion): %d\n", len(head));
-    printf("Element %d of list: %s\n", 0, (char *) get(head, 0));
-    printf("Element %d of list: %s\n", 1, (char *) get(head, 1));
-    print_list(head);
-}
