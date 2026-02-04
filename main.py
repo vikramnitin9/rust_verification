@@ -22,6 +22,7 @@ from util import (
     CFunction,
     ParsecFile,
     SpecConversation,
+    SpecGenGranularity,
     copy_file_to_folder,
     ensure_lines_at_beginning,
     function_util,
@@ -124,10 +125,34 @@ def main() -> None:
             "illegal array range syntax, ellipses. (defaults to False)."
         ),
     )
+    parser.add_argument(
+        "--normalize-specs",
+        action="store_true",
+        help=(
+            "Normalize generated specs, i.e., enforce consistent whitespaces and unique "
+            "quantifier bounds. (defaults to False)."
+        ),
+    )
+    parser.add_argument(
+        "--specgen-granularity",
+        required=False,
+        default=SpecGenGranularity.CLAUSE.value,
+        choices=[granularity.value for granularity in SpecGenGranularity],
+        help=("The granularity at which specification generation occurs (defaults to clauses)."),
+    )
+    parser.add_argument(
+        "--skip-verified-cached-functions",
+        action="store_true",
+        help=(
+            "Do not add functions for which there are verified and cached specifications to the "
+            "workstack of functions. (defaults to False)"
+        ),
+    )
     args = parser.parse_args()
 
     input_file_path = Path(args.file)
     parsec_file = ParsecFile(input_file_path)
+    specgen_granularity = SpecGenGranularity(args.specgen_granularity)
 
     # MDE: Will this path be repeatedly overwritten during the verification process?  If so, that is
     # a serious problem for concurrency.
@@ -144,21 +169,30 @@ def main() -> None:
         num_specification_repair_candidates=args.num_repair_candidates,
         num_specification_repair_iterations=args.num_specification_repair_iterations,
         fix_illegal_syntax=args.fix_illegal_syntax,
+        normalize_specs=args.normalize_specs,
         disable_llm_cache=args.disable_llm_cache,
+        specgen_granularity=specgen_granularity,
     )
 
-    run_with_timeout(
-        _verify_program,
-        parsec_file,
-        specification_generator,
-        timeout_sec=args.specification_generation_timeout_sec,
-    )
-    sys.exit(0)
+    try:
+        run_with_timeout(
+            _verify_program,
+            parsec_file,
+            specification_generator,
+            args.skip_verified_cached_functions,
+            timeout_sec=args.specification_generation_timeout_sec,
+        )
+    except TimeoutError as te:
+        logger.error(
+            f"'_verify_program' timed out after {args.specification_generation_timeout_sec}", te
+        )
+        sys.exit(0)
 
 
 def _verify_program(
     parsec_file: ParsecFile,
     specification_generator: LlmSpecificationGenerator,
+    skip_verified_cached_functions: bool,
 ) -> tuple[ProofState, ...]:
     """Return a set of ProofStates, each of which has a specification for each function.
 
@@ -168,6 +202,9 @@ def _verify_program(
     Args:
         parsec_file (ParsecFile): The file to verify.
         specification_generator (LlmSpecificationGenerator): The LLM specification generator.
+        skip_verified_cached_functions (bool): True iff functions that have verified and cached
+            specifications should not be added to the workstack of functions for which to generate
+            specs.
 
     Returns:
         tuple[ProofState, ...]: A set of ProofStates, each of which has specifications for each
@@ -177,6 +214,15 @@ def _verify_program(
     # Since the initial list of functions is in reverse topological order,
     # the first element processed will be a leaf.
     functions = parsec_file.get_functions_in_topological_order()
+
+    if skip_verified_cached_functions:
+        functions = [f for f in functions if not _is_verified_and_cached(f)]
+
+    if not functions:
+        # There are specs in the cache for all the functions.
+        # How should we re-construct ProofStates from the cache?
+        sys.exit(0)
+
     initial_proof_state = ProofState.from_functions(functions=functions)
     GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)
     # This is the global worklist.
@@ -418,6 +464,25 @@ def _get_result_file(function: CFunction) -> Path:
     pid_dir = Path(str(os.getpid()))
     result_file_dir = Path(DEFAULT_RESULT_DIR) / pid_dir / Path(original_file_dir)
     return result_file_dir / path_to_original_file.name
+
+
+def _is_verified_and_cached(function: CFunction) -> bool:
+    """Return True iff the function has a verified and cached specification.
+
+    Args:
+        function (CFunction): The function for which to check for a verified and cached
+            specification.
+
+    Returns:
+        bool: True iff the function has a verified and cached specification.
+    """
+    for vinput in VERIFIER_CACHE.iterkeys():
+        # This is very inefficient, but still faster than adding all the functions to workstacks
+        # and reading from the cache repeatedly.
+        vresult = VERIFIER_CACHE[vinput]
+        if vresult.succeeded and vresult.get_function() == function:
+            return True
+    return False
 
 
 if __name__ == "__main__":

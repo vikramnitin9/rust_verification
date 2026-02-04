@@ -854,10 +854,10 @@ Internally, CBMC turns user-defined predicates into:
 Your task is to produce a set of CBMC preconditions and postconditions for the following C function:
 
 ```c
-<<SOURCE>>
+$source
 ```
 
-<<CALLEE_CONTEXT>>
+$callee_context
 
 Here's an example. Given the following C function:
 
@@ -884,7 +884,7 @@ __CPROVER_ensures((__CPROVER_return_value == FAILURE) ==> (*out == __CPROVER_old
 __CPROVER_ensures(*out > 0)
 __CPROVER_assigns(*out)
 
-Your response will be in the following format:
+Your response is in valid JSON with the following schema:
 
 {
   "preconditions": [...],
@@ -912,6 +912,8 @@ You'll remember the following guidelines:
   before it applies the constraints from later clauses. Make sure you constrain any values before
   you use them in later pre or postconditions.
 * Use INT_MAX and/or INT_MIN to reason about overflows.
+* Do not re-use names for variable bounds across clauses or expressions (i.e., Use unique loop and
+  array bounds.)
 * There is no need to delimit the format with tags, return the plain object and nothing else.
 * Do not redefine any other functions; assume they are already available elsewhere in the program.
 * Do not include any header files; assume that all necessary headers are already included.

@@ -54,6 +54,7 @@ class CbmcVerificationClient(VerificationClient):
                     result = subprocess.run(vcommand, shell=True, capture_output=True, text=True)
                     self._cache[vinput] = VerificationResult(
                         vinput,
+                        vcommand,
                         succeeded=result.returncode == 0,
                         stdout=result.stdout,
                         stderr=result.stderr,
