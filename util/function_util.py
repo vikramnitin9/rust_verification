@@ -172,8 +172,8 @@ def get_source_content_with_specifications(
                 )
                 func_to_specfunc_map[function] = function_with_specs
             # Update the temporary file with the new function specifications.
-            content_with_specs = _replace_function_declarations(
-                func_to_updated_func_map=func_to_specfunc_map,
+            content_with_specs = _replace_function_definitions(
+                functions_to_updated_definitions=func_to_specfunc_map,
                 path_to_src=tf_path,
             )
             # The temporary file's new content will be the previous content, with updated specs.
@@ -251,8 +251,8 @@ def update_function_declaration(
     function = parsec_project.get_function(function_name)
 
     # Update the actual source code.
-    new_contents = _replace_function_declarations(
-        func_to_updated_func_map={function: updated_function_content},
+    new_contents = _replace_function_definitions(
+        functions_to_updated_definitions={function: updated_function_content},
         path_to_src=file,
     )
     Path(file).write_text(new_contents, encoding="utf-8")
@@ -316,14 +316,17 @@ def _get_spec_lines(i: int, lines: list[str]) -> str:
     return curr_spec
 
 
-def _replace_function_declarations(
-    func_to_updated_func_map: dict[CFunction, str], path_to_src: Path
+def _replace_function_definitions(
+    functions_to_updated_definitions: dict[CFunction, str], path_to_src: Path
 ) -> str:
-    """Return contents of the file where each function is updated with its new declaration.
+    """Return contents of the file where each function is updated with its new definition.
+
+    The function definition comprises the signature and source code, it is not just the declaration
+    (i.e., it is not a declaration as it might appear in a header file).
 
     Args:
-        func_to_updated_func_map (dict[CFunction, str]): The map of functions to their new
-        declarations.
+        functions_to_updated_definitions (dict[CFunction, str]): The map of functions to their new
+            definitions.
         path_to_src (Path): The path to the source code.
 
     Returns:
@@ -334,12 +337,12 @@ def _replace_function_declarations(
 
     # First sort the functions by their starting line, in descending order.
     functions_sorted = sorted(
-        func_to_updated_func_map.keys(), key=lambda fn: fn.start_line, reverse=True
+        functions_to_updated_definitions.keys(), key=lambda fn: fn.start_line, reverse=True
     )
     # Doing replacements in descending order of line numbers ensures that earlier
     # replacements do not affect the line/col numbers of later replacements.
     for function in functions_sorted:
-        updated_function_declaration = func_to_updated_func_map[function]
+        updated_function_declaration = functions_to_updated_definitions[function]
         start_line = function.start_line
         start_col = function.start_col
         end_line = function.end_line
