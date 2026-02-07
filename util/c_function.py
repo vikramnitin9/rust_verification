@@ -12,7 +12,15 @@ from .text_util import prepend_line_numbers, uncomment_cbmc_annotations
 
 @dataclass(eq=False)
 class CFunction:
-    """Represents a C function as parsed by ParseC.
+    """Represents a C function as initially parsed by Parsec.
+
+    Note: CFunctions in a `ParsecProject` do not have specifications. This is due to the the fact
+    that LLVM cannot parse CBMC specs, which are not instances of valid C grammar.
+
+    In cases where Parsec must be used to parse C code that *may* have specifications, the source
+    code is first pre-processed to comment-out any specifications, see:
+    `parsec_project#parse_source_with_cbmc_annotations` for details.
+
 
     For more details on these fields, see the ParseC documentation:
     https://github.com/vikramnitin9/parsec/blob/main/README.md

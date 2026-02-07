@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import copy
 import json
-import os
 import subprocess
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -17,22 +17,24 @@ from util import text_util
 from util.c_function import CFunction
 
 
+class ParsecRunMode(str, Enum):
+    """Defines run modes for Parsec."""
+
+    FILE = "FILE"
+    DIRECTORY = "DIRECTORY"
+
+
 @dataclass
-class ParsecFile:
-    """Represents the top-level result obtained by running `parsec` on a single C file.
+class ParsecProject:
+    """Represents the result of parsing a "project": one or more C source files.
 
     For more details on these fields, see the ParseC documentation:
     https://github.com/vikramnitin9/parsec/blob/main/README.md
 
-    Note: The functions in a `ParsecFile` do not have specifications. This is due to the the fact
-    that LLVM cannot parse CBMC specs, which are not instances of valid C grammar.
 
-    ParseC is a LLVM/Clang-based tool to parse a C program (hence the name).
+
+    ParseC is a LLVM/Clang-based tool to parse a C program.
     It extracts functions, structures, etc. along with their inter-dependencies.
-
-    Note that ParseC can be run on a single C file, or a project.
-    However, our current implementation of ParsecFile only supports running ParseC on a single file.
-    See https://github.com/vikramnitin9/rust_verification/issues/69
     """
 
     # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
@@ -40,27 +42,38 @@ class ParsecFile:
     call_graph: nx.DiGraph  # type: ignore[type-arg]
     file_path: Path
     files: list[str] = field(default_factory=list)
-    # ParseC returns a list of dictionaries with one list item per function.
-    # We parse these into CFunction objects and index them by function name.
+    # ParseC returns one dictionary per function.
+    # Each dictionary is parsed into CFunction objects, which are indexed by function name.
     # This could have problems for static functions with the same name in different files.
     # The projects we are currently using to test our tool do not have static functions,
     # but this needs to be kept in mind for complex projects.
     functions: dict[str, CFunction] = field(default_factory=dict)
 
-    # Enums, structs, and global_vars are all represented as lists of dictionaries.
     # For the exact format of these dictionaries, see the ParseC documentation (linked above).
     enums: list[dict[str, Any]] = field(default_factory=list)
     structs: list[dict[str, Any]] = field(default_factory=list)
     global_vars: list[dict[str, Any]] = field(default_factory=list)
 
-    def __init__(self, file_path: Path):
-        """Create an instance of ParsecFile from the file at `file_path`.
+    def __init__(self, input_path: Path):
+        """Create a ParsecProject from the given file or directory.
+
+        If the path is a directory, all C files in the directory are analyzed.
+        In this case, the directory must contain a compile_commands.json compilation database.
 
         Args:
-            file_path (Path): The path to a JSON file written by ParseC.
+            input_path (Path): The path to a file or directory to be analyzed.
         """
-        self.file_path = file_path
-        parsec_analysis = self._run_parsec(file_path)
+        if input_path.is_dir():
+            compile_commands_path = input_path / "compile_commands.json"
+            if not compile_commands_path.exists():
+                msg = f"compile_commands.json not found in {input_path}"
+                raise FileNotFoundError(msg)
+            self.project_root = input_path
+            parsec_analysis = self._run_parsec(input_path, run_mode=ParsecRunMode.DIRECTORY)
+        else:
+            self.file_path = input_path
+            parsec_analysis = self._run_parsec(input_path, run_mode=ParsecRunMode.FILE)
+
         function_analyses = [CFunction(f) for f in parsec_analysis.get("functions", [])]
         self.enums = parsec_analysis.get("enums", [])
         self.files = parsec_analysis.get("files", [])
@@ -68,7 +81,7 @@ class ParsecFile:
         self.global_vars = parsec_analysis.get("global_vars", [])
         self.structs = parsec_analysis.get("structs", [])
         # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
-        # NOTE: Each node in call_graph is a CFunction.
+        # Each node in call_graph is a CFunction.
         self.call_graph: nx.DiGraph = nx.DiGraph()  # type: ignore[type-arg]
         for func in self.functions.values():
             self.call_graph.add_node(func)
@@ -79,38 +92,37 @@ class ParsecFile:
     @staticmethod
     def parse_source_with_cbmc_annotations(
         path_to_file_with_cbmc_annotations: Path,
-    ) -> ParsecFile:
-        """Create an instance of ParsecFile by parsing a .c file with CBMC annotations.
+    ) -> ParsecProject:
+        """Create a ParsecProject by parsing a .c file with CBMC annotations.
 
-        Parsec relies on an LLVM parser, which does not admit C programs with CBMC annotations.
-        A workaround is to comment-out the CBMC annotations.
+        Any CBMC annotations are ignored and do not appear in the result.
 
         Args:
             path_to_file_with_cbmc_annotations (Path): The file with CBMC annotations.
 
         Returns:
-            ParsecFile: The ParsecFile.
+            ParsecProject: The ParsecProject.
         """
-        content_of_file_with_cbmc_annotations = path_to_file_with_cbmc_annotations.read_text(
+        lines_of_file_with_cbmc_annotations = path_to_file_with_cbmc_annotations.read_text(
             encoding="utf-8"
         ).splitlines()
-        file_lines_with_commented_out_annotations = "\n".join(
-            text_util.comment_out_cbmc_annotations(content_of_file_with_cbmc_annotations)
+        lines_of_file_with_commented_out_annotations = "\n".join(
+            text_util.comment_out_cbmc_annotations(lines_of_file_with_cbmc_annotations)
         )
         tmp_file_with_commented_out_cbmc_annotations = Path(
             f"{path_to_file_with_cbmc_annotations.with_suffix('')}-cbmc-commented-out{path_to_file_with_cbmc_annotations.suffix}"
         )
         tmp_file_with_commented_out_cbmc_annotations.write_text(
-            file_lines_with_commented_out_annotations,
+            lines_of_file_with_commented_out_annotations,
             encoding="utf-8",
         )
-        return ParsecFile(tmp_file_with_commented_out_cbmc_annotations)
+        return ParsecProject(tmp_file_with_commented_out_cbmc_annotations)
 
     def get_function_or_none(self, function_name: str) -> CFunction | None:
-        """Return the CFunction representation for a function with the given name.
+        """Return the CFunction representation for the function with the given name.
 
         Args:
-            function_name (str): The name of the function for which to return the CFunction.
+            function_name (str): The name of the function.
 
         Returns:
             CFunction | None: The CFunction with the given name, or None if no function
@@ -122,7 +134,7 @@ class ParsecFile:
         """Return the CFunction representation for a function with the given name.
 
         Args:
-            function_name (str): The name of the function for which to return the CFunction.
+            function_name (str): The name of the function.
 
         Returns:
             CFunction: The CFunction with the given name.
@@ -140,7 +152,7 @@ class ParsecFile:
         """Return the callees of the given function.
 
         Args:
-            function (CFunction): The function for which to return the callees.
+            function (CFunction): The function whose callees are returned.
 
         Returns:
             list[CFunction]: The callees of the given function.
@@ -154,7 +166,7 @@ class ParsecFile:
         return callees
 
     def get_functions_in_topological_order(self, reverse_order: bool = False) -> list[CFunction]:
-        """Return the CFunctions in this ParsecFile's call graph in topological order.
+        """Return the CFunctions in this ParsecProject's call graph in topological order.
 
         Note: If a topological ordering is impossible, this function defaults to returning the
         functions collected via a postorder DFS traversal.
@@ -164,7 +176,7 @@ class ParsecFile:
                 Defaults to False.
 
         Returns:
-            list[CFunction]: The CFunctions in this ParsecFile's call graph in topological order.
+            list[CFunction]: The CFunctions in this ParsecProject's call graph in topological order.
         """
         if not self.call_graph.nodes():
             return []
@@ -187,32 +199,35 @@ class ParsecFile:
 
         return list(reversed(functions)) if reverse_order else functions
 
-    # MDE: Please document and discuss relationship to other functions with similar names.
-    # JY: Work for above captured in https://github.com/vikramnitin9/rust_verification/issues/70
-    def _run_parsec(self, file_path: Path) -> dict[str, Any]:
-        """Run the parsec executable and return its results.
+    def _run_parsec(self, path: Path, run_mode: ParsecRunMode) -> dict[str, Any]:
+        """Return the result of running Parsec at the given path.
+
+        The path represents a file or directory path, depending on the run mode.
 
         Args:
-            file_path (Path): The path to a C file to be analyzed by ParseC.
+            path (Path): The path at which to run Parsec.
+            run_mode (ParsecRunMode): The run mode.
 
         Returns:
-            dict[str, Any]: The JSON output produced by ParseC as a dictionary.
+            dict[str, Any]: The result of running Parsec at the given path.
         """
-        parsec_executable = os.environ.get("PARSEC_EXECUTABLE")
-        if not parsec_executable:
-            raise Exception("$PARSEC_EXECUTABLE not set.")
+        cmd = f"parsec --rename-main=false --add-instr=false {
+            path if run_mode == ParsecRunMode.FILE else '*.c'
+        }"
+        result = None
         try:
-            cmd = f"{parsec_executable} --rename-main=false --add-instr=false {file_path}"
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-            if result.returncode != 0:
-                msg = f"Error running parsec: {result.stderr} {result.stdout}"
-                raise Exception(msg)
+            if run_mode == ParsecRunMode.FILE:
+                result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            elif run_mode == ParsecRunMode.DIRECTORY:
+                result = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=path)
         except subprocess.CalledProcessError as e:
-            raise Exception("Error running parsec.") from e
+            raise RuntimeError("Error running parsec") from e
+
+        if not result:
+            msg = f"Failed to run parsec due to an unrecognized run mode = {run_mode}"
+            raise RuntimeError(msg)
 
         path_to_result = Path("analysis.json")
         if not path_to_result.exists():
             raise Exception("parsec failed to produce an analysis")
-        with path_to_result.open(encoding="utf-8") as f:
-            parsec_analysis = json.load(f)
-        return parsec_analysis
+        return json.loads(path_to_result.read_text(encoding="utf-8"))
