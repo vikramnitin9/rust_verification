@@ -6,6 +6,7 @@ import copy
 import json
 import subprocess
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +17,13 @@ from util import text_util
 from util.c_function import CFunction
 
 
+class ParsecRunMode(str, Enum):
+    """Defines run modes for Parsec."""
+
+    FILE = "FILE"
+    DIRECTORY = "DIRECTORY"
+
+
 @dataclass
 class ParsecProject:
     """Represents the result of parsing a "project": one or more C source files.
@@ -23,8 +31,7 @@ class ParsecProject:
     For more details on these fields, see the ParseC documentation:
     https://github.com/vikramnitin9/parsec/blob/main/README.md
 
-    Note: The functions in a `ParsecProject` do not have specifications. This is due to the the fact
-    that LLVM cannot parse CBMC specs, which are not instances of valid C grammar.
+
 
     ParseC is a LLVM/Clang-based tool to parse a C program.
     It extracts functions, structures, etc. along with their inter-dependencies.
@@ -36,7 +43,7 @@ class ParsecProject:
     file_path: Path
     files: list[str] = field(default_factory=list)
     # ParseC returns one dictionary per function.
-    # We parse these into CFunction objects and index them by function name.
+    # Each dictionary is parsed into CFunction objects, which are indexed by function name.
     # This could have problems for static functions with the same name in different files.
     # The projects we are currently using to test our tool do not have static functions,
     # but this needs to be kept in mind for complex projects.
@@ -62,10 +69,10 @@ class ParsecProject:
                 msg = f"compile_commands.json not found in {input_path}"
                 raise FileNotFoundError(msg)
             self.project_root = input_path
-            parsec_analysis = self._run_parsec_on_directory(input_path)
+            parsec_analysis = self._run_parsec(input_path, run_mode=ParsecRunMode.DIRECTORY)
         else:
             self.file_path = input_path
-            parsec_analysis = self._run_parsec_on_file(input_path)
+            parsec_analysis = self._run_parsec(input_path, run_mode=ParsecRunMode.FILE)
 
         function_analyses = [CFunction(f) for f in parsec_analysis.get("functions", [])]
         self.enums = parsec_analysis.get("enums", [])
@@ -96,23 +103,23 @@ class ParsecProject:
         Returns:
             ParsecProject: The ParsecProject.
         """
-        content_of_file_with_cbmc_annotations = path_to_file_with_cbmc_annotations.read_text(
+        lines_of_file_with_cbmc_annotations = path_to_file_with_cbmc_annotations.read_text(
             encoding="utf-8"
         ).splitlines()
-        file_lines_with_commented_out_annotations = "\n".join(
-            text_util.comment_out_cbmc_annotations(content_of_file_with_cbmc_annotations)
+        lines_of_file_with_commented_out_annotations = "\n".join(
+            text_util.comment_out_cbmc_annotations(lines_of_file_with_cbmc_annotations)
         )
         tmp_file_with_commented_out_cbmc_annotations = Path(
             f"{path_to_file_with_cbmc_annotations.with_suffix('')}-cbmc-commented-out{path_to_file_with_cbmc_annotations.suffix}"
         )
         tmp_file_with_commented_out_cbmc_annotations.write_text(
-            file_lines_with_commented_out_annotations,
+            lines_of_file_with_commented_out_annotations,
             encoding="utf-8",
         )
         return ParsecProject(tmp_file_with_commented_out_cbmc_annotations)
 
     def get_function_or_none(self, function_name: str) -> CFunction | None:
-        """Return the CFunction representation for a function with the given name.
+        """Return the CFunction representation for the function with the given name.
 
         Args:
             function_name (str): The name of the function.
@@ -192,56 +199,35 @@ class ParsecProject:
 
         return list(reversed(functions)) if reverse_order else functions
 
-    def _run_parsec_on_directory(self, project_root: Path) -> dict[str, Any]:
-        """Run the parsec executable on a full project and return its results.
+    def _run_parsec(self, path: Path, run_mode: ParsecRunMode) -> dict[str, Any]:
+        """Return the result of running Parsec at the given path.
+
+        The path represents a file or directory path, depending on the run mode.
 
         Args:
-            project_root (Path): The root directory of the project to be analyzed by ParseC.
+            path (Path): The path at which to run Parsec.
+            run_mode (ParsecRunMode): The run mode.
 
         Returns:
-            dict[str, Any]: The JSON output produced by ParseC as a dictionary.
+            dict[str, Any]: The result of running Parsec at the given path.
         """
+        cmd = f"parsec --rename-main=false --add-instr=false {
+            path if run_mode == ParsecRunMode.FILE else '*.c'
+        }"
+        result = None
         try:
-            cmd = "parsec --rename-main=false --add-instr=false *.c"
-            result = subprocess.run(
-                cmd, shell=True, capture_output=True, text=True, cwd=project_root
-            )
-            if result.returncode != 0:
-                msg = f"Error running parsec: {result.stderr} {result.stdout}"
-                raise Exception(msg)
+            if run_mode == ParsecRunMode.FILE:
+                result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            elif run_mode == ParsecRunMode.DIRECTORY:
+                result = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=path)
         except subprocess.CalledProcessError as e:
-            raise Exception("Error running parsec.") from e
+            raise RuntimeError("Error running parsec") from e
+
+        if not result:
+            msg = f"Failed to run parsec due to an unrecognized run mode = {run_mode}"
+            raise RuntimeError(msg)
 
         path_to_result = Path("analysis.json")
         if not path_to_result.exists():
             raise Exception("parsec failed to produce an analysis")
-        with path_to_result.open(encoding="utf-8") as f:
-            parsec_analysis = json.load(f)
-        return parsec_analysis
-
-    # MDE: Please document and discuss relationship to other functions with similar names.
-    # JY: Work for above captured in https://github.com/vikramnitin9/rust_verification/issues/70
-    def _run_parsec_on_file(self, file_path: Path) -> dict[str, Any]:
-        """Run the parsec executable on a single file and return its results.
-
-        Args:
-            file_path (Path): The path to a C file to be analyzed by ParseC.
-
-        Returns:
-            dict[str, Any]: The JSON output produced by ParseC as a dictionary.
-        """
-        try:
-            cmd = f"parsec --rename-main=false --add-instr=false {file_path}"
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-            if result.returncode != 0:
-                msg = f"Error running parsec: {result.stderr} {result.stdout}"
-                raise Exception(msg)
-        except subprocess.CalledProcessError as e:
-            raise Exception("Error running parsec.") from e
-
-        path_to_result = Path("analysis.json")
-        if not path_to_result.exists():
-            raise Exception("parsec failed to produce an analysis")
-        with path_to_result.open(encoding="utf-8") as f:
-            parsec_analysis = json.load(f)
-        return parsec_analysis
+        return json.loads(path_to_result.read_text(encoding="utf-8"))
