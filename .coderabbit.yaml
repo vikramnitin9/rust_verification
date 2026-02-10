@@ -18,9 +18,8 @@ reviews:
     - "!**/.gradle/**"
     - "!**/.idea/**"
     - "!**/node_modules/**"
-    - "!verification-algorithm.md"
   auto_review:
-    enabled: false
+    auto_pause_after_reviewed_commits: 0
     ignore_title_keywords:
       - "wip"
       - "draft"
@@ -28,7 +27,8 @@ reviews:
       - "dependabot"
       - "dependabot[bot]"
       - "mend"
-      - "app/renovate"
+      - "renovate"
+      - "renovate[bot]"
   pre_merge_checks:
     title:
       mode: "off"

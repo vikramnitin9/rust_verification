@@ -24,7 +24,7 @@ checks: style-fix style-check
 # TODO: I'm not sure why `style.yml` and `test.yml` GitHub workflow actions don't verify.
 CODE_STYLE_EXCLUSIONS_USER := --exclude-dir cbmc --exclude-dir test --exclude-dir data --exclude __init__.py
 ifeq (,$(wildcard .plume-scripts))
-dummy := $(shell git clone -q https://github.com/plume-lib/plume-scripts.git .plume-scripts)
+dummy := $(shell git clone --depth=1 -q https://github.com/plume-lib/plume-scripts.git .plume-scripts)
 endif
 include .plume-scripts/code-style.mak
 
