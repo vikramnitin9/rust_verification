@@ -41,6 +41,7 @@ class ParsecProject:
     call_graph: nx.DiGraph  # type: ignore[type-arg]
     # Exactly one of file_path and project_root is populated, depending on whether this
     # ParsecProject represents a single file or a directory of files.
+    # Paths are absolute.
     file_path: Path | None = None
     project_root: Path | None = None
     files: list[str] = field(default_factory=list)
@@ -222,15 +223,29 @@ class ParsecProject:
         Returns:
             dict[str, Any]: The result of running Parsec at the given path.
         """
-        cmd = f"parsec --rename-main=false --add-instr=false {
-            path if run_mode == ParsecRunMode.FILE else f'-p {path}'
-        }"
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        if run_mode == ParsecRunMode.FILE:
+            if not path.exists():
+                msg = f"File {path} does not exist"
+                raise FileNotFoundError(msg)
+            cmd = f"parsec --rename-main=false --add-instr=false {path}"
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            path_to_result = Path("analysis.json")
+        elif run_mode == ParsecRunMode.DIRECTORY:
+            # Run a glob pattern to walk all .c files in the directory
+            # We want each path to be absolute
+            file_list = [file.resolve() for file in path.glob("**/*.c")]
+            if not file_list:
+                msg = f"No .c files found in directory {path}"
+                raise FileNotFoundError(msg)
+            file_list_str = " ".join(str(file) for file in file_list)
+            cmd = f"parsec --rename-main=false --add-instr=false {file_list_str}"
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=path)
+            path_to_result = path / "analysis.json"
+
         if result.returncode != 0:
             msg = f"Error while running parsec: {result.stderr}"
             raise RuntimeError(msg)
 
-        path_to_result = Path("analysis.json")
         if not path_to_result.exists():
             raise RuntimeError("parsec failed to produce an analysis")
         return json.loads(path_to_result.read_text(encoding="utf-8"))

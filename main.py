@@ -24,6 +24,7 @@ from util import (
     SpecConversation,
     SpecGenGranularity,
     copy_file_to_folder,
+    copy_folder_to_folder,
     ensure_lines_at_beginning,
     function_util,
     run_with_timeout,
@@ -60,16 +61,23 @@ tempfile.tempdir = DEFAULT_RESULT_DIR
 
 
 def main() -> None:
-    """Generate specifications for a given C file using an LLM and verify them with CBMC.
-
-    The current implementation operates over all the C functions in one file.
-    """
+    """Generate specifications for a given C project using an LLM and verify them with CBMC."""
     parser = argparse.ArgumentParser(
-        prog="main.py", description="Generate and verify CBMC specifications for a C file."
+        prog="main.py",
+        description="Generate and verify CBMC specifications for a C project.",
     )
     parser.add_argument(
-        "file",
-        help="The C file for which to generate and verify specifications.",
+        "--project-root",
+        required=False,
+        help="The root directory of the C project for which to generate and verify specifications. \
+            Must contain compile_commands.json. Note that this cannot be used \
+            along with --input-file-path.",
+    )
+    parser.add_argument(
+        "--input-file-path",
+        required=False,
+        help="The path to the C file to analyze. Note that this cannot be used \
+            along with --project-root.",
     )
     parser.add_argument(
         "--num-specification-candidates",
@@ -150,14 +158,28 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    input_file_path = Path(args.file)
-    parsec_project = ParsecProject(input_file_path)
-    specgen_granularity = SpecGenGranularity(args.specgen_granularity)
+    if args.project_root and args.input_file_path:
+        msg = "Please provide either --project-root or --input-file-path, not both."
+        raise ValueError(msg)
+    if not args.project_root and not args.input_file_path:
+        msg = "Please provide either --project-root or --input-file-path."
+        raise ValueError(msg)
 
-    # MDE: Will this path be repeatedly overwritten during the verification process?  If so, that is
-    # a serious problem for concurrency.
-    output_file_path = copy_file_to_folder(input_file_path, DEFAULT_RESULT_DIR)
-    ensure_lines_at_beginning(DEFAULT_HEADERS_IN_OUTPUT, output_file_path)
+    if args.input_file_path:
+        input_file_path = Path(args.input_file_path)
+        # MDE: Will this path be repeatedly overwritten during the verification process?
+        # If so, that is a serious problem for concurrency.
+        output_file_path = copy_file_to_folder(input_file_path, DEFAULT_RESULT_DIR)
+        ensure_lines_at_beginning(DEFAULT_HEADERS_IN_OUTPUT, output_file_path)
+        parsec_project = ParsecProject(input_file_path)
+    elif args.project_root:
+        project_root = Path(args.project_root).resolve()
+        output_directory = copy_folder_to_folder(project_root, DEFAULT_RESULT_DIR)
+        for c_file in output_directory.rglob("*.c"):
+            ensure_lines_at_beginning(DEFAULT_HEADERS_IN_OUTPUT, c_file)
+        parsec_project = ParsecProject(project_root)
+
+    specgen_granularity = SpecGenGranularity(args.specgen_granularity)
 
     verifier: VerificationClient = CbmcVerificationClient(cache=VERIFIER_CACHE)
     specification_generator = LlmSpecificationGenerator(
@@ -184,7 +206,8 @@ def main() -> None:
         )
     except TimeoutError as te:
         logger.error(
-            f"'_verify_program' timed out after {args.specification_generation_timeout_sec}", te
+            f"'_verify_program' timed out after {args.specification_generation_timeout_sec}",
+            te,
         )
         sys.exit(0)
 
@@ -381,7 +404,8 @@ def _get_next_proof_state(
             _write_spec_to_disk(spec_conversation=spec_conversation)
             workstack_for_next_proof_state = prev_proof_state.get_workstack().pop()
             return ProofState(
-                specs=specs_for_next_proof_state, workstack=workstack_for_next_proof_state
+                specs=specs_for_next_proof_state,
+                workstack=workstack_for_next_proof_state,
             )
         case BacktrackToCallee(callee, hint):
             # TODO: Fetching the callee from the same file in which the function under spec. gen.
