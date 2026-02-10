@@ -39,8 +39,8 @@ class ParsecProject:
     # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
     # NOTE: Each node in call_graph is a CFunction.
     call_graph: nx.DiGraph  # type: ignore[type-arg]
-    # Exactly one of file_path and project_root is populated, depending on whether this ParsecProject
-    # represents a single file or a directory of files.
+    # Exactly one of file_path and project_root is populated, depending on whether this
+    # ParsecProject represents a single file or a directory of files.
     file_path: Path | None = None
     project_root: Path | None = None
     files: list[str] = field(default_factory=list)
