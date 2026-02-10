@@ -31,6 +31,7 @@ def copy_folder_to_folder(input_folder_path: Path, destination_folder_name: str)
     Returns:
         Path: The path of the copy of the input folder.
     """
+    Path(destination_folder_name).mkdir(parents=True, exist_ok=True)
     output_folder = Path(destination_folder_name) / input_folder_path.name
     shutil.copytree(input_folder_path, output_folder, dirs_exist_ok=True)
     return output_folder
