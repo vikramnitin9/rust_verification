@@ -56,7 +56,7 @@ class ParsecProject:
     structs: list[dict[str, Any]] = field(default_factory=list)
     global_vars: list[dict[str, Any]] = field(default_factory=list)
 
-    def __init__(self, input_path: Path):
+    def __init__(self, input_path: Path) -> None:
         """Create a ParsecProject from the given file or directory.
 
         If the path is a single file, that file is analyzed.
@@ -68,6 +68,8 @@ class ParsecProject:
         Args:
             input_path (Path): The path to a file or directory to be analyzed.
         """
+        self.file_path: Path | None = None
+        self.project_root: Path | None = None
         if input_path.is_dir():
             compile_commands_path = input_path / "compile_commands.json"
             if not compile_commands_path.exists():
@@ -219,20 +221,9 @@ class ParsecProject:
         cmd = f"parsec --rename-main=false --add-instr=false {
             path if run_mode == ParsecRunMode.FILE else f'-p {path}'
         }"
-        result = None
-        try:
-            if run_mode == ParsecRunMode.FILE:
-                result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-            elif run_mode == ParsecRunMode.DIRECTORY:
-                result = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=path)
-        except subprocess.CalledProcessError as e:
-            raise RuntimeError("Error running parsec") from e
-
-        if not result:
-            msg = f"Failed to run parsec due to an unrecognized run mode = {run_mode}"
-            raise RuntimeError(msg)
+        subprocess.run(cmd, shell=True, capture_output=True, text=True)
 
         path_to_result = Path("analysis.json")
         if not path_to_result.exists():
-            raise Exception("parsec failed to produce an analysis")
+            raise RuntimeError("parsec failed to produce an analysis")
         return json.loads(path_to_result.read_text(encoding="utf-8"))

@@ -118,12 +118,12 @@ def test_extract_multi_line_quantifiers() -> None:
     ], f"Unexpected postconditions: {spec.postconditions}"
 
 
-def test_update_function_declaration_at_top(setup_for_update_function) -> None:
+def test_update_function_definition_at_top(setup_for_update_function) -> None:
     file_containing_function = setup_for_update_function(
-        "test/data/function_util/update_function_declaration/swap_top.c"
+        "test/data/function_util/update_function_definition/swap_top.c"
     )
     path_to_expected_updated_file = (
-        "test/data/function_util/update_function_declaration/swap_top_with_specs.c"
+        "test/data/function_util/update_function_definition/swap_top_with_specs.c"
     )
     updated_function = """void swap(int* a, int* b)
 __CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))
@@ -137,7 +137,7 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
 }"""
 
     parsec_project = ParsecProject(file_containing_function)
-    function_util.update_function_declaration(
+    function_util.update_function_definition(
         "swap", updated_function, parsec_project, file_containing_function
     )
 
@@ -185,7 +185,7 @@ def test_get_source_code_with_inserted_specs() -> None:
         ],
     )
     swap_with_specs = function_util.get_source_code_with_inserted_spec(
-        "swap", swap_specs, ParsecProject(input_path=Path(path_to_swap_no_specs))
+        "swap", swap_specs, ParsecProject(input_path=path_to_swap_no_specs)
     )
     assert (
         swap_with_specs
@@ -202,12 +202,12 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     )
 
 
-def test_update_function_declaration_at_middle(copy_file, remove_file) -> None:
+def test_update_function_definition_at_middle(copy_file, remove_file) -> None:
     file_containing_function = copy_file(
-        "test/data/function_util/update_function_declaration/swap_middle.c"
+        "test/data/function_util/update_function_definition/swap_middle.c"
     )
     path_to_expected_updated_file = (
-        "test/data/function_util/update_function_declaration/swap_middle_with_specs.c"
+        "test/data/function_util/update_function_definition/swap_middle_with_specs.c"
     )
     updated_function = """void swap(int* a, int* b)
 __CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))
@@ -221,7 +221,7 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
 }"""
 
     parsec_project = ParsecProject(file_containing_function)
-    function_util.update_function_declaration(
+    function_util.update_function_definition(
         "swap", updated_function, parsec_project, file_containing_function
     )
 
@@ -232,12 +232,12 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     remove_file(file_containing_function)
 
 
-def test_update_function_declaration_at_bottom(copy_file, remove_file) -> None:
+def test_update_function_definition_at_bottom(copy_file, remove_file) -> None:
     file_containing_function = copy_file(
-        "test/data/function_util/update_function_declaration/swap_bottom.c"
+        "test/data/function_util/update_function_definition/swap_bottom.c"
     )
     path_to_expected_updated_file = (
-        "test/data/function_util/update_function_declaration/swap_bottom_with_specs.c"
+        "test/data/function_util/update_function_definition/swap_bottom_with_specs.c"
     )
     updated_function = """void swap(int* a, int* b)
 __CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))
@@ -251,7 +251,7 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
 }"""
 
     parsec_project = ParsecProject(file_containing_function)
-    function_util.update_function_declaration(
+    function_util.update_function_definition(
         "swap", updated_function, parsec_project, file_containing_function
     )
 

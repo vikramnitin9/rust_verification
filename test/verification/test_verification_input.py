@@ -4,10 +4,10 @@ from util import FunctionSpecification, ParsecProject, CFunction
 from verification import VerificationContext, VerificationInput
 
 
-def get_function_or_none(file_path: str, function_name: str) -> CFunction:
+def get_function_or_none(file_path: str, function_name: str) -> CFunction | None:
     """Utility method for tests."""
     parsec_project = ParsecProject(input_path=Path(file_path))
-    return parsec_project.get_function(function_name=function_name)
+    return parsec_project.get_function_or_none(function_name=function_name)
 
 
 def test_verification_input_eq() -> None:

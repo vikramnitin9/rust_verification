@@ -46,7 +46,7 @@ def get_signature_and_body(source_code: str, lang: str) -> tuple[str, str]:
     """Return the signature and body of a function.
 
     The first part of the tuple is the signature of the function and any comments that may appear
-    before the body. For example, given the function declaration:
+    before the body. For example, given the function definition:
 
         int main() // This
         // is a comment.
@@ -112,7 +112,7 @@ def get_source_code_with_inserted_spec(
 ) -> str:
     """Return the source code of a function with the specification inserted.
 
-    Note: This does *not* update the ParsecProject with the specified function declaration.
+    Note: This does *not* update the ParsecProject with the specified function definition.
 
     Args:
         function_name (str): The name of the function for which to return the updated source code.
@@ -234,10 +234,10 @@ def update_parsec_project(
             other_func.end_col += new_end_col - prev_end_col
 
 
-def update_function_declaration(
+def update_function_definition(
     function_name: str, updated_function_content: str, parsec_project: ParsecProject, file: Path
 ) -> str:
-    """Return the contents of the file after updating the function declaration.
+    """Return the contents of the file after updating the function definition.
 
     Args:
         function_name (str): The name of the function to update.
@@ -246,7 +246,7 @@ def update_function_declaration(
         file (Path): The file that contains the function (and possibly other functions).
 
     Returns:
-        str: The contents of the file after updating the function declaration.
+        str: The contents of the file after updating the function definition.
     """
     function = parsec_project.get_function(function_name)
 
@@ -330,7 +330,7 @@ def _replace_function_definitions(
         path_to_src (Path): The path to the source code.
 
     Returns:
-        str: The contents of the file where the function is defined with its new declaration.
+        str: The contents of the file where the function is defined with its new definition.
     """
     with Path(path_to_src).open(encoding="utf-8") as f:
         lines = f.readlines()
@@ -342,7 +342,7 @@ def _replace_function_definitions(
     # Doing replacements in descending order of line numbers ensures that earlier
     # replacements do not affect the line/col numbers of later replacements.
     for function in functions_sorted:
-        updated_function_declaration = functions_to_updated_definitions[function]
+        updated_function_definition = functions_to_updated_definitions[function]
         start_line = function.start_line
         start_col = function.start_col
         end_line = function.end_line
@@ -350,6 +350,6 @@ def _replace_function_definitions(
 
         before = [*lines[: start_line - 1], *[lines[start_line - 1][: start_col - 1]]]
         after = [*lines[end_line - 1][end_col:], *lines[end_line:]]
-        lines = [*before, updated_function_declaration, *after]
+        lines = [*before, updated_function_definition, *after]
 
     return "".join(lines)

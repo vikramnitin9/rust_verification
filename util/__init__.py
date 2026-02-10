@@ -1,5 +1,3 @@
-from .specification_generation_next_step import SpecificationGenerationNextStep
-from .code_extraction_util import extract_function_source_code
 from .specification_generation_next_step import SpecificationGenerationNextStep, AcceptVerifiedSpec, AssumeSpecAsIs, BacktrackToCallee
 from .code_extraction_util import extract_function_source_code, parse_clauses_for_spec, parse_expressions_for_spec
 from .file_util import copy_file_to_folder, copy_folder_to_folder, ensure_lines_at_beginning
@@ -24,7 +22,6 @@ __all__ = [
     "FunctionSpecification",
     "SpecConversation",
     "ParsecError",
-    "CFunction",
     "ParsecProject",
     "copy_file_to_folder",
     "copy_folder_to_folder",

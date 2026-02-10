@@ -437,7 +437,7 @@ def _write_spec_to_disk(spec_conversation: SpecConversation) -> None:
         comment_out_spec=True,
     )
 
-    function_util.update_function_declaration(
+    function_util.update_function_definition(
         function_name=function.name,
         updated_function_content=function_with_verified_spec,
         parsec_project=parsec_project,

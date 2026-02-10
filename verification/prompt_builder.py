@@ -127,8 +127,8 @@ class PromptBuilder:
             )
             tmp_f.write(source_code_cbmc_commented_out)
             tmp_f.flush()
-            parsec_file = ParsecProject(Path(tmp_f.name))
-            function = parsec_file.get_function_or_none(
+            parsec_project = ParsecProject(Path(tmp_f.name))
+            function = parsec_project.get_function_or_none(
                 function_name=verification_result.get_function().name
             )
             if not function:
