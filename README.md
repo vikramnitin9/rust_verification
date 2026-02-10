@@ -28,14 +28,19 @@ Then run the Python script
 ```sh
 make run
 # Inside the container:
-./main.py data/qsort.c
+./main.py --input-file-path data/qsort.c
 ```
 
-For a more complex example, try the following commands (again inside the container):
+For a more complex example, we include the [Zopfli](https://github.com/google/zopfli) compression library as a submodule in our data directory. It consists of over 3000 lines of C code across multiple files.
+
+To run specification generation on Zopfli, try the following commands (again inside the container):
 
 ```sh
-cd /app/data/zopfli && bear -- make
-./main.py data/zopfli
+# To generate a compile_commands.json compilation database
+cd /app/data/zopfli && make clean && bear -- make
+cd /app
+# Run with the --project-root argument as opposed to the --input-file-path argument
+./main.py --project-root data/zopfli
 ```
 
 ## Step 2: Converting C (CProver) specifications to Rust (Kani)
