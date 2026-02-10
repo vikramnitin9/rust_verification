@@ -199,9 +199,9 @@ class ParsecProject:
             functions = list(nx.topological_sort(call_graph_copy))
         except nx.NetworkXUnfeasible:
             logger.error(
-                "Cycles detected in call graph."
-                "Falling back to topological sort of condensation graph"
-                "with postorder DFS within each strongly connected component (SCC)."
+                "Cycles detected in call graph: "
+                "Falling back to a topological sort of a condensation graph "
+                "with postorder DFS within each strongly connected component (SCC)"
             )
             condensation = nx.condensation(call_graph_copy)
             for scc in nx.topological_sort(condensation):
@@ -225,7 +225,10 @@ class ParsecProject:
         cmd = f"parsec --rename-main=false --add-instr=false {
             path if run_mode == ParsecRunMode.FILE else f'-p {path}'
         }"
-        subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        if result.returncode != 0:
+            msg = f"Error while running parsec: {result.stderr}"
+            raise RuntimeError(msg)
 
         path_to_result = Path("analysis.json")
         if not path_to_result.exists():
