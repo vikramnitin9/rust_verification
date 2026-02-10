@@ -240,6 +240,9 @@ class ParsecProject:
             cmd = ["parsec", "--rename-main=false", "--add-instr=false", *file_list]
             result = subprocess.run(cmd, capture_output=True, text=True, cwd=path)
             path_to_result = path / "analysis.json"
+        else:
+            msg = f"Unsupported run mode: {run_mode}"
+            raise ValueError(msg)
 
         if result.returncode != 0:
             msg = f"Error while running parsec: {result.stderr}"

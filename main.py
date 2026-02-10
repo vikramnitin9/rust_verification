@@ -166,7 +166,7 @@ def main() -> None:
         raise ValueError(msg)
 
     if args.input_file_path:
-        input_file_path = Path(args.input_file_path)
+        input_file_path = Path(args.input_file_path).resolve()
         # MDE: Will this path be repeatedly overwritten during the verification process?
         # If so, that is a serious problem for concurrency.
         output_file_path = copy_file_to_folder(input_file_path, DEFAULT_RESULT_DIR)
@@ -178,6 +178,9 @@ def main() -> None:
         for c_file in output_directory.rglob("*.c"):
             ensure_lines_at_beginning(DEFAULT_HEADERS_IN_OUTPUT, c_file)
         parsec_project = ParsecProject(project_root)
+    else:
+        msg = "Unexpected error: neither --project-root nor --input-file-path was provided."
+        raise ValueError(msg)
 
     specgen_granularity = SpecGenGranularity(args.specgen_granularity)
 
