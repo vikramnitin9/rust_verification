@@ -3,7 +3,7 @@ FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt -yqq update && \
-    apt install -y build-essential wget unzip curl git bash-completion && \
+    apt install -y build-essential wget unzip curl git bear bash-completion && \
     rm -rf /var/lib/apt/lists/*
 
 RUN apt -yqq update && \

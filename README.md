@@ -31,6 +31,13 @@ make run
 ./main.py data/qsort.c
 ```
 
+For a more complex example, try the following commands (again inside the container):
+
+```sh
+cd /app/data/zopfli && bear -- make
+./main.py data/zopfli
+```
+
 ## Step 2: Converting C (CProver) specifications to Rust (Kani)
 
 TODO
