@@ -28,10 +28,9 @@ class ParsecRunMode(str, Enum):
 class ParsecProject:
     """Represents the result of parsing a "project": one or more C source files.
 
-    For more details on these fields, see the ParseC documentation:
+    The fields of this class are populated from the result of running ParseC.
+    For more details on the fields of this class, see the ParseC documentation:
     https://github.com/vikramnitin9/parsec/blob/main/README.md
-
-
 
     ParseC is a LLVM/Clang-based tool to parse a C program.
     It extracts functions, structures, etc. along with their inter-dependencies.
@@ -40,7 +39,10 @@ class ParsecProject:
     # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
     # NOTE: Each node in call_graph is a CFunction.
     call_graph: nx.DiGraph  # type: ignore[type-arg]
-    file_path: Path
+    # Exactly one of file_path and project_root is populated, depending on whether this ParsecProject
+    # represents a single file or a directory of files.
+    file_path: Path | None = None
+    project_root: Path | None = None
     files: list[str] = field(default_factory=list)
     # ParseC returns one dictionary per function.
     # Each dictionary is parsed into CFunction objects, which are indexed by function name.
@@ -57,8 +59,13 @@ class ParsecProject:
     def __init__(self, input_path: Path):
         """Create a ParsecProject from the given file or directory.
 
-        If the path is a directory, all C files in the directory are analyzed.
-        In this case, the directory must contain a compile_commands.json compilation database.
+        If the path is a single file, that file is analyzed.
+
+        If the path is a directory, all `.c` files in the directory are analyzed.
+        This includes all files in the directory structure below the given directory,
+        not just the files directly in the given directory.
+        In this case, the directory must contain a compile_commands.json compilation
+        database located at `{input_path}/compile_commands.json`.
 
         Args:
             input_path (Path): The path to a file or directory to be analyzed.
