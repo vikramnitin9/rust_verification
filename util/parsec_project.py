@@ -61,11 +61,9 @@ class ParsecProject:
 
         If the path is a single file, that file is analyzed.
 
-        If the path is a directory, all `.c` files in the directory are analyzed.
-        This includes all files in the directory structure below the given directory,
-        not just the files directly in the given directory.
-        In this case, the directory must contain a compile_commands.json compilation
-        database located at `{input_path}/compile_commands.json`.
+        If the path is a directory, the directory must contain a compile_commands.json
+        compilation database located at `{input_path}/compile_commands.json`.
+        All C source files referenced in the compilation database are analyzed.
 
         Args:
             input_path (Path): The path to a file or directory to be analyzed.
@@ -219,7 +217,7 @@ class ParsecProject:
             dict[str, Any]: The result of running Parsec at the given path.
         """
         cmd = f"parsec --rename-main=false --add-instr=false {
-            path if run_mode == ParsecRunMode.FILE else '*.c'
+            path if run_mode == ParsecRunMode.FILE else f'-p {path}'
         }"
         result = None
         try:
