@@ -175,8 +175,8 @@ class ParsecProject:
     def get_functions_in_topological_order(self, reverse_order: bool = False) -> list[CFunction]:
         """Return the CFunctions in this ParsecProject's call graph in topological order.
 
-        Note: If a topological ordering is impossible, this function defaults to returning the
-        functions collected via a postorder DFS traversal.
+        Note: If a topological ordering is impossible, this function will topologically sort
+        the condensation graph of SCCs, then choose a postorder DFS within each SCC.
 
         Args:
             reverse_order (bool, optional): True iff the topological ordering should be reversed.
@@ -199,10 +199,14 @@ class ParsecProject:
             functions = list(nx.topological_sort(call_graph_copy))
         except nx.NetworkXUnfeasible:
             logger.error(
-                "Cycles detected in call graph: "
-                "Using postorder DFS traversal for function ordering."
+                "Cycles detected in call graph."
+                "Falling back to topological sort of condensation graph"
+                "with postorder DFS within each strongly connected component (SCC)."
             )
-            functions = list(nx.dfs_postorder_nodes(call_graph_copy))
+            condensation = nx.condensation(call_graph_copy)
+            for scc in nx.topological_sort(condensation):
+                scc_subgraph = call_graph_copy.subgraph(condensation.nodes[scc]["members"])
+                functions.extend(nx.dfs_postorder_nodes(scc_subgraph))
 
         return list(reversed(functions)) if reverse_order else functions
 

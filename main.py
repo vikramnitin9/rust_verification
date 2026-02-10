@@ -200,7 +200,7 @@ def _verify_program(
     exceeds the user-specified or defaulted specification generation timeout.
 
     Args:
-        parsec_project (ParsecFile): The file to verify.
+        parsec_project (ParsecProject): The file to verify.
         specification_generator (LlmSpecificationGenerator): The LLM specification generator.
         skip_verified_cached_functions (bool): True iff functions that have verified and cached
             specifications should not be added to the workstack of functions for which to generate
@@ -273,7 +273,7 @@ def _step(
     Args:
         proof_state (ProofState): The proof state from which to generate new proof states.
         specification_generator (LlmSpecificationGenerator): The specification generator.
-        parsec_project (ParsecFile): The file being verified.
+        parsec_project (ParsecProject): The file being verified.
 
     Returns:
         list[ProofState]: The list of new proof states to explore.
