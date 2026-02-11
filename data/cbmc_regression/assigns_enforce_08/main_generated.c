@@ -1,4 +1,5 @@
-void f2(int** y)\n__CPROVER_requires(__CPROVER_is_fresh(y, sizeof(int*)))
+void f2(int** y)
+__CPROVER_requires(__CPROVER_is_fresh(y, sizeof(int*)))
 __CPROVER_requires(__CPROVER_is_fresh(*y, sizeof(int)))
 __CPROVER_ensures(**y == 5)
 __CPROVER_assigns(**y)
