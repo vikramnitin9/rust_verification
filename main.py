@@ -23,8 +23,6 @@ from util import (
     ParsecFile,
     SpecConversation,
     SpecGenGranularity,
-    copy_file_to_folder,
-    ensure_lines_at_beginning,
     function_util,
     run_with_timeout,
 )
@@ -37,7 +35,6 @@ from verification import (
 )
 
 MODEL = "gpt-4o"
-DEFAULT_HEADERS_IN_OUTPUT = ["#include <stdlib.h>", "#include <limits.h>"]
 DEFAULT_NUM_SPECIFICATION_CANDIDATES = 10
 DEFAULT_NUM_REPAIR_CANDIDATES = 10
 DEFAULT_MODEL_TEMPERATURE = 0.8
@@ -156,8 +153,6 @@ def main() -> None:
 
     # MDE: Will this path be repeatedly overwritten during the verification process?  If so, that is
     # a serious problem for concurrency.
-    output_file_path = copy_file_to_folder(input_file_path, DEFAULT_RESULT_DIR)
-    ensure_lines_at_beginning(DEFAULT_HEADERS_IN_OUTPUT, output_file_path)
 
     verifier: VerificationClient = CbmcVerificationClient(cache=VERIFIER_CACHE)
     specification_generator = LlmSpecificationGenerator(

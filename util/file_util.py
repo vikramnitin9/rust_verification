@@ -21,14 +21,14 @@ def copy_file_to_folder(input_file_path: Path, destination_folder_name: str) -> 
     return output_file_path
 
 
-def ensure_lines_at_beginning(lines_to_insert: list[str], file_path: Path) -> None:
+def ensure_lines_at_beginning(lines_to_insert: tuple[str, ...], file_path: Path) -> None:
     """Ensure the given lines appear in the given file.
 
     Each line is only inserted if it is not already present in the file (anywhere, not necessarily
     at the beginning).
 
     Args:
-        lines_to_insert (list[str]): The lines to insert.
+        lines_to_insert (tuple[str, ...]): The lines to insert.
         file_path (Path): The file to modify.
 
     """
