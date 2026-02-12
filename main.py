@@ -8,6 +8,7 @@ import shutil
 import sys
 import tempfile
 from collections import deque
+from collections.abc import Sequence
 from pathlib import Path
 
 from diskcache import Cache  # ty: ignore
@@ -38,7 +39,10 @@ from verification import (
 )
 
 MODEL = "gpt-4o"
-DEFAULT_HEADERS_IN_OUTPUT = ["#include <stdlib.h>", "#include <limits.h>"]
+DEFAULT_HEADERS_FOR_VERIFICATION: Sequence[str] = (
+    "#include <stdlib.h>",
+    "#include <limits.h>",
+)
 DEFAULT_NUM_SPECIFICATION_CANDIDATES = 10
 DEFAULT_NUM_REPAIR_CANDIDATES = 10
 DEFAULT_MODEL_TEMPERATURE = 0.8
@@ -170,13 +174,13 @@ def main() -> None:
         # MDE: Will this path be repeatedly overwritten during the verification process?
         # If so, that is a serious problem for concurrency.
         output_file_path = copy_file_to_folder(input_file_path, DEFAULT_RESULT_DIR)
-        ensure_lines_at_beginning(DEFAULT_HEADERS_IN_OUTPUT, output_file_path)
+        ensure_lines_at_beginning(DEFAULT_HEADERS_FOR_VERIFICATION, output_file_path)
         parsec_project = ParsecProject(input_file_path)
     elif args.project_root:
         project_root = Path(args.project_root).resolve()
         output_directory = copy_folder_to_folder(project_root, DEFAULT_RESULT_DIR)
         for c_file in output_directory.rglob("*.c"):
-            ensure_lines_at_beginning(DEFAULT_HEADERS_IN_OUTPUT, c_file)
+            ensure_lines_at_beginning(DEFAULT_HEADERS_FOR_VERIFICATION, c_file)
         parsec_project = ParsecProject(project_root)
     else:
         msg = "Unexpected error: neither --project-root nor --input-file-path was provided."
