@@ -2,11 +2,13 @@
 
 import subprocess
 import tempfile
+from collections.abc import Sequence
 from pathlib import Path
 
 from diskcache import Cache  # ty: ignore
 from loguru import logger
 
+from util import file_util
 from verification.verification_result import VerificationResult
 
 from .verification_client import VerificationClient
@@ -22,6 +24,14 @@ class CbmcVerificationClient(VerificationClient):
     """
 
     _cache: Cache
+
+    # These headers should be inserted into each file that is input to the verifier;
+    # generated specs often use constants from these headers (e.g., INT_MAX) assuming they already
+    # exist in the file.
+    DEFAULT_HEADERS_FOR_VERIFICATION: Sequence[str] = (
+        "#include <stdlib.h>",
+        "#include <limits.h>",
+    )
 
     def __init__(
         self,
@@ -42,8 +52,11 @@ class CbmcVerificationClient(VerificationClient):
         function = vinput.function
         with tempfile.NamedTemporaryFile(mode="w+t", prefix=function.name, suffix=".c") as tmp_f:
             tmp_f.write(vinput.contents_of_file_to_verify)
-            tmp_f.seek(0)
+            tmp_f.flush()
             path_to_file = Path(tmp_f.name)
+            file_util.ensure_lines_at_beginning(
+                CbmcVerificationClient.DEFAULT_HEADERS_FOR_VERIFICATION, path_to_file
+            )
             if vinput not in self._cache:
                 logger.debug(f"vresult cache miss for: {vinput.function}")
                 vcommand = self._get_cbmc_verification_command(
