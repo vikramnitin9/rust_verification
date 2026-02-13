@@ -21,6 +21,7 @@ from translation.ast.cbmc_ast import (
     NeqOp,
     Number,
     OrOp,
+    PtrMemberOp,
     QuantifierDecl,
     RequiresClause,
     ToAst,
@@ -213,4 +214,42 @@ def test_assigns_multiple_args() -> None:
         case _:
             pytest.fail(
                 f"Expected the parsed spec expression: '__CPROVER_assigns(*out1, *out2), but got: {parsed_spec.expr}'"
+            )
+
+
+def test_conditional_assigns() -> None:
+    # This is a legal clause which says: Given `pp->p->buf` is non-null, it can be assigned.
+    conditional_assigns_spec = "__CPROVER_assigns(pp && pp->p && pp->p->buf: *(pp->p->buf))"
+    parsed_spec = parser.parse(conditional_assigns_spec)
+
+    match parsed_spec:
+        case Assigns(
+            condition=AndOp(
+                left=AndOp(
+                    left=Name(name="pp"),
+                    right=PtrMemberOp(value=Name(name="pp"), attr=Name(name="p")),
+                ),
+                right=PtrMemberOp(
+                    value=PtrMemberOp(value=Name(name="pp"), attr=Name(name="p")),
+                    attr=Name(name="buf"),
+                ),
+            ),
+            targets=AssignsTargetList(
+                items=ExprList(
+                    items=[
+                        DerefOp(
+                            operand=PtrMemberOp(
+                                value=PtrMemberOp(value=Name(name="pp"), attr=Name(name="p")),
+                                attr=Name(name="buf"),
+                            )
+                        )
+                    ]
+                )
+            ),
+        ):
+            pass
+        case _:
+            pytest.fail(
+                f"Expected {conditional_assigns_spec} to parse to an 'Assigns' node with a "
+                f"condition and targets, but got: {parsed_spec}"
             )
