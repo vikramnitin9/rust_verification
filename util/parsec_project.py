@@ -34,6 +34,7 @@ class ParsecProject:
 
     ParseC is a LLVM/Clang-based tool to parse a C program.
     It extracts functions, structures, etc. along with their inter-dependencies.
+    ParseC's output is a .json file.
     """
 
     # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
@@ -99,26 +100,26 @@ class ParsecProject:
 
     @staticmethod
     def parse_source_with_cbmc_annotations(
-        path_to_file_with_cbmc_annotations: Path,
+        file_with_cbmc_annotations: Path,
     ) -> ParsecProject:
-        """Create a ParsecProject by parsing a .c file with CBMC annotations.
+        """Create a ParsecProject by parsing a .c file that may have CBMC annotations.
 
         Any CBMC annotations are ignored and do not appear in the result.
 
         Args:
-            path_to_file_with_cbmc_annotations (Path): The file with CBMC annotations.
+            file_with_cbmc_annotations (Path): The file that may have CBMC annotations.
 
         Returns:
             ParsecProject: The ParsecProject.
         """
-        lines_of_file_with_cbmc_annotations = path_to_file_with_cbmc_annotations.read_text(
+        lines_of_file_with_cbmc_annotations = file_with_cbmc_annotations.read_text(
             encoding="utf-8"
         ).splitlines()
         lines_of_file_with_commented_out_annotations = "\n".join(
             text_util.comment_out_cbmc_annotations(lines_of_file_with_cbmc_annotations)
         )
         tmp_file_with_commented_out_cbmc_annotations = Path(
-            f"{path_to_file_with_cbmc_annotations.with_suffix('')}-cbmc-commented-out{path_to_file_with_cbmc_annotations.suffix}"
+            f"{file_with_cbmc_annotations.with_suffix('')}-cbmc-commented-out{file_with_cbmc_annotations.suffix}"
         )
         tmp_file_with_commented_out_cbmc_annotations.write_text(
             lines_of_file_with_commented_out_annotations,
@@ -199,11 +200,7 @@ class ParsecProject:
         try:
             functions = list(nx.topological_sort(call_graph_copy))
         except nx.NetworkXUnfeasible:
-            logger.error(
-                "Cycles detected in call graph: "
-                "Falling back to a topological sort of a condensation graph "
-                "with postorder DFS within each strongly connected component (SCC)"
-            )
+            logger.error("Cycles detected in call graph. Performing best-effort topological sort.")
             condensation = nx.condensation(call_graph_copy)
             for scc in nx.topological_sort(condensation):
                 scc_subgraph = call_graph_copy.subgraph(condensation.nodes[scc]["members"])
@@ -214,10 +211,8 @@ class ParsecProject:
     def _run_parsec(self, path: Path, run_mode: ParsecRunMode) -> dict[str, Any]:
         """Return the result of running Parsec at the given path.
 
-        The path represents a file or directory path, depending on the run mode.
-
         Args:
-            path (Path): The path at which to run Parsec.
+            path (Path): The path at which to run Parsec: a file or directory.
             run_mode (ParsecRunMode): The run mode.
 
         Returns:

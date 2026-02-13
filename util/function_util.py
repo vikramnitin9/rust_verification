@@ -159,7 +159,7 @@ def get_source_content_with_specifications(
             # Start out with a temporary file that is identical to the initial file (pre-specs).
             tmp_f.write(original_file_content)
             tmp_f.flush()
-            func_to_specfunc_map = {}
+            func_to_specfunc = {}
             for function, specification in specified_functions.items():
                 # Look for only functions defined in this file.
                 if Path(function.file_name) != fpath:
@@ -170,10 +170,10 @@ def get_source_content_with_specifications(
                     specification=specification,
                     parsec_project=parsec_project,
                 )
-                func_to_specfunc_map[function] = function_with_specs
+                func_to_specfunc[function] = function_with_specs
             # Update the temporary file with the new function specifications.
             content_with_specs = _replace_function_definitions(
-                functions_to_updated_definitions=func_to_specfunc_map,
+                function_to_definition=func_to_specfunc,
                 path_to_src=tf_path,
             )
             # The temporary file's new content will be the previous content, with updated specs.
@@ -252,7 +252,7 @@ def update_function_definition(
 
     # Update the actual source code.
     new_contents = _replace_function_definitions(
-        functions_to_updated_definitions={function: updated_function_content},
+        function_to_definition={function: updated_function_content},
         path_to_src=file,
     )
     Path(file).write_text(new_contents, encoding="utf-8")
@@ -317,7 +317,7 @@ def _get_spec_lines(i: int, lines: list[str]) -> str:
 
 
 def _replace_function_definitions(
-    functions_to_updated_definitions: dict[CFunction, str], path_to_src: Path
+    function_to_definition: dict[CFunction, str], path_to_src: Path
 ) -> str:
     """Return contents of the file where each function is updated with its new definition.
 
@@ -325,7 +325,7 @@ def _replace_function_definitions(
     (i.e., it is not a declaration as it might appear in a header file).
 
     Args:
-        functions_to_updated_definitions (dict[CFunction, str]): The map of functions to their new
+        function_to_definition (dict[CFunction, str]): The map of functions to their new
             definitions.
         path_to_src (Path): The path to the source code.
 
@@ -337,12 +337,12 @@ def _replace_function_definitions(
 
     # First sort the functions by their starting line, in descending order.
     functions_sorted = sorted(
-        functions_to_updated_definitions.keys(), key=lambda fn: fn.start_line, reverse=True
+        function_to_definition.keys(), key=lambda fn: fn.start_line, reverse=True
     )
     # Doing replacements in descending order of line numbers ensures that earlier
     # replacements do not affect the line/col numbers of later replacements.
     for function in functions_sorted:
-        updated_function_definition = functions_to_updated_definitions[function]
+        updated_function_definition = function_to_definition[function]
         start_line = function.start_line
         start_col = function.start_col
         end_line = function.end_line

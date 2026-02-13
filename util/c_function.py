@@ -17,9 +17,9 @@ class CFunction:
     Note: CFunctions in a `ParsecProject` do not have specifications. This is due to the the fact
     that LLVM cannot parse CBMC specs, which are not instances of valid C grammar.
 
-    In cases where Parsec must be used to parse C code that *may* have specifications, the source
-    code is first pre-processed to comment-out any specifications, see:
-    `parsec_project#parse_source_with_cbmc_annotations` for details.
+    If the C code *may* have CBMC specifications, the source
+    code is first pre-processed to comment-out any specifications, see
+    `parsec_project#parse_source_with_cbmc_annotations`..
 
 
     For more details on these fields, see the ParseC documentation:
