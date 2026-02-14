@@ -61,7 +61,6 @@ class SpecTransformer:
             return spec
 
         preconditions = [self._parser.parse(clause) for clause in spec.preconditions]
-
         postconditions = [self._parser.parse(clause) for clause in spec.postconditions]
         precondition_exprs = [
             clause.expr for clause in preconditions if isinstance(clause, RequiresClause)
@@ -69,12 +68,18 @@ class SpecTransformer:
         conjunction_of_preconditions_exprs = self._make_conjunction_from(precondition_exprs)
 
         updated_postconditions = []
+        is_assigns_clause_updated = False
         for clause in postconditions:
             if isinstance(clause, Assigns):
                 clause.condition = conjunction_of_preconditions_exprs
+                is_assigns_clause_updated = True
             updated_postconditions.append(clause.to_string())
 
-        return FunctionSpecification(preconditions=[], postconditions=updated_postconditions)
+        return (
+            FunctionSpecification(preconditions=[], postconditions=updated_postconditions)
+            if is_assigns_clause_updated
+            else spec
+        )
 
     def move_preconditions_to_ensures(self, spec: FunctionSpecification) -> FunctionSpecification:
         """TODO: Implement me.
