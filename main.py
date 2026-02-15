@@ -60,10 +60,13 @@ VERIFIER_CACHE: Cache = Cache(directory=DEFAULT_VERIFIER_RESULT_CACHE_DIR)
 tempfile.tempdir = DEFAULT_RESULT_DIR
 
 
-def main() -> None:
+def main() -> tuple[ProofState, ...]:
     """Generate specifications for a given C file using an LLM and verify them with CBMC.
 
     The current implementation operates over all the C functions in one file.
+
+    Returns:
+        tuple[ProofState, ...]: The complete proofstates.
     """
     parser = argparse.ArgumentParser(
         prog="main.py", description="Generate and verify CBMC specifications for a C file."
@@ -150,7 +153,7 @@ def main() -> None:
         ),
     )
     parser.add_argument(
-        "--path-to-llm-response-cache",
+        "--path-to-llm-response-cache-dir",
         type=str,
         required=False,
         default=DEFAULT_LLM_CACHE_DIR,
@@ -176,19 +179,20 @@ def main() -> None:
         num_specification_repair_iterations=args.num_specification_repair_iterations,
         fix_illegal_syntax=args.fix_illegal_syntax,
         normalize_specs=args.normalize_specs,
-        path_to_llm_cache_dir=args.path_to_llm_cache_dir,
+        path_to_llm_response_cache_dir=args.path_to_llm_response_cache_dir,
         disable_llm_cache=args.disable_llm_cache,
         specgen_granularity=specgen_granularity,
     )
 
     try:
-        run_with_timeout(
+        complete_proofstates = run_with_timeout(
             _verify_program,
             parsec_file,
             specification_generator,
             args.skip_verified_cached_functions,
             timeout_sec=args.specification_generation_timeout_sec,
         )
+        return complete_proofstates
     except TimeoutError as te:
         logger.error(
             f"'_verify_program' timed out after {args.specification_generation_timeout_sec}", te
