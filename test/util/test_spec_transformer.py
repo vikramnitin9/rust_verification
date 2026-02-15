@@ -25,7 +25,6 @@ def test_move_preconditions_to_ensures_disjunctions():
         postconditions=["__CPROVER_ensures(pp->p->buf[0] == 0)"],
     )
     actual_transformed_spec = transformer.move_preconditions_to_ensures(spec_with_preconditions)
-    print(actual_transformed_spec)
     expected_transformed_spec = FunctionSpecification(
         preconditions=[],
         postconditions=[
