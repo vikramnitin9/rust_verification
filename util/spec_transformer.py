@@ -3,6 +3,7 @@
 from translation.ast.cbmc_ast import (
     AndOp,
     Assigns,
+    CallOp,
     CBMCAst,
     EnsuresClause,
     EqOp,
@@ -28,11 +29,15 @@ class SpecTransformer:
 
     """
 
-    _parser: Parser[CBMCAst] = Parser(
-        path_to_grammar_defn="translation/grammar/cbmc.txt",
-        start="cbmc_clause",
-        transformer=ToAst(),
-    )
+    _parser: Parser[CBMCAst]
+
+    def __init__(self):
+        """Create a new SpecTransformer."""
+        self._parser = Parser(
+            path_to_grammar_defn="translation/grammar/cbmc.txt",
+            start="cbmc_clause",
+            transformer=ToAst(),
+        )
 
     def move_preconditions_to_assigns(self, spec: FunctionSpecification) -> FunctionSpecification:
         """Return a spec where precondition expressions are moved to conditions for assigns clauses.
@@ -181,11 +186,12 @@ class SpecTransformer:
         Returns:
             CBMCAst: The result of applying the logical operation.
         """
-        if len(exprs) == 1:
-            return exprs[0]
-        result = logical_op(left=exprs.pop(), right=exprs.pop())
-        while exprs:
-            result = logical_op(left=exprs.pop(), right=result)
+        if not exprs:
+            msg = f"{logical_op} cannot be applied to an empty list of expressions"
+            raise ValueError(msg)
+        result = exprs[0]
+        for expr in exprs[1:]:
+            result = logical_op(left=result, right=expr)
         return result
 
     def _negate(self, expr: CBMCAst) -> CBMCAst:
@@ -216,5 +222,9 @@ class SpecTransformer:
                 return GeOp(left, right)
             case LeOp(left, right):
                 return GtOp(left, right)
+            case CallOp(_, _):
+                # This assumes that any method calls in a precondition return booleans.
+                # Fine for now, but may have to come back later.
+                return NotOp(expr)
             case _:
                 return expr
