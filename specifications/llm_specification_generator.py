@@ -79,6 +79,7 @@ class LlmSpecificationGenerator:
         fix_illegal_syntax: bool,
         normalize_specs: bool,
         specgen_granularity: SpecGenGranularity,
+        path_to_llm_cache_dir: str,
         disable_llm_cache: bool = False,
     ) -> None:
         """Create a new LlmSpecificationGenerator."""
@@ -95,6 +96,7 @@ class LlmSpecificationGenerator:
             model_name=model,
             top_k=num_specification_candidates,
             temperature=temperature,
+            path_to_llm_cache_dir=path_to_llm_cache_dir,
             disable_llm_cache=disable_llm_cache,
         )
 

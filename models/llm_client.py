@@ -5,8 +5,6 @@ from diskcache import Cache  # ty: ignore
 from .conversation_message import ConversationMessage
 from .llm_gen import LLMGen
 
-DEFAULT_CACHE_DIR = "data/caching/"
-
 
 class LlmClient:
     """Class providing cache-backed LLM-calling functions.
@@ -15,16 +13,23 @@ class LlmClient:
         _llm (LLMGen): The internal LLM interface (see https://docs.litellm.ai/docs/).
         _top_k (int): The number of samples to obtain from the LLM.
         _temperature (float): The temperature (cannot be 0 if top_k > 1).
+        _path_to_llm_cache_dir (str): The path to the LLM response cache directory.
         _llm_cache (Cache | None): A cache of LLM responses.
     """
 
     _llm: LLMGen
     _top_k: int
     _temperature: float
+    _path_to_llm_cache_dir: str
     _llm_cache: Cache | None
 
     def __init__(
-        self, model_name: str, top_k: int, temperature: float, disable_llm_cache: bool = False
+        self,
+        model_name: str,
+        top_k: int,
+        temperature: float,
+        path_to_llm_cache_dir: str,
+        disable_llm_cache: bool = False,
     ):
         """Create a new LlmClient."""
         if top_k > 1 and temperature == 0:
@@ -36,7 +41,7 @@ class LlmClient:
         self._llm = LLMGen.get_llm_generation_with_model(model_name=model_name)
         self._top_k = top_k
         self._temperature = temperature
-        self._llm_cache = None if disable_llm_cache else Cache(directory=DEFAULT_CACHE_DIR)
+        self._llm_cache = None if disable_llm_cache else Cache(directory=path_to_llm_cache_dir)
 
     def get(
         self,

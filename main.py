@@ -43,6 +43,10 @@ DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS = 2
 DEFAULT_SPECIFICATION_GENERATION_TIMEOUT_SEC = 300
 DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
 DEFAULT_RESULT_DIR = "specs"
+
+# Directory to store the `cache.db` file containing the text responses from LLM.
+DEFAULT_LLM_CACHE_DIR = "data/caching/llm"
+# Directory to store the `cache.db` file for verification results.
 DEFAULT_VERIFIER_RESULT_CACHE_DIR = "data/caching/verifier"
 
 GLOBAL_OBSERVED_PROOFSTATES: set[ProofState] = set()
@@ -145,6 +149,13 @@ def main() -> None:
             "workstack of functions. (defaults to False)"
         ),
     )
+    parser.add_argument(
+        "--path-to-llm-response-cache",
+        type=str,
+        required=False,
+        default=DEFAULT_LLM_CACHE_DIR,
+        help=("Path to the directory that holds the cache.db file used for storing LLM responses."),
+    )
     args = parser.parse_args()
 
     input_file_path = Path(args.file)
@@ -165,6 +176,7 @@ def main() -> None:
         num_specification_repair_iterations=args.num_specification_repair_iterations,
         fix_illegal_syntax=args.fix_illegal_syntax,
         normalize_specs=args.normalize_specs,
+        path_to_llm_cache_dir=args.path_to_llm_cache_dir,
         disable_llm_cache=args.disable_llm_cache,
         specgen_granularity=specgen_granularity,
     )
