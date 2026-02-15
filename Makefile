@@ -13,9 +13,13 @@ docker-build:
 run:
 	@bash run.sh
 
-# Run `pytest` within container.
-test:
-	bash run.sh pytest
+# Run unit tests with `pytest` within container.
+unit-test:
+	bash run.sh pytest --ignore=test/integration
+
+# Run integration tests with `pytest` within container.
+integration-test:
+	bash run.sh pytest test/integration
 
 # Run all code style checks.
 checks: style-fix style-check
