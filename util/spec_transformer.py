@@ -1,6 +1,21 @@
 """Class for applying transformations to specifications."""
 
-from translation.ast.cbmc_ast import AndOp, Assigns, CBMCAst, RequiresClause, ToAst
+from translation.ast.cbmc_ast import (
+    AndOp,
+    Assigns,
+    CBMCAst,
+    EnsuresClause,
+    EqOp,
+    GeOp,
+    GtOp,
+    LeOp,
+    LtOp,
+    NeqOp,
+    NotOp,
+    OrOp,
+    RequiresClause,
+    ToAst,
+)
 from translation.parser import Parser
 from util import FunctionSpecification
 
@@ -34,7 +49,7 @@ class SpecTransformer:
             __CPROVER_assigns(pp->p->buf[0])
             {
                 if(pp && pp->p && pp->p->buf)
-                pp->p->buf[0] = 0;
+                    pp->p->buf[0] = 0;
             }
             ```
 
@@ -65,7 +80,7 @@ class SpecTransformer:
         precondition_exprs = [
             clause.expr for clause in preconditions if isinstance(clause, RequiresClause)
         ]
-        conjunction_of_preconditions_exprs = self._make_conjunction_from(precondition_exprs)
+        conjunction_of_preconditions_exprs = self._apply_logical_op(precondition_exprs, AndOp)
 
         updated_postconditions = []
         is_assigns_clause_updated = False
@@ -82,18 +97,67 @@ class SpecTransformer:
         )
 
     def move_preconditions_to_ensures(self, spec: FunctionSpecification) -> FunctionSpecification:
-        """TODO: Implement me.
+        """Return a spec where precondition exprs are moved to disjunctions for ensures clauses.
+
+        There are cases where a specification might contain preconditions that are *too* strong,
+        effectively weakening the entire specification. Below is one example:
+
+            ```c
+            void f1(struct pair_of_pairs *pp)
+            __CPROVER_requires(pp != NULL)
+            __CPROVER_requires(pp->p != NULL)
+            __CPROVER_requires(pp->p->buf != NULL)
+            __CPROVER_ensures(pp->p->buf[0] == 0)
+            {
+                if(pp && pp->p && pp->p->buf)
+                    pp->p->buf[0] = 0;
+            }
+            ```
+
+        It is the case that `f1` might be called with a NULL `pp` (or `pp->p` or `pp->p->buf`), and
+        the function accounts for this with a conditional check. A more expressive spec is:
+
+            __CPROVER_ensures(
+                pp == NULL || pp->p == NULL || pp->p->buf == NULL || pp->p->buf[0] == 0
+            )
 
         Args:
-            spec (FunctionSpecification): _description_
-
-        Raises:
-            NotImplementedError: _description_
+            spec (FunctionSpecification): The specification.
 
         Returns:
-            FunctionSpecification: _description_
+            FunctionSpecification: The specification, where each precondition expression is moved
+                to a disjunction in ensures clauses.
         """
-        raise NotImplementedError("TODO")
+        if not spec.preconditions:
+            return spec
+
+        preconditions = [self._parser.parse(clause) for clause in spec.preconditions]
+        postconditions = [self._parser.parse(clause) for clause in spec.postconditions]
+        negated_precondition_exprs = [
+            self._negate(clause.expr)
+            for clause in preconditions
+            if isinstance(clause, RequiresClause)
+        ]
+        disjunction_of_negated_precondition_exprs = self._apply_logical_op(
+            negated_precondition_exprs, OrOp
+        )
+
+        updated_postconditions = []
+        is_ensures_clause_updated = False
+        for clause in postconditions:
+            if isinstance(clause, EnsuresClause):
+                updated_ensures_expr = self._apply_logical_op(
+                    [disjunction_of_negated_precondition_exprs, clause.expr], OrOp
+                )
+                clause.expr = updated_ensures_expr
+                is_ensures_clause_updated = True
+            updated_postconditions.append(clause.to_string())
+
+        return (
+            FunctionSpecification(preconditions=[], postconditions=updated_postconditions)
+            if is_ensures_clause_updated
+            else spec
+        )
 
     def _get_assigns_clauses(self, spec: FunctionSpecification) -> list[Assigns]:
         """Return the Assigns clauses in a specification.
@@ -107,19 +171,50 @@ class SpecTransformer:
         parsed_postconditions = [self._parser.parse(clause) for clause in spec.postconditions]
         return [clause for clause in parsed_postconditions if isinstance(clause, Assigns)]
 
-    def _make_conjunction_from(self, exprs: list[CBMCAst]) -> CBMCAst:
-        """Return a conjunction (i.e., an AndOp) comprising the given expressions.
+    def _apply_logical_op(self, exprs: list[CBMCAst], logical_op: type[AndOp | OrOp]) -> CBMCAst:
+        """Return the result of applying a logical operation between each expr.
 
         Args:
-            exprs (list[CBMCAst]): The expressions to construct a conjunction from.
+            exprs (list[CBMCAst]): The exprs to which to apply the logical operation.
+            logical_op (type[AndOp  |  OrOp]): The logical operation.
 
         Returns:
-            CBMCAst: The conjunction.
+            CBMCAst: The result of applying the logical operation.
         """
         if len(exprs) == 1:
             return exprs[0]
-        conjunction = AndOp(left=exprs.pop(), right=exprs.pop())
-        andop = conjunction
+        result = logical_op(left=exprs.pop(), right=exprs.pop())
         while exprs:
-            andop = AndOp(left=exprs.pop(), right=andop)
-        return andop
+            result = logical_op(left=exprs.pop(), right=result)
+        return result
+
+    def _negate(self, expr: CBMCAst) -> CBMCAst:
+        """Return the negated expr.
+
+        Args:
+            expr (CBMCAst): The expr to negate.
+
+        Returns:
+            CBMCAst: The negated expr.
+        """
+        match expr:
+            case AndOp(left, right):
+                return OrOp(left=self._negate(left), right=self._negate(right))
+            case OrOp(left, right):
+                return AndOp(left=self._negate(left), right=self._negate(right))
+            case NotOp(operand):
+                return operand
+            case EqOp(left, right):
+                return NeqOp(left, right)
+            case NeqOp(left, right):
+                return EqOp(left, right)
+            case GtOp(left, right):
+                return LeOp(left, right)
+            case GeOp(left, right):
+                return LtOp(left, right)
+            case LtOp(left, right):
+                return GeOp(left, right)
+            case LeOp(left, right):
+                return GtOp(left, right)
+            case _:
+                return expr
