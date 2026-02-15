@@ -4,6 +4,7 @@
 
 import argparse
 import os
+import pickle as pkl
 import shutil
 import sys
 import tempfile
@@ -60,13 +61,10 @@ VERIFIER_CACHE: Cache = Cache(directory=DEFAULT_VERIFIER_RESULT_CACHE_DIR)
 tempfile.tempdir = DEFAULT_RESULT_DIR
 
 
-def main() -> tuple[ProofState, ...]:
+def main() -> None:
     """Generate specifications for a given C file using an LLM and verify them with CBMC.
 
     The current implementation operates over all the C functions in one file.
-
-    Returns:
-        tuple[ProofState, ...]: The complete proofstates.
     """
     parser = argparse.ArgumentParser(
         prog="main.py", description="Generate and verify CBMC specifications for a C file."
@@ -159,6 +157,12 @@ def main() -> tuple[ProofState, ...]:
         default=DEFAULT_LLM_CACHE_DIR,
         help=("Path to the directory that holds the cache.db file used for storing LLM responses."),
     )
+    parser.add_argument(
+        "--path-to-save-proofstates",
+        type=str,
+        required=False,
+        help=("Path to the file to which to save complete ProofStates."),
+    )
     args = parser.parse_args()
 
     input_file_path = Path(args.file)
@@ -185,14 +189,14 @@ def main() -> tuple[ProofState, ...]:
     )
 
     try:
-        complete_proofstates = run_with_timeout(
+        run_with_timeout(
             _verify_program,
             parsec_file,
             specification_generator,
             args.skip_verified_cached_functions,
+            args.path_to_save_proofstates,
             timeout_sec=args.specification_generation_timeout_sec,
         )
-        return complete_proofstates
     except TimeoutError as te:
         logger.error(
             f"'_verify_program' timed out after {args.specification_generation_timeout_sec}", te
@@ -204,6 +208,7 @@ def _verify_program(
     parsec_file: ParsecFile,
     specification_generator: LlmSpecificationGenerator,
     skip_verified_cached_functions: bool,
+    path_to_save_proofstates: str | None,
 ) -> tuple[ProofState, ...]:
     """Return a set of ProofStates, each of which has a specification for each function.
 
@@ -216,6 +221,7 @@ def _verify_program(
         skip_verified_cached_functions (bool): True iff functions that have verified and cached
             specifications should not be added to the workstack of functions for which to generate
             specs.
+        path_to_save_proofstates (str | None): Path to where complete ProofStates should be written.
 
     Returns:
         tuple[ProofState, ...]: A set of ProofStates, each of which has specifications for each
@@ -259,6 +265,10 @@ def _verify_program(
                 GLOBAL_COMPLETE_PROOFSTATES.append(next_proofstate)
             else:
                 GLOBAL_INCOMPLETE_PROOFSTATES.append(next_proofstate)
+
+    if proofstate_file_path := path_to_save_proofstates:
+        with Path(f"{proofstate_file_path}/proofstates.pkl").open("wb") as f:
+            pkl.dump(GLOBAL_COMPLETE_PROOFSTATES, f, protocol=pkl.HIGHEST_PROTOCOL)
 
     return tuple(GLOBAL_COMPLETE_PROOFSTATES)
 
