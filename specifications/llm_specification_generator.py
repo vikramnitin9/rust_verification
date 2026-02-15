@@ -80,6 +80,7 @@ class LlmSpecificationGenerator:
         normalize_specs: bool,
         specgen_granularity: SpecGenGranularity,
         path_to_llm_response_cache_dir: str,
+        is_running_as_stub: bool,
         disable_llm_cache: bool = False,
     ) -> None:
         """Create a new LlmSpecificationGenerator."""
@@ -97,6 +98,7 @@ class LlmSpecificationGenerator:
             top_k=num_specification_candidates,
             temperature=temperature,
             path_to_llm_response_cache_dir=path_to_llm_response_cache_dir,
+            is_running_as_stub=is_running_as_stub,
             disable_llm_cache=disable_llm_cache,
         )
 

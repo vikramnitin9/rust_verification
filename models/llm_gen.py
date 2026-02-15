@@ -28,7 +28,7 @@ class ModelError(Exception):
 class LLMGen:
     """Encapsulate LLM-based generation logic."""
 
-    def __init__(self, model: str, is_vertex_available: bool = True):
+    def __init__(self, model: str, is_running_as_stub: bool, is_vertex_available: bool = True):
         if is_vertex_available:
             litellm.vertex_location = "us-east5"
             with pathlib.Path(os.environ["VERTEX_AI_JSON"]).open(encoding="utf-8") as file:
@@ -38,7 +38,7 @@ class LLMGen:
         else:
             self.vertex_credentials = None
             self.model = model
-            self.api_key = os.environ["LLM_API_KEY"]
+            self.api_key = None if is_running_as_stub else os.environ["LLM_API_KEY"]
 
         if "claude" in model:
             self.max_tokens = 64000
@@ -104,11 +104,13 @@ class LLMGen:
         return [choice["message"]["content"] for choice in response["choices"]]
 
     @staticmethod
-    def get_llm_generation_with_model(model_name: str) -> "LLMGen":
+    def get_llm_generation_with_model(model_name: str, is_running_as_stub: bool) -> "LLMGen":
         """Return an instance of LLMGen which calls the model with the given name.
 
         Args:
             model_name (str): The name of the model to run generation with.
+            is_running_as_stub (bool): True iff code generation is stubbed out
+                (e.g., for integration tests).
 
         Raises:
             ModelError: Raised when an unsupported model is passed to this function.
@@ -121,9 +123,17 @@ class LLMGen:
                 claude_model_name = "claude-3-7-sonnet@20250219"
                 if not IS_VERTEX_AVAILABLE:
                     claude_model_name = claude_model_name.replace("@", "-")
-                return LLMGen(model=claude_model_name, is_vertex_available=IS_VERTEX_AVAILABLE)
+                return LLMGen(
+                    model=claude_model_name,
+                    is_running_as_stub=is_running_as_stub,
+                    is_vertex_available=IS_VERTEX_AVAILABLE,
+                )
             case "gpt-4o":
-                return LLMGen(model=model_name, is_vertex_available=IS_VERTEX_AVAILABLE)
+                return LLMGen(
+                    model=model_name,
+                    is_running_as_stub=is_running_as_stub,
+                    is_vertex_available=IS_VERTEX_AVAILABLE,
+                )
             case _:
                 msg = f"Unsupported model: {model_name}"
                 raise ModelError(msg)

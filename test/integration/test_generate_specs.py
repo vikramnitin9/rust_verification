@@ -47,6 +47,7 @@ def test_generate_specs_max_min() -> None:
         f" --num-specification-repair-iterations 1"
         f" --path-to-llm-response-cache-dir {LLM_CACHE_DIR_FOR_INTEGRATION_TESTS}"
         f" --path-to-save-proofstates {PATH_TO_INTEGRATION_TEST_DIR}"
+        f" --stub-out-llm"
     )
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
 

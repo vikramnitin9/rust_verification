@@ -29,6 +29,7 @@ class LlmClient:
         top_k: int,
         temperature: float,
         path_to_llm_response_cache_dir: str,
+        is_running_as_stub: bool,
         disable_llm_cache: bool = False,
     ):
         """Create a new LlmClient."""
@@ -38,7 +39,9 @@ class LlmClient:
                 f"(temperature = {temperature}, top_k = {top_k})"
             )
             raise ValueError(msg)
-        self._llm = LLMGen.get_llm_generation_with_model(model_name=model_name)
+        self._llm = LLMGen.get_llm_generation_with_model(
+            model_name=model_name, is_running_as_stub=is_running_as_stub
+        )
         self._top_k = top_k
         self._temperature = temperature
         self._llm_cache = (

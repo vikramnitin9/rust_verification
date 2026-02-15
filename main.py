@@ -163,6 +163,14 @@ def main() -> None:
         required=False,
         help=("Path to the file to which to save complete ProofStates."),
     )
+    parser.add_argument(
+        "--stub-out-llm",
+        action="store_true",
+        help=(
+            "Stub out the LLM client (e.g., for integration tests). Otherwise, the constructor will"
+            "look for an environment variable (LLM_API_KEY) that is not available on a runner."
+        ),
+    )
     args = parser.parse_args()
 
     input_file_path = Path(args.file)
@@ -184,6 +192,7 @@ def main() -> None:
         fix_illegal_syntax=args.fix_illegal_syntax,
         normalize_specs=args.normalize_specs,
         path_to_llm_response_cache_dir=args.path_to_llm_response_cache_dir,
+        is_running_as_stub=args.stub_out_llm,
         disable_llm_cache=args.disable_llm_cache,
         specgen_granularity=specgen_granularity,
     )
