@@ -2,10 +2,12 @@
 
 import subprocess
 import pickle as pkl
+import os
+from pathlib import Path
 
-LLM_CACHE_DIR_FOR_INTEGRATION_TESTS = "test/data/caching/llm/integration"
-PATH_TO_INTEGRATION_TEST_DIR = "test/integration"
-DEFAULT_SPEC_CANDIDATES_FOR_TESTING = 5
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+LLM_CACHE_DIR_FOR_INTEGRATION_TESTS = str(REPO_ROOT / "test/data/caching/llm/integration")
+PATH_TO_INTEGRATION_TEST_DIR = str(REPO_ROOT / "test/integration")
 
 VERIFIED_FUNCTION_SRC_CODE = """struct Pair get_min_max(int arr[], int n)
 __CPROVER_requires(__CPROVER_is_fresh(arr, n * sizeof(int)))
@@ -49,15 +51,17 @@ def test_generate_specs_max_min() -> None:
         f" --path-to-save-proofstates {PATH_TO_INTEGRATION_TEST_DIR}"
         f" --stub-out-llm"
     )
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    result = subprocess.run(
+        cmd, shell=True, capture_output=True, text=True, cwd=str(REPO_ROOT)
+    )
 
-    assert result.returncode == 0
-
-    # There are 3 successfully-verifying specs parsed from the cached LLM response.
-    # Note that they don't have to be unique.
+    assert result.returncode == 0, f"Process failed.\nstderr:\n{result.stderr}"
     assert result.stderr.count("Verification succeeded for function 'get_min_max") == 3
 
-    with open(f"{PATH_TO_INTEGRATION_TEST_DIR}/proofstates.pkl", "rb") as f:
+    pkl_path = Path(PATH_TO_INTEGRATION_TEST_DIR) / "proofstates.pkl"
+    assert pkl_path.exists(), f"File not found at {pkl_path}.\nstderr:\n{result.stderr}"
+
+    with open(pkl_path, "rb") as f:
         proof_states = pkl.load(f)
         get_min_max_src = set()
         for ps in proof_states:
