@@ -8,6 +8,7 @@ from loguru import logger
 
 from models import (
     ConversationMessage,
+    DefaultLlmBackend,
     LlmClient,
     LlmMessage,
     ModelError,
@@ -92,7 +93,7 @@ class LlmSpecificationGenerator:
         self._normalize_specs = normalize_specs
         self._specgen_granularity = specgen_granularity
         self._llm_client = LlmClient(
-            model_name=model,
+            llm=DefaultLlmBackend.get_instance(model_name=model),
             top_k=num_specification_candidates,
             temperature=temperature,
             disable_llm_cache=disable_llm_cache,
