@@ -57,7 +57,7 @@ def test_generate_specs_max_min() -> None:
     # Note that they don't have to be unique.
     assert result.stderr.count("Verification succeeded for function 'get_min_max") == 3
 
-    with open("test/integration/proofstates.pkl", "rb") as f:
+    with open(f"{PATH_TO_INTEGRATION_TEST_DIR}/proofstates.pkl", "rb") as f:
         proof_states = pkl.load(f)
         get_min_max_src = set()
         for ps in proof_states:
