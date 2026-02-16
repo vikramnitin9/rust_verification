@@ -8,9 +8,11 @@ from loguru import logger
 
 from models import (
     ConversationMessage,
+    DefaultLlmBackend,
     LlmClient,
     LlmMessage,
     ModelError,
+    StubLlmBackend,
     SystemMessage,
     UserMessage,
 )
@@ -93,12 +95,14 @@ class LlmSpecificationGenerator:
         self._fix_illegal_syntax = fix_illegal_syntax
         self._normalize_specs = normalize_specs
         self._specgen_granularity = specgen_granularity
+        llm_backend = (
+            StubLlmBackend(model) if is_running_as_stub else DefaultLlmBackend.get_instance(model)
+        )
         self._llm_client = LlmClient(
-            model_name=model,
+            llm=llm_backend,
             top_k=num_specification_candidates,
             temperature=temperature,
             path_to_llm_response_cache_dir=path_to_llm_response_cache_dir,
-            is_running_as_stub=is_running_as_stub,
             disable_llm_cache=disable_llm_cache,
         )
 
