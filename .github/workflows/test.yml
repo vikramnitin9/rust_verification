@@ -17,5 +17,7 @@ jobs:
           submodules: true
       - name: Build Docker container
         run: make docker-build
-      - name: Run tests
-        run: make test
+      - name: Run unit tests
+        run: make unit-test
+      - name: Run integration tests
+        run: make integration-test

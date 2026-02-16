@@ -54,8 +54,16 @@ The Kani specifications in `data/rust_qsort/main.rs` are incomplete and currentl
 
 ## Tests
 
+Run unit tests:
+
 ```sh
-make test
+make unit-test
+```
+
+Run integration tests (i.e., test the system end-to-end with stubbed-out LLM calls):
+
+```sh
+make integration-test
 ```
 
 ## Debugging

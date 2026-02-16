@@ -5,8 +5,6 @@ from diskcache import Cache  # ty: ignore
 from .conversation_message import ConversationMessage
 from .llm_backend import LlmBackend
 
-DEFAULT_CACHE_DIR = "data/caching/"
-
 
 class LlmClient:
     """Class providing cache-backed LLM-calling functions.
@@ -15,16 +13,23 @@ class LlmClient:
         _llm (LlmBackend): The LLM backend to use.
         _top_k (int): The number of samples to obtain from the LLM.
         _temperature (float): The temperature (cannot be 0 if top_k > 1).
+        _path_to_llm_cache_dir (str): The path to the LLM response cache directory.
         _llm_cache (Cache | None): A cache of LLM responses.
     """
 
     _llm: LlmBackend
     _top_k: int
     _temperature: float
+    _path_to_llm_response_cache_dir: str
     _llm_cache: Cache | None
 
     def __init__(
-        self, llm: LlmBackend, top_k: int, temperature: float, disable_llm_cache: bool = False
+        self,
+        llm: LlmBackend,
+        top_k: int,
+        temperature: float,
+        path_to_llm_response_cache_dir: str,
+        disable_llm_cache: bool = False,
     ):
         """Create a new LLmClient."""
         if top_k > 1 and temperature == 0:
@@ -33,10 +38,13 @@ class LlmClient:
                 f"(temperature = {temperature}, top_k = {top_k})"
             )
             raise ValueError(msg)
+
         self._llm = llm
         self._top_k = top_k
         self._temperature = temperature
-        self._llm_cache = None if disable_llm_cache else Cache(directory=DEFAULT_CACHE_DIR)
+        self._llm_cache = (
+            None if disable_llm_cache else Cache(directory=path_to_llm_response_cache_dir)
+        )
 
     def get(
         self,
