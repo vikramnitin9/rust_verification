@@ -8,6 +8,7 @@ import shutil
 import sys
 import tempfile
 from collections import deque
+from collections.abc import Sequence
 from pathlib import Path
 
 from diskcache import Cache  # ty: ignore
@@ -20,9 +21,12 @@ from util import (
     AssumeSpecAsIs,
     BacktrackToCallee,
     CFunction,
-    ParsecFile,
+    ParsecProject,
     SpecConversation,
     SpecGenGranularity,
+    copy_file_to_folder,
+    copy_folder_to_folder,
+    ensure_lines_at_beginning,
     function_util,
     run_with_timeout,
 )
@@ -35,6 +39,10 @@ from verification import (
 )
 
 MODEL = "gpt-4o"
+DEFAULT_HEADERS_FOR_VERIFICATION: Sequence[str] = (
+    "#include <stdlib.h>",
+    "#include <limits.h>",
+)
 DEFAULT_NUM_SPECIFICATION_CANDIDATES = 10
 DEFAULT_NUM_REPAIR_CANDIDATES = 10
 DEFAULT_MODEL_TEMPERATURE = 0.8
@@ -57,16 +65,23 @@ tempfile.tempdir = DEFAULT_RESULT_DIR
 
 
 def main() -> None:
-    """Generate specifications for a given C file using an LLM and verify them with CBMC.
-
-    The current implementation operates over all the C functions in one file.
-    """
+    """Generate specifications for a given C project using an LLM and verify them with CBMC."""
     parser = argparse.ArgumentParser(
-        prog="main.py", description="Generate and verify CBMC specifications for a C file."
+        prog="main.py",
+        description="Generate and verify CBMC specifications for a C project.",
     )
     parser.add_argument(
-        "file",
-        help="The C file for which to generate and verify specifications.",
+        "--project-root",
+        required=False,
+        help="The root directory of the C project for which to generate and verify specifications. \
+            Must contain compile_commands.json. Note that this cannot be used \
+            along with --input-file-path.",
+    )
+    parser.add_argument(
+        "--input-file-path",
+        required=False,
+        help="The path to the C file to analyze. Note that this cannot be used \
+            along with --project-root.",
     )
     parser.add_argument(
         "--num-specification-candidates",
@@ -147,12 +162,31 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    input_file_path = Path(args.file)
-    parsec_file = ParsecFile(input_file_path)
-    specgen_granularity = SpecGenGranularity(args.specgen_granularity)
+    if args.project_root and args.input_file_path:
+        msg = "Please provide either --project-root or --input-file-path, not both."
+        raise ValueError(msg)
+    if not args.project_root and not args.input_file_path:
+        msg = "Please provide either --project-root or --input-file-path."
+        raise ValueError(msg)
 
-    # MDE: Will this path be repeatedly overwritten during the verification process?  If so, that is
-    # a serious problem for concurrency.
+    if args.input_file_path:
+        input_file_path = Path(args.input_file_path).resolve()
+        # MDE: Will this path be repeatedly overwritten during the verification process?
+        # If so, that is a serious problem for concurrency.
+        output_file_path = copy_file_to_folder(input_file_path, DEFAULT_RESULT_DIR)
+        ensure_lines_at_beginning(DEFAULT_HEADERS_FOR_VERIFICATION, output_file_path)
+        parsec_project = ParsecProject(input_file_path)
+    elif args.project_root:
+        project_root = Path(args.project_root).resolve()
+        output_directory = copy_folder_to_folder(project_root, DEFAULT_RESULT_DIR)
+        for c_file in output_directory.rglob("*.c"):
+            ensure_lines_at_beginning(DEFAULT_HEADERS_FOR_VERIFICATION, c_file)
+        parsec_project = ParsecProject(project_root)
+    else:
+        msg = "Unexpected error: neither --project-root nor --input-file-path was provided."
+        raise ValueError(msg)
+
+    specgen_granularity = SpecGenGranularity(args.specgen_granularity)
 
     verifier: VerificationClient = CbmcVerificationClient(cache=VERIFIER_CACHE)
     specification_generator = LlmSpecificationGenerator(
@@ -172,20 +206,21 @@ def main() -> None:
     try:
         run_with_timeout(
             _verify_program,
-            parsec_file,
+            parsec_project,
             specification_generator,
             args.skip_verified_cached_functions,
             timeout_sec=args.specification_generation_timeout_sec,
         )
     except TimeoutError as te:
         logger.error(
-            f"'_verify_program' timed out after {args.specification_generation_timeout_sec}", te
+            f"'_verify_program' timed out after {args.specification_generation_timeout_sec}",
+            te,
         )
         sys.exit(0)
 
 
 def _verify_program(
-    parsec_file: ParsecFile,
+    parsec_project: ParsecProject,
     specification_generator: LlmSpecificationGenerator,
     skip_verified_cached_functions: bool,
 ) -> tuple[ProofState, ...]:
@@ -195,7 +230,7 @@ def _verify_program(
     exceeds the user-specified or defaulted specification generation timeout.
 
     Args:
-        parsec_file (ParsecFile): The file to verify.
+        parsec_project (ParsecProject): The file to verify.
         specification_generator (LlmSpecificationGenerator): The LLM specification generator.
         skip_verified_cached_functions (bool): True iff functions that have verified and cached
             specifications should not be added to the workstack of functions for which to generate
@@ -208,7 +243,7 @@ def _verify_program(
     """
     # Since the initial list of functions is in reverse topological order,
     # the first element processed will be a leaf.
-    functions = parsec_file.get_functions_in_topological_order()
+    functions = parsec_project.get_functions_in_topological_order()
 
     if skip_verified_cached_functions:
         functions = [f for f in functions if not _is_verified_and_cached(f)]
@@ -229,7 +264,7 @@ def _verify_program(
         next_proofstates = _step(
             proof_state=proof_state,
             specification_generator=specification_generator,
-            parsec_file=parsec_file,
+            parsec_project=parsec_project,
         )
 
         for next_proofstate in next_proofstates:
@@ -250,7 +285,7 @@ def _verify_program(
 def _step(
     proof_state: ProofState,
     specification_generator: LlmSpecificationGenerator,
-    parsec_file: ParsecFile,
+    parsec_project: ParsecProject,
 ) -> list[ProofState]:
     """Given a ProofState, returns of list of ProofStates, each of which makes a "step" of progress.
 
@@ -268,7 +303,7 @@ def _step(
     Args:
         proof_state (ProofState): The proof state from which to generate new proof states.
         specification_generator (LlmSpecificationGenerator): The specification generator.
-        parsec_file (ParsecFile): The file being verified.
+        parsec_project (ParsecProject): The file being verified.
 
     Returns:
         list[ProofState]: The list of new proof states to explore.
@@ -280,7 +315,7 @@ def _step(
     # that the algorithm may revisit this function later due to backtracking.
     speccs_for_function: list[SpecConversation] = specification_generator.generate_and_repair_spec(
         function=work_item.function,
-        parsec_file=parsec_file,
+        parsec_project=parsec_project,
         hint=work_item.hint,
         proof_state=proof_state,
     )
@@ -376,14 +411,15 @@ def _get_next_proof_state(
             _write_spec_to_disk(spec_conversation=spec_conversation)
             workstack_for_next_proof_state = prev_proof_state.get_workstack().pop()
             return ProofState(
-                specs=specs_for_next_proof_state, workstack=workstack_for_next_proof_state
+                specs=specs_for_next_proof_state,
+                workstack=workstack_for_next_proof_state,
             )
         case BacktrackToCallee(callee, hint):
             # TODO: Fetching the callee from the same file in which the function under spec. gen.
             # is defined is a brittle assumption that should be fixed with multi-file ParseC
             # support.
             result_file = _get_result_file(function=spec_conversation.function)
-            if callee := ParsecFile(result_file).get_function_or_none(function_name=callee):
+            if callee := ParsecProject(result_file).get_function_or_none(function_name=callee):
                 work_item_for_callee = WorkItem(function=callee, hint=hint)
                 workstack_for_next_proof_state = prev_proof_state.get_workstack().push(
                     work_item_for_callee
@@ -424,18 +460,18 @@ def _write_spec_to_disk(spec_conversation: SpecConversation) -> None:
         result_file.parent.mkdir(exist_ok=True, parents=True)
         shutil.copy(path_to_original_file, result_file)
 
-    parsec_file = ParsecFile(result_file)
+    parsec_project = ParsecProject(result_file)
     function_with_verified_spec = function_util.get_source_code_with_inserted_spec(
         function_name=function.name,
         specification=spec_conversation.specification,
-        parsec_file=parsec_file,
+        parsec_project=parsec_project,
         comment_out_spec=True,
     )
 
-    function_util.update_function_declaration(
+    function_util.update_function_definition(
         function_name=function.name,
         updated_function_content=function_with_verified_spec,
-        parsec_file=parsec_file,
+        parsec_project=parsec_project,
         file=result_file,
     )
 

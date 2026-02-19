@@ -57,14 +57,12 @@ class CbmcVerificationClient(VerificationClient):
             ) as tmp_f:
                 tmp_f.write(vinput.contents_of_file_to_verify)
                 tmp_f.flush()
-                path_to_file = Path(tmp_f.name)
+                file = Path(tmp_f.name)
                 file_util.ensure_lines_at_beginning(
-                    CbmcVerificationClient.DEFAULT_HEADERS_FOR_VERIFICATION, path_to_file
+                    CbmcVerificationClient.DEFAULT_HEADERS_FOR_VERIFICATION, file
                 )
                 try:
-                    vcommand = self._get_cbmc_verification_command(
-                        vinput, path_to_file_to_verify=path_to_file
-                    )
+                    vcommand = self._get_cbmc_verification_command(vinput, file_to_verify=file)
                     logger.debug(f"Running command: {vcommand}")
                     result = subprocess.run(vcommand, shell=True, capture_output=True, text=True)
                     self._cache[vinput] = VerificationResult(
@@ -88,13 +86,13 @@ class CbmcVerificationClient(VerificationClient):
     def _get_cbmc_verification_command(
         self,
         verification_input: VerificationInput,
-        path_to_file_to_verify: Path,
+        file_to_verify: Path,
     ) -> str:
         """Return the command used to verify a function in a file with CBMC.
 
         Args:
             verification_input (VerificationInput): The verification input.
-            path_to_file_to_verify (Path): The path to the file to verify.
+            file_to_verify (Path): The path to the file to verify.
 
         Returns:
             str: The command used to verify a function in a file with CBMC.
@@ -106,10 +104,7 @@ class CbmcVerificationClient(VerificationClient):
         )
         return " && ".join(
             [
-                (
-                    f"goto-cc -o {function_name}.goto {path_to_file_to_verify} "
-                    f"--function {function_name}"
-                ),
+                (f"goto-cc -o {function_name}.goto {file_to_verify} --function {function_name}"),
                 (
                     f"goto-instrument --partial-loops --unwind 5 "
                     f"{function_name}.goto {function_name}.goto"
