@@ -28,10 +28,12 @@ class CBMCAst(ast_utils.Ast):
     def negate(self) -> "CBMCAst":
         """Return the negation of this AST node.
 
+        Note: This is a general case that avoids crashes at run-time (but may not be sound).
+
         Returns:
             CBMCAst: The negation of this AST node.
         """
-        raise NotImplementedError(f"negate not implemented for {type(self).__name__}")
+        return NotOp(self)
 
 
 def _to_str(node: Any) -> str:
@@ -364,9 +366,6 @@ class CallOp(CBMCAst):
 
     def to_string(self) -> str:
         return f"{_to_str(self.func)}({_to_str(self.args)})"
-
-    def negate(self) -> CBMCAst:
-        return NotOp(self)
 
 
 @dataclass

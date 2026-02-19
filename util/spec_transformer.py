@@ -23,7 +23,7 @@ class SpecTransformer:
 
     _parser: Parser[CBMCAst]
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Create a new SpecTransformer."""
         self._parser = Parser(
             path_to_grammar_defn="translation/grammar/cbmc.txt",
@@ -153,18 +153,6 @@ class SpecTransformer:
             if is_ensures_clause_updated
             else spec
         )
-
-    def _get_assigns_clauses(self, spec: FunctionSpecification) -> list[Assigns]:
-        """Return the Assigns clauses in a specification.
-
-        Args:
-            spec (FunctionSpecification): The specification.
-
-        Returns:
-            list[Assigns]: The Assigns clauses in a specification.
-        """
-        parsed_postconditions = [self._parser.parse(clause) for clause in spec.postconditions]
-        return [clause for clause in parsed_postconditions if isinstance(clause, Assigns)]
 
     def _apply_logical_op(self, exprs: list[CBMCAst], logical_op: type[AndOp | OrOp]) -> CBMCAst:
         """Return the result of applying a logical operation between each expr.
