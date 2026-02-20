@@ -17,7 +17,39 @@ from lark.tree import Meta
 
 
 class CBMCAst(ast_utils.Ast):
-    pass
+    def to_string(self) -> str:
+        """Convert this AST node to its string representation.
+
+        Returns:
+            str: The string form of this AST node.
+        """
+        raise NotImplementedError(f"to_string not implemented for {type(self).__name__}")
+
+    def negate(self) -> "CBMCAst":
+        """Return the negation of this AST node.
+
+        Note: This is a general case that avoids crashes at run-time (but may not be sound).
+
+        Returns:
+            CBMCAst: The negation of this AST node.
+        """
+        return NotOp(self)
+
+
+def _to_str(node: Any) -> str:
+    """Convert an AST node or primitive value to a string.
+
+    Args:
+        node: A CBMCAst node or a primitive value.
+
+    Returns:
+        str: The string representation.
+    """
+    if node is None:
+        return ""
+    if isinstance(node, CBMCAst):
+        return node.to_string()
+    return str(node)
 
 
 @dataclass
@@ -25,21 +57,33 @@ class RequiresClause(CBMCAst, ast_utils.WithMeta):
     meta: Meta
     expr: Any
 
+    def to_string(self) -> str:
+        return f"__CPROVER_requires({_to_str(self.expr)})"
+
 
 @dataclass
 class EnsuresClause(CBMCAst, ast_utils.WithMeta):
     meta: Meta
     expr: Any
 
+    def to_string(self) -> str:
+        return f"__CPROVER_ensures({_to_str(self.expr)})"
+
 
 @dataclass
 class ExprList(CBMCAst, ast_utils.AsList):
     items: list[CBMCAst]
 
+    def to_string(self) -> str:
+        return ", ".join(_to_str(item) for item in self.items)
+
 
 @dataclass
 class AssignsTargetList(CBMCAst):
     items: ExprList
+
+    def to_string(self) -> str:
+        return _to_str(self.items)
 
 
 @dataclass
@@ -49,25 +93,44 @@ class Assigns(CBMCAst):
     condition: Any | None
     targets: AssignsTargetList
 
+    def to_string(self) -> str:
+        targets = _to_str(self.targets)
+        if self.condition:
+            cond = _to_str(self.condition)
+            return f"__CPROVER_assigns({cond} : {targets})"
+        return f"__CPROVER_assigns({targets})"
+
 
 @dataclass
 class Name(CBMCAst):
     name: str
+
+    def to_string(self) -> str:
+        return self.name
 
 
 @dataclass
 class Number(CBMCAst):
     value: Any
 
+    def to_string(self) -> str:
+        return str(self.value)
+
 
 @dataclass
 class Bool(CBMCAst):
     value: bool
 
+    def to_string(self) -> str:
+        return "1" if self.value else "0"
+
 
 @dataclass
 class StringLit(CBMCAst):
     value: str
+
+    def to_string(self) -> str:
+        return self.value
 
 
 @dataclass
@@ -79,6 +142,9 @@ class BinOp(ABC, CBMCAst):
     def operator(self) -> str:
         raise NotImplementedError("Subclasses must implement this method")
 
+    def to_string(self) -> str:
+        return f"({_to_str(self.left)} {self.operator()} {_to_str(self.right)})"
+
 
 @dataclass
 class OrOp(BinOp):
@@ -87,6 +153,9 @@ class OrOp(BinOp):
 
     def operator(self) -> str:
         return "||"
+
+    def negate(self) -> CBMCAst:
+        return AndOp(left=self.left.negate(), right=self.right.negate())
 
 
 @dataclass
@@ -97,6 +166,9 @@ class AndOp(BinOp):
     def operator(self) -> str:
         return "&&"
 
+    def negate(self) -> CBMCAst:
+        return OrOp(left=self.left.negate(), right=self.right.negate())
+
 
 @dataclass
 class EqOp(BinOp):
@@ -105,6 +177,9 @@ class EqOp(BinOp):
 
     def operator(self) -> str:
         return "=="
+
+    def negate(self) -> CBMCAst:
+        return NeqOp(left=self.left, right=self.right)
 
 
 @dataclass
@@ -115,6 +190,9 @@ class NeqOp(BinOp):
     def operator(self) -> str:
         return "!="
 
+    def negate(self) -> CBMCAst:
+        return EqOp(left=self.left, right=self.right)
+
 
 @dataclass
 class LtOp(BinOp):
@@ -123,6 +201,9 @@ class LtOp(BinOp):
 
     def operator(self) -> str:
         return "<"
+
+    def negate(self) -> CBMCAst:
+        return GeOp(left=self.left, right=self.right)
 
 
 @dataclass
@@ -133,6 +214,9 @@ class LeOp(BinOp):
     def operator(self) -> str:
         return "<="
 
+    def negate(self) -> CBMCAst:
+        return GtOp(left=self.left, right=self.right)
+
 
 @dataclass
 class GtOp(BinOp):
@@ -142,6 +226,9 @@ class GtOp(BinOp):
     def operator(self) -> str:
         return ">"
 
+    def negate(self) -> CBMCAst:
+        return LeOp(left=self.left, right=self.right)
+
 
 @dataclass
 class GeOp(BinOp):
@@ -150,6 +237,9 @@ class GeOp(BinOp):
 
     def operator(self) -> str:
         return ">="
+
+    def negate(self) -> CBMCAst:
+        return LtOp(left=self.left, right=self.right)
 
 
 @dataclass
@@ -201,25 +291,43 @@ class ModOp(BinOp):
 class NotOp(CBMCAst):
     operand: Any
 
+    def to_string(self) -> str:
+        return f"!{_to_str(self.operand)}"
+
+    def negate(self) -> CBMCAst:
+        return self.operand
+
 
 @dataclass
 class AddrOp(CBMCAst):
     operand: Any
+
+    def to_string(self) -> str:
+        return f"&{_to_str(self.operand)}"
 
 
 @dataclass
 class DerefOp(CBMCAst):
     operand: Any
 
+    def to_string(self) -> str:
+        return f"*{_to_str(self.operand)}"
+
 
 @dataclass
 class NegOp(CBMCAst):
     operand: Any
 
+    def to_string(self) -> str:
+        return f"-({_to_str(self.operand)})"
+
 
 @dataclass
 class PosOp(CBMCAst):
     operand: Any
+
+    def to_string(self) -> str:
+        return f"+({_to_str(self.operand)})"
 
 
 @dataclass
@@ -227,11 +335,19 @@ class MemberOp(CBMCAst):
     value: CBMCAst
     attr: CBMCAst
 
+    def to_string(self) -> str:
+        attr = self.attr.name if isinstance(self.attr, Name) else _to_str(self.attr)
+        return f"{_to_str(self.value)}.{attr}"
+
 
 @dataclass
 class PtrMemberOp(CBMCAst):
     value: Any
     attr: str
+
+    def to_string(self) -> str:
+        attr = self.attr.name if isinstance(self.attr, Name) else str(self.attr)
+        return f"{_to_str(self.value)}->{attr}"
 
 
 @dataclass
@@ -239,16 +355,25 @@ class IndexOp(CBMCAst):
     value: Any
     index: Any
 
+    def to_string(self) -> str:
+        return f"{_to_str(self.value)}[{_to_str(self.index)}]"
+
 
 @dataclass
 class CallOp(CBMCAst):
     func: CBMCAst
     args: CBMCAst
 
+    def to_string(self) -> str:
+        return f"{_to_str(self.func)}({_to_str(self.args)})"
+
 
 @dataclass
 class ArgList(CBMCAst, ast_utils.AsList):
     items: list[Any]
+
+    def to_string(self) -> str:
+        return ", ".join(_to_str(item) for item in self.items)
 
 
 class TypeNode(CBMCAst):
@@ -261,17 +386,26 @@ class BuiltinType(TypeNode):
     BUILT_IN_TYPES = {"int", "unsigned", "signed", "char", "long", "float", "double"}
     name: str
 
+    def to_string(self) -> str:
+        return self.name
+
 
 @dataclass
 class NamedType(TypeNode):
     # typedef or user-defined type
     name: Name
 
+    def to_string(self) -> str:
+        return _to_str(self.name)
+
 
 @dataclass
 class QuantifierDecl(CBMCAst):
     typenode: TypeNode
     name: Name
+
+    def to_string(self) -> str:
+        return f"{_to_str(self.typenode)} {_to_str(self.name)}"
 
 
 @dataclass
@@ -285,23 +419,37 @@ class Quantifier(CBMCAst):
 @dataclass
 class ForallExpr(Quantifier):
     kind: str = "forall"
-    pass
+
+    def to_string(self) -> str:
+        return (
+            f"__CPROVER_forall {{ {_to_str(self.decl)}; "
+            f"({_to_str(self.range_expr)}) ==> {_to_str(self.expr)} }}"
+        )
 
 
 @dataclass
 class ExistsExpr(Quantifier):
     kind: str = "exists"
-    pass
+
+    def to_string(self) -> str:
+        return (
+            f"__CPROVER_exists {{ {_to_str(self.decl)}; "
+            f"({_to_str(self.range_expr)}) && {_to_str(self.expr)} }}"
+        )
 
 
 @dataclass
 class Old(CBMCAst):
     expr: Any
 
+    def to_string(self) -> str:
+        return f"__CPROVER_old({_to_str(self.expr)})"
+
 
 @dataclass
 class ReturnValue(CBMCAst):
-    pass
+    def to_string(self) -> str:
+        return "__CPROVER_return_value"
 
 
 class _ToAst(Transformer):
