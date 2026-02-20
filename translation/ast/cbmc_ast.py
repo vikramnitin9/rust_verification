@@ -25,6 +25,16 @@ class CBMCAst(ast_utils.Ast):
         """
         raise NotImplementedError(f"to_string not implemented for {type(self).__name__}")
 
+    def negate(self) -> "CBMCAst":
+        """Return the negation of this AST node.
+
+        Note: This is a general case that avoids crashes at run-time (but may not be sound).
+
+        Returns:
+            CBMCAst: The negation of this AST node.
+        """
+        return NotOp(self)
+
 
 def _to_str(node: Any) -> str:
     """Convert an AST node or primitive value to a string.
@@ -144,6 +154,9 @@ class OrOp(BinOp):
     def operator(self) -> str:
         return "||"
 
+    def negate(self) -> CBMCAst:
+        return AndOp(left=self.left.negate(), right=self.right.negate())
+
 
 @dataclass
 class AndOp(BinOp):
@@ -152,6 +165,9 @@ class AndOp(BinOp):
 
     def operator(self) -> str:
         return "&&"
+
+    def negate(self) -> CBMCAst:
+        return OrOp(left=self.left.negate(), right=self.right.negate())
 
 
 @dataclass
@@ -162,6 +178,9 @@ class EqOp(BinOp):
     def operator(self) -> str:
         return "=="
 
+    def negate(self) -> CBMCAst:
+        return NeqOp(left=self.left, right=self.right)
+
 
 @dataclass
 class NeqOp(BinOp):
@@ -170,6 +189,9 @@ class NeqOp(BinOp):
 
     def operator(self) -> str:
         return "!="
+
+    def negate(self) -> CBMCAst:
+        return EqOp(left=self.left, right=self.right)
 
 
 @dataclass
@@ -180,6 +202,9 @@ class LtOp(BinOp):
     def operator(self) -> str:
         return "<"
 
+    def negate(self) -> CBMCAst:
+        return GeOp(left=self.left, right=self.right)
+
 
 @dataclass
 class LeOp(BinOp):
@@ -188,6 +213,9 @@ class LeOp(BinOp):
 
     def operator(self) -> str:
         return "<="
+
+    def negate(self) -> CBMCAst:
+        return GtOp(left=self.left, right=self.right)
 
 
 @dataclass
@@ -198,6 +226,9 @@ class GtOp(BinOp):
     def operator(self) -> str:
         return ">"
 
+    def negate(self) -> CBMCAst:
+        return LeOp(left=self.left, right=self.right)
+
 
 @dataclass
 class GeOp(BinOp):
@@ -206,6 +237,9 @@ class GeOp(BinOp):
 
     def operator(self) -> str:
         return ">="
+
+    def negate(self) -> CBMCAst:
+        return LtOp(left=self.left, right=self.right)
 
 
 @dataclass
@@ -259,6 +293,9 @@ class NotOp(CBMCAst):
 
     def to_string(self) -> str:
         return f"!{_to_str(self.operand)}"
+
+    def negate(self) -> CBMCAst:
+        return self.operand
 
 
 @dataclass

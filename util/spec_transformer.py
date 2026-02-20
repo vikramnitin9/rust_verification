@@ -3,16 +3,8 @@
 from translation.ast.cbmc_ast import (
     AndOp,
     Assigns,
-    CallOp,
     CBMCAst,
     EnsuresClause,
-    EqOp,
-    GeOp,
-    GtOp,
-    LeOp,
-    LtOp,
-    NeqOp,
-    NotOp,
     OrOp,
     RequiresClause,
     ToAst,
@@ -31,7 +23,7 @@ class SpecTransformer:
 
     _parser: Parser[CBMCAst]
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Create a new SpecTransformer."""
         self._parser = Parser(
             path_to_grammar_defn="translation/grammar/cbmc.txt",
@@ -139,9 +131,7 @@ class SpecTransformer:
         preconditions = [self._parser.parse(clause) for clause in spec.preconditions]
         postconditions = [self._parser.parse(clause) for clause in spec.postconditions]
         negated_precondition_exprs = [
-            self._negate(clause.expr)
-            for clause in preconditions
-            if isinstance(clause, RequiresClause)
+            clause.expr.negate() for clause in preconditions if isinstance(clause, RequiresClause)
         ]
         disjunction_of_negated_precondition_exprs = self._apply_logical_op(
             negated_precondition_exprs, OrOp
@@ -164,18 +154,6 @@ class SpecTransformer:
             else spec
         )
 
-    def _get_assigns_clauses(self, spec: FunctionSpecification) -> list[Assigns]:
-        """Return the Assigns clauses in a specification.
-
-        Args:
-            spec (FunctionSpecification): The specification.
-
-        Returns:
-            list[Assigns]: The Assigns clauses in a specification.
-        """
-        parsed_postconditions = [self._parser.parse(clause) for clause in spec.postconditions]
-        return [clause for clause in parsed_postconditions if isinstance(clause, Assigns)]
-
     def _apply_logical_op(self, exprs: list[CBMCAst], logical_op: type[AndOp | OrOp]) -> CBMCAst:
         """Return the result of applying a logical operation between each expr.
 
@@ -193,38 +171,3 @@ class SpecTransformer:
         for expr in exprs[1:]:
             result = logical_op(left=result, right=expr)
         return result
-
-    def _negate(self, expr: CBMCAst) -> CBMCAst:
-        """Return the negated expr.
-
-        Args:
-            expr (CBMCAst): The expr to negate.
-
-        Returns:
-            CBMCAst: The negated expr.
-        """
-        match expr:
-            case AndOp(left, right):
-                return OrOp(left=self._negate(left), right=self._negate(right))
-            case OrOp(left, right):
-                return AndOp(left=self._negate(left), right=self._negate(right))
-            case NotOp(operand):
-                return operand
-            case EqOp(left, right):
-                return NeqOp(left, right)
-            case NeqOp(left, right):
-                return EqOp(left, right)
-            case GtOp(left, right):
-                return LeOp(left, right)
-            case GeOp(left, right):
-                return LtOp(left, right)
-            case LtOp(left, right):
-                return GeOp(left, right)
-            case LeOp(left, right):
-                return GtOp(left, right)
-            case CallOp(_, _):
-                # This assumes that any method calls in a precondition return booleans.
-                # Fine for now, but may have to come back later.
-                return NotOp(expr)
-            case _:
-                return expr
