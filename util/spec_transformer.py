@@ -73,17 +73,16 @@ class SpecTransformer:
             return spec
 
         preconditions = [self._parser.parse(clause) for clause in spec.preconditions]
-        postconditions = [self._parser.parse(clause) for clause in spec.postconditions]
         precondition_exprs = [
             clause.expr for clause in preconditions if isinstance(clause, RequiresClause)
         ]
-        conjunction_of_preconditions_exprs = self._apply_logical_op(precondition_exprs, AndOp)
+        postconditions = [self._parser.parse(clause) for clause in spec.postconditions]
 
         updated_postconditions = []
         is_assigns_clause_updated = False
         for clause in postconditions:
             if isinstance(clause, Assigns):
-                clause.condition = conjunction_of_preconditions_exprs
+                clause.condition = self._apply_logical_op(precondition_exprs, AndOp)
                 is_assigns_clause_updated = True
             updated_postconditions.append(clause.to_string())
 
