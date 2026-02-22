@@ -110,7 +110,7 @@ class SpecTransformer:
             }
             ```
 
-        It is the case that `f1` might be called with a NULL `pp` (or `pp->p` or `pp->p->buf`), and
+        Function `f1` might be called with a NULL `pp` (or `pp->p` or `pp->p->buf`), and
         the function accounts for this with a conditional check. A more expressive spec is:
 
             __CPROVER_ensures(
@@ -158,7 +158,7 @@ class SpecTransformer:
 
         Args:
             exprs (list[CBMCAst]): The exprs to which to apply the logical operation.
-            logical_op (type[AndOp  |  OrOp]): The logical operation.
+            logical_op (type[AndOp | OrOp]): The logical operation.
 
         Returns:
             CBMCAst: The result of applying the logical operation.
