@@ -29,4 +29,7 @@ class SpecificationVariantFactory:
         Returns:
             tuple[FunctionSpecification, ...]: The variants of the given specification.
         """
-        return tuple(transformation.apply(spec) for transformation in self._transformations)
+        variants = set()
+        for transformation in self._transformations:
+            variants.update(transformation.apply(spec))
+        return tuple(variants)

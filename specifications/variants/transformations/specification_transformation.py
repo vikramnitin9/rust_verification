@@ -19,15 +19,15 @@ class SpecificationTransformation(ABC):
     _parser: Parser[CBMCAst]
 
     @abstractmethod
-    def apply(self, specification: FunctionSpecification) -> FunctionSpecification:
-        """Return the result of applying this transformation to the given specification.
+    def apply(self, specification: FunctionSpecification) -> list[FunctionSpecification]:
+        """Return the result(s) of applying this transformation to the given specification.
 
         Args:
             specification (FunctionSpecification): The specification to which to apply this
                 transformation
 
         Returns:
-            FunctionSpecification: The result of applying this specification to the given
+            list[FunctionSpecification]: The result(s) of applying this specification to the given
                 specification.
         """
         ...

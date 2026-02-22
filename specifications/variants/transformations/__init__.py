@@ -1,4 +1,5 @@
 from .specification_transformation import SpecificationTransformation
 from .move_preconditions_to_assigns_and_ensures import MovePreconditionsToAssignsAndEnsures
+from .remove_preconditions import RemovePreconditions
 
-__all__ = ["SpecificationTransformation", "MovePreconditionsToAssignsAndEnsures"]
+__all__ = ["SpecificationTransformation", "MovePreconditionsToAssignsAndEnsures", "RemovePreconditions"]

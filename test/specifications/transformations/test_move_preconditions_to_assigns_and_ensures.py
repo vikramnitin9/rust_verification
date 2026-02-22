@@ -12,7 +12,7 @@ def test_move_preconditions_to_ensures_returns_unchanged_specs_if_no_ensures_cla
         ],
         postconditions=[],
     )
-    actual_transformed_spec = transformation.apply(spec_without_ensures)
+    actual_transformed_spec = transformation.apply(spec_without_ensures)[0]
     assert actual_transformed_spec == spec_without_ensures
 
 
@@ -26,7 +26,7 @@ def test_move_preconditions_to_ensures_disjunctions():
         ],
         postconditions=["__CPROVER_ensures(pp->p->buf[0] == 0)"],
     )
-    actual_transformed_spec = transformation.apply(spec_with_preconditions)
+    actual_transformed_spec = transformation.apply(spec_with_preconditions)[0]
     expected_transformed_spec = FunctionSpecification(
         preconditions=[],
         postconditions=[
@@ -45,7 +45,7 @@ def test_move_preconditions_to_ensures_disjunctions_and_assigns_conditions():
         ],
         postconditions=["__CPROVER_ensures(pp->p->buf[0] == 0)", "__CPROVER_assigns(pp->p->buf)"],
     )
-    actual_transformed_spec = transformation.apply(spec_with_preconditions)
+    actual_transformed_spec = transformation.apply(spec_with_preconditions)[0]
     expected_transformed_spec = FunctionSpecification(
         preconditions=[],
         postconditions=[

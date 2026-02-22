@@ -31,7 +31,7 @@ class MovePreconditionsToAssignsAndEnsures(SpecificationTransformation):
             transformer=ToAst(),
         )
 
-    def apply(self, specification: FunctionSpecification) -> FunctionSpecification:
+    def apply(self, specification: FunctionSpecification) -> list[FunctionSpecification]:
         """Return the result of applying this transformation to the given specification.
 
         Move the expressions in preconditions clauses into:
@@ -42,25 +42,26 @@ class MovePreconditionsToAssignsAndEnsures(SpecificationTransformation):
             specification (FunctionSpecification): The specification to transform.
 
         Returns:
-            FunctionSpecification: The transformed specification.
+            list[FunctionSpecification]: The result of applying this transformation to the given
+                specification.
         """
-        preconditions_ast, postconditions_ast = self._parse_specification(specification)
+        precondition_asts, postcondition_asts = self._parse_specification(specification)
 
         # If there are no postconditions, return unchanged.
-        if not postconditions_ast:
-            return specification
+        if not postcondition_asts:
+            return [specification]
 
         # Extract the inner expressions from each RequiresClause.
         precondition_exprs: list[CBMCAst] = [
-            clause.expr for clause in preconditions_ast if isinstance(clause, RequiresClause)
+            clause.expr for clause in precondition_asts if isinstance(clause, RequiresClause)
         ]
 
         # If there are no precondition expressions, return unchanged.
         if not precondition_exprs:
-            return specification
+            return [specification]
 
         new_postconditions: list[str] = []
-        for post_ast in postconditions_ast:
+        for post_ast in postcondition_asts:
             if isinstance(post_ast, EnsuresClause):
                 # Build disjunction: !pre1 || !pre2 || ... || ensures_expr
                 result: CBMCAst = precondition_exprs[0].negate()
@@ -83,7 +84,9 @@ class MovePreconditionsToAssignsAndEnsures(SpecificationTransformation):
             else:
                 new_postconditions.append(post_ast.to_string())
 
-        return FunctionSpecification(
-            preconditions=[],
-            postconditions=new_postconditions,
-        )
+        return [
+            FunctionSpecification(
+                preconditions=[],
+                postconditions=new_postconditions,
+            )
+        ]
