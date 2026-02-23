@@ -54,7 +54,7 @@ class MinimizeConditionalAssigns(SpecificationTransformation):
         if isinstance(assigns_clause.condition, LogicalBinOp):
             prefixes = assigns_clause.condition.get_operand_prefixes()
             for prefix_condition in reversed(prefixes):
-                new_assigns = Assigns(condition=prefix_condition, targets=assigns_clause.value)
+                new_assigns = Assigns(condition=prefix_condition, targets=assigns_clause.targets)
                 new_postconditions = [*other_postconditions, new_assigns.to_string()]
                 transformed_specs.append(
                     FunctionSpecification(
