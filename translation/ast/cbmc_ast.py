@@ -147,7 +147,53 @@ class BinOp(ABC, CBMCAst):
 
 
 @dataclass
-class OrOp(BinOp):
+class LogicalBinOp(BinOp):
+    def __init__(self, left: Any, right: Any):
+        self.left = left
+        self.right = right
+
+    def get_operand_atoms(self) -> list[CBMCAst]:
+        match self:
+            case LogicalBinOp(left=LogicalBinOp(_, _), right=LogicalBinOp(_, _)):
+                return self.left.get_operand_atoms() + self.right.get_operand_atoms()
+            case LogicalBinOp(left=LogicalBinOp(_, _), right=rhs):
+                return self.left.get_operand_atoms() + [rhs]
+            case LogicalBinOp(left=lhs, right=LogicalBinOp(_, _)):
+                return [lhs] + self.right.get_operand_atoms()
+            case _:
+                return [self.left, self.right]
+
+    def get_operand_prefixes(self) -> list[CBMCAst]:
+        """Return the strict prefixes of this logical binary operation.
+
+        E.g., Given `a || b || c || d`, return `a`, `a || b`, `a || b || c`.
+
+        Args:
+            logical_binop (LogicalBinOp): The logical binary operation for which to return prefixes.
+
+        Returns:
+            list[CBMCAst]: The strict prefixes of the logical binary operation.
+        """
+        operands = self.get_operand_atoms()
+        if len(operands) <= 1:
+            return []
+        variants: list[CBMCAst] = []
+        for i in range(1, len(operands)):
+            prefix = operands[:i]
+            variants.append(self.apply(prefix))
+        return variants
+
+    def apply(self, operands: list[CBMCAst]) -> "LogicalBinOp | CBMCAst":
+        if len(operands) == 1:
+            return operands[0]
+        result = operands[0]
+        for operand in operands[1:]:
+            result = type(self)(left=result, right=operand)
+        return result
+
+
+@dataclass
+class OrOp(LogicalBinOp):
     left: Any
     right: Any
 
@@ -159,7 +205,7 @@ class OrOp(BinOp):
 
 
 @dataclass
-class AndOp(BinOp):
+class AndOp(LogicalBinOp):
     left: Any
     right: Any
 
