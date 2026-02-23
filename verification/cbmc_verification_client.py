@@ -67,12 +67,23 @@ class CbmcVerificationClient(VerificationClient):
                     )
                     logger.debug(f"Running command: {vcommand}")
                     result = subprocess.run(vcommand, shell=True, capture_output=True, text=True)
+                    # Normalize the temp file path in CBMC output so that LLM cache keys
+                    # are deterministic across runs (temp file names are random).
+                    path_str = str(path_to_file)
+                    basename_str = path_to_file.name
+                    stable_name = f"{function.name}.c"
+                    normalized_stdout = result.stdout.replace(path_str, stable_name).replace(
+                        basename_str, stable_name
+                    )
+                    normalized_stderr = result.stderr.replace(path_str, stable_name).replace(
+                        basename_str, stable_name
+                    )
                     self._cache[vinput] = VerificationResult(
                         vinput,
                         vcommand,
                         succeeded=result.returncode == 0,
-                        stdout=result.stdout,
-                        stderr=result.stderr,
+                        stdout=normalized_stdout,
+                        stderr=normalized_stderr,
                     )
                     logger.debug(f"Caching vresult for: {vinput.function}")
                 except Exception as e:

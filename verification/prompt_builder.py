@@ -1,5 +1,6 @@
 """Module to construct prompts for LLM calls."""
 
+import re
 import tempfile
 from pathlib import Path
 from string import Template
@@ -100,7 +101,10 @@ class PromptBuilder:
             function_name=function.name,
             source_code=function_lines,
             callee_context=verification_result.verification_input.get_callee_context_for_prompt(),
-            failure_information=verification_result.stdout + "\n" + verification_result.stderr,
+            failure_information=PromptBuilder._normalize_cbmc_output(
+                verification_result.stdout + "\n" + verification_result.stderr,
+                verification_result.get_function().name,
+            ),
         )
 
     def repair_prompt(
@@ -205,3 +209,26 @@ class PromptBuilder:
                     f"{specgen_granularity}"
                 )
                 raise ValueError(msg)
+
+    @staticmethod
+    def _normalize_cbmc_output(output: str, function_name: str) -> str:
+        """Return CBMC output with temp file paths replaced by a stable name.
+
+        CBMC error output includes the path to the temporary file that was compiled
+        (e.g., '/app/specs/get_min_maxABC123.c'). These random paths make LLM cache
+        keys non-deterministic. This method replaces any such path with a stable name
+        (e.g., 'get_min_max.c') so that prompts are reproducible across runs.
+
+        Args:
+            output (str): The raw CBMC stdout or stderr output.
+            function_name (str): The name of the function being verified.
+
+        Returns:
+            str: The CBMC output with temp file paths replaced by '{function_name}.c'.
+        """
+        stable_name = f"{function_name}.c"
+        return re.sub(
+            r"\S*" + re.escape(function_name) + r"[a-zA-Z0-9_-]+\.c",
+            stable_name,
+            output,
+        )
