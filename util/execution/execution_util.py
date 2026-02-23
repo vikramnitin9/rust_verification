@@ -39,6 +39,5 @@ def run_with_timeout(function: Callable[..., Any], *args: Any, timeout_sec: floa
         raise TimeoutError()
 
     if process.exitcode != 0:
-        raise RuntimeError(
-            f"'{func_name}' failed with exit code {process.exitcode}"
-        )
+        msg = f"'{func_name}' failed with exit code {process.exitcode}"
+        raise RuntimeError(msg)
