@@ -1,9 +1,5 @@
 """Transformation where preconditions are removed, one-by-one."""
 
-from translation.ast.cbmc_ast import (
-    ToAst,
-)
-from translation.parser import Parser
 from util import FunctionSpecification
 
 from .specification_transformation import SpecificationTransformation
@@ -11,14 +7,6 @@ from .specification_transformation import SpecificationTransformation
 
 class RemovePreconditions(SpecificationTransformation):
     """Transformation where precondition expressions are removed one-by-one."""
-
-    def __init__(self) -> None:
-        """Create a new RemovePreconditions."""
-        self._parser = Parser(
-            path_to_grammar_defn="translation/grammar/cbmc.txt",
-            start="cbmc_clause",
-            transformer=ToAst(),
-        )
 
     def apply(self, specification: FunctionSpecification) -> list[FunctionSpecification]:
         """Return the result of applying this transformation to the given specification.

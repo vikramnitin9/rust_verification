@@ -7,9 +7,7 @@ from translation.ast.cbmc_ast import (
     EnsuresClause,
     OrOp,
     RequiresClause,
-    ToAst,
 )
-from translation.parser import Parser
 from util import FunctionSpecification
 
 from .specification_transformation import SpecificationTransformation
@@ -22,14 +20,6 @@ class MovePreconditionsToAssignsAndEnsures(SpecificationTransformation):
     effectively weakening the entire specification. This transformation moves precondition
     expressions into conditions for assigns clauses and disjunctions for ensures clauses.
     """
-
-    def __init__(self) -> None:
-        """Create a new MovePreconditionsToAssignsAndEnsures."""
-        self._parser = Parser(
-            path_to_grammar_defn="translation/grammar/cbmc.txt",
-            start="cbmc_clause",
-            transformer=ToAst(),
-        )
 
     def apply(self, specification: FunctionSpecification) -> list[FunctionSpecification]:
         """Return the result of applying this transformation to the given specification.

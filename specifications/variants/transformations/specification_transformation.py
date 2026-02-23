@@ -2,9 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from translation.ast.cbmc_ast import (
-    CBMCAst,
-)
+from translation.ast.cbmc_ast import CBMCAst, ToAst
 from translation.parser import Parser
 from util import FunctionSpecification
 
@@ -17,6 +15,14 @@ class SpecificationTransformation(ABC):
     """
 
     _parser: Parser[CBMCAst]
+
+    def __init__(self):
+        """Create a new SpecificationTransformation."""
+        self.parser = Parser(
+            path_to_grammar_defn="translation/grammar/cbmc.txt",
+            start="cbmc_clause",
+            transformer=ToAst(),
+        )
 
     @abstractmethod
     def apply(self, specification: FunctionSpecification) -> list[FunctionSpecification]:
@@ -45,6 +51,6 @@ class SpecificationTransformation(ABC):
                 specification.
         """
         return (
-            [self._parser.parse(clause) for clause in specification.preconditions],
-            [self._parser.parse(clause) for clause in specification.postconditions],
+            [self.parser.parse(clause) for clause in specification.preconditions],
+            [self.parser.parse(clause) for clause in specification.postconditions],
         )

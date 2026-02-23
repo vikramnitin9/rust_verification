@@ -2,7 +2,11 @@
 
 from util import FunctionSpecification
 
-from .transformations import MovePreconditionsToAssignsAndEnsures, SpecificationTransformation
+from .transformations import (
+    MovePreconditionsToAssignsAndEnsures,
+    RemovePreconditions,
+    SpecificationTransformation,
+)
 
 
 class SpecificationVariantFactory:
@@ -18,7 +22,7 @@ class SpecificationVariantFactory:
 
     def __init__(self) -> None:
         """Create a new SpecificationVariantFactory."""
-        self._transformations = (MovePreconditionsToAssignsAndEnsures(),)
+        self._transformations = (MovePreconditionsToAssignsAndEnsures(), RemovePreconditions())
 
     def get_variants(self, spec: FunctionSpecification) -> tuple[FunctionSpecification, ...]:
         """Return the variants of the given specification.

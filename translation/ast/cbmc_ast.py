@@ -349,6 +349,19 @@ class PtrMemberOp(CBMCAst):
         attr = self.attr.name if isinstance(self.attr, Name) else str(self.attr)
         return f"{_to_str(self.value)}->{attr}"
 
+    def get_dereference_subexpressions(self) -> list["PtrMemberOp | CBMCAst"]:
+        """Return the chain of subexpressions that are dereferenced in this pointer member access.
+
+        E.g., Given `foo->bar->baz`, return [`foo`, `foo->bar`, `foo->bar->baz`], since each
+        is a pointer that must be non-null for the full expression to be valid.
+
+        Returns:
+            list[CBMCAst]: The subexpressions that are dereferenced in this chain, including self.
+        """
+        if isinstance(self.value, PtrMemberOp):
+            return self.value.get_dereference_subexpressions() + [self]
+        return [self.value]
+
 
 @dataclass
 class IndexOp(CBMCAst):
