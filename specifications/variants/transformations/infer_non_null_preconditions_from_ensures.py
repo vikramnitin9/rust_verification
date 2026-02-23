@@ -1,4 +1,4 @@
-"""Transformation for inferring non-null preconditions from expressions in an ensures clause."""
+"""Transformation for inferring non-null preconditions from ensures clauses."""
 
 from lark.tree import Meta
 
@@ -17,16 +17,28 @@ from .specification_transformation import SpecificationTransformation
 
 
 class InferNonNullPreconditionsFromEnsures(SpecificationTransformation):
-    """TODO: Document me."""
+    """Transformation for inferring non-null preconditions from ensures clauses."""
 
     def apply(self, specification: FunctionSpecification) -> list[FunctionSpecification]:
-        """TODO: Document me.
+        """Return the result of applying this transformation to the given specification.
+
+        Infer non-null preconditions from an ensures clause.
+
+        For example, given a spec with the following ensures clause:
+
+                    __CPROVER_ensures(a->b->c != NULL)
+
+        The following preconditions are generated:
+
+                    __CPROVER_requires(a != NULL)
+                    __CPROVER_requires(a->b != NULL)
 
         Args:
-            specification (FunctionSpecification): _description_
+            specification (FunctionSpecification): The specification to transform.
 
         Returns:
-            list[FunctionSpecification]: _description_
+            list[FunctionSpecification]: The result of applying this transformation to the given
+                specification.
         """
         precondition_asts, postcondition_asts = self._parse_specification(specification)
         non_null_check_exprs: list[NeqOp] = [
@@ -54,6 +66,14 @@ class InferNonNullPreconditionsFromEnsures(SpecificationTransformation):
         ]
 
     def _get_non_null_check_expr(self, ast: CBMCAst) -> NeqOp | None:
+        """Return a non-null check expression in an ensures clause, if found.
+
+        Args:
+            ast (CBMCAst): The AST in which to search for a non-null check expression.
+
+        Returns:
+            NeqOp | None: The non-null check expression, if found.
+        """
         if not isinstance(ast, EnsuresClause):
             return None
         match ast.expr:
@@ -65,6 +85,16 @@ class InferNonNullPreconditionsFromEnsures(SpecificationTransformation):
                 return None
 
     def _get_non_null_check_subexpressions(self, expr: CBMCAst) -> list[CBMCAst]:
+        """Return the subexpressions from the left-hand side of a non-null check.
+
+        Note: This function assumes the non-null check is of the form `LHS != NULL`.
+
+        Args:
+            expr (CBMCAst): The left-hand side of a non-null check.
+
+        Returns:
+            list[CBMCAst]: The subexpressions from the left-hand side of a non-null check.
+        """
         result = []
         match expr:
             case PtrMemberOp(_, _):
