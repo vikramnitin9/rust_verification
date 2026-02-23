@@ -1,8 +1,10 @@
 """Integration tests with stubbed-out LLM calls."""
 
+import shutil
 import subprocess
 import pickle as pkl
 import os
+import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -42,18 +44,23 @@ __CPROVER_assigns()
 
 def test_generate_specs_max_min() -> None:
     path_to_max_min_source = "data/max_min.c"
-    cmd = (
-        f"./main.py {path_to_max_min_source}"
-        f" --num-specification-candidates 5"
-        f" --num-repair-candidates 2"
-        f" --num-specification-repair-iterations 1"
-        f" --path-to-llm-response-cache-dir {LLM_CACHE_DIR_FOR_INTEGRATION_TESTS}"
-        f" --path-to-save-proofstates {PATH_TO_INTEGRATION_TEST_DIR}"
-        f" --stub-out-llm"
-    )
-    result = subprocess.run(
-        cmd, shell=True, capture_output=True, text=True, cwd=str(REPO_ROOT)
-    )
+
+    # Copy the cache to a temp directory so the test doesn't modify the checked-in cache.db.
+    with tempfile.TemporaryDirectory() as tmp_cache_dir:
+        shutil.copytree(LLM_CACHE_DIR_FOR_INTEGRATION_TESTS, tmp_cache_dir, dirs_exist_ok=True)
+
+        cmd = (
+            f"./main.py {path_to_max_min_source}"
+            f" --num-specification-candidates 5"
+            f" --num-repair-candidates 2"
+            f" --num-specification-repair-iterations 1"
+            f" --path-to-llm-response-cache-dir {tmp_cache_dir}"
+            f" --path-to-save-proofstates {PATH_TO_INTEGRATION_TEST_DIR}"
+            f" --stub-out-llm"
+        )
+        result = subprocess.run(
+            cmd, shell=True, capture_output=True, text=True, cwd=str(REPO_ROOT)
+        )
 
     assert result.returncode == 0, f"Process failed.\nstderr:\n{result.stderr}"
     assert result.stderr.count("Verification succeeded for function 'get_min_max") == 3
