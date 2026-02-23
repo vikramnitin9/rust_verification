@@ -37,3 +37,8 @@ def run_with_timeout(function: Callable[..., Any], *args: Any, timeout_sec: floa
             process.kill()  # Force kill, if necessary.
             process.join()
         raise TimeoutError()
+
+    if process.exitcode != 0:
+        raise RuntimeError(
+            f"'{func_name}' failed with exit code {process.exitcode}"
+        )
