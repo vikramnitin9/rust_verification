@@ -360,7 +360,7 @@ class PtrMemberOp(CBMCAst):
         """
         if isinstance(self.value, PtrMemberOp):
             return self.value.get_dereference_subexpressions() + [self]
-        return [self.value]
+        return [self.value, self]
 
 
 @dataclass
