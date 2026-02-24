@@ -31,7 +31,7 @@ class LlmClient:
         path_to_llm_response_cache_dir: str,
         *,
         disable_llm_cache: bool = False,
-    ):
+    ) -> None:
         """Create a new LLmClient."""
         if top_k > 1 and temperature == 0:
             msg = (
