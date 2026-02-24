@@ -6,7 +6,6 @@ import copy
 import json
 import subprocess
 from dataclasses import dataclass, field
-from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -168,7 +167,7 @@ class ParsecProject:
                 logger.error(f"LLVM Analysis for callee function {callee_name} not found")
         return callees
 
-    def get_functions_in_topological_order(self, reverse_order: bool = False) -> list[CFunction]:
+    def get_functions_in_topological_order(self, *, reverse_order: bool = False) -> list[CFunction]:
         """Return the CFunctions in this ParsecProject's call graph in topological order.
 
         Note: If a topological ordering is impossible, this function will topologically sort

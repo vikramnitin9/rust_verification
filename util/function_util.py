@@ -348,8 +348,8 @@ def _replace_function_definitions(
         end_line = function.end_line
         end_col = function.end_col
 
-        before = [*lines[: start_line - 1], *[lines[start_line - 1][: start_col - 1]]]
-        after = [*lines[end_line - 1][end_col:], *lines[end_line:]]
+        before = [*lines[: start_line - 1], lines[start_line - 1][: start_col - 1]]
+        after = [lines[end_line - 1][end_col:], *lines[end_line:]]
         lines = [*before, updated_function_definition, *after]
 
     return "".join(lines)

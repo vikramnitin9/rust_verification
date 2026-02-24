@@ -12,7 +12,7 @@ import warnings
 
 
 def _get_file_lines(filename: str) -> list[str]:
-    return Path(filename).read_text(encoding="utf-8").splitlines(True)
+    return Path(filename).read_text(encoding="utf-8").splitlines(keepends=True)
 
 
 @pytest.fixture
