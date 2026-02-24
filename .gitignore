@@ -58,3 +58,4 @@ __pycache__/
 
 # Local caches
 data/caching/
+test/data/caching/
