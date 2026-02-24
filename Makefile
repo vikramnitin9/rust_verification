@@ -1,4 +1,4 @@
-.PHONY: default docker-build run test checks tags TAGS
+.PHONY: default docker-build run integration-test unit-test tests checks tags TAGS
 
 default: test
 
@@ -20,6 +20,9 @@ unit-test:
 # Run integration tests with `pytest` within container.
 integration-test:
 	bash run.sh pytest test/integration
+
+# Run all tests
+tests: unit-test integration-test
 
 # Run all code style checks.
 checks: style-fix style-check
