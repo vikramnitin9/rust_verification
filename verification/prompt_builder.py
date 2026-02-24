@@ -102,7 +102,10 @@ class PromptBuilder:
             function_name=function.name,
             source_code=function_lines,
             callee_context=verification_result.verification_input.get_callee_context_for_prompt(),
-            failure_information=verification_result.stdout + "\n" + verification_result.stderr,
+            failure_information=text_util.normalize_cbmc_output_paths(
+                verification_result.stdout + "\n" + verification_result.stderr,
+                verification_result.get_function().name,
+            ),
         )
 
     def repair_prompt(
