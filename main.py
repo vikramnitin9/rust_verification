@@ -276,6 +276,9 @@ def _verify_program(
                 GLOBAL_INCOMPLETE_PROOFSTATES.append(next_proofstate)
 
     if proofstate_file_path := path_to_save_proofstates:
+        output_path = Path(proofstate_file_path)
+        if not output_path.exists():
+            output_path.mkdir(parents=True, exist_ok=True)
         with Path(f"{proofstate_file_path}/proofstates.pkl").open("wb") as f:
             pkl.dump(GLOBAL_COMPLETE_PROOFSTATES, f, protocol=pkl.HIGHEST_PROTOCOL)
 
