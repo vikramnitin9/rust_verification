@@ -130,7 +130,7 @@ class ParsecProject:
             CFunction | None: The CFunction with the given name, or None if no function
                 with that name exists.
         """
-        return self.functions.get(function_name, None)
+        return self.functions.get(function_name)
 
     def get_function(self, function_name: str) -> CFunction:
         """Return the CFunction representation for a function with the given name.
