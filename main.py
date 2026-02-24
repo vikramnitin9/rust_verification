@@ -331,7 +331,7 @@ def _step(
     Args:
         proof_state (ProofState): The proof state from which to generate new proof states.
         specification_generator (LlmSpecificationGenerator): The specification generator.
-        parsec_project (ParsecProject): The file being verified.
+        parsec_project (ParsecProject): The project being verified.
 
     Returns:
         list[ProofState]: The list of new proof states to explore.
@@ -361,6 +361,7 @@ def _step(
         _get_next_proof_state(
             prev_proof_state=proof_state,
             spec_conversation=specc,
+            parsec_project=parsec_project,
         )
         for specc in speccs_with_next_steps
     ]
@@ -405,7 +406,7 @@ def _set_next_step(
 
 
 def _get_next_proof_state(
-    prev_proof_state: ProofState, spec_conversation: SpecConversation
+    prev_proof_state: ProofState, spec_conversation: SpecConversation, parsec_project: ParsecProject
 ) -> ProofState:
     """Return the next proof state after `prev_proof_state` based on `spec_conversation`.
 
@@ -421,6 +422,7 @@ def _get_next_proof_state(
         prev_proof_state (ProofState): The previous proof state.
         spec_conversation (SpecConversation): The spec conversation in which an LLM generated a
             specification for the function on the top of the workstack of `prev_proof_state`.
+        parsec_project (ParsecProject): The project being verified.
 
     Returns:
         ProofState: The next proof state for the program, given the conversation.
@@ -443,11 +445,7 @@ def _get_next_proof_state(
                 workstack=workstack_for_next_proof_state,
             )
         case BacktrackToCallee(callee, hint):
-            # TODO: Fetching the callee from the same file in which the function under spec. gen.
-            # is defined is a brittle assumption that should be fixed with multi-file ParseC
-            # support.
-            result_file = _get_result_file(function=spec_conversation.function)
-            if callee := ParsecProject(result_file).get_function_or_none(function_name=callee):
+            if callee := parsec_project.get_function_or_none(function_name=callee):
                 work_item_for_callee = WorkItem(function=callee, hint=hint)
                 workstack_for_next_proof_state = prev_proof_state.get_workstack().push(
                     work_item_for_callee
@@ -456,7 +454,7 @@ def _get_next_proof_state(
                     specs=specs_for_next_proof_state,
                     workstack=workstack_for_next_proof_state,
                 )
-            msg = f"'{result_file}' lacks a definition for callee '{callee}'"
+            msg = f"Project lacks a definition for callee '{callee}'"
             raise ValueError(msg)
 
         case _:
