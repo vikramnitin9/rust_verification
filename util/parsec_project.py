@@ -17,13 +17,6 @@ from util import text_util
 from util.c_function import CFunction
 
 
-class ParsecRunMode(str, Enum):
-    """Defines run modes for Parsec."""
-
-    FILE = "FILE"
-    DIRECTORY = "DIRECTORY"
-
-
 @dataclass
 class ParsecProject:
     """Represents the result of parsing a "project": one or more C source files.
@@ -80,9 +73,9 @@ class ParsecProject:
                     "with `bear -- make`."
                 )
                 raise FileNotFoundError(msg)
-            parsec_analysis = self._run_parsec(self.input_path, run_mode=ParsecRunMode.DIRECTORY)
+            parsec_analysis = self._run_parsec(self.input_path)
         else:
-            parsec_analysis = self._run_parsec(self.input_path, run_mode=ParsecRunMode.FILE)
+            parsec_analysis = self._run_parsec(self.input_path)
 
         function_analyses = [CFunction(f) for f in parsec_analysis.get("functions", [])]
         self.enums = parsec_analysis.get("enums", [])
@@ -209,24 +202,23 @@ class ParsecProject:
 
         return list(reversed(functions)) if reverse_order else functions
 
-    def _run_parsec(self, path: Path, run_mode: ParsecRunMode) -> dict[str, Any]:
+    def _run_parsec(self, path: Path) -> dict[str, Any]:
         """Return the result of running Parsec at the given path.
 
         Args:
             path (Path): The path at which to run Parsec: a file or directory.
-            run_mode (ParsecRunMode): The run mode.
 
         Returns:
             dict[str, Any]: The result of running Parsec at the given path.
         """
-        if run_mode == ParsecRunMode.FILE:
+        if path.is_file():
             if not path.exists():
                 msg = f"File {path} does not exist"
                 raise FileNotFoundError(msg)
             cmd = ["parsec", "--rename-main=false", "--add-instr=false", str(path)]
             result = subprocess.run(cmd, capture_output=True, text=True)
             path_to_result = Path("analysis.json")
-        elif run_mode == ParsecRunMode.DIRECTORY:
+        elif path.is_dir():
             # Run a glob pattern to walk all .c files in the directory
             # We want each path to be absolute
             file_list = [str(file.resolve()) for file in path.glob("**/*.c")]
@@ -237,7 +229,7 @@ class ParsecProject:
             result = subprocess.run(cmd, capture_output=True, text=True, cwd=path)
             path_to_result = path / "analysis.json"
         else:
-            msg = f"Unsupported run mode: {run_mode}"
+            msg = f"Unsupported path type: {path}"
             raise ValueError(msg)
 
         if result.returncode != 0:
