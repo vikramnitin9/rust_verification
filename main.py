@@ -71,17 +71,10 @@ def main() -> None:
         description="Generate and verify CBMC specifications for a C project.",
     )
     parser.add_argument(
-        "--project-root",
-        required=False,
-        help="The root directory of the C project for which to generate and verify specifications. \
-            Must contain compile_commands.json. Note that this cannot be used \
-            along with --input-file-path.",
-    )
-    parser.add_argument(
-        "--input-file-path",
-        required=False,
-        help="The path to the C file to analyze. Note that this cannot be used \
-            along with --project-root.",
+        "--input-path",
+        required=True,
+        help="The path to the C file, or the root directory of the C project for which to generate \
+            specifications. If a directory is provided, it must contain compile_commands.json.",
     )
     parser.add_argument(
         "--num-specification-candidates",
@@ -162,29 +155,26 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    if args.project_root and args.input_file_path:
-        msg = "Please provide either --project-root or --input-file-path, not both."
-        raise ValueError(msg)
-    if not args.project_root and not args.input_file_path:
-        msg = "Please provide either --project-root or --input-file-path."
-        raise ValueError(msg)
+    input_path = Path(args.input_path).resolve()
+    # Verify that it exists
+    if not input_path.exists():
+        msg = f"Input path '{input_path}' does not exist."
+        raise FileNotFoundError(msg)
 
-    if args.input_file_path:
-        input_file_path = Path(args.input_file_path).resolve()
+    if input_path.is_file():
         # MDE: Will this path be repeatedly overwritten during the verification process?
         # If so, that is a serious problem for concurrency.
-        output_file_path = copy_file_to_folder(input_file_path, DEFAULT_RESULT_DIR)
+        # VIKRAM: No, this will be overwritten only when _write_spec_to_disk is called for
+        # a function in the file, and that only happens when a spec for the function is
+        # verified or assumed.
+        output_file_path = copy_file_to_folder(input_path, DEFAULT_RESULT_DIR)
         ensure_lines_at_beginning(DEFAULT_HEADERS_FOR_VERIFICATION, output_file_path)
-        parsec_project = ParsecProject(input_file_path)
-    elif args.project_root:
-        project_root = Path(args.project_root).resolve()
-        output_directory = copy_folder_to_folder(project_root, DEFAULT_RESULT_DIR)
+        parsec_project = ParsecProject(input_path)
+    else:  # input_path is a directory
+        output_directory = copy_folder_to_folder(input_path, DEFAULT_RESULT_DIR)
         for c_file in output_directory.rglob("*.c"):
             ensure_lines_at_beginning(DEFAULT_HEADERS_FOR_VERIFICATION, c_file)
-        parsec_project = ParsecProject(project_root)
-    else:
-        msg = "Unexpected error: neither --project-root nor --input-file-path was provided."
-        raise ValueError(msg)
+        parsec_project = ParsecProject(input_path)
 
     specgen_granularity = SpecGenGranularity(args.specgen_granularity)
 

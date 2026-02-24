@@ -40,11 +40,8 @@ class ParsecProject:
     # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
     # NOTE: Each node in call_graph is a CFunction.
     call_graph: nx.DiGraph  # type: ignore[type-arg]
-    # Exactly one of file_path and project_root is populated, depending on whether this
-    # ParsecProject represents a single file or a directory of files.
-    # Paths are absolute.
-    file_path: Path | None = None
-    project_root: Path | None = None
+    # This is an absolute path to a either a single file or a directory containing multiple files.
+    input_path: Path | None = None
     files: list[str] = field(default_factory=list)
     # ParseC returns one dictionary per function.
     # Each dictionary is parsed into CFunction objects, which are indexed by function name.
@@ -65,23 +62,27 @@ class ParsecProject:
 
         If the path is a directory, the directory must contain a compile_commands.json
         compilation database located at `{input_path}/compile_commands.json`.
-        All C source files referenced in the compilation database are analyzed.
+        All C source files in the directory are analyzed, at all levels of the directory hierarchy.
+        The compile_commands.json file is used to determine the correct compiler flags to use when
+        analyzing each file. If a file is present in the directory but not in compile_commands.json,
+        Clang will be run on the file with no flags, which may lead to incorrect parsing/linking.
 
         Args:
             input_path (Path): The path to a file or directory to be analyzed.
         """
-        self.file_path: Path | None = None
-        self.project_root: Path | None = None
+        self.input_path: Path | None = input_path
         if input_path.is_dir():
             compile_commands_path = input_path / "compile_commands.json"
             if not compile_commands_path.exists():
-                msg = f"compile_commands.json not found in {input_path}"
+                msg = (
+                    f"compile_commands.json not found in {input_path}. "
+                    "If your project uses `make`, you can generate a compilation database "
+                    "with `bear -- make`."
+                )
                 raise FileNotFoundError(msg)
-            self.project_root = input_path
-            parsec_analysis = self._run_parsec(input_path, run_mode=ParsecRunMode.DIRECTORY)
+            parsec_analysis = self._run_parsec(self.input_path, run_mode=ParsecRunMode.DIRECTORY)
         else:
-            self.file_path = input_path
-            parsec_analysis = self._run_parsec(input_path, run_mode=ParsecRunMode.FILE)
+            parsec_analysis = self._run_parsec(self.input_path, run_mode=ParsecRunMode.FILE)
 
         function_analyses = [CFunction(f) for f in parsec_analysis.get("functions", [])]
         self.enums = parsec_analysis.get("enums", [])

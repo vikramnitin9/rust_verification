@@ -33,11 +33,16 @@ make run
 
 For a more complex example, we include the [Zopfli](https://github.com/google/zopfli) compression library as a submodule in our data directory. It consists of over 3000 lines of C code across multiple files.
 
-To run specification generation on Zopfli, try the following commands (again inside the container):
+To run specification generation on a project with multiple files, one first needs to generate a JSON compilation database. If your project uses `make`, a simple way to generate a compilation database is to use [`bear`](https://github.com/rizsotto/Bear). Again from inside the container, run:
 
 ```sh
 # To generate a compile_commands.json compilation database
 cd /app/data/zopfli && make clean && bear -- make
+```
+
+Verify that `compile_commands.json` now exists at `/app/data/zopfli`. Now generate specifications:
+
+```sh
 cd /app
 # Run with the --project-root argument as opposed to the --input-file-path argument
 ./main.py --project-root data/zopfli

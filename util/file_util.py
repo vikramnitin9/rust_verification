@@ -23,7 +23,10 @@ def copy_file_to_folder(input_file_path: Path, destination_folder_name: str) -> 
 
 
 def copy_folder_to_folder(input_folder_path: Path, destination_folder_name: str) -> Path:
-    """Return the path of the copy of the input folder.
+    """Copy a folder to a destination folder, and return the path of the copy.
+
+    If the target folder already exists, the contents of the input folder will be merged
+    into the target folder, and existing files with the same name will be overwritten.
 
     Args:
         input_folder_path (Path): The input folder path.

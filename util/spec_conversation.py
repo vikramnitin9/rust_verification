@@ -77,7 +77,7 @@ class SpecConversation:
         }
         functions_with_specs = {function: specification} | callees_to_specs
 
-        source_file_to_verify = get_source_content_with_specifications(
+        source_contents_to_verify = get_source_content_with_specifications(
             specified_functions=functions_with_specs,
             parsec_project=parsec_project,
         )
@@ -85,7 +85,7 @@ class SpecConversation:
             function=function,
             specification=specification,
             conversation=tuple(conversation),
-            contents_of_file_to_verify=source_file_to_verify,
+            contents_of_file_to_verify=source_contents_to_verify,
         )
 
     def get_conversation_with_message_appended(
