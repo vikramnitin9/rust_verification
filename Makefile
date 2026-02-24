@@ -1,6 +1,6 @@
 .PHONY: default docker-build run integration-test unit-test tests checks tags TAGS
 
-default: test
+default: tests
 
 # Build container.
 docker-build:
