@@ -4,6 +4,7 @@
 
 import argparse
 import os
+import pickle as pkl
 import shutil
 import sys
 import tempfile
@@ -43,6 +44,10 @@ DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS = 2
 DEFAULT_SPECIFICATION_GENERATION_TIMEOUT_SEC = 300
 DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
 DEFAULT_RESULT_DIR = "specs"
+
+# Directory to store the `cache.db` file containing the text responses from LLM.
+DEFAULT_LLM_CACHE_DIR = "data/caching/llm"
+# Directory to store the `cache.db` file for verification results.
 DEFAULT_VERIFIER_RESULT_CACHE_DIR = "data/caching/verifier"
 
 GLOBAL_OBSERVED_PROOFSTATES: set[ProofState] = set()
@@ -145,6 +150,27 @@ def main() -> None:
             "workstack of functions. (defaults to False)"
         ),
     )
+    parser.add_argument(
+        "--path-to-llm-response-cache-dir",
+        type=str,
+        required=False,
+        default=DEFAULT_LLM_CACHE_DIR,
+        help=("Path to the directory that holds the cache.db file used for storing LLM responses."),
+    )
+    parser.add_argument(
+        "--path-to-save-proofstates",
+        type=str,
+        required=False,
+        help=("Path to the directory at which to save complete ProofStates."),
+    )
+    parser.add_argument(
+        "--stub-out-llm",
+        action="store_true",
+        help=(
+            "Stub out the LLM client (e.g., for integration tests). Otherwise, the constructor "
+            "looks for an environment variable (LLM_API_KEY) that is not available on a CI runner."
+        ),
+    )
     args = parser.parse_args()
 
     input_file_path = Path(args.file)
@@ -165,6 +191,8 @@ def main() -> None:
         num_specification_repair_iterations=args.num_specification_repair_iterations,
         fix_illegal_syntax=args.fix_illegal_syntax,
         normalize_specs=args.normalize_specs,
+        path_to_llm_response_cache_dir=args.path_to_llm_response_cache_dir,
+        is_running_as_stub=args.stub_out_llm,
         disable_llm_cache=args.disable_llm_cache,
         specgen_granularity=specgen_granularity,
     )
@@ -175,6 +203,7 @@ def main() -> None:
             parsec_file,
             specification_generator,
             args.skip_verified_cached_functions,
+            args.path_to_save_proofstates,
             timeout_sec=args.specification_generation_timeout_sec,
         )
     except TimeoutError as te:
@@ -188,6 +217,7 @@ def _verify_program(
     parsec_file: ParsecFile,
     specification_generator: LlmSpecificationGenerator,
     skip_verified_cached_functions: bool,
+    path_to_save_proofstates: str | None,
 ) -> tuple[ProofState, ...]:
     """Return a set of ProofStates, each of which has a specification for each function.
 
@@ -200,6 +230,7 @@ def _verify_program(
         skip_verified_cached_functions (bool): True iff functions that have verified and cached
             specifications should not be added to the workstack of functions for which to generate
             specs.
+        path_to_save_proofstates (str | None): Path to where complete ProofStates should be written.
 
     Returns:
         tuple[ProofState, ...]: A set of ProofStates, each of which has specifications for each
@@ -243,6 +274,13 @@ def _verify_program(
                 GLOBAL_COMPLETE_PROOFSTATES.append(next_proofstate)
             else:
                 GLOBAL_INCOMPLETE_PROOFSTATES.append(next_proofstate)
+
+    if proofstate_file_path := path_to_save_proofstates:
+        output_path = Path(proofstate_file_path)
+        if not output_path.exists():
+            output_path.mkdir(parents=True, exist_ok=True)
+        with Path(f"{proofstate_file_path}/proofstates.pkl").open("wb") as f:
+            pkl.dump(GLOBAL_COMPLETE_PROOFSTATES, f, protocol=pkl.HIGHEST_PROTOCOL)
 
     return tuple(GLOBAL_COMPLETE_PROOFSTATES)
 

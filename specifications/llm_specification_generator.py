@@ -12,6 +12,7 @@ from models import (
     LlmClient,
     LlmMessage,
     ModelError,
+    StubLlmBackend,
     SystemMessage,
     UserMessage,
 )
@@ -80,6 +81,9 @@ class LlmSpecificationGenerator:
         fix_illegal_syntax: bool,
         normalize_specs: bool,
         specgen_granularity: SpecGenGranularity,
+        path_to_llm_response_cache_dir: str,
+        *,
+        is_running_as_stub: bool,
         disable_llm_cache: bool = False,
     ) -> None:
         """Create a new LlmSpecificationGenerator."""
@@ -92,10 +96,14 @@ class LlmSpecificationGenerator:
         self._fix_illegal_syntax = fix_illegal_syntax
         self._normalize_specs = normalize_specs
         self._specgen_granularity = specgen_granularity
+        llm_backend = (
+            StubLlmBackend(model) if is_running_as_stub else DefaultLlmBackend.get_instance(model)
+        )
         self._llm_client = LlmClient(
-            llm=DefaultLlmBackend.get_instance(model_name=model),
+            llm=llm_backend,
             top_k=num_specification_candidates,
             temperature=temperature,
+            path_to_llm_response_cache_dir=path_to_llm_response_cache_dir,
             disable_llm_cache=disable_llm_cache,
         )
 
