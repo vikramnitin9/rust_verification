@@ -169,12 +169,12 @@ def main() -> None:
         # verified or assumed.
         output_file_path = copy_file_to_folder(input_path, DEFAULT_RESULT_DIR)
         ensure_lines_at_beginning(DEFAULT_HEADERS_FOR_VERIFICATION, output_file_path)
-        parsec_project = ParsecProject(input_path)
+        parsec_project = ParsecProject(output_file_path)
     else:  # input_path is a directory
         output_directory = copy_folder_to_folder(input_path, DEFAULT_RESULT_DIR)
         for c_file in output_directory.rglob("*.c"):
             ensure_lines_at_beginning(DEFAULT_HEADERS_FOR_VERIFICATION, c_file)
-        parsec_project = ParsecProject(input_path)
+        parsec_project = ParsecProject(output_directory)
 
     specgen_granularity = SpecGenGranularity(args.specgen_granularity)
 
@@ -220,7 +220,7 @@ def _verify_program(
     exceeds the user-specified or defaulted specification generation timeout.
 
     Args:
-        parsec_project (ParsecProject): The file to verify.
+        parsec_project (ParsecProject): The project to verify.
         specification_generator (LlmSpecificationGenerator): The LLM specification generator.
         skip_verified_cached_functions (bool): True iff functions that have verified and cached
             specifications should not be added to the workstack of functions for which to generate

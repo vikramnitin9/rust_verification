@@ -164,7 +164,7 @@ class ParsecProject:
             if callee_analysis := self.get_function_or_none(callee_name):
                 callees.append(callee_analysis)
             else:
-                logger.error(f"LLVM Analysis for callee function {callee_name} not found")
+                logger.warning(f"LLVM Analysis for callee function {callee_name} not found")
         return callees
 
     def get_functions_in_topological_order(self, *, reverse_order: bool = False) -> list[CFunction]:
@@ -209,14 +209,16 @@ class ParsecProject:
 
         Returns:
             dict[str, Any]: The result of running Parsec at the given path.
+
+        Raises:
+            FileNotFoundError: If the given path is invalid
+            RuntimeError: If an error occurs while running Parsec, or if
+                Parsec fails to produce an analysis.json file.
         """
         if path.is_file():
-            if not path.exists():
-                msg = f"File {path} does not exist"
-                raise FileNotFoundError(msg)
             cmd = ["parsec", "--rename-main=false", "--add-instr=false", str(path)]
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            path_to_result = Path("analysis.json")
+            result = subprocess.run(cmd, capture_output=True, text=True, cwd=path.parent)
+            path_to_result = path.parent / Path("analysis.json")
         elif path.is_dir():
             # Run a glob pattern to walk all .c files in the directory
             # We want each path to be absolute
@@ -228,13 +230,13 @@ class ParsecProject:
             result = subprocess.run(cmd, capture_output=True, text=True, cwd=path)
             path_to_result = path / "analysis.json"
         else:
-            msg = f"Unsupported path type: {path}"
-            raise ValueError(msg)
+            msg = f"Path does not exist or is not a file/directory: {path}"
+            raise FileNotFoundError(msg)
 
         if result.returncode != 0:
             msg = f"Error while running parsec: {result.stderr}"
             raise RuntimeError(msg)
 
         if not path_to_result.exists():
-            raise RuntimeError("parsec failed to produce an analysis")
+            raise RuntimeError("parsec failed to produce an analysis.json file")
         return json.loads(path_to_result.read_text(encoding="utf-8"))

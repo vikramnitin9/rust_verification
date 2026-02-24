@@ -28,7 +28,7 @@ Then run the Python script
 ```sh
 make run
 # Inside the container:
-./main.py --input-file-path data/qsort.c
+./main.py --input-path data/qsort.c
 ```
 
 For a more complex example, we include the [Zopfli](https://github.com/google/zopfli) compression library as a submodule in our data directory. It consists of over 3000 lines of C code across multiple files.
@@ -44,8 +44,7 @@ Verify that `compile_commands.json` now exists at `/app/data/zopfli`. Now genera
 
 ```sh
 cd /app
-# Run with the --project-root argument as opposed to the --input-file-path argument
-./main.py --project-root data/zopfli
+./main.py --input-path data/zopfli
 ```
 
 ## Step 2: Converting C (CProver) specifications to Rust (Kani)
