@@ -72,7 +72,7 @@ class ParsecProject:
                     "with `bear -- make`."
                 )
                 raise FileNotFoundError(msg)
-        
+
         parsec_analysis = self._run_parsec(self.input_path)
 
         function_analyses = [CFunction(f) for f in parsec_analysis.get("functions", [])]
