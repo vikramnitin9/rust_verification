@@ -1,5 +1,8 @@
 """Utilities for manipulating text."""
 
+import re
+from pathlib import PurePosixPath
+
 CBMC_COMMENT_PREFIX = "// CBMC_ANNOTATION: "
 
 
@@ -83,3 +86,47 @@ def uncomment_cbmc_annotations(lines: list[str]) -> list[str]:
         list[str]: The lines with CBMC_COMMENT_PREFIX removed
     """
     return [line.replace(CBMC_COMMENT_PREFIX, "") for line in lines]
+
+
+def normalize_cbmc_output_paths(
+    output: str,
+    function_name: str,
+    *,
+    temp_file_path: str | None = None,
+) -> str:
+    """Return CBMC output with temp file paths replaced by a stable name.
+
+    CBMC error output includes the path to the temporary file that was compiled
+    (e.g., '/app/specs/get_min_maxABC123.c'). These random paths make LLM cache
+    keys non-deterministic. This function replaces any such path with a stable
+    name (e.g., 'get_min_max.c') so that prompts are reproducible across runs.
+
+    When *temp_file_path* is provided the function first performs exact literal
+    replacements for the full path and its basename, which is faster and more
+    precise.  A regex pass is always applied afterwards to catch any remaining
+    occurrences (e.g., paths that differ slightly from the one supplied).
+
+    Args:
+        output: The raw CBMC stdout or stderr output.
+        function_name: The name of the function being verified.
+        temp_file_path: Optional exact path to the temp file that was compiled.
+            When given, its full path and basename are replaced first via exact
+            string substitution before the regex fallback.
+
+    Returns:
+        The CBMC output with temp file paths replaced by '{function_name}.c'.
+    """
+    stable_name = f"{function_name}.c"
+
+    # Precise literal replacement when the exact path is known.
+    if temp_file_path is not None:
+        basename = PurePosixPath(temp_file_path).name
+        output = output.replace(temp_file_path, stable_name)
+        output = output.replace(basename, stable_name)
+
+    # Regex fallback: catches any remaining temp-file references.
+    return re.sub(
+        r"\S*" + re.escape(function_name) + r"[a-zA-Z0-9_-]+\.c",
+        stable_name,
+        output,
+    )

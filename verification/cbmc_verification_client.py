@@ -8,7 +8,7 @@ from pathlib import Path
 from diskcache import Cache  # ty: ignore
 from loguru import logger
 
-from util import file_util
+from util import file_util, text_util
 from verification.verification_result import VerificationResult
 
 from .verification_client import VerificationClient
@@ -69,14 +69,11 @@ class CbmcVerificationClient(VerificationClient):
                     result = subprocess.run(vcommand, shell=True, capture_output=True, text=True)
                     # Normalize the temp file path in CBMC output so that LLM cache keys
                     # are deterministic across runs (temp file names are random).
-                    path_str = str(path_to_file)
-                    basename_str = path_to_file.name
-                    stable_name = f"{function.name}.c"
-                    normalized_stdout = result.stdout.replace(path_str, stable_name).replace(
-                        basename_str, stable_name
+                    normalized_stdout = text_util.normalize_cbmc_output_paths(
+                        result.stdout, function.name, temp_file_path=str(path_to_file)
                     )
-                    normalized_stderr = result.stderr.replace(path_str, stable_name).replace(
-                        basename_str, stable_name
+                    normalized_stderr = text_util.normalize_cbmc_output_paths(
+                        result.stderr, function.name, temp_file_path=str(path_to_file)
                     )
                     self._cache[vinput] = VerificationResult(
                         vinput,
