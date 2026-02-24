@@ -1,3 +1,5 @@
+analysis.json
+
 specs/
 logs/
 
@@ -60,6 +62,6 @@ __pycache__/
 data/caching/
 
 # Files created by running tests
-test/data/function_util/update_function_declaration/swap_bottom-copy.c
-test/data/function_util/update_function_declaration/swap_middle-copy.c
+test/data/function_util/update_function_definition/swap_bottom-copy.c
+test/data/function_util/update_function_definition/swap_middle-copy.c
 test/data/caching/

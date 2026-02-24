@@ -72,9 +72,8 @@ class ParsecProject:
                     "with `bear -- make`."
                 )
                 raise FileNotFoundError(msg)
-            parsec_analysis = self._run_parsec(self.input_path)
-        else:
-            parsec_analysis = self._run_parsec(self.input_path)
+        
+        parsec_analysis = self._run_parsec(self.input_path)
 
         function_analyses = [CFunction(f) for f in parsec_analysis.get("functions", [])]
         self.enums = parsec_analysis.get("enums", [])
@@ -217,8 +216,8 @@ class ParsecProject:
         """
         if path.is_file():
             cmd = ["parsec", "--rename-main=false", "--add-instr=false", str(path)]
-            result = subprocess.run(cmd, capture_output=True, text=True, cwd=path.parent)
-            path_to_result = path.parent / Path("analysis.json")
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            path_to_result = Path.cwd() / Path("analysis.json")
         elif path.is_dir():
             # Run a glob pattern to walk all .c files in the directory
             # We want each path to be absolute
