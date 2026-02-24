@@ -13,7 +13,7 @@ class LlmClient:
         _llm (LlmBackend): The LLM backend to use.
         _top_k (int): The number of samples to obtain from the LLM.
         _temperature (float): The temperature (cannot be 0 if top_k > 1).
-        _path_to_llm_cache_dir (str): The path to the LLM response cache directory.
+        _path_to_llm_response_cache_dir (str): Path to the LLM response cache to use.
         _llm_cache (Cache | None): A cache of LLM responses.
     """
 
@@ -29,6 +29,7 @@ class LlmClient:
         top_k: int,
         temperature: float,
         path_to_llm_response_cache_dir: str,
+        *,
         disable_llm_cache: bool = False,
     ):
         """Create a new LLmClient."""
@@ -42,8 +43,9 @@ class LlmClient:
         self._llm = llm
         self._top_k = top_k
         self._temperature = temperature
+        self._path_to_llm_response_cache_dir = path_to_llm_response_cache_dir
         self._llm_cache = (
-            None if disable_llm_cache else Cache(directory=path_to_llm_response_cache_dir)
+            None if disable_llm_cache else Cache(directory=self._path_to_llm_response_cache_dir)
         )
 
     def get(

@@ -68,17 +68,21 @@ def test_generate_specs_max_min() -> None:
     pkl_path = Path(PATH_TO_INTEGRATION_TEST_DIR) / "proofstates.pkl"
     assert pkl_path.exists(), f"File not found at {pkl_path}.\nstderr:\n{result.stderr}"
 
-    with open(pkl_path, "rb") as f:
-        proof_states = pkl.load(f)
-        get_min_max_src = set()
-        for ps in proof_states:
-            for fn in ps.get_specifications():
-                if fn.name == "get_min_max":
-                    get_min_max_src.add(fn.get_source_code())
+    try:
+        with open(pkl_path, "rb") as f:
+            proof_states = pkl.load(f)
+            get_min_max_src = set()
+            for ps in proof_states:
+                for fn in ps.get_specifications():
+                    if fn.name == "get_min_max":
+                        get_min_max_src.add(fn.get_source_code())
 
-        assert list(get_min_max_src)[0] == VERIFIED_FUNCTION_SRC_CODE
 
-    # Clean up the temporary proof states.
-    cmd = f"rm {PATH_TO_INTEGRATION_TEST_DIR}/**.pkl"
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    assert result.returncode == 0, f"Failed to delete temporary proof state files in {PATH_TO_INTEGRATION_TEST_DIR}"
+            assert len(get_min_max_src) > 0, f"Expected at least one verified specification for 'get_min_max'"
+            assert next(iter(get_min_max_src)) == VERIFIED_FUNCTION_SRC_CODE
+    finally:
+        # Clean up the temporary proof states.
+        cmd = f"rm {PATH_TO_INTEGRATION_TEST_DIR}/*.pkl"
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        assert result.returncode == 0, f"Failed to delete temporary proof state files in {PATH_TO_INTEGRATION_TEST_DIR}"
+

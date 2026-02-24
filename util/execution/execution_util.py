@@ -21,6 +21,7 @@ def run_with_timeout(function: Callable[..., Any], *args: Any, timeout_sec: floa
         **kwargs (Any): The keyword arguments with which to call the function.
 
     Raises:
+        RuntimeError: If the process exits with a non-zero exit code.
         TimeoutError: If the function does not complete within the timeout.
     """
     func_name = getattr(function, "__name__", repr(function))

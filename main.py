@@ -161,14 +161,14 @@ def main() -> None:
         "--path-to-save-proofstates",
         type=str,
         required=False,
-        help=("Path to the file to which to save complete ProofStates."),
+        help=("Path to the directory at which to save complete ProofStates."),
     )
     parser.add_argument(
         "--stub-out-llm",
         action="store_true",
         help=(
-            "Stub out the LLM client (e.g., for integration tests). Otherwise, the constructor will"
-            "look for an environment variable (LLM_API_KEY) that is not available on a runner."
+            "Stub out the LLM client (e.g., for integration tests). Otherwise, the constructor "
+            "looks for an environment variable (LLM_API_KEY) that is not available on a CI runner."
         ),
     )
     args = parser.parse_args()

@@ -8,7 +8,7 @@ from .llm_backend import LlmBackend
 class StubLlmBackend(LlmBackend):
     """Class representing a stubbed LLM backend, for testing."""
 
-    def __init__(self, model: str):
+    def __init__(self, model: str) -> None:
         """Create an instance of StubLlmBackend."""
         self.model = model
 
