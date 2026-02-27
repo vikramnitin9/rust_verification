@@ -118,7 +118,14 @@ class CbmcVerificationClient(VerificationClient):
             for arg in ("--replace-call-with-contract", callee_name)
         ]
         return [
-            [f"goto-cc -o {function_name}.goto {file_to_verify} --function {function_name}"],
+            [
+                "goto-cc",
+                "-o",
+                f"{function_name}.goto",
+                f"{file_to_verify}",
+                "--function",
+                f"{function_name}",
+            ],
             [
                 "goto-instrument",
                 "--partial-loops",
