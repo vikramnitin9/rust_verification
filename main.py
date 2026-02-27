@@ -188,11 +188,8 @@ def main() -> None:
         raise FileNotFoundError(msg)
 
     if input_path.is_file():
-        # MDE: Will this path be repeatedly overwritten during the verification process?
-        # If so, that is a serious problem for concurrency.
-        # VIKRAM: No, this will be overwritten only when _write_spec_to_disk is called for
-        # a function in the file, and that only happens when a spec for the function is
-        # verified or assumed.
+        # This path is overwritten only when _write_spec_to_disk is called for a function in
+        # the file, and that only happens when a spec for the function is verified or assumed.
         output_file_path = copy_file_to_folder(input_path, DEFAULT_RESULT_DIR)
         ensure_lines_at_beginning(DEFAULT_HEADERS_FOR_VERIFICATION, output_file_path)
         parsec_project = ParsecProject(output_file_path)
