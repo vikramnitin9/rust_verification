@@ -73,7 +73,7 @@ class ParsecProject:
                 )
                 raise FileNotFoundError(msg)
 
-        parsec_analysis = self._run_parsec(self.input_path)
+        parsec_analysis = self._run_parsec(input_path)
 
         function_analyses = [CFunction(f) for f in parsec_analysis.get("functions", [])]
         self.enums = parsec_analysis.get("enums", [])
