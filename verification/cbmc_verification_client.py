@@ -119,7 +119,14 @@ class CbmcVerificationClient(VerificationClient):
         ]
         return [
             [f"goto-cc -o {function_name}.goto {file_to_verify} --function {function_name}"],
-            ["goto-instrument", "--partial-loops", "--unwind", "5", f"{function_name}.goto", f"{function_name}.goto"],
+            [
+                "goto-instrument",
+                "--partial-loops",
+                "--unwind",
+                "5",
+                f"{function_name}.goto",
+                f"{function_name}.goto",
+            ],
             [
                 "goto-instrument",
                 *replace_call_with_contract_args,
@@ -128,5 +135,12 @@ class CbmcVerificationClient(VerificationClient):
                 f"{function_name}.goto",
                 f"checking-{function_name}-contracts.goto",
             ],
-            ["cbmc", f"checking-{function_name}-contracts.goto", "--function", function_name, "--depth", "100"]
+            [
+                "cbmc",
+                f"checking-{function_name}-contracts.goto",
+                "--function",
+                function_name,
+                "--depth",
+                "100",
+            ],
         ]
