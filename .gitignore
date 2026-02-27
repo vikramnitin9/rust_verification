@@ -1,3 +1,4 @@
+# Analysis files produced by ParseC
 analysis.json
 
 specs/
@@ -62,6 +63,6 @@ __pycache__/
 data/caching/
 
 # Files created by running tests
-test/data/function_util/update_function_definition/swap_bottom-copy.c
-test/data/function_util/update_function_definition/swap_middle-copy.c
+test/data/function_util/update_function_definition/*-copy.c
+test/data/function_util/update_function_definition/*-copy.c
 test/data/caching/

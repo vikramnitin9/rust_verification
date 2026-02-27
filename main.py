@@ -196,11 +196,14 @@ def main() -> None:
         output_file_path = copy_file_to_folder(input_path, DEFAULT_RESULT_DIR)
         ensure_lines_at_beginning(DEFAULT_HEADERS_FOR_VERIFICATION, output_file_path)
         parsec_project = ParsecProject(output_file_path)
-    else:  # input_path is a directory
+    elif input_path.is_dir():  # input_path is a directory
         output_directory = copy_folder_to_folder(input_path, DEFAULT_RESULT_DIR)
         for c_file in output_directory.rglob("*.c"):
             ensure_lines_at_beginning(DEFAULT_HEADERS_FOR_VERIFICATION, c_file)
         parsec_project = ParsecProject(output_directory)
+    else:
+        msg = f"Input path '{input_path}' is neither a file nor a directory."
+        raise ValueError(msg)
 
     specgen_granularity = SpecGenGranularity(args.specgen_granularity)
 
