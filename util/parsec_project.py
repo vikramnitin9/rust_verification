@@ -23,10 +23,6 @@ class ParsecProject:
     The fields of this class are populated from the result of running ParseC.
     For more details on the fields of this class, see the ParseC documentation:
     https://github.com/vikramnitin9/parsec/blob/main/README.md
-
-    ParseC is a LLVM/Clang-based tool to parse a C program.
-    It extracts functions, structures, etc. along with their inter-dependencies.
-    ParseC's output is a .json file.
     """
 
     # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
@@ -36,10 +32,8 @@ class ParsecProject:
     input_path: Path | None = None
     files: list[str] = field(default_factory=list)
     # ParseC returns one dictionary per function.
-    # Each dictionary is parsed into CFunction objects, which are indexed by function name.
-    # This could have problems for static functions with the same name in different files.
-    # The projects we are currently using to test our tool do not have static functions,
-    # but this needs to be kept in mind for complex projects.
+    # The key for `functions` is a function name.
+    # This will not work if static functions have the same name in different files.
     functions: dict[str, CFunction] = field(default_factory=dict)
 
     # For the exact format of these dictionaries, see the ParseC documentation (linked above).
@@ -48,19 +42,21 @@ class ParsecProject:
     global_vars: list[dict[str, Any]] = field(default_factory=list)
 
     def __init__(self, input_path: Path) -> None:
-        """Create a ParsecProject from the given file or directory.
+        """Create a ParsecProject from the given C file or directory that contains C files.
 
         If the path is a single file, that file is analyzed.
 
         If the path is a directory, the directory must contain a compile_commands.json
         compilation database located at `{input_path}/compile_commands.json`.
-        All C source files in the directory are analyzed, at all levels of the directory hierarchy.
-        The compile_commands.json file is used to determine the correct compiler flags to use when
-        analyzing each file. If a file is present in the directory but not in compile_commands.json,
-        Clang will be run on the file with no flags, which may lead to incorrect parsing/linking.
+        All C source files in (or under) the directory are analyzed.
+        The compile_commands.json file indicates the compiler flags to use when ParseC calls Clang
+        to analyze each file. If a file is present in the directory but not in
+        compile_commands.json, ParseC will run Clang on the file with no flags, which may lead to
+        incorrect parsing/linking.
 
         Args:
             input_path (Path): The path to a file or directory to be analyzed.
+
         """
         self.input_path: Path | None = input_path
         if input_path.is_dir():
@@ -120,7 +116,7 @@ class ParsecProject:
         return ParsecProject(tmp_file_with_commented_out_cbmc_annotations)
 
     def get_function_or_none(self, function_name: str) -> CFunction | None:
-        """Return the CFunction representation for the function with the given name.
+        """Return the CFunction representation for the function with the given name, or None.
 
         Args:
             function_name (str): The name of the function.
@@ -132,7 +128,7 @@ class ParsecProject:
         return self.functions.get(function_name)
 
     def get_function(self, function_name: str) -> CFunction:
-        """Return the CFunction representation for a function with the given name.
+        """Return the CFunction representation for the function with the given name.
 
         Args:
             function_name (str): The name of the function.
@@ -201,26 +197,26 @@ class ParsecProject:
         return list(reversed(functions)) if reverse_order else functions
 
     def _run_parsec(self, path: Path) -> dict[str, Any]:
-        """Return the result of running Parsec at the given path.
+        """Return the result of running ParseC at the given path, then reading its .json file.
 
         Args:
-            path (Path): The path at which to run Parsec: a file or directory.
+            path (Path): The path at which to run ParseC: a file or directory.
 
         Returns:
-            dict[str, Any]: The result of running Parsec at the given path.
+            dict[str, Any]: The result of running ParseC at the given path.  This is a
+                representation of the .json file that ParseC outputs.  It is similar to the
+                internal representation of the ParsecProject class.
 
         Raises:
-            FileNotFoundError: If the given path is invalid
-            RuntimeError: If an error occurs while running Parsec, or if
-                Parsec fails to produce an analysis.json file.
+            FileNotFoundError: If the given path is invalid.
+            RuntimeError: If an error occurs while running ParseC, or if
+                ParseC fails to produce an analysis.json file.
         """
         if path.is_file():
             cmd = ["parsec", "--rename-main=false", "--add-instr=false", str(path)]
             result = subprocess.run(cmd, capture_output=True, text=True)
             path_to_result = Path.cwd() / Path("analysis.json")
         elif path.is_dir():
-            # Run a glob pattern to walk all .c files in the directory
-            # We want each path to be absolute
             file_list = [str(file.resolve()) for file in path.glob("**/*.c")]
             if not file_list:
                 msg = f"No .c files found in directory {path}"
@@ -229,7 +225,7 @@ class ParsecProject:
             result = subprocess.run(cmd, capture_output=True, text=True, cwd=path)
             path_to_result = path / "analysis.json"
         else:
-            msg = f"Path does not exist or is not a file/directory: {path}"
+            msg = f"Path does not exist or is not a file or directory: {path}"
             raise FileNotFoundError(msg)
 
         if result.returncode != 0:

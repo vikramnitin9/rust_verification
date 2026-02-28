@@ -122,6 +122,8 @@ class CbmcVerificationClient(VerificationClient):
                 "goto-cc",
                 "-o",
                 f"{function_name}.goto",
+                # These seemingly gratuitous f-strings are necessary for type-checking:
+                # they convert a Path into a string.
                 f"{file_to_verify}",
                 "--function",
                 f"{function_name}",
