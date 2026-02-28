@@ -40,7 +40,7 @@ if docker info -f "{{println .SecurityOptions}}" | grep -q rootless; then
     -v "$(pwd)/logs:/app/logs" \
     -v "$(pwd)/prompts:/app/prompts" \
     -v "$(pwd)/main.py:/app/main.py" \
-    -v "$(pwd)/generate_cbmc_models.py:/app/generate_cbmc_models.py" \
+    -v "$(pwd)/generate_avocado_stubs.py:/app/generate_avocado_stubs.py" \
     -v "$(pwd)/translate_specs.py:/app/translate_specs.py" \
     cbmc:latest "${CMD[@]}"
 else
@@ -57,7 +57,7 @@ else
     -v "$(pwd)/logs:/app/logs" \
     -v "$(pwd)/prompts:/app/prompts" \
     -v "$(pwd)/main.py:/app/main.py" \
-    -v "$(pwd)/generate_cbmc_models.py:/app/generate_cbmc_models.py" \
+    -v "$(pwd)/generate_avocado_stubs.py:/app/generate_avocado_stubs.py" \
     -v "$(pwd)/translate_specs.py:/app/translate_specs.py" \
     cbmc:latest "${CMD[@]}"
 fi

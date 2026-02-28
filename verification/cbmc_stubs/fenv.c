@@ -4,7 +4,7 @@
 
 extern int __CPROVER_rounding_mode;
 
-int avocado_avocado_fegetround(void)
+int avocado_fegetround(void)
 {
 __CPROVER_HIDE:;
   // CPROVER uses the x86 numbering of the rounding modes
@@ -24,7 +24,7 @@ __CPROVER_HIDE:;
 
 #include <fenv.h>
 
-int avocado_avocado_fesetround(int rounding_mode)
+int avocado_fesetround(int rounding_mode)
 {
 __CPROVER_HIDE:;
   // CPROVER uses the x86 numbering of the rounding modes
@@ -43,7 +43,7 @@ __CPROVER_HIDE:;
 
 /* FUNCTION: feraiseexcept */
 
-int avocado_avocado_feraiseexcept(int excepts)
+int avocado_feraiseexcept(int excepts)
 {
 __CPROVER_HIDE:;
   __CPROVER_assert(excepts == 0, "floating-point exception");

@@ -667,7 +667,7 @@ __CPROVER_HIDE:;
 
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 
-void avocado___CPROVER_deallocate(void *ptr)
+void __CPROVER_deallocate(void *ptr)
 {
   if(__VERIFIER_nondet___CPROVER_bool())
     __CPROVER_deallocated = ptr;

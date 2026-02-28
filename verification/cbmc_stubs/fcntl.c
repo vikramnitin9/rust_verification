@@ -12,7 +12,7 @@
 
 int __VERIFIER_nondet_int(void);
 
-int avocado___CPROVER_fcntl(int fd, int cmd)
+int __CPROVER_fcntl(int fd, int cmd)
 {
 __CPROVER_HIDE:;
   if(fd < 0)
@@ -72,7 +72,7 @@ int avocado___fcntl_time64(int fd, int cmd, ...)
 
 int __VERIFIER_nondet_int(void);
 
-int avocado___CPROVER_open(const char *pathname, int flags)
+int __CPROVER_open(const char *pathname, int flags)
 {
 __CPROVER_HIDE:;
   int return_value = __VERIFIER_nondet_int();
@@ -126,7 +126,7 @@ int avocado_open64(const char *pathname, int flags, ...)
 
 int __VERIFIER_nondet_int(void);
 
-int avocado___CPROVER_creat(const char *pathname, MODE_T mode)
+int __CPROVER_creat(const char *pathname, MODE_T mode)
 {
 __CPROVER_HIDE:;
   int return_value = __VERIFIER_nondet_int();
@@ -216,7 +216,7 @@ int avocado_creat64(const char *pathname, MODE_T mode)
 
 int __VERIFIER_nondet_int(void);
 
-int avocado___CPROVER_openat(int dirfd, const char *pathname, int flags)
+int __CPROVER_openat(int dirfd, const char *pathname, int flags)
 {
 __CPROVER_HIDE:;
   if(dirfd < 0)

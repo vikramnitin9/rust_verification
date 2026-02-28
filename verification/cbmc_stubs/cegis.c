@@ -28,7 +28,7 @@ struct __CPROVER_cegis_instructiont
 
 #define __CPROVER_cegis_max_instruction 24u
 
-void avocado___CPROVER_danger_execute(struct __CPROVER_cegis_instructiont *program,
+void __CPROVER_danger_execute(struct __CPROVER_cegis_instructiont *program,
                               unsigned char size)
 {
   for (unsigned char i = 0; i < size; ++i)

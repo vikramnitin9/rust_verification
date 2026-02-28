@@ -42,54 +42,54 @@ float avocado___builtin_fabsf(float f)
 
 /* FUNCTION: __CPROVER_isgreaterf */
 
-int avocado___CPROVER_isgreaterf(float f, float g) { return f > g; }
+int __CPROVER_isgreaterf(float f, float g) { return f > g; }
 
 /* FUNCTION: __CPROVER_isgreaterd */
 
-int avocado___CPROVER_isgreaterd(double f, double g) { return f > g; }
+int __CPROVER_isgreaterd(double f, double g) { return f > g; }
 
 /* FUNCTION: __CPROVER_isgreaterequalf */
 
-int avocado___CPROVER_isgreaterequalf(float f, float g) { return f >= g; }
+int __CPROVER_isgreaterequalf(float f, float g) { return f >= g; }
 
 /* FUNCTION: __CPROVER_isgreaterequald */
 
-int avocado___CPROVER_isgreaterequald(double f, double g) { return f >= g; }
+int __CPROVER_isgreaterequald(double f, double g) { return f >= g; }
 
 /* FUNCTION: __CPROVER_islessf */
 
-int avocado___CPROVER_islessf(float f, float g) { return f < g;}
+int __CPROVER_islessf(float f, float g) { return f < g;}
 
 /* FUNCTION: __CPROVER_islessd */
 
-int avocado___CPROVER_islessd(double f, double g) { return f < g;}
+int __CPROVER_islessd(double f, double g) { return f < g;}
 
 /* FUNCTION: __CPROVER_islessequalf */
 
-int avocado___CPROVER_islessequalf(float f, float g) { return f <= g; }
+int __CPROVER_islessequalf(float f, float g) { return f <= g; }
 
 /* FUNCTION: __CPROVER_islessequald */
 
-int avocado___CPROVER_islessequald(double f, double g) { return f <= g; }
+int __CPROVER_islessequald(double f, double g) { return f <= g; }
 
 /* FUNCTION: __CPROVER_islessgreaterf */
 
-int avocado___CPROVER_islessgreaterf(float f, float g) { return (f < g) || (f > g); }
+int __CPROVER_islessgreaterf(float f, float g) { return (f < g) || (f > g); }
 
 /* FUNCTION: __CPROVER_islessgreaterd */
 
-int avocado___CPROVER_islessgreaterd(double f, double g) { return (f < g) || (f > g); }
+int __CPROVER_islessgreaterd(double f, double g) { return (f < g) || (f > g); }
 
 /* FUNCTION: __CPROVER_isunorderedf */
 
-int avocado___CPROVER_isunorderedf(float f, float g)
+int __CPROVER_isunorderedf(float f, float g)
 {
   return __CPROVER_isnanf(f) || __CPROVER_isnanf(g);
 }
 
 /* FUNCTION: __CPROVER_isunorderedd */
 
-int avocado___CPROVER_isunorderedd(double f, double g)
+int __CPROVER_isunorderedd(double f, double g)
 {
   return __CPROVER_isnand(f) || __CPROVER_isnand(g);
 }

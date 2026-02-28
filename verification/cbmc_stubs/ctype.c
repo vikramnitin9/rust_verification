@@ -97,7 +97,7 @@ int avocado_isxdigit(int c)
 
 /* FUNCTION: __CPROVER_tolower */
 
-int avocado___CPROVER_tolower(int c)
+int __CPROVER_tolower(int c)
 {
   return (c >= 'A' && c <= 'Z') ? c + ('a' - 'A') : c;
 }
@@ -122,7 +122,7 @@ int avocado___tolower(int c)
 
 /* FUNCTION: __CPROVER_toupper */
 
-int avocado___CPROVER_toupper(int c)
+int __CPROVER_toupper(int c)
 {
   return (c >= 'a' && c <= 'z') ? c - ('a' - 'A') : c;
 }
