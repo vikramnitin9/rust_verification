@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || defined(__x86_64__)
 
-void __builtin_ia32_sfence(void)
+void avocado___builtin_ia32_sfence(void)
 {
   __asm("sfence");
 }
@@ -13,7 +13,7 @@ void __builtin_ia32_sfence(void)
 
 #if defined(__i386__) || defined(__x86_64__)
 
-void __builtin_ia32_lfence(void)
+void avocado___builtin_ia32_lfence(void)
 {
   __asm("lfence");
 }
@@ -24,7 +24,7 @@ void __builtin_ia32_lfence(void)
 
 #if defined(__i386__) || defined(__x86_64__)
 
-void __builtin_ia32_mfence(void)
+void avocado___builtin_ia32_mfence(void)
 {
   __asm("mfence");
 }
@@ -33,7 +33,7 @@ void __builtin_ia32_mfence(void)
 
 /* FUNCTION: __sync_synchronize */
 
-void __sync_synchronize(void)
+void avocado___sync_synchronize(void)
 {
   // WARNING: this was a NOP before gcc 4.3.1,
   // but is now believed to be the strongest possible barrier.
@@ -49,7 +49,7 @@ void __sync_synchronize(void)
 
 void __atomic_thread_fence(int memorder);
 
-_Bool __atomic_test_and_set(void *ptr, int memorder)
+_Bool avocado___atomic_test_and_set(void *ptr, int memorder)
 {
 __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -64,7 +64,7 @@ __CPROVER_HIDE:;
 
 void __atomic_thread_fence(int memorder);
 
-void __atomic_clear(_Bool *ptr, int memorder)
+void avocado___atomic_clear(_Bool *ptr, int memorder)
 {
 __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -106,7 +106,7 @@ __CPROVER_HIDE:;
 #  define __ATOMIC_SEQ_CST 5
 #endif
 
-void __atomic_thread_fence(int memorder)
+void avocado___atomic_thread_fence(int memorder)
 {
 __CPROVER_HIDE:;
   if(memorder == __ATOMIC_CONSUME || memorder == __ATOMIC_ACQUIRE)
@@ -129,7 +129,7 @@ __CPROVER_HIDE:;
 
 void __atomic_thread_fence(int memorder);
 
-void __atomic_signal_fence(int memorder)
+void avocado___atomic_signal_fence(int memorder)
 {
 __CPROVER_HIDE:;
   __atomic_thread_fence(memorder);
@@ -137,7 +137,7 @@ __CPROVER_HIDE:;
 
 /* FUNCTION: __atomic_always_lock_free */
 
-_Bool __atomic_always_lock_free(__CPROVER_size_t size, void *ptr)
+_Bool avocado___atomic_always_lock_free(__CPROVER_size_t size, void *ptr)
 {
 __CPROVER_HIDE:;
   (void)ptr;
@@ -146,7 +146,7 @@ __CPROVER_HIDE:;
 
 /* FUNCTION: __atomic_is_lock_free */
 
-_Bool __atomic_is_lock_free(__CPROVER_size_t size, void *ptr)
+_Bool avocado___atomic_is_lock_free(__CPROVER_size_t size, void *ptr)
 {
 __CPROVER_HIDE:;
   (void)ptr;
@@ -157,7 +157,7 @@ __CPROVER_HIDE:;
 
 typedef short __gcc_v4hi __attribute__((__vector_size__(8)));
 
-short __builtin_ia32_vec_ext_v4hi(__gcc_v4hi vec, int offset)
+short avocado___builtin_ia32_vec_ext_v4hi(__gcc_v4hi vec, int offset)
 {
   return *((short *)&vec + offset);
 }
@@ -166,7 +166,7 @@ short __builtin_ia32_vec_ext_v4hi(__gcc_v4hi vec, int offset)
 
 typedef short __gcc_v8hi __attribute__((__vector_size__(16)));
 
-short __builtin_ia32_vec_ext_v8hi(__gcc_v8hi vec, int offset)
+short avocado___builtin_ia32_vec_ext_v8hi(__gcc_v8hi vec, int offset)
 {
   return *((short *)&vec + offset);
 }
@@ -175,7 +175,7 @@ short __builtin_ia32_vec_ext_v8hi(__gcc_v8hi vec, int offset)
 
 typedef int __gcc_v4si __attribute__((__vector_size__(16)));
 
-int __builtin_ia32_vec_ext_v4si(__gcc_v4si vec, int offset)
+int avocado___builtin_ia32_vec_ext_v4si(__gcc_v4si vec, int offset)
 {
   return *((int *)&vec + offset);
 }
@@ -184,7 +184,7 @@ int __builtin_ia32_vec_ext_v4si(__gcc_v4si vec, int offset)
 
 typedef long long __gcc_v2di __attribute__((__vector_size__(16)));
 
-long long __builtin_ia32_vec_ext_v2di(__gcc_v2di vec, int offset)
+long long avocado___builtin_ia32_vec_ext_v2di(__gcc_v2di vec, int offset)
 {
   return *((long long *)&vec + offset);
 }
@@ -193,7 +193,7 @@ long long __builtin_ia32_vec_ext_v2di(__gcc_v2di vec, int offset)
 
 typedef char __gcc_v16qi __attribute__((__vector_size__(16)));
 
-int __builtin_ia32_vec_ext_v16qi(__gcc_v16qi vec, int offset)
+int avocado___builtin_ia32_vec_ext_v16qi(__gcc_v16qi vec, int offset)
 {
   return *((char *)&vec + offset);
 }
@@ -202,7 +202,7 @@ int __builtin_ia32_vec_ext_v16qi(__gcc_v16qi vec, int offset)
 
 typedef float __gcc_v4sf __attribute__((__vector_size__(16)));
 
-float __builtin_ia32_vec_ext_v4sf(__gcc_v4sf vec, int offset)
+float avocado___builtin_ia32_vec_ext_v4sf(__gcc_v4sf vec, int offset)
 {
   return *((float *)&vec + offset);
 }
@@ -215,7 +215,7 @@ typedef short __gcc_v8hi __attribute__((__vector_size__(16)));
 __gcc_v8hi __CPROVER_saturating_minus(__gcc_v8hi, __gcc_v8hi);
 #endif
 
-__gcc_v8hi __builtin_ia32_psubsw128(__gcc_v8hi a, __gcc_v8hi b)
+__gcc_v8hi avocado___builtin_ia32_psubsw128(__gcc_v8hi a, __gcc_v8hi b)
 {
   return __CPROVER_saturating_minus(a, b);
 }
@@ -230,7 +230,7 @@ __gcc_v8hi __CPROVER_saturating_minus_v8hi_u(v8hi_u, v8hi_u);
 #  define __CPROVER_saturating_minus __CPROVER_saturating_minus_v8hi_u
 #endif
 
-__gcc_v8hi __builtin_ia32_psubusw128(__gcc_v8hi a, __gcc_v8hi b)
+__gcc_v8hi avocado___builtin_ia32_psubusw128(__gcc_v8hi a, __gcc_v8hi b)
 {
   typedef unsigned short v8hi_u __attribute__((__vector_size__(16)));
   return (__gcc_v8hi)__CPROVER_saturating_minus((v8hi_u)a, (v8hi_u)b);
@@ -244,7 +244,7 @@ typedef short __gcc_v4hi __attribute__((__vector_size__(8)));
 __gcc_v4hi __CPROVER_saturating_plus(__gcc_v4hi, __gcc_v4hi);
 #endif
 
-__gcc_v4hi __builtin_ia32_paddsw(__gcc_v4hi a, __gcc_v4hi b)
+__gcc_v4hi avocado___builtin_ia32_paddsw(__gcc_v4hi a, __gcc_v4hi b)
 {
   return __CPROVER_saturating_plus(a, b);
 }
@@ -259,7 +259,7 @@ __gcc_v4hi __CPROVER_saturating_minus_v4hi(__gcc_v4hi, __gcc_v4hi);
 #  define __CPROVER_saturating_minus __CPROVER_saturating_minus_v4hi
 #endif
 
-__gcc_v4hi __builtin_ia32_psubsw(__gcc_v4hi a, __gcc_v4hi b)
+__gcc_v4hi avocado___builtin_ia32_psubsw(__gcc_v4hi a, __gcc_v4hi b)
 {
   return __CPROVER_saturating_minus(a, b);
 }
@@ -274,7 +274,7 @@ __gcc_v4hi __builtin_ia32_psubsw(__gcc_v4hi a, __gcc_v4hi b)
 typedef short __gcc_v4hi __attribute__((__vector_size__(8)));
 #endif
 
-__gcc_v4hi __builtin_ia32_vec_init_v4hi(short e0, short e1, short e2, short e3)
+__gcc_v4hi avocado___builtin_ia32_vec_init_v4hi(short e0, short e1, short e2, short e3)
 {
   return (__gcc_v4hi){e0, e1, e2, e3};
 }

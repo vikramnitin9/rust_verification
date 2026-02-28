@@ -10,7 +10,7 @@
 time_t __VERIFIER_nondet_time_t(void);
 time_t __time64(time_t *);
 
-time_t time(time_t *tloc)
+time_t avocado_time(time_t *tloc)
 {
   return __time64(tloc);
 }
@@ -24,7 +24,7 @@ time_t time(time_t *tloc)
 
 time_t __VERIFIER_nondet_time_t(void);
 
-time_t __time64(time_t *tloc)
+time_t avocado___time64(time_t *tloc)
 {
   time_t res=__VERIFIER_nondet_time_t();
   if(tloc)
@@ -43,7 +43,7 @@ time_t __time64(time_t *tloc)
 
 time_t __VERIFIER_nondet_time_t(void);
 
-time_t _time64(time_t *tloc)
+time_t avocado__time64(time_t *tloc)
 {
   time_t res = __VERIFIER_nondet_time_t();
   if(tloc)
@@ -64,7 +64,7 @@ time_t _time64(time_t *tloc)
 
 __time32_t __VERIFIER_nondet_time32_t(void);
 
-__time32_t _time32(__time32_t *tloc)
+__time32_t avocado__time32(__time32_t *tloc)
 {
   __time32_t res = __VERIFIER_nondet_time32_t();
   if(tloc)
@@ -167,7 +167,7 @@ struct tm *localtime_r(const time_t *clock, struct tm *result)
 
 time_t __VERIFIER_nondet_time_t(void);
 
-time_t mktime(struct tm *timeptr)
+time_t avocado_mktime(struct tm *timeptr)
 {
   (void)*timeptr;
   time_t result=__VERIFIER_nondet_time_t();
@@ -185,7 +185,7 @@ time_t mktime(struct tm *timeptr)
 
 time_t __VERIFIER_nondet_time_t(void);
 
-time_t timegm(struct tm *timeptr)
+time_t avocado_timegm(struct tm *timeptr)
 {
   (void)*timeptr;
   time_t result=__VERIFIER_nondet_time_t();
@@ -244,7 +244,7 @@ char *ctime(const time_t *clock)
 __CPROVER_size_t __VERIFIER_nondet_size_t(void);
 
 __CPROVER_size_t
-strftime(char *s, __CPROVER_size_t max, const char *format, const struct tm *tm)
+avocado_strftime(char *s, __CPROVER_size_t max, const char *format, const struct tm *tm)
 {
   (void)*format;
   (void)*tm;
@@ -265,7 +265,7 @@ strftime(char *s, __CPROVER_size_t max, const char *format, const struct tm *tm)
 
 __CPROVER_size_t __VERIFIER_nondet_size_t(void);
 
-__CPROVER_size_t _strftime(
+__CPROVER_size_t avocado__strftime(
   char *s,
   __CPROVER_size_t max,
   const char *format,
@@ -301,7 +301,7 @@ long __VERIFIER_nondet_long(void);
 typedef int clockid_t;
 #endif
 
-int clock_gettime(clockid_t clockid, struct timespec *tp)
+int avocado_clock_gettime(clockid_t clockid, struct timespec *tp)
 {
 __CPROVER_HIDE:;
 

@@ -7,7 +7,7 @@
 
 #undef abs
 
-int abs(int i)
+int avocado_abs(int i)
 {
   // C99 Section 7.20.6.1:
   // "If the result cannot be represented, the behavior is undefined."
@@ -24,7 +24,7 @@ int abs(int i)
 
 #undef labs
 
-long int labs(long int i)
+long int avocado_labs(long int i)
 {
   // C99 Section 7.20.6.1:
   // "If the result cannot be represented, the behavior is undefined."
@@ -42,7 +42,7 @@ long int labs(long int i)
 
 #undef llabs
 
-long long int llabs(long long int i)
+long long int avocado_llabs(long long int i)
 {
   // C99 Section 7.20.6.1:
   // "If the result cannot be represented, the behavior is undefined."
@@ -67,7 +67,7 @@ long long int llabs(long long int i)
 
 intmax_t __CPROVER_imaxabs(intmax_t);
 
-intmax_t imaxabs(intmax_t i)
+intmax_t avocado_imaxabs(intmax_t i)
 {
   __CPROVER_precondition(
     i != INTMAX_MIN, "argument to imaxabs must not be INTMAX_MIN");
@@ -76,21 +76,21 @@ intmax_t imaxabs(intmax_t i)
 
 /* FUNCTION: __builtin_abs */
 
-int __builtin_abs(int i)
+int avocado___builtin_abs(int i)
 {
   return __CPROVER_abs(i);
 }
 
 /* FUNCTION: __builtin_labs */
 
-long int __builtin_labs(long int i)
+long int avocado___builtin_labs(long int i)
 {
   return __CPROVER_labs(i);
 }
 
 /* FUNCTION: __builtin_llabs */
 
-long long int __builtin_llabs(long long int i)
+long long int avocado___builtin_llabs(long long int i)
 {
   return __CPROVER_llabs(i);
 }
@@ -99,7 +99,7 @@ long long int __builtin_llabs(long long int i)
 
 #undef exit
 
-void exit(int status)
+void avocado_exit(int status)
 {
   (void)status;
   __CPROVER_assume(0);
@@ -112,7 +112,7 @@ void exit(int status)
 
 #undef _Exit
 
-void _Exit(int status)
+void avocado__Exit(int status)
 {
   (void)status;
   __CPROVER_assume(0);
@@ -125,7 +125,7 @@ void _Exit(int status)
 
 #undef abort
 
-void abort(void)
+void avocado_abort(void)
 {
   __CPROVER_assume(0);
 #ifdef LIBRARY_CHECK
@@ -314,7 +314,7 @@ const void *__CPROVER_new_object;
 __CPROVER_bool __CPROVER_malloc_is_new_array;
 #endif
 
-void free(void *ptr)
+void avocado_free(void *ptr)
 {
   __CPROVER_HIDE:;
   // If ptr is NULL, no operation is performed.
@@ -375,7 +375,7 @@ _Bool __builtin_add_overflow();
 _Bool __builtin_mul_overflow();
 #endif
 
-long strtol(const char *nptr, char **endptr, int base)
+long avocado_strtol(const char *nptr, char **endptr, int base)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
@@ -462,7 +462,7 @@ long strtol(const char *nptr, char **endptr, int base)
 
 long strtol(const char *nptr, char **endptr, int base);
 
-int atoi(const char *nptr)
+int avocado_atoi(const char *nptr)
 {
   __CPROVER_HIDE:;
   return (int)strtol(nptr, (char **)0, 10);
@@ -475,7 +475,7 @@ int atoi(const char *nptr)
 
 long strtol(const char *nptr, char **endptr, int base);
 
-long atol(const char *nptr)
+long avocado_atol(const char *nptr)
 {
   __CPROVER_HIDE:;
   return strtol(nptr, (char **)0, 10);
@@ -593,7 +593,7 @@ void *valloc(__CPROVER_size_t malloc_size)
 #undef posix_memalign
 
 void *malloc(__CPROVER_size_t malloc_size);
-int posix_memalign(
+int avocado_posix_memalign(
   void **ptr,
   __CPROVER_size_t alignment,
   __CPROVER_size_t size)
@@ -627,7 +627,7 @@ __CPROVER_HIDE:;
 
 long __VERIFIER_nondet_long(void);
 
-long random(void)
+long avocado_random(void)
 {
   // We return a non-deterministic value instead of a random one.
   __CPROVER_HIDE:;
@@ -640,7 +640,7 @@ long random(void)
 
 int __VERIFIER_nondet_int(void);
 
-int rand(void)
+int avocado_rand(void)
 {
 __CPROVER_HIDE:;
   // We return a non-deterministic value instead of a random one.
@@ -653,7 +653,7 @@ __CPROVER_HIDE:;
 
 int __VERIFIER_nondet_int(void);
 
-int rand_r(unsigned int *seed)
+int avocado_rand_r(unsigned int *seed)
 {
 __CPROVER_HIDE:;
   // We return a non-deterministic value instead of a random one.
@@ -667,7 +667,7 @@ __CPROVER_HIDE:;
 
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 
-void __CPROVER_deallocate(void *ptr)
+void avocado___CPROVER_deallocate(void *ptr)
 {
   if(__VERIFIER_nondet___CPROVER_bool())
     __CPROVER_deallocated = ptr;

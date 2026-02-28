@@ -1,6 +1,6 @@
 /* FUNCTION: openlog */
 
-void openlog(const char *ident, int option, int facility)
+void avocado_openlog(const char *ident, int option, int facility)
 {
   (void)*ident;
   (void)option;
@@ -9,13 +9,13 @@ void openlog(const char *ident, int option, int facility)
 
 /* FUNCTION: closelog */
 
-void closelog(void)
+void avocado_closelog(void)
 {
 }
 
 /* FUNCTION: syslog */
 
-void syslog(int priority, const char *format, ...)
+void avocado_syslog(int priority, const char *format, ...)
 {
   (void)priority;
   (void)*format;
@@ -23,7 +23,7 @@ void syslog(int priority, const char *format, ...)
 
 /* FUNCTION: _syslog$DARWIN_EXTSN */
 
-void _syslog$DARWIN_EXTSN(int priority, const char *format, ...)
+void avocado__syslog$DARWIN_EXTSN(int priority, const char *format, ...)
 {
   (void)priority;
   (void)*format;
@@ -31,7 +31,7 @@ void _syslog$DARWIN_EXTSN(int priority, const char *format, ...)
 
 /* FUNCTION: __syslog_chk */
 
-void __syslog_chk(int priority, int flag, const char *format, ...)
+void avocado___syslog_chk(int priority, int flag, const char *format, ...)
 {
   (void)priority;
   (void)flag;

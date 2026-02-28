@@ -2,7 +2,7 @@
 
 /* FUNCTION: _InterlockedDecrement */
 
-long _InterlockedDecrement(long volatile *p)
+long avocado__InterlockedDecrement(long volatile *p)
 {
   __CPROVER_HIDE:;
   // This function generates a full memory barrier (or fence) to ensure that
@@ -16,7 +16,7 @@ long _InterlockedDecrement(long volatile *p)
 
 /* FUNCTION: _InterlockedExchange */
 
-long _InterlockedExchange(long volatile *p, long v)
+long avocado__InterlockedExchange(long volatile *p, long v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -28,7 +28,7 @@ long _InterlockedExchange(long volatile *p, long v)
 
 /* FUNCTION: _InterlockedExchange16 */
 
-short _InterlockedExchange16(short volatile *p, short v)
+short avocado__InterlockedExchange16(short volatile *p, short v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -40,7 +40,7 @@ short _InterlockedExchange16(short volatile *p, short v)
 
 /* FUNCTION: _InterlockedExchange8 */
 
-char _InterlockedExchange8(char volatile *p, char v)
+char avocado__InterlockedExchange8(char volatile *p, char v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -52,7 +52,7 @@ char _InterlockedExchange8(char volatile *p, char v)
 
 /* FUNCTION: _InterlockedExchangeAdd */
 
-long _InterlockedExchangeAdd(long volatile *p, long v)
+long avocado__InterlockedExchangeAdd(long volatile *p, long v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -64,7 +64,7 @@ long _InterlockedExchangeAdd(long volatile *p, long v)
 
 /* FUNCTION: _InterlockedExchangeAdd16 */
 
-short _InterlockedExchangeAdd16(short volatile *p, short v)
+short avocado__InterlockedExchangeAdd16(short volatile *p, short v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -76,7 +76,7 @@ short _InterlockedExchangeAdd16(short volatile *p, short v)
 
 /* FUNCTION: _InterlockedExchangeAdd8 */
 
-char _InterlockedExchangeAdd8(char volatile *p, char v)
+char avocado__InterlockedExchangeAdd8(char volatile *p, char v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -88,7 +88,7 @@ char _InterlockedExchangeAdd8(char volatile *p, char v)
 
 /* FUNCTION: _InterlockedCompareExchange */
 
-long _InterlockedCompareExchange(long volatile *p, long v1, long v2)
+long avocado__InterlockedCompareExchange(long volatile *p, long v1, long v2)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -102,7 +102,7 @@ long _InterlockedCompareExchange(long volatile *p, long v1, long v2)
 /* FUNCTION: _InterlockedCompareExchange64 */
 
 long long
-_InterlockedCompareExchange64(long long volatile *p, long long v1, long long v2)
+avocado__InterlockedCompareExchange64(long long volatile *p, long long v1, long long v2)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -115,7 +115,7 @@ _InterlockedCompareExchange64(long long volatile *p, long long v1, long long v2)
 
 /* FUNCTION: __InterlockedIncrement */
 
-long _InterlockedIncrement(long volatile *p)
+long avocado__InterlockedIncrement(long volatile *p)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -127,7 +127,7 @@ long _InterlockedIncrement(long volatile *p)
 
 /* FUNCTION: _InterlockedOr */
 
-long _InterlockedOr(long volatile *p, long v)
+long avocado__InterlockedOr(long volatile *p, long v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -139,7 +139,7 @@ long _InterlockedOr(long volatile *p, long v)
 
 /* FUNCTION: _InterlockedOr8 */
 
-char _InterlockedOr8(char volatile *p, char v)
+char avocado__InterlockedOr8(char volatile *p, char v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -151,7 +151,7 @@ char _InterlockedOr8(char volatile *p, char v)
 
 /* FUNCTION: _InterlockedOr16 */
 
-short _InterlockedOr16(short volatile *p, short v)
+short avocado__InterlockedOr16(short volatile *p, short v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -163,7 +163,7 @@ short _InterlockedOr16(short volatile *p, short v)
 
 /* FUNCTION: _InterlockedXor */
 
-long _InterlockedXor(long volatile *p, long v)
+long avocado__InterlockedXor(long volatile *p, long v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -175,7 +175,7 @@ long _InterlockedXor(long volatile *p, long v)
 
 /* FUNCTION: _InterlockedXor8 */
 
-char _InterlockedXor8(char volatile *p, char v)
+char avocado__InterlockedXor8(char volatile *p, char v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -187,7 +187,7 @@ char _InterlockedXor8(char volatile *p, char v)
 
 /* FUNCTION: _InterlockedXor16 */
 
-short _InterlockedXor16(short volatile *p, short v)
+short avocado__InterlockedXor16(short volatile *p, short v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -199,7 +199,7 @@ short _InterlockedXor16(short volatile *p, short v)
 
 /* FUNCTION: _InterlockedAnd */
 
-long _InterlockedAnd(long volatile *p, long v)
+long avocado__InterlockedAnd(long volatile *p, long v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -211,7 +211,7 @@ long _InterlockedAnd(long volatile *p, long v)
 
 /* FUNCTION: _InterlockedAnd8 */
 
-char _InterlockedAnd8(char volatile *p, char v)
+char avocado__InterlockedAnd8(char volatile *p, char v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -223,7 +223,7 @@ char _InterlockedAnd8(char volatile *p, char v)
 
 /* FUNCTION: _InterlockedAnd16 */
 
-short _InterlockedAnd16(short volatile *p, short v)
+short avocado__InterlockedAnd16(short volatile *p, short v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -235,7 +235,7 @@ short _InterlockedAnd16(short volatile *p, short v)
 
 /* FUNCTION: _InterlockedAdd */
 
-long _InterlockedAdd(long volatile *p, long v)
+long avocado__InterlockedAdd(long volatile *p, long v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -247,7 +247,7 @@ long _InterlockedAdd(long volatile *p, long v)
 
 /* FUNCTION: _InterlockedAddLargeStatistic */
 
-long _InterlockedAddLargeStatistic(long long volatile *p, long v)
+long avocado__InterlockedAddLargeStatistic(long long volatile *p, long v)
 {
   __CPROVER_HIDE:;
   // not atomic:
@@ -259,14 +259,14 @@ long _InterlockedAddLargeStatistic(long long volatile *p, long v)
 
 /* FUNCTION: _mm_lfence */
 
-void _mm_lfence(void)
+void avocado__mm_lfence(void)
 {
   __CPROVER_HIDE:;
 }
 
 /* FUNCTION: _mm_mfence */
 
-void _mm_mfence(void)
+void avocado__mm_mfence(void)
 {
   __CPROVER_HIDE:;
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
@@ -274,14 +274,14 @@ void _mm_mfence(void)
 
 /* FUNCTION: _WriteBarrier */
 
-void _WriteBarrier(void)
+void avocado__WriteBarrier(void)
 {
   __CPROVER_HIDE:;
 }
 
 /* FUNCTION: _ReadWriteBarrier */
 
-void _ReadWriteBarrier(void)
+void avocado__ReadWriteBarrier(void)
 {
   __CPROVER_HIDE:;
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
@@ -289,14 +289,14 @@ void _ReadWriteBarrier(void)
 
 /* FUNCTION: _ReadBarrier */
 
-void _ReadBarrier(void)
+void avocado__ReadBarrier(void)
 {
   __CPROVER_HIDE:;
 }
 
 /* FUNCTION: _InterlockedIncrement16 */
 
-short _InterlockedIncrement16(short volatile *p)
+short avocado__InterlockedIncrement16(short volatile *p)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -308,7 +308,7 @@ short _InterlockedIncrement16(short volatile *p)
 
 /* FUNCTION: _InterlockedDecrement16 */
 
-short _InterlockedDecrement16(short volatile *p)
+short avocado__InterlockedDecrement16(short volatile *p)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -320,7 +320,7 @@ short _InterlockedDecrement16(short volatile *p)
 
 /* FUNCTION: _InterlockedCompareExchange16 */
 
-short _InterlockedCompareExchange16(short volatile *p, short v1, short v2)
+short avocado__InterlockedCompareExchange16(short volatile *p, short v1, short v2)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -333,7 +333,7 @@ short _InterlockedCompareExchange16(short volatile *p, short v1, short v2)
 
 /* FUNCTION: _InterlockedCompareExchange8 */
 
-char _InterlockedCompareExchange8(char volatile *p, char v1, char v2)
+char avocado__InterlockedCompareExchange8(char volatile *p, char v1, char v2)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
@@ -352,7 +352,7 @@ char _InterlockedCompareExchange8(char volatile *p, char v1, char v2)
 #    define __CPROVER_INTRIN_H_INCLUDED
 #  endif
 
-__m128i _mm_set_epi32(int e3, int e2, int e1, int e0)
+__m128i avocado__mm_set_epi32(int e3, int e2, int e1, int e0)
 {
   return (__m128i){.m128i_i32 = {e0, e1, e2, e3}};
 }
@@ -366,7 +366,7 @@ __m128i _mm_set_epi32(int e3, int e2, int e1, int e0)
 #    define __CPROVER_INTRIN_H_INCLUDED
 #  endif
 
-__m128i _mm_setr_epi32(int e3, int e2, int e1, int e0)
+__m128i avocado__mm_setr_epi32(int e3, int e2, int e1, int e0)
 {
   return (__m128i){.m128i_i32 = {e3, e2, e1, e0}};
 }
@@ -380,7 +380,7 @@ __m128i _mm_setr_epi32(int e3, int e2, int e1, int e0)
 #    define __CPROVER_INTRIN_H_INCLUDED
 #  endif
 
-__m128i _mm_set_epi16(
+__m128i avocado__mm_set_epi16(
   short e7,
   short e6,
   short e5,
@@ -402,7 +402,7 @@ __m128i _mm_set_epi16(
 #    define __CPROVER_INTRIN_H_INCLUDED
 #  endif
 
-__m128i _mm_setr_epi16(
+__m128i avocado__mm_setr_epi16(
   short e7,
   short e6,
   short e5,
@@ -424,7 +424,7 @@ __m128i _mm_setr_epi16(
 #    define __CPROVER_INTRIN_H_INCLUDED
 #  endif
 
-__m64 _mm_set_pi16(short e3, short e2, short e1, short e0)
+__m64 avocado__mm_set_pi16(short e3, short e2, short e1, short e0)
 {
   return (__m64){.m64_i16 = {e0, e1, e2, e3}};
 }
@@ -438,7 +438,7 @@ __m64 _mm_set_pi16(short e3, short e2, short e1, short e0)
 #    define __CPROVER_INTRIN_H_INCLUDED
 #  endif
 
-__m64 _mm_setr_pi16(short e3, short e2, short e1, short e0)
+__m64 avocado__mm_setr_pi16(short e3, short e2, short e1, short e0)
 {
   return (__m64){.m64_i16 = {e3, e2, e1, e0}};
 }
@@ -452,7 +452,7 @@ __m64 _mm_setr_pi16(short e3, short e2, short e1, short e0)
 #    define __CPROVER_INTRIN_H_INCLUDED
 #  endif
 
-int _mm_extract_epi32(__m128i a, const int imm8)
+int avocado__mm_extract_epi32(__m128i a, const int imm8)
 {
   return a.m128i_i32[imm8];
 }
@@ -466,7 +466,7 @@ int _mm_extract_epi32(__m128i a, const int imm8)
 #    define __CPROVER_INTRIN_H_INCLUDED
 #  endif
 
-int _mm_extract_epi16(__m128i a, const int imm8)
+int avocado__mm_extract_epi16(__m128i a, const int imm8)
 {
   return a.m128i_i16[imm8];
 }
@@ -480,7 +480,7 @@ int _mm_extract_epi16(__m128i a, const int imm8)
 #    define __CPROVER_INTRIN_H_INCLUDED
 #  endif
 
-int _mm_extract_pi16(__m64 a, const int imm8)
+int avocado__mm_extract_pi16(__m64 a, const int imm8)
 {
   return a.m64_i16[imm8];
 }
@@ -494,7 +494,7 @@ int _mm_extract_pi16(__m64 a, const int imm8)
 #    define __CPROVER_INTRIN_H_INCLUDED
 #  endif
 
-__m128i _mm_adds_epi16(__m128i a, __m128i b)
+__m128i avocado__mm_adds_epi16(__m128i a, __m128i b)
 {
   return (__m128i){
     .m128i_i16 = {
@@ -518,7 +518,7 @@ __m128i _mm_adds_epi16(__m128i a, __m128i b)
 #    define __CPROVER_INTRIN_H_INCLUDED
 #  endif
 
-__m128i _mm_subs_epi16(__m128i a, __m128i b)
+__m128i avocado__mm_subs_epi16(__m128i a, __m128i b)
 {
   return (__m128i){
     .m128i_i16 = {
@@ -542,7 +542,7 @@ __m128i _mm_subs_epi16(__m128i a, __m128i b)
 #    define __CPROVER_INTRIN_H_INCLUDED
 #  endif
 
-__m128i _mm_adds_epu16(__m128i a, __m128i b)
+__m128i avocado__mm_adds_epu16(__m128i a, __m128i b)
 {
   return (__m128i){
     .m128i_i16 = {
@@ -566,7 +566,7 @@ __m128i _mm_adds_epu16(__m128i a, __m128i b)
 #    define __CPROVER_INTRIN_H_INCLUDED
 #  endif
 
-__m128i _mm_subs_epu16(__m128i a, __m128i b)
+__m128i avocado__mm_subs_epu16(__m128i a, __m128i b)
 {
   return (__m128i){
     .m128i_u16 = {

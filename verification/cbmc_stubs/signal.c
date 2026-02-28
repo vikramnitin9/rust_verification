@@ -12,7 +12,7 @@
 
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 
-int kill(pid_t pid, int sig)
+int avocado_kill(pid_t pid, int sig)
 {
   (void)pid;
   (void)sig;

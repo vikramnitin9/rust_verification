@@ -20,7 +20,7 @@
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 size_t __VERIFIER_nondet_size_t(void);
 
-ssize_t getrandom(void *buf, size_t buflen, unsigned int flags)
+ssize_t avocado_getrandom(void *buf, size_t buflen, unsigned int flags)
 {
   if(flags & GRND_NONBLOCK && __VERIFIER_nondet___CPROVER_bool())
     return -1;

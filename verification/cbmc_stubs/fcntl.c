@@ -12,7 +12,7 @@
 
 int __VERIFIER_nondet_int(void);
 
-int __CPROVER_fcntl(int fd, int cmd)
+int avocado___CPROVER_fcntl(int fd, int cmd)
 {
 __CPROVER_HIDE:;
   if(fd < 0)
@@ -31,7 +31,7 @@ __CPROVER_HIDE:;
 
 int __CPROVER_fcntl(int, int);
 
-int fcntl(int fd, int cmd, ...)
+int avocado_fcntl(int fd, int cmd, ...)
 {
   return __CPROVER_fcntl(fd, cmd);
 }
@@ -40,7 +40,7 @@ int fcntl(int fd, int cmd, ...)
 
 int __CPROVER_fcntl(int, int);
 
-int _fcntl(int fd, int cmd, ...)
+int avocado__fcntl(int fd, int cmd, ...)
 {
   return __CPROVER_fcntl(fd, cmd);
 }
@@ -49,7 +49,7 @@ int _fcntl(int fd, int cmd, ...)
 
 int __CPROVER_fcntl(int, int);
 
-int fcntl64(int fd, int cmd, ...)
+int avocado_fcntl64(int fd, int cmd, ...)
 {
   return __CPROVER_fcntl(fd, cmd);
 }
@@ -58,7 +58,7 @@ int fcntl64(int fd, int cmd, ...)
 
 int __CPROVER_fcntl(int, int);
 
-int __fcntl_time64(int fd, int cmd, ...)
+int avocado___fcntl_time64(int fd, int cmd, ...)
 {
   return __CPROVER_fcntl(fd, cmd);
 }
@@ -72,7 +72,7 @@ int __fcntl_time64(int fd, int cmd, ...)
 
 int __VERIFIER_nondet_int(void);
 
-int __CPROVER_open(const char *pathname, int flags)
+int avocado___CPROVER_open(const char *pathname, int flags)
 {
 __CPROVER_HIDE:;
   int return_value = __VERIFIER_nondet_int();
@@ -86,7 +86,7 @@ __CPROVER_HIDE:;
 
 int __CPROVER_open(const char *, int);
 
-int open(const char *pathname, int flags, ...)
+int avocado_open(const char *pathname, int flags, ...)
 {
   return __CPROVER_open(pathname, flags);
 }
@@ -95,7 +95,7 @@ int open(const char *pathname, int flags, ...)
 
 int __CPROVER_open(const char *, int);
 
-int _open(const char *pathname, int flags, ...)
+int avocado__open(const char *pathname, int flags, ...)
 {
   return __CPROVER_open(pathname, flags);
 }
@@ -104,7 +104,7 @@ int _open(const char *pathname, int flags, ...)
 
 int __CPROVER_open(const char *, int);
 
-int open64(const char *pathname, int flags, ...)
+int avocado_open64(const char *pathname, int flags, ...)
 {
   return __CPROVER_open(pathname, flags);
 }
@@ -126,7 +126,7 @@ int open64(const char *pathname, int flags, ...)
 
 int __VERIFIER_nondet_int(void);
 
-int __CPROVER_creat(const char *pathname, MODE_T mode)
+int avocado___CPROVER_creat(const char *pathname, MODE_T mode)
 {
 __CPROVER_HIDE:;
   int return_value = __VERIFIER_nondet_int();
@@ -153,7 +153,7 @@ __CPROVER_HIDE:;
 
 int __CPROVER_creat(const char *, MODE_T);
 
-int creat(const char *pathname, MODE_T mode)
+int avocado_creat(const char *pathname, MODE_T mode)
 {
   return __CPROVER_creat(pathname, mode);
 }
@@ -175,7 +175,7 @@ int creat(const char *pathname, MODE_T mode)
 
 int __CPROVER_creat(const char *, MODE_T);
 
-int _creat(const char *pathname, MODE_T mode)
+int avocado__creat(const char *pathname, MODE_T mode)
 {
   return __CPROVER_creat(pathname, mode);
 }
@@ -197,7 +197,7 @@ int _creat(const char *pathname, MODE_T mode)
 
 int __CPROVER_creat(const char *, MODE_T);
 
-int creat64(const char *pathname, MODE_T mode)
+int avocado_creat64(const char *pathname, MODE_T mode)
 {
   return __CPROVER_creat(pathname, mode);
 }
@@ -216,7 +216,7 @@ int creat64(const char *pathname, MODE_T mode)
 
 int __VERIFIER_nondet_int(void);
 
-int __CPROVER_openat(int dirfd, const char *pathname, int flags)
+int avocado___CPROVER_openat(int dirfd, const char *pathname, int flags)
 {
 __CPROVER_HIDE:;
   if(dirfd < 0)
@@ -237,7 +237,7 @@ __CPROVER_HIDE:;
 
 int __CPROVER_openat(int dirfd, const char *pathname, int flags);
 
-int openat(int dirfd, const char *pathname, int flags, ...)
+int avocado_openat(int dirfd, const char *pathname, int flags, ...)
 {
   return __CPROVER_openat(dirfd, pathname, flags);
 }
@@ -246,7 +246,7 @@ int openat(int dirfd, const char *pathname, int flags, ...)
 
 int __CPROVER_openat(int dirfd, const char *pathname, int flags);
 
-int _openat(int dirfd, const char *pathname, int flags, ...)
+int avocado__openat(int dirfd, const char *pathname, int flags, ...)
 {
   return __CPROVER_openat(dirfd, pathname, flags);
 }
@@ -255,7 +255,7 @@ int _openat(int dirfd, const char *pathname, int flags, ...)
 
 int __CPROVER_openat(int dirfd, const char *pathname, int flags);
 
-int openat64(int dirfd, const char *pathname, int flags, ...)
+int avocado_openat64(int dirfd, const char *pathname, int flags, ...)
 {
   return __CPROVER_openat(dirfd, pathname, flags);
 }

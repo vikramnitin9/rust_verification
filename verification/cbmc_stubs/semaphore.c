@@ -2,7 +2,7 @@
 
 #include <semaphore.h>
 
-int sem_init(sem_t *sem, int pshared, unsigned int value)
+int avocado_sem_init(sem_t *sem, int pshared, unsigned int value)
 {
   __CPROVER_HIDE:;
   (void)pshared;
@@ -21,7 +21,7 @@ int sem_init(sem_t *sem, int pshared, unsigned int value)
 
 #include <semaphore.h>
 
-int sem_wait(sem_t *sem)
+int avocado_sem_wait(sem_t *sem)
 {
   __CPROVER_HIDE:;
   (void)sem;
@@ -40,7 +40,7 @@ int sem_wait(sem_t *sem)
 
 #include <semaphore.h>
 
-int sem_timedwait(sem_t *sem, const struct timespec *abstime)
+int avocado_sem_timedwait(sem_t *sem, const struct timespec *abstime)
 {
   __CPROVER_HIDE:;
   (void)sem;
@@ -60,7 +60,7 @@ int sem_timedwait(sem_t *sem, const struct timespec *abstime)
 
 #include <semaphore.h>
 
-int sem_trywait(sem_t *sem)
+int avocado_sem_trywait(sem_t *sem)
 {
   __CPROVER_HIDE:;
   (void)sem;
@@ -79,7 +79,7 @@ int sem_trywait(sem_t *sem)
 
 #include <semaphore.h>
 
-int sem_post(sem_t *sem)
+int avocado_sem_post(sem_t *sem)
 {
   __CPROVER_HIDE:;
   (void)sem;
@@ -98,7 +98,7 @@ int sem_post(sem_t *sem)
 
 #include <semaphore.h>
 
-int sem_post_multiple(sem_t *sem, int number)
+int avocado_sem_post_multiple(sem_t *sem, int number)
 {
   __CPROVER_HIDE:;
   (void)sem;
@@ -118,7 +118,7 @@ int sem_post_multiple(sem_t *sem, int number)
 
 #include <semaphore.h>
 
-int sem_getvalue(sem_t *sem, int *sval)
+int avocado_sem_getvalue(sem_t *sem, int *sval)
 {
   __CPROVER_HIDE:;
   (void)sem;
@@ -138,7 +138,7 @@ int sem_getvalue(sem_t *sem, int *sval)
 
 #include <semaphore.h>
 
-int sem_destroy(sem_t *sem)
+int avocado_sem_destroy(sem_t *sem)
 {
   __CPROVER_HIDE:;
   (void)sem;

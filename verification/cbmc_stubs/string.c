@@ -360,7 +360,7 @@ __CPROVER_HIDE:;
 
 #undef strcmp
 
-int strcmp(const char *s1, const char *s2)
+int avocado_strcmp(const char *s1, const char *s2)
 {
 __CPROVER_HIDE:;
 #ifdef __CPROVER_STRING_ABSTRACTION
@@ -409,7 +409,7 @@ __CPROVER_HIDE:;
 
 #undef strcasecmp
 
-int strcasecmp(const char *s1, const char *s2)
+int avocado_strcasecmp(const char *s1, const char *s2)
 {
 __CPROVER_HIDE:;
 #ifdef __CPROVER_STRING_ABSTRACTION
@@ -461,7 +461,7 @@ __CPROVER_HIDE:;
 
 #undef strncmp
 
-int strncmp(const char *s1, const char *s2, size_t n)
+int avocado_strncmp(const char *s1, const char *s2, size_t n)
 {
 __CPROVER_HIDE:;
 #ifdef __CPROVER_STRING_ABSTRACTION
@@ -508,7 +508,7 @@ __CPROVER_HIDE:;
 
 #undef strncasecmp
 
-int strncasecmp(const char *s1, const char *s2, size_t n)
+int avocado_strncasecmp(const char *s1, const char *s2, size_t n)
 {
 __CPROVER_HIDE:;
 #ifdef __CPROVER_STRING_ABSTRACTION
@@ -558,7 +558,7 @@ __CPROVER_HIDE:;
 
 #undef strlen
 
-size_t strlen(const char *s)
+size_t avocado_strlen(const char *s)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
@@ -920,7 +920,7 @@ void *__builtin___memmove_chk(void *dest, const void *src, size_t n, __CPROVER_s
 
 #undef memcmp
 
-int memcmp(const void *s1, const void *s2, size_t n)
+int avocado_memcmp(const void *s1, const void *s2, size_t n)
 {
   __CPROVER_HIDE:;
   int res=0;

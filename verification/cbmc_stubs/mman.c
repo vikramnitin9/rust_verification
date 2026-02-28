@@ -129,7 +129,7 @@ void *mmap64(
 
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 
-int munmap(void *addr, __CPROVER_size_t length)
+int avocado_munmap(void *addr, __CPROVER_size_t length)
 {
   (void)length;
 
@@ -142,7 +142,7 @@ int munmap(void *addr, __CPROVER_size_t length)
 
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 
-int _munmap(void *addr, __CPROVER_size_t length)
+int avocado__munmap(void *addr, __CPROVER_size_t length)
 {
   (void)length;
 

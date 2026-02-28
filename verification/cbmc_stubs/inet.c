@@ -9,7 +9,7 @@
 
 in_addr_t __VERIFIER_nondet_in_addr_t(void);
 
-in_addr_t __inet_addr(const char *cp)
+in_addr_t avocado___inet_addr(const char *cp)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
@@ -37,7 +37,7 @@ in_addr_t __inet_addr(const char *cp)
 
 in_addr_t __inet_addr(const char *cp);
 
-in_addr_t inet_addr(const char *cp)
+in_addr_t avocado_inet_addr(const char *cp)
 {
 __CPROVER_HIDE:;
   return __inet_addr(cp);
@@ -56,7 +56,7 @@ __CPROVER_HIDE:;
 
 int __VERIFIER_nondet_int(void);
 
-int __inet_aton(const char *cp, struct in_addr *pin)
+int avocado___inet_aton(const char *cp, struct in_addr *pin)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
@@ -85,7 +85,7 @@ int __inet_aton(const char *cp, struct in_addr *pin)
 
 int __inet_aton(const char *cp, struct in_addr *pin);
 
-int inet_aton(const char *cp, struct in_addr *pin)
+int avocado_inet_aton(const char *cp, struct in_addr *pin)
 {
 __CPROVER_HIDE:;
   return __inet_aton(cp, pin);
@@ -147,7 +147,7 @@ __CPROVER_HIDE:;
 
 in_addr_t __VERIFIER_nondet_in_addr_t(void);
 
-in_addr_t __inet_network(const char *cp)
+in_addr_t avocado___inet_network(const char *cp)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
@@ -175,7 +175,7 @@ in_addr_t __inet_network(const char *cp)
 
 in_addr_t __inet_network(const char *cp);
 
-in_addr_t inet_network(const char *cp)
+in_addr_t avocado_inet_network(const char *cp)
 {
 __CPROVER_HIDE:;
   return __inet_network(cp);
@@ -194,7 +194,7 @@ __CPROVER_HIDE:;
 
 uint32_t __builtin_bswap32(uint32_t);
 
-uint32_t htonl(uint32_t hostlong)
+uint32_t avocado_htonl(uint32_t hostlong)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   return __builtin_bswap32(hostlong);
@@ -214,7 +214,7 @@ uint32_t htonl(uint32_t hostlong)
 
 uint16_t __builtin_bswap16(uint16_t);
 
-uint16_t htons(uint16_t hostshort)
+uint16_t avocado_htons(uint16_t hostshort)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   return __builtin_bswap16(hostshort);
@@ -235,7 +235,7 @@ uint16_t htons(uint16_t hostshort)
 
 uint32_t __builtin_bswap32(uint32_t);
 
-uint32_t ntohl(uint32_t netlong)
+uint32_t avocado_ntohl(uint32_t netlong)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   return __builtin_bswap32(netlong);
@@ -256,7 +256,7 @@ uint32_t ntohl(uint32_t netlong)
 
 uint16_t __builtin_bswap16(uint16_t);
 
-uint16_t ntohs(uint16_t netshort)
+uint16_t avocado_ntohs(uint16_t netshort)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   return __builtin_bswap16(netshort);

@@ -78,7 +78,7 @@ __CPROVER_HIDE:;
 
 int _getopt(int argc, char *const argv[], const char *optstring);
 
-int getopt(int argc, char *const argv[], const char *optstring)
+int avocado_getopt(int argc, char *const argv[], const char *optstring)
 {
 __CPROVER_HIDE:;
   return _getopt(argc, argv, optstring);
@@ -94,7 +94,7 @@ __CPROVER_HIDE:;
 #define __CPROVER_GETOPT_H_INCLUDED
 #endif
 
-int getopt_long(
+int avocado_getopt_long(
   int argc,
   char *const argv[],
   const char *optstring,

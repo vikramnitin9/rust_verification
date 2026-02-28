@@ -5,7 +5,7 @@
 
 __CPROVER_thread_local unsigned __CPROVER_fpu_control_word;
 
-unsigned int _controlfp(
+unsigned int avocado__controlfp(
   unsigned int new_value,
   unsigned int mask)
 {
@@ -26,7 +26,7 @@ unsigned int _controlfp(
 
 __CPROVER_thread_local unsigned __CPROVER_fpu_control_word;
 
-unsigned int _status87(void)
+unsigned int avocado__status87(void)
 {
   return __CPROVER_fpu_control_word;
 }
@@ -39,7 +39,7 @@ unsigned int _status87(void)
 
 __CPROVER_thread_local unsigned __CPROVER_fpu_control_word;
 
-unsigned int _statusfp(void)
+unsigned int avocado__statusfp(void)
 {
   return __CPROVER_fpu_control_word;
 }
@@ -52,7 +52,7 @@ unsigned int _statusfp(void)
 
 __CPROVER_thread_local unsigned __CPROVER_fpu_control_word;
 
-void _statusfp2(unsigned int *px86, unsigned int *pSSE2)
+void avocado__statusfp2(unsigned int *px86, unsigned int *pSSE2)
 {
   unsigned SSE2_status;
   *px86=__CPROVER_fpu_control_word;
@@ -63,7 +63,7 @@ void _statusfp2(unsigned int *px86, unsigned int *pSSE2)
 
 /* FUNCTION: _isnan */
 
-int _isnan(double x)
+int avocado__isnan(double x)
 {
   return __CPROVER_isnand(x);
 }
@@ -72,7 +72,7 @@ int _isnan(double x)
 
 extern int __CPROVER_rounding_mode;
 
-int __builtin_flt_rounds(void)
+int avocado___builtin_flt_rounds(void)
 {
   // This is a clang builtin for FLT_ROUNDS
   // The magic numbers are C99 and different from the
@@ -88,7 +88,7 @@ int __builtin_flt_rounds(void)
 
 int __builtin_flt_rounds(void);
 
-int __flt_rounds(void)
+int avocado___flt_rounds(void)
 {
   // Spotted on FreeBSD
   return __builtin_flt_rounds();

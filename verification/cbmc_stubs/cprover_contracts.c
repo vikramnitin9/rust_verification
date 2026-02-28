@@ -124,7 +124,7 @@ typedef __CPROVER_contracts_write_set_t *__CPROVER_contracts_write_set_ptr_t;
 /// \param[in] size Size in bytes
 /// \return A \ref __CPROVER_contracts_car_t value
 __CPROVER_contracts_car_t
-__CPROVER_contracts_car_create(void *ptr, __CPROVER_size_t size)
+avocado___CPROVER_contracts_car_create(void *ptr, __CPROVER_size_t size)
 {
 __CPROVER_HIDE:;
   __CPROVER_assert(
@@ -144,7 +144,7 @@ __CPROVER_HIDE:;
 /// \brief Initialises a __CPROVER_contracts_car_set_ptr_t object
 /// \param[inout] set Pointer to the object to initialise
 /// \param[in] max_elems Max number of elements to store in the set
-void __CPROVER_contracts_car_set_create(
+void avocado___CPROVER_contracts_car_set_create(
   __CPROVER_contracts_car_set_ptr_t set,
   __CPROVER_size_t max_elems)
 {
@@ -165,7 +165,7 @@ __CPROVER_HIDE:;
 /// \param[in] idx Insertion index
 /// \param[in] ptr Pointer to the range of bytes
 /// \param[in] size Size of the range in number of bytes
-void __CPROVER_contracts_car_set_insert(
+void avocado___CPROVER_contracts_car_set_insert(
   __CPROVER_contracts_car_set_ptr_t set,
   __CPROVER_size_t idx,
   void *ptr,
@@ -194,7 +194,7 @@ __CPROVER_HIDE:;
 /// as the given \p ptr.
 /// \param[inout] set Set to update
 /// \param[in] ptr Pointer to the object to invalidate
-void __CPROVER_contracts_car_set_remove(
+void avocado___CPROVER_contracts_car_set_remove(
   __CPROVER_contracts_car_set_ptr_t set,
   void *ptr)
 {
@@ -216,7 +216,7 @@ CAR_SET_REMOVE_LOOP:
 /// \param[in] set Set to check inclusion in
 /// \param[in] candidate A candidate \ref __CPROVER_contracts_car_t
 /// \return True iff an element of \p set contains \p candidate
-__CPROVER_bool __CPROVER_contracts_car_set_contains(
+__CPROVER_bool avocado___CPROVER_contracts_car_set_contains(
   __CPROVER_contracts_car_set_ptr_t set,
   __CPROVER_contracts_car_t candidate)
 {
@@ -248,7 +248,7 @@ CAR_SET_CONTAINS_LOOP:
 /// constant.
 ///
 /// \param[inout] set Pointer to the object to initialise
-void __CPROVER_contracts_obj_set_create_indexed_by_object_id(
+void avocado___CPROVER_contracts_obj_set_create_indexed_by_object_id(
   __CPROVER_contracts_obj_set_ptr_t set)
 {
 __CPROVER_HIDE:;
@@ -282,7 +282,7 @@ __CPROVER_HIDE:;
 ///
 /// \param[inout] set Pointer to the object to initialise
 /// \param[inout] max_elems Maximum number of objects in the set.
-void __CPROVER_contracts_obj_set_create_append(
+void avocado___CPROVER_contracts_obj_set_create_append(
   __CPROVER_contracts_obj_set_ptr_t set,
   __CPROVER_size_t max_elems)
 {
@@ -302,7 +302,7 @@ __CPROVER_HIDE:;
 }
 
 /// @brief Releases resources used by \p set.
-void __CPROVER_contracts_obj_set_release(__CPROVER_contracts_obj_set_ptr_t set)
+void avocado___CPROVER_contracts_obj_set_release(__CPROVER_contracts_obj_set_ptr_t set)
 {
 __CPROVER_HIDE:;
 #ifdef __CPROVER_DFCC_DEBUG_LIB
@@ -318,7 +318,7 @@ __CPROVER_HIDE:;
 /// \pre \p set->indexed_by_object_id must be true.
 /// \param[inout] set Set to add the pointer to
 /// \param[in] ptr The pointer to add
-void __CPROVER_contracts_obj_set_add(
+void avocado___CPROVER_contracts_obj_set_add(
   __CPROVER_contracts_obj_set_ptr_t set,
   void *ptr)
 {
@@ -337,7 +337,7 @@ __CPROVER_HIDE:;
 /// \pre \p set->indexed_by_object_id must be false.
 /// \param[inout] set The set to append to
 /// \param[in] ptr The pointer to append
-void __CPROVER_contracts_obj_set_append(
+void avocado___CPROVER_contracts_obj_set_append(
   __CPROVER_contracts_obj_set_ptr_t set,
   void *ptr)
 {
@@ -356,7 +356,7 @@ __CPROVER_HIDE:;
 /// no-op otherwise.
 /// \param[inout] set Set to update
 /// \param[in] ptr Pointer to remove
-void __CPROVER_contracts_obj_set_remove(
+void avocado___CPROVER_contracts_obj_set_remove(
   __CPROVER_contracts_obj_set_ptr_t set,
   void *ptr)
 {
@@ -376,7 +376,7 @@ __CPROVER_HIDE:;
 /// \param[inout] set The set to check membership in
 /// \param ptr The pointer to check
 /// \return True iff a pointer with the same object id exists in \p set
-__CPROVER_bool __CPROVER_contracts_obj_set_contains(
+__CPROVER_bool avocado___CPROVER_contracts_obj_set_contains(
   __CPROVER_contracts_obj_set_ptr_t set,
   void *ptr)
 {
@@ -393,7 +393,7 @@ __CPROVER_HIDE:;
 /// \param[inout] set The set to check membership in
 /// \param ptr The pointer to check
 /// \return True iff \p ptr exists in \p set
-__CPROVER_bool __CPROVER_contracts_obj_set_contains_exact(
+__CPROVER_bool avocado___CPROVER_contracts_obj_set_contains_exact(
   __CPROVER_contracts_obj_set_ptr_t set,
   void *ptr)
 {
@@ -409,7 +409,7 @@ __CPROVER_HIDE:;
 /// \brief Resets the nondet tracker for pointer predicates in \p set.
 /// Invoked between requires and ensures clauses evaluation to allow ensures
 /// clauses to establish different pointer predicates on the same pointers.
-void __CPROVER_contracts_ptr_pred_ctx_init(
+void avocado___CPROVER_contracts_ptr_pred_ctx_init(
   __CPROVER_contracts_ptr_pred_ctx_ptr_t set)
 {
 __CPROVER_HIDE:;
@@ -421,7 +421,7 @@ __CPROVER_HIDE:;
 /// \brief Resets the nondet tracker for pointer predicates in \p set.
 /// Invoked right between requires and ensures clauses to allow ensures clauses
 /// to establish a different pointer predicates on the same pointers.
-void __CPROVER_contracts_ptr_pred_ctx_reset(
+void avocado___CPROVER_contracts_ptr_pred_ctx_reset(
   __CPROVER_contracts_ptr_pred_ctx_ptr_t set)
 {
 __CPROVER_HIDE:;
@@ -444,7 +444,7 @@ __CPROVER_HIDE:;
 /// allocation.
 /// \param[in] allow_deallocate True iff the context gobally allows dynamic
 /// deallocation.
-void __CPROVER_contracts_write_set_create(
+void avocado___CPROVER_contracts_write_set_create(
   __CPROVER_contracts_write_set_ptr_t set,
   __CPROVER_size_t contract_assigns_size,
   __CPROVER_size_t contract_frees_size,
@@ -481,7 +481,7 @@ __CPROVER_HIDE:;
 }
 
 /// \brief Releases resources used by \p set.
-void __CPROVER_contracts_write_set_release(
+void avocado___CPROVER_contracts_write_set_release(
   __CPROVER_contracts_write_set_ptr_t set)
 {
 __CPROVER_HIDE:;
@@ -518,7 +518,7 @@ __CPROVER_HIDE:;
 /// \param[in] idx Insertion index
 /// \param[in] ptr Start of the range of bytes
 /// \param[in] size Size of the range in bytes
-void __CPROVER_contracts_write_set_insert_assignable(
+void avocado___CPROVER_contracts_write_set_insert_assignable(
   __CPROVER_contracts_write_set_ptr_t set,
   __CPROVER_size_t idx,
   void *ptr,
@@ -538,7 +538,7 @@ __CPROVER_HIDE:;
 /// \param[inout] set The set to update
 /// \param[in] idx Insertion index
 /// \param[in] ptr Pointer to the object
-void __CPROVER_contracts_write_set_insert_object_whole(
+void avocado___CPROVER_contracts_write_set_insert_object_whole(
   __CPROVER_contracts_write_set_ptr_t set,
   __CPROVER_size_t idx,
   void *ptr)
@@ -562,7 +562,7 @@ __CPROVER_HIDE:;
 /// \param[inout] set The set to update
 /// \param[in] idx Insertion index
 /// \param[in] ptr Pointer to the start of the range
-void __CPROVER_contracts_write_set_insert_object_from(
+void avocado___CPROVER_contracts_write_set_insert_object_from(
   __CPROVER_contracts_write_set_ptr_t set,
   __CPROVER_size_t idx,
   void *ptr)
@@ -581,7 +581,7 @@ void __CPROVER_contracts_write_set_insert_object_from(
 /// \param[in] idx Insertion index
 /// \param[in] ptr Pointer to the start of the range
 /// \param[in] size Size of the range in bytes
-void __CPROVER_contracts_write_set_insert_object_upto(
+void avocado___CPROVER_contracts_write_set_insert_object_upto(
   __CPROVER_contracts_write_set_ptr_t set,
   __CPROVER_size_t idx,
   void *ptr,
@@ -594,7 +594,7 @@ __CPROVER_HIDE:;
 /// \brief Adds the freeable pointer \p ptr to \p set->contract_frees.
 /// \param[inout] set The set to update
 /// \param[in] ptr The pointer to add
-void __CPROVER_contracts_write_set_add_freeable(
+void avocado___CPROVER_contracts_write_set_add_freeable(
   __CPROVER_contracts_write_set_ptr_t set,
   void *ptr)
 {
@@ -630,7 +630,7 @@ __CPROVER_HIDE:;
 /// \brief Adds the dynamically allocated pointer \p ptr to \p set->allocated.
 /// \param[inout] set The set to update
 /// \param[in] ptr Pointer to a dynamic object `x = __CPROVER_allocate(...)`.
-void __CPROVER_contracts_write_set_add_allocated(
+void avocado___CPROVER_contracts_write_set_add_allocated(
   __CPROVER_contracts_write_set_ptr_t set,
   void *ptr)
 {
@@ -652,7 +652,7 @@ __CPROVER_HIDE:;
 /// \brief Adds the pointer \p ptr to \p set->allocated.
 /// \param[inout] set The set to update
 /// \param[in] ptr Pointer to an object declared using `DECL x`.
-void __CPROVER_contracts_write_set_add_decl(
+void avocado___CPROVER_contracts_write_set_add_decl(
   __CPROVER_contracts_write_set_ptr_t set,
   void *ptr)
 {
@@ -677,7 +677,7 @@ __CPROVER_HIDE:;
 ///
 /// \param[inout] set The set to update
 /// \param[in] ptr Pointer to the dead object
-void __CPROVER_contracts_write_set_record_dead(
+void avocado___CPROVER_contracts_write_set_record_dead(
   __CPROVER_contracts_write_set_ptr_t set,
   void *ptr)
 {
@@ -702,7 +702,7 @@ __CPROVER_HIDE:;
 ///
 /// \param[inout] set The set to update
 /// \param[in] ptr Pointer to the deallocated object
-void __CPROVER_contracts_write_set_record_deallocated(
+void avocado___CPROVER_contracts_write_set_record_deallocated(
   __CPROVER_contracts_write_set_ptr_t set,
   void *ptr)
 {
@@ -756,7 +756,7 @@ __CPROVER_HIDE:;
 /// \param[in] set The set to be checked for emptiness
 /// \returns True iff \p set->deallocated is empty
 __CPROVER_bool
-__CPROVER_contracts_write_set_check_allocated_deallocated_is_empty(
+avocado___CPROVER_contracts_write_set_check_allocated_deallocated_is_empty(
   __CPROVER_contracts_write_set_ptr_t set)
 {
 __CPROVER_HIDE:;
@@ -771,11 +771,11 @@ __CPROVER_HIDE:;
 /// \param[in] size Size of the assigned range in bytes
 /// \return True iff the range of bytes starting at \p ptr of \p size bytes is
 /// contained in \p set->allocated or \p set->contract_assigns.
-__CPROVER_bool __CPROVER_contracts_write_set_check_assignment(
+__CPROVER_bool avocado___CPROVER_contracts_write_set_check_assignment(
   __CPROVER_contracts_write_set_ptr_t set,
   void *ptr,
   __CPROVER_size_t size)
-#if __CPROVER_DFCC_DEBUG_LIB
+#if avocado___CPROVER_DFCC_DEBUG_LIB
 // manually inlined below
 {
 __CPROVER_HIDE:;
@@ -863,7 +863,7 @@ SET_CHECK_ASSIGNMENT_LOOP:
 /// \return True iff the range of bytes starting at \p dest and of
 /// `__CPROVER_OBJECT_SIZE(dest) - __CPROVER_POINTER_OFFSET(dest)` bytes is
 /// contained in \p set->allocated or \p set->contract_assigns.
-__CPROVER_bool __CPROVER_contracts_write_set_check_array_set(
+__CPROVER_bool avocado___CPROVER_contracts_write_set_check_array_set(
   __CPROVER_contracts_write_set_ptr_t set,
   void *dest)
 {
@@ -883,7 +883,7 @@ __CPROVER_HIDE:;
 /// \return True iff the range of bytes starting at \p dest and of
 /// `__CPROVER_OBJECT_SIZE(dest) - __CPROVER_POINTER_OFFSET(dest)` bytes is
 /// contained in \p set->allocated or \p set->contract_assigns.
-__CPROVER_bool __CPROVER_contracts_write_set_check_array_copy(
+__CPROVER_bool avocado___CPROVER_contracts_write_set_check_array_copy(
   __CPROVER_contracts_write_set_ptr_t set,
   void *dest)
 {
@@ -906,7 +906,7 @@ __CPROVER_HIDE:;
 /// `MIN(__CPROVER_OBJECT_SIZE(dest) - __CPROVER_POINTER_OFFSET(dest),
 /// __CPROVER_OBJECT_SIZE(src) - __CPROVER_POINTER_OFFSET(src))` bytes is
 /// contained in \p set->allocated or \p set->contract_assigns.
-__CPROVER_bool __CPROVER_contracts_write_set_check_array_replace(
+__CPROVER_bool avocado___CPROVER_contracts_write_set_check_array_replace(
   __CPROVER_contracts_write_set_ptr_t set,
   void *dest,
   void *src)
@@ -928,7 +928,7 @@ __CPROVER_HIDE:;
 /// `(char *)ptr - __CPROVER_POINTER_OFFSET(ptr)` and of size
 /// `__CPROVER_OBJECT_SIZE(ptr)` is contained in `set->contract_assigns` or
 /// `set->allocated`.
-__CPROVER_bool __CPROVER_contracts_write_set_check_havoc_object(
+__CPROVER_bool avocado___CPROVER_contracts_write_set_check_havoc_object(
   __CPROVER_contracts_write_set_ptr_t set,
   void *ptr)
 {
@@ -949,7 +949,7 @@ __CPROVER_HIDE:;
 /// against
 /// \return True iff deallocation is allowed and \p ptr is contained in
 /// \p set->contract_frees or \p set->allocated.
-__CPROVER_bool __CPROVER_contracts_write_set_check_deallocate(
+__CPROVER_bool avocado___CPROVER_contracts_write_set_check_deallocate(
   __CPROVER_contracts_write_set_ptr_t set,
   void *ptr)
 {
@@ -978,7 +978,7 @@ __CPROVER_HIDE:;
 /// \param[in] candidate Candidate write set from a contract being replaced
 /// \return True iff all elements of \p candidate->contract_assigns are included
 /// in some element of \p reference->contract_assigns or \p reference->allocated
-__CPROVER_bool __CPROVER_contracts_write_set_check_assigns_clause_inclusion(
+__CPROVER_bool avocado___CPROVER_contracts_write_set_check_assigns_clause_inclusion(
   __CPROVER_contracts_write_set_ptr_t reference,
   __CPROVER_contracts_write_set_ptr_t candidate)
 {
@@ -1009,7 +1009,7 @@ SET_CHECK_ASSIGNS_CLAUSE_INCLUSION_LOOP:
 /// \param[in] candidate Candidate write set from a contract being replaced
 /// \return True iff all elements of \p candidate->contract_frees are included
 /// in some element of \p reference->contract_frees or \p reference->allocated
-__CPROVER_bool __CPROVER_contracts_write_set_check_frees_clause_inclusion(
+__CPROVER_bool avocado___CPROVER_contracts_write_set_check_frees_clause_inclusion(
   __CPROVER_contracts_write_set_ptr_t reference,
   __CPROVER_contracts_write_set_ptr_t candidate)
 {
@@ -1054,7 +1054,7 @@ __CPROVER_contracts_free(void *, __CPROVER_contracts_write_set_ptr_t);
 ///
 /// \param[in] set Write set to free
 /// \param[out] target Write set to record deallocations in
-void __CPROVER_contracts_write_set_deallocate_freeable(
+void avocado___CPROVER_contracts_write_set_deallocate_freeable(
   __CPROVER_contracts_write_set_ptr_t set,
   __CPROVER_contracts_write_set_ptr_t target)
 {
@@ -1092,7 +1092,7 @@ SET_DEALLOCATE_FREEABLE_LOOP:
 /// \brief Links \p is_fresh_set to
 /// \p write_set->linked_ptr_pred_ctx to share evaluation context between
 /// requires and ensures clauses for separation checks.
-void __CPROVER_contracts_link_ptr_pred_ctx(
+void avocado___CPROVER_contracts_link_ptr_pred_ctx(
   __CPROVER_contracts_write_set_ptr_t write_set,
   __CPROVER_contracts_ptr_pred_ctx_ptr_t ptr_pred_ctx)
 {
@@ -1114,7 +1114,7 @@ __CPROVER_HIDE:;
 /// \p write_set_postconditions->linked_allocated so that allocations performed
 /// by \ref __CPROVER_contracts_is_fresh when evaluating ensures clauses are
 /// recorded in \p write_set_to_link.
-void __CPROVER_contracts_link_allocated(
+void avocado___CPROVER_contracts_link_allocated(
   __CPROVER_contracts_write_set_ptr_t write_set_postconditions,
   __CPROVER_contracts_write_set_ptr_t write_set_to_link)
 {
@@ -1139,7 +1139,7 @@ __CPROVER_HIDE:;
 /// performed by the function get recorded in \p write_set_to_link->deallocated
 /// and are later available  to  \ref __CPROVER_contracts_was_freed predicate
 /// when evaluating ensures clauses.
-void __CPROVER_contracts_link_deallocated(
+void avocado___CPROVER_contracts_link_deallocated(
   __CPROVER_contracts_write_set_ptr_t write_set_postconditions,
   __CPROVER_contracts_write_set_ptr_t write_set_to_link)
 {
@@ -1174,7 +1174,7 @@ void *__CPROVER_contracts_malloc(
 /// - default: pointer is uninitialized (empty value set, nondet bit pattern).
 /// - simple: pointer is either null or pointing to a dead object of size zero.
 /// The simple model is activated by a CLI switch in goto-instrument.
-void __CPROVER_contracts_make_invalid_pointer(void **ptr)
+void avocado___CPROVER_contracts_make_invalid_pointer(void **ptr)
 {
 #ifdef __CPROVER_DFCC_SIMPLE_INVALID_POINTER_MODEL
   void *dummy = __CPROVER_allocate(0, 0);
@@ -1207,7 +1207,7 @@ void __CPROVER_contracts_make_invalid_pointer(void **ptr)
 /// When \p set->assert_requires_ctx or \p set->assert_ensures_ctx is `true`,
 /// the predicate checks that both `*ptr1` and `ptr2` are either NULL or valid,
 /// and returns the value of (*ptr1 == ptr2).
-__CPROVER_bool __CPROVER_contracts_pointer_equals(
+__CPROVER_bool avocado___CPROVER_contracts_pointer_equals(
   void **ptr1,
   void *ptr2,
   __CPROVER_bool may_fail,
@@ -1287,7 +1287,7 @@ __CPROVER_HIDE:;
 /// - In assert contexts, returns false if another pointer predicate is already
 ///  succesfully asserted, otherwise checks separation and size, mark *elem and
 /// elem as seen in the write set.
-__CPROVER_bool __CPROVER_contracts_is_fresh(
+__CPROVER_bool avocado___CPROVER_contracts_is_fresh(
   void **elem,
   __CPROVER_size_t size,
   __CPROVER_bool may_fail,
@@ -1488,7 +1488,7 @@ __CPROVER_HIDE:;
 /// - When \p set->assert_requires_ctx or \p set->assert_ensures_ctx is `true`,
 /// the predicate checks that \p lb and \p ub are valid, into the same object,
 /// ordered, and assigns \p ptr to some nondet offset between \p lb and \p ub.
-__CPROVER_bool __CPROVER_contracts_pointer_in_range_dfcc(
+__CPROVER_bool avocado___CPROVER_contracts_pointer_in_range_dfcc(
   void *lb,
   void **ptr,
   void *ub,
@@ -1583,7 +1583,7 @@ __CPROVER_HIDE:;
 /// \brief Havocs the whole object pointed to by the lower bound pointer of the
 /// element stored at index \p idx in \p set->contract_assigns, if it is
 /// writable.
-void __CPROVER_contracts_write_set_havoc_object_whole(
+void avocado___CPROVER_contracts_write_set_havoc_object_whole(
   __CPROVER_contracts_write_set_ptr_t set,
   __CPROVER_size_t idx)
 {
@@ -1596,7 +1596,7 @@ __CPROVER_HIDE:;
 
 /// \brief Havocs the range of bytes represented byt the element stored at index
 /// \p idx in \p set->contract_assigns, if it is writable.
-void __CPROVER_contracts_write_set_havoc_slice(
+void avocado___CPROVER_contracts_write_set_havoc_slice(
   __CPROVER_contracts_write_set_ptr_t set,
   __CPROVER_size_t idx)
 {
@@ -1619,7 +1619,7 @@ __CPROVER_HIDE:;
 /// depending on nondeterministic CPROVER instrumentation variables are checked,
 /// yielding the full set of conditions checked by the CPROVER library
 /// implementation of free.
-__CPROVER_bool __CPROVER_contracts_is_freeable(
+__CPROVER_bool avocado___CPROVER_contracts_is_freeable(
   void *ptr,
   __CPROVER_contracts_write_set_ptr_t set)
 {
@@ -1651,7 +1651,7 @@ __CPROVER_HIDE:;
 }
 
 /// \brief Returns true iff the pointer \p ptr is found in \p set->deallocated.
-__CPROVER_bool __CPROVER_contracts_was_freed(
+__CPROVER_bool avocado___CPROVER_contracts_was_freed(
   void *ptr,
   __CPROVER_contracts_write_set_ptr_t set)
 {
@@ -1677,7 +1677,7 @@ __CPROVER_HIDE:;
 /// \details If proved, the assertion demonstrates that it is possible to assume
 /// that `was_freed(ptr)` holds as a post condition without causing a
 /// contradiction.
-void __CPROVER_contracts_check_replace_ensures_was_freed_preconditions(
+void avocado___CPROVER_contracts_check_replace_ensures_was_freed_preconditions(
   void *ptr,
   __CPROVER_contracts_write_set_ptr_t set)
 {
@@ -1712,7 +1712,7 @@ __CPROVER_HIDE:;
 /// to an `function_pointer == contract`.
 /// The function pointer is taken by reference to be able to update it using a
 /// side-effect in assumption contexts.
-__CPROVER_bool __CPROVER_contracts_obeys_contract(
+__CPROVER_bool avocado___CPROVER_contracts_obeys_contract(
   void (**function_pointer)(void),
   void (*contract)(void),
   __CPROVER_bool may_fail,

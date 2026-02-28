@@ -2,7 +2,7 @@
 
 __CPROVER_size_t __VERIFIER_nondet___CPROVER_size_t(void);
 
-__CPROVER_size_t _beginthread(
+__CPROVER_size_t avocado__beginthread(
   void (*start_address)(void *),
   unsigned stack_size,
   void *arglist)
@@ -18,7 +18,7 @@ __CPROVER_size_t _beginthread(
 
 __CPROVER_size_t __VERIFIER_nondet___CPROVER_size_t(void);
 
-__CPROVER_size_t _beginthreadex(
+__CPROVER_size_t avocado__beginthreadex(
    void *security,
    unsigned stack_size,
    unsigned (*start_address )(void *),
