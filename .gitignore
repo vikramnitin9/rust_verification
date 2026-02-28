@@ -1,3 +1,6 @@
+# Analysis files produced by ParseC
+analysis.json
+
 specs/
 logs/
 
@@ -58,4 +61,7 @@ __pycache__/
 
 # Local caches
 data/caching/
+
+# Files created by running tests
+test/data/function_util/update_function_definition/*-copy.c
 test/data/caching/

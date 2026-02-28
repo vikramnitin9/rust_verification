@@ -3,7 +3,7 @@ FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt -yqq update && \
-    apt install -y build-essential wget unzip curl git bash-completion && \
+    apt install -y build-essential wget unzip curl git bear bash-completion && \
     rm -rf /var/lib/apt/lists/*
 
 RUN apt -yqq update && \
@@ -81,18 +81,18 @@ RUN conda install -y python=3.13 pip
 COPY --chown=${USER_ID}:${GROUP_ID} requirements.txt /app/requirements.txt
 RUN pip install -r /app/requirements.txt
 
-COPY --chown=${USER_ID}:${GROUP_ID} parsec /app/parsec
-RUN cd /app/parsec && \
-    rm -rf build && \
-    mkdir build && \
-    cd build && \
-    cmake .. && \
-    make -j 4
-ENV PARSEC_EXECUTABLE=/app/parsec/build/parsec
-
 ENV CARGO_HOME="/app/.cargo"
 ENV RUSTUP_HOME="/app/.rustup"
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/app/.cargo/bin:${PATH}"
 RUN rustup default 1.90.0
 RUN cargo install --locked kani-verifier && cargo kani setup
+
+COPY --chown=${USER_ID}:${GROUP_ID} parsec /app/parsec
+RUN cd /app/parsec && \
+    rm -rf build && \
+    mkdir build && \
+    cd build && \
+    cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo .. && \
+    make -j 4
+ENV PATH="/app/parsec/build:${PATH}"

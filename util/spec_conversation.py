@@ -7,8 +7,8 @@ from models import ConversationMessage, LlmMessage
 
 from .c_function import CFunction
 from .function_specification import FunctionSpecification
-from .function_util import get_source_file_content_with_specifications
-from .parsec_file import ParsecFile
+from .function_util import get_source_content_with_specifications
+from .parsec_project import ParsecProject
 from .specification_generation_next_step import SpecificationGenerationNextStep
 
 
@@ -53,7 +53,7 @@ class SpecConversation:
         function: CFunction,
         specification: FunctionSpecification,
         conversation: tuple[ConversationMessage, ...],
-        parsec_file: ParsecFile,
+        parsec_project: ParsecProject,
         existing_specs: MappingProxyType[CFunction, FunctionSpecification],
     ) -> Self:
         """Alternative constructor for SpecConversation.
@@ -63,8 +63,7 @@ class SpecConversation:
             specification (FunctionSpecification): The specifications generated for the CFunction.
             conversation (tuple[ConversationMessage, ...]): The conversation from which the
                 specifications were generated.
-            parsec_file (ParsecFile): The ParsecFile in which the function is defined and
-                implemented.
+            parsec_project (ParsecProject): The ParseC project that contains `function`.
             existing_specs (MappingProxyType[CFunction, FunctionSpecification]): The existing
                 specs.
 
@@ -73,21 +72,20 @@ class SpecConversation:
         """
         callees_to_specs = {
             callee: spec
-            for callee in parsec_file.get_callees(function=function)
+            for callee in parsec_project.get_callees(function=function)
             if (spec := existing_specs.get(callee))
         }
         functions_with_specs = {function: specification} | callees_to_specs
 
-        source_file_to_verify = get_source_file_content_with_specifications(
+        source_contents_to_verify = get_source_content_with_specifications(
             specified_functions=functions_with_specs,
-            parsec_file=parsec_file,
-            original_source_file_path=parsec_file.file_path,
+            parsec_project=parsec_project,
         )
         return cls(
             function=function,
             specification=specification,
             conversation=tuple(conversation),
-            contents_of_file_to_verify=source_file_to_verify,
+            contents_of_file_to_verify=source_contents_to_verify,
         )
 
     def get_conversation_with_message_appended(
