@@ -12,6 +12,7 @@ from tree_sitter import Language, Node, Parser, Tree
 C_LANGUAGE = Language(tsc.language())
 C_PARSER = Parser(C_LANGUAGE)
 AVOCADO_FUNCTION_PREFIX = "avocado_"
+CPROVER_PREFIX = "__CPROVER"
 
 
 def main() -> None:
@@ -85,19 +86,25 @@ def _collect_function_identifiers(tree: Tree) -> list[Node]:
             for child in node.children:
                 if child.type == "function_declarator":
                     result.extend(
-                        [subchild for subchild in child.children if subchild.type == "identifier"]
+                        [subchild for subchild in child.children if _is_node_to_rename(node)]
                     )
         if node.type == "function_declaration":
             for child in node.children:
                 if child.type == "function_declarator":
                     result.extend(
-                        [subchild for subchild in child.children if subchild.type == "identifier"]
+                        [subchild for subchild in child.children if _is_node_to_rename(node)]
                     )
         for child in node.children:
             traverse(child)
 
     traverse(tree.root_node)
     return result
+
+
+def _is_node_to_rename(node: Node) -> bool:
+    if node.type == "identifier":
+        return node.text is not None and node.text.decode().startswith(CPROVER_PREFIX)
+    return False
 
 
 def _rename_functions_in_src(src_content: bytes, function_id_nodes: list[Node]) -> bytes:
