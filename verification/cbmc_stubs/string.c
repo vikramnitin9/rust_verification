@@ -1,6 +1,6 @@
 /* FUNCTION: __builtin___strcpy_chk */
 
-char *__builtin___strcpy_chk(char *dst, const char *src, __CPROVER_size_t s)
+char *avocado___builtin___strcpy_chk(char *dst, const char *src, __CPROVER_size_t s)
 {
 __CPROVER_HIDE:;
 
@@ -34,7 +34,7 @@ __CPROVER_HIDE:;
 
 /* FUNCTION: __builtin___strcat_chk */
 
-__inline char *__builtin___strcat_chk(char *dst, const char *src, __CPROVER_size_t s)
+__inline char *avocado___builtin___strcat_chk(char *dst, const char *src, __CPROVER_size_t s)
 {
 __CPROVER_HIDE:;
 
@@ -78,7 +78,7 @@ __CPROVER_HIDE:;
 
 /* FUNCTION: __builtin___strncat_chk */
 
-__inline char *__builtin___strncat_chk(
+__inline char *avocado___builtin___strncat_chk(
   char *dst, const char *src, __CPROVER_size_t n, __CPROVER_size_t s)
 {
 __CPROVER_HIDE:;
@@ -136,7 +136,7 @@ __CPROVER_HIDE:;
 
 #undef strcpy
 
-char *strcpy(char *dst, const char *src)
+char *avocado_strcpy(char *dst, const char *src)
 {
 __CPROVER_HIDE:;
 #ifdef __CPROVER_STRING_ABSTRACTION
@@ -173,7 +173,7 @@ __CPROVER_HIDE:;
 
 #undef strncpy
 
-char *strncpy(char *dst, const char *src, size_t n)
+char *avocado_strncpy(char *dst, const char *src, size_t n)
 {
 __CPROVER_HIDE:;
 #ifdef __CPROVER_STRING_ABSTRACTION
@@ -211,7 +211,7 @@ __CPROVER_HIDE:;
 #define __CPROVER_STRING_H_INCLUDED
 #endif
 
-char *__builtin___strncpy_chk(
+char *avocado___builtin___strncpy_chk(
   char *dst,
   const char *src,
   size_t n,
@@ -259,7 +259,7 @@ __CPROVER_HIDE:;
 
 #undef strcat
 
-char *strcat(char *dst, const char *src)
+char *avocado_strcat(char *dst, const char *src)
 {
 __CPROVER_HIDE:;
 #ifdef __CPROVER_STRING_ABSTRACTION
@@ -305,7 +305,7 @@ __CPROVER_HIDE:;
 
 #undef strncat
 
-char *strncat(char *dst, const char *src, size_t n)
+char *avocado_strncat(char *dst, const char *src, size_t n)
 {
 __CPROVER_HIDE:;
 #ifdef __CPROVER_STRING_ABSTRACTION
@@ -587,7 +587,7 @@ size_t avocado_strlen(const char *s)
 #undef strdup
 #undef strcpy
 
-char *strdup(const char *str)
+char *avocado_strdup(const char *str)
 {
   __CPROVER_HIDE:;
   __CPROVER_size_t bufsz;
@@ -610,7 +610,7 @@ char *strdup(const char *str)
 
 #undef memcpy
 
-void *memcpy(void *dst, const void *src, size_t n)
+void *avocado_memcpy(void *dst, const void *src, size_t n)
 {
 __CPROVER_HIDE:;
 
@@ -656,7 +656,7 @@ __CPROVER_HIDE:;
 
 /* FUNCTION: __builtin___memcpy_chk */
 
-void *__builtin___memcpy_chk(void *dst, const void *src, __CPROVER_size_t n, __CPROVER_size_t size)
+void *avocado___builtin___memcpy_chk(void *dst, const void *src, __CPROVER_size_t n, __CPROVER_size_t size)
 {
 __CPROVER_HIDE:
 #ifdef __CPROVER_STRING_ABSTRACTION
@@ -710,7 +710,7 @@ __CPROVER_HIDE:
 
 #undef memset
 
-void *memset(void *s, int c, size_t n)
+void *avocado_memset(void *s, int c, size_t n)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
@@ -747,7 +747,7 @@ void *memset(void *s, int c, size_t n)
 
 /* FUNCTION: __builtin_memset */
 
-void *__builtin_memset(void *s, int c, __CPROVER_size_t n)
+void *avocado___builtin_memset(void *s, int c, __CPROVER_size_t n)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
@@ -786,7 +786,7 @@ void *__builtin_memset(void *s, int c, __CPROVER_size_t n)
 
 /* FUNCTION: __builtin___memset_chk */
 
-void *__builtin___memset_chk(void *s, int c, __CPROVER_size_t n, __CPROVER_size_t size)
+void *avocado___builtin___memset_chk(void *s, int c, __CPROVER_size_t n, __CPROVER_size_t size)
 {
 __CPROVER_HIDE:;
 #ifdef __CPROVER_STRING_ABSTRACTION
@@ -834,7 +834,7 @@ __CPROVER_HIDE:;
 
 #undef memmove
 
-void *memmove(void *dest, const void *src, size_t n)
+void *avocado_memmove(void *dest, const void *src, size_t n)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
@@ -874,7 +874,7 @@ void *memmove(void *dest, const void *src, size_t n)
 
 #undef memmove
 
-void *__builtin___memmove_chk(void *dest, const void *src, size_t n, __CPROVER_size_t size)
+void *avocado___builtin___memmove_chk(void *dest, const void *src, size_t n, __CPROVER_size_t size)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
@@ -955,7 +955,7 @@ int avocado_memcmp(const void *s1, const void *s2, size_t n)
 
 #undef strchr
 
-char *strchr(const char *src, int c)
+char *avocado_strchr(const char *src, int c)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
@@ -984,7 +984,7 @@ char *strchr(const char *src, int c)
 
 #undef strchr
 
-char *strrchr(const char *src, int c)
+char *avocado_strrchr(const char *src, int c)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
@@ -1011,7 +1011,7 @@ char *strrchr(const char *src, int c)
 #define __CPROVER_STRING_H_INCLUDED
 #endif
 
-char *strerror(int errnum)
+char *avocado_strerror(int errnum)
 {
   __CPROVER_HIDE:;
   (void)errnum;

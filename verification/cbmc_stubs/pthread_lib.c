@@ -1004,7 +1004,7 @@ __CPROVER_HIDE:;
 __CPROVER_thread_local const void
   *__CPROVER_thread_keys[__CPROVER_constant_infinity_uint];
 
-void *pthread_getspecific(pthread_key_t key)
+void *avocado_pthread_getspecific(pthread_key_t key)
 {
 __CPROVER_HIDE:;
   return (void *)__CPROVER_thread_keys[key];

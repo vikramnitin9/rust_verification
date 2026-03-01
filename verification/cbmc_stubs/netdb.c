@@ -8,7 +8,7 @@
 
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 
-struct hostent *gethostbyname(const char *name)
+struct hostent *avocado_gethostbyname(const char *name)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
@@ -37,7 +37,7 @@ struct hostent *gethostbyname(const char *name)
 
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 
-struct hostent *gethostbyaddr(const void *addr, socklen_t len, int type)
+struct hostent *avocado_gethostbyaddr(const void *addr, socklen_t len, int type)
 {
   __CPROVER_HIDE:;
   (void)*(char*)addr;
@@ -61,7 +61,7 @@ struct hostent *gethostbyaddr(const void *addr, socklen_t len, int type)
 
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 
-struct hostent *gethostent(void)
+struct hostent *avocado_gethostent(void)
 {
   __CPROVER_HIDE:;
 

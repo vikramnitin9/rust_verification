@@ -3,6 +3,7 @@
 """Module to generate the CBMC ANSI-C stub files, modified for use with Avocado."""
 
 import argparse
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -14,6 +15,7 @@ C_LANGUAGE = Language(tsc.language())
 C_PARSER = Parser(C_LANGUAGE)
 AVOCADO_FUNCTION_PREFIX = "avocado_"
 CPROVER_PREFIX = "__CPROVER"
+DO_NOT_RENAME_PATTERN = rf"^({re.escape(AVOCADO_FUNCTION_PREFIX)}|{re.escape(CPROVER_PREFIX)})"
 
 
 @dataclass(frozen=True)
@@ -58,7 +60,8 @@ def main() -> None:
     c_src_dir = args.c_sources
     files = _get_c_files(c_src_dir)
     for c_src in files:
-        _rename_functions(c_src)
+        _rename_function_declarations_and_definitions(c_src)
+        # TODO: We also need to rename any calls to stdlib functions within the C files.
 
 
 def _get_c_files(folder: str) -> list[Path]:
@@ -78,7 +81,9 @@ def _get_c_files(folder: str) -> list[Path]:
     return c_files
 
 
-def _rename_functions(original_c_src: Path) -> dict[str, RenameMetadata]:
+def _rename_function_declarations_and_definitions(
+    original_c_src: Path,
+) -> dict[str, RenameMetadata]:
     """Rename each function in the original C program to its Avocado stub name.
 
     Args:
@@ -112,19 +117,28 @@ def _collect_function_identifiers(tree: Tree) -> list[Node]:
     """
     result = []
 
+    def _find_identifier_in_declarator(declarator: Node | None) -> Node | None:
+        if declarator is None:
+            return None
+        if declarator.type == "identifier":
+            return declarator
+
+        nested_declarator = declarator.child_by_field_name("declarator")
+        if nested_declarator is not None:
+            return _find_identifier_in_declarator(nested_declarator)
+
+        for child in declarator.children:
+            identifier = _find_identifier_in_declarator(child)
+            if identifier is not None:
+                return identifier
+        return None
+
     def traverse(node):
-        if node.type == "function_definition":
-            for child in node.children:
-                if child.type == "function_declarator":
-                    result.extend(
-                        [subchild for subchild in child.children if _is_node_to_rename(subchild)]
-                    )
-        if node.type == "function_declaration":
-            for child in node.children:
-                if child.type == "function_declarator":
-                    result.extend(
-                        [subchild for subchild in child.children if _is_node_to_rename(subchild)]
-                    )
+        if node.type in {"function_definition", "function_declaration"}:
+            declarator = node.child_by_field_name("declarator")
+            identifier = _find_identifier_in_declarator(declarator)
+            if identifier is not None and _should_prepend_avocado_prefix(identifier):
+                result.append(identifier)
         for child in node.children:
             traverse(child)
 
@@ -132,10 +146,24 @@ def _collect_function_identifiers(tree: Tree) -> list[Node]:
     return result
 
 
-def _is_node_to_rename(node: Node) -> bool:
-    if node.type == "identifier":
-        return node.text is not None and not node.text.decode().startswith(CPROVER_PREFIX)
-    return False
+def _should_prepend_avocado_prefix(node: Node) -> bool:
+    """Return True iff the given node should be renamed with the avocado_ prefix.
+
+    A node should be renamed iff:
+        - It is an identifier node
+        - It does NOT begin with `__CPROVER` or `avocado_` (indicating it has been already renamed).
+
+    Args:
+        node (Node): The node to check for renaming.
+
+    Returns:
+        bool: True iff the node should be renamed with the avocado_ prefix.
+    """
+    return (
+        node.type == "identifier"
+        and node.text is not None
+        and not re.match(DO_NOT_RENAME_PATTERN, node.text.decode())
+    )
 
 
 def _rename_functions_in_src(
@@ -151,11 +179,9 @@ def _rename_functions_in_src(
         tuple[bytes, dict[str, str]]: The source content and map from previous names to Avocado
             names after renaming.
     """
-    # Build the renamed source by replacing identifiers safely
-    last_end = 0
-    renamed_src = bytearray()
+    renamed_src = bytearray(src_content)
     prev_names_to_avocado_names = {}
-    for ident_node in function_id_nodes:
+    for ident_node in sorted(function_id_nodes, key=lambda node: node.start_byte, reverse=True):
         start = ident_node.start_byte
         end = ident_node.end_byte
         if not ident_node.text:
@@ -163,16 +189,19 @@ def _rename_functions_in_src(
             logger.error(msg)
             raise ValueError(msg)
         original_function_id = ident_node.text.decode()
+        expected_identifier = original_function_id.encode()
+        original_slice = bytes(renamed_src[start:end])
+        if original_slice != expected_identifier:
+            msg = (
+                "Refusing to rename non-identifier slice at "
+                f"[{start}:{end}]: expected {expected_identifier!r}, got {original_slice!r}"
+            )
+            logger.error(msg)
+            raise ValueError(msg)
         renamed_function_id = f"{AVOCADO_FUNCTION_PREFIX}{original_function_id}"
         logger.debug(f"Renaming {original_function_id} -> {renamed_function_id}")
         prev_names_to_avocado_names[original_function_id] = renamed_function_id
-        # Append unchanged region
-        renamed_src += src_content[last_end:start]
-        # Append renamed identifier
-        renamed_src += renamed_function_id.encode()
-        last_end = end
-    # Append the remainder of the source
-    renamed_src += src_content[last_end:]
+        renamed_src[start:end] = renamed_function_id.encode()
     return (bytes(renamed_src), prev_names_to_avocado_names)
 
 

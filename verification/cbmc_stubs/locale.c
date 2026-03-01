@@ -6,7 +6,7 @@
 #define __CPROVER_LOCALE_H_INCLUDED
 #endif
 
-char *setlocale(int category, const char *locale)
+char *avocado_setlocale(int category, const char *locale)
 {
   __CPROVER_HIDE:;
   (void)category;
@@ -29,7 +29,7 @@ char *setlocale(int category, const char *locale)
 #define __CPROVER_LOCALE_H_INCLUDED
 #endif
 
-struct lconv *localeconv(void)
+struct lconv *avocado_localeconv(void)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS

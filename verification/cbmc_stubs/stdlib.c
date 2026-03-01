@@ -143,7 +143,7 @@ _Bool __builtin_mul_overflow();
 #endif
 __CPROVER_bool __CPROVER_malloc_is_new_array;
 
-void *calloc(__CPROVER_size_t nmemb, __CPROVER_size_t size)
+void *avocado_calloc(__CPROVER_size_t nmemb, __CPROVER_size_t size)
 {
 __CPROVER_HIDE:;
   __CPROVER_size_t alloc_size;
@@ -209,7 +209,7 @@ __CPROVER_bool __CPROVER_malloc_is_new_array;
 
 // malloc is marked "inline" for the benefit of goto-analyzer. Really,
 // goto-analyzer should take care of inlining as needed.
-inline void *malloc(__CPROVER_size_t malloc_size)
+inline void *avocado_malloc(__CPROVER_size_t malloc_size)
 {
 // realistically, malloc may return NULL,
 // but we only do so if `--malloc-may-fail` is set
@@ -267,7 +267,7 @@ const void *__CPROVER_alloca_object;
 __CPROVER_bool __CPROVER_malloc_is_new_array;
 #endif
 
-void *__builtin_alloca(__CPROVER_size_t alloca_size)
+void *avocado___builtin_alloca(__CPROVER_size_t alloca_size)
 {
   __CPROVER_HIDE:;
   void *res;
@@ -294,7 +294,7 @@ void *__builtin_alloca(__CPROVER_size_t alloca_size)
 
 void *__builtin_alloca(__CPROVER_size_t alloca_size);
 
-void *alloca(__CPROVER_size_t alloca_size)
+void *avocado_alloca(__CPROVER_size_t alloca_size)
 {
 __CPROVER_HIDE:;
   return __builtin_alloca(alloca_size);
@@ -493,7 +493,7 @@ long avocado_atol(const char *nptr)
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 ptrdiff_t __VERIFIER_nondet_ptrdiff_t(void);
 
-char *getenv(const char *name)
+char *avocado_getenv(const char *name)
 {
   __CPROVER_HIDE:;
 
@@ -539,7 +539,7 @@ char *getenv(const char *name)
 void *malloc(__CPROVER_size_t malloc_size);
 void free(void *ptr);
 
-void *realloc(void *ptr, __CPROVER_size_t malloc_size)
+void *avocado_realloc(void *ptr, __CPROVER_size_t malloc_size)
 {
   __CPROVER_HIDE:;
 
@@ -574,7 +574,7 @@ void *realloc(void *ptr, __CPROVER_size_t malloc_size)
 
 void *malloc(__CPROVER_size_t malloc_size);
 
-void *valloc(__CPROVER_size_t malloc_size)
+void *avocado_valloc(__CPROVER_size_t malloc_size)
 {
   // The allocated memory is aligned on a page
   // boundary, which we don't model.

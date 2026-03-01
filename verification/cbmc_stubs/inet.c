@@ -104,7 +104,7 @@ __CPROVER_HIDE:;
 
 char __inet_ntoa_buffer[16];
 
-char *__inet_ntoa(struct in_addr in)
+char *avocado___inet_ntoa(struct in_addr in)
 {
 __CPROVER_HIDE:;
   (void)in;
@@ -128,7 +128,7 @@ __CPROVER_HIDE:;
 
 char *__inet_ntoa(struct in_addr in);
 
-char *inet_ntoa(struct in_addr in)
+char *avocado_inet_ntoa(struct in_addr in)
 {
 __CPROVER_HIDE:;
   return __inet_ntoa(in);

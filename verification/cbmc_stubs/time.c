@@ -83,7 +83,7 @@ __time32_t avocado__time32(__time32_t *tloc)
 
 #undef gmtime
 
-struct tm *gmtime(const time_t *clock)
+struct tm *avocado_gmtime(const time_t *clock)
 {
   // not very general, may be too restrictive
   // need to set the fields to something meaningful
@@ -108,7 +108,7 @@ struct tm *gmtime(const time_t *clock)
 
 #undef gmtime
 
-struct tm *gmtime_r(const time_t *clock, struct tm *result)
+struct tm *avocado_gmtime_r(const time_t *clock, struct tm *result)
 {
   // need to set the fields to something meaningful
   (void)*clock;
@@ -124,7 +124,7 @@ struct tm *gmtime_r(const time_t *clock, struct tm *result)
 
 #undef localtime
 
-struct tm *localtime(const time_t *clock)
+struct tm *avocado_localtime(const time_t *clock)
 {
   // not very general, may be too restrictive
   // need to set the fields to something meaningful
@@ -149,7 +149,7 @@ struct tm *localtime(const time_t *clock)
 
 #undef localtime
 
-struct tm *localtime_r(const time_t *clock, struct tm *result)
+struct tm *avocado_localtime_r(const time_t *clock, struct tm *result)
 {
   // need to set the fields to something meaningful
   (void)*clock;
@@ -199,7 +199,7 @@ time_t avocado_timegm(struct tm *timeptr)
 #define __CPROVER_TIME_H_INCLUDED
 #endif
 
-char *asctime(const struct tm *timeptr)
+char *avocado_asctime(const struct tm *timeptr)
 {
   (void)*timeptr;
   #ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS
@@ -220,7 +220,7 @@ char *asctime(const struct tm *timeptr)
 #define __CPROVER_TIME_H_INCLUDED
 #endif
 
-char *ctime(const time_t *clock)
+char *avocado_ctime(const time_t *clock)
 {
   (void)*clock;
   #ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS

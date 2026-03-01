@@ -859,7 +859,7 @@ float avocado_sqrtf(float f)
 #pragma CPROVER check disable "float-div-by-zero"
     return 0.0f/0.0f; // NaN
 #pragma CPROVER check pop
-  else if (__CPROVER_isinff(f) ||   // +Inf only
+  else avocado_if (__CPROVER_isinff(f) ||   // +Inf only
            f == 0.0f          ||   // Includes -0
            __CPROVER_isnanf(f))
     return f;
@@ -952,7 +952,7 @@ double avocado_sqrt(double d)
 #pragma CPROVER check disable "float-div-by-zero"
     return 0.0/0.0; // NaN
 #pragma CPROVER check pop
-  else if (__CPROVER_isinfd(d) ||   // +Inf only
+  else avocado_if (__CPROVER_isinfd(d) ||   // +Inf only
            d == 0.0            ||   // Includes -0
            __CPROVER_isnand(d))
     return d;
@@ -1029,7 +1029,7 @@ long double avocado_sqrtl(long double d)
 #pragma CPROVER check disable "float-div-by-zero"
     return 0.0l/0.0l; // NaN
 #pragma CPROVER check pop
-  else if (__CPROVER_isinfld(d) ||   // +Inf only
+  else avocado_if (__CPROVER_isinfld(d) ||   // +Inf only
            d == 0.0l            ||   // Includes -0
            __CPROVER_isnanld(d))
     return d;

@@ -74,7 +74,7 @@ void fclose_cleanup(void *stream);
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 FILE *fopen64(const char *filename, const char *mode);
 
-FILE *fopen(const char *filename, const char *mode)
+FILE *avocado_fopen(const char *filename, const char *mode)
 {
 __CPROVER_HIDE:;
   return fopen64(filename, mode);
@@ -101,7 +101,7 @@ void fclose_cleanup(void *stream);
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 
 #ifdef __APPLE__
-FILE *_fopen(const char *filename, const char *mode)
+FILE *avocado__fopen(const char *filename, const char *mode)
 {
 __CPROVER_HIDE:;
   (void)*filename;
@@ -144,7 +144,7 @@ __CPROVER_HIDE:;
 void fclose_cleanup(void *stream);
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 
-FILE *fopen64(const char *filename, const char *mode)
+FILE *avocado_fopen64(const char *filename, const char *mode)
 {
 __CPROVER_HIDE:;
   (void)*filename;
@@ -186,7 +186,7 @@ __CPROVER_HIDE:;
 
 FILE *freopen64(const char *filename, const char *mode, FILE *f);
 
-FILE *freopen(const char *filename, const char *mode, FILE *f)
+FILE *avocado_freopen(const char *filename, const char *mode, FILE *f)
 {
 __CPROVER_HIDE:;
   return freopen64(filename, mode, f);
@@ -199,7 +199,7 @@ __CPROVER_HIDE:;
 #  define __CPROVER_STDIO_H_INCLUDED
 #endif
 
-FILE *freopen64(const char *filename, const char *mode, FILE *f)
+FILE *avocado_freopen64(const char *filename, const char *mode, FILE *f)
 {
   __CPROVER_HIDE:;
   (void)*filename;
@@ -253,7 +253,7 @@ __CPROVER_HIDE:;
 #define __CPROVER_STDLIB_H_INCLUDED
 #endif
 
-FILE *fdopen(int handle, const char *mode)
+FILE *avocado_fdopen(int handle, const char *mode)
 {
   __CPROVER_HIDE:;
   (void)handle;
@@ -292,7 +292,7 @@ FILE *fdopen(int handle, const char *mode)
 #endif
 
 #ifdef __APPLE__
-FILE *_fdopen(int handle, const char *mode)
+FILE *avocado__fdopen(int handle, const char *mode)
 {
   __CPROVER_HIDE:;
   (void)handle;
@@ -318,7 +318,7 @@ FILE *_fdopen(int handle, const char *mode)
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 int __VERIFIER_nondet_int(void);
 
-char *fgets(char *str, int size, FILE *stream)
+char *avocado_fgets(char *str, int size, FILE *stream)
 {
 __CPROVER_HIDE:;
   __CPROVER_bool error=__VERIFIER_nondet___CPROVER_bool();
@@ -373,7 +373,7 @@ __CPROVER_HIDE:;
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 int __VERIFIER_nondet_int(void);
 
-char *__fgets_chk(char *str, __CPROVER_size_t bufsize, int size, FILE *stream)
+char *avocado___fgets_chk(char *str, __CPROVER_size_t bufsize, int size, FILE *stream)
 {
 __CPROVER_HIDE:;
   (void)bufsize;
@@ -1930,7 +1930,7 @@ int avocado___builtin___vsnprintf_chk(
 #    define __CPROVER_STDIO_H_INCLUDED
 #  endif
 
-FILE *__acrt_iob_func(unsigned fd)
+FILE *avocado___acrt_iob_func(unsigned fd)
 {
   static FILE stdin_file;
   static FILE stdout_file;
