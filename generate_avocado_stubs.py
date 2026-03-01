@@ -3,32 +3,25 @@
 """Module to generate the CBMC ANSI-C stub files, modified for use with Avocado."""
 
 import argparse
+import pickle as pkl
 import re
-from dataclasses import dataclass
 from pathlib import Path
 
 import tree_sitter_c as tsc
 from loguru import logger
 from tree_sitter import Language, Node, Parser, Tree
 
+from util.tree_sitter_util import (
+    collect_call_identifiers,
+    collect_function_identifiers,
+)
+from verification.avocado_stub_util import RenameMetadata
+
 C_LANGUAGE = Language(tsc.language())
 C_PARSER = Parser(C_LANGUAGE)
 AVOCADO_FUNCTION_PREFIX = "avocado_"
 CPROVER_PREFIX = "__CPROVER"
 DO_NOT_RENAME_PATTERN = rf"^({re.escape(AVOCADO_FUNCTION_PREFIX)}|{re.escape(CPROVER_PREFIX)})"
-
-
-@dataclass(frozen=True)
-class RenameMetadata:
-    """Capture metadata for renaming ANSI-C functions to Avocado stubs.
-
-    Attributes:
-        avocado_name (str): The ANSI-C function's name as an Avocado stub.
-        original_file_path (Path): The path to the original file in which the function is defined.
-    """
-
-    avocado_name: str
-    original_file_path: Path
 
 
 def main() -> None:
@@ -52,15 +45,29 @@ def main() -> None:
     c_src_dir = args.c_sources
     c_src_files = list(Path(c_src_dir).glob("*.c"))
 
-    # First pass: rename all function declarations and definitions, collecting metadata
-    all_renamed_functions = {}
+    all_renamed_functions: dict[str, RenameMetadata] = {}
+
+    # First pass: rename all relevant function declarations and definitions.
     for c_src in c_src_files:
         original_function_rename_metadata = _rename_function_declarations_and_definitions(c_src)
         all_renamed_functions.update(original_function_rename_metadata)
 
     # Second pass: rename all function calls in all files
     for c_src in c_src_files:
-        _rename_function_calls_in_file(c_src, all_renamed_functions)
+        _rename_function_calls(c_src, all_renamed_functions)
+
+    rename_map_dir = "verification/cbmc_stubs"
+    rename_map_pkl = "c_stub_rename_map.pkl"
+    try:
+        with Path(f"{rename_map_dir}/{rename_map_pkl}").open("wb") as f:
+            pkl.dump(all_renamed_functions, f)
+        logger.debug(
+            f"Map from original functions to Avocado stubs saved to "
+            f"'{rename_map_dir}/{rename_map_pkl}'"
+        )
+    except pkl.PicklingError as e:
+        msg = f"Failed to save a map from original functions to Avocado stubs with error: {e}"
+        raise RuntimeError(msg) from e
 
 
 def _rename_function_declarations_and_definitions(
@@ -77,7 +84,7 @@ def _rename_function_declarations_and_definitions(
     logger.debug(f"Processing {original_c_src}")
     src_content = original_c_src.read_bytes()
     parsed_src = C_PARSER.parse(src_content)
-    function_identifiers = _collect_function_identifiers(parsed_src)
+    function_identifiers = _collect_function_identifiers_for_renaming(parsed_src)
     src_after_renaming, original_names_to_avocado_names = _rename_functions_in_src(
         src_content, function_identifiers
     )
@@ -88,7 +95,7 @@ def _rename_function_declarations_and_definitions(
     }
 
 
-def _rename_function_calls_in_file(
+def _rename_function_calls(
     file_path: Path, original_name_to_rename_metadata: dict[str, RenameMetadata]
 ) -> None:
     """Rename function calls in the given source file to use Avocado-prefixed names.
@@ -100,27 +107,22 @@ def _rename_function_calls_in_file(
     src_content = file_path.read_bytes()
     parsed_src = C_PARSER.parse(src_content)
 
-    # Collect all call_expression identifiers that need renaming
-    call_identifiers_to_rename = []
+    def _is_identifier_renamed(node: Node) -> bool:
+        return node.text is not None and node.text.decode() in original_name_to_rename_metadata
 
-    def traverse(node: Node) -> None:
-        if node.type == "call_expression":
-            function_node = node.child_by_field_name("function")
-            if function_node and function_node.type == "identifier" and function_node.text:
-                original_name = function_node.text.decode()
-                if original_name in original_name_to_rename_metadata:
-                    call_identifiers_to_rename.append(function_node)
-        for child in node.children:
-            traverse(child)
-
-    traverse(parsed_src.root_node)
+    call_identifiers = collect_call_identifiers(parsed_src.root_node)
+    call_identifiers_to_rename = [
+        call_id for call_id in call_identifiers if _is_identifier_renamed(call_id)
+    ]
 
     if not call_identifiers_to_rename:
         return
 
-    # Apply renaming in descending byte order
+    # Apply renaming in descending byte order.
     renamed_src = bytearray(src_content)
-    for call_node in sorted(call_identifiers_to_rename, key=lambda n: n.start_byte, reverse=True):
+    for call_node in sorted(
+        call_identifiers_to_rename, key=lambda node: node.start_byte, reverse=True
+    ):
         start = call_node.start_byte
         end = call_node.end_byte
         original_name = call_node.text.decode()
@@ -132,44 +134,21 @@ def _rename_function_calls_in_file(
     file_path.write_bytes(bytes(renamed_src))
 
 
-def _collect_function_identifiers(tree: Tree) -> list[Node]:
-    """Return the identifier nodes parsed from function definitions and declarations.
+def _collect_function_identifiers_for_renaming(tree: Tree) -> list[Node]:
+    """Return the identifier nodes parsed from function definitions and declarations for renaming.
 
     Args:
         tree (Tree): The tree from which to start collecting identifiers.
 
     Returns:
-        list[Node]: The identifier nodes parsed from function definitions and declarations.
+        list[Node]: The identifier nodes parsed from function definitions and declarations for
+            renaming.
     """
-    result = []
-
-    def _find_identifier_in_declarator(declarator: Node | None) -> Node | None:
-        if declarator is None:
-            return None
-        if declarator.type == "identifier":
-            return declarator
-
-        nested_declarator = declarator.child_by_field_name("declarator")
-        if nested_declarator is not None:
-            return _find_identifier_in_declarator(nested_declarator)
-
-        for child in declarator.children:
-            identifier = _find_identifier_in_declarator(child)
-            if identifier is not None:
-                return identifier
-        return None
-
-    def traverse(node):
-        if node.type in {"function_definition", "function_declaration"}:
-            declarator = node.child_by_field_name("declarator")
-            identifier = _find_identifier_in_declarator(declarator)
-            if identifier is not None and _should_prepend_avocado_prefix(identifier):
-                result.append(identifier)
-        for child in node.children:
-            traverse(child)
-
-    traverse(tree.root_node)
-    return result
+    return [
+        function_id
+        for function_id in collect_function_identifiers(tree.root_node)
+        if _should_prepend_avocado_prefix(function_id)
+    ]
 
 
 def _should_prepend_avocado_prefix(node: Node) -> bool:
@@ -189,6 +168,7 @@ def _should_prepend_avocado_prefix(node: Node) -> bool:
         node.type == "identifier"
         and node.text is not None
         and not re.match(DO_NOT_RENAME_PATTERN, node.text.decode())
+        and node.text != "if"  # No idea why this is getting parsed.
     )
 
 
@@ -206,7 +186,7 @@ def _rename_functions_in_src(
             names after renaming.
     """
     renamed_src = bytearray(src_content)
-    prev_names_to_avocado_names = {}
+    original_names_to_avocado_names = {}
     for ident_node in sorted(function_id_nodes, key=lambda node: node.start_byte, reverse=True):
         start = ident_node.start_byte
         end = ident_node.end_byte
@@ -226,9 +206,9 @@ def _rename_functions_in_src(
             raise ValueError(msg)
         renamed_function_id = f"{AVOCADO_FUNCTION_PREFIX}{original_function_id}"
         logger.debug(f"Renaming {original_function_id} -> {renamed_function_id}")
-        prev_names_to_avocado_names[original_function_id] = renamed_function_id
+        original_names_to_avocado_names[original_function_id] = renamed_function_id
         renamed_src[start:end] = renamed_function_id.encode()
-    return (bytes(renamed_src), prev_names_to_avocado_names)
+    return (bytes(renamed_src), original_names_to_avocado_names)
 
 
 if __name__ == "__main__":
