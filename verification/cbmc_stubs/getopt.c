@@ -26,7 +26,7 @@ __CPROVER_HIDE:;
     return -1;
 
   // test whether the option is in optstring at all
-  size_t optstring_len = strlen(optstring);
+  size_t optstring_len = avocado_strlen(optstring);
   // gcc doesn't know __CPROVER_forall
 #ifndef LIBRARY_CHECK
   __CPROVER_bool not_found = __CPROVER_forall
@@ -108,7 +108,7 @@ int avocado_getopt_long(
   // internal library syntax checks)
   (void)longindex;
 
-  return getopt(argc, argv, optstring);
+  return avocado_getopt(argc, argv, optstring);
 }
 
 #endif

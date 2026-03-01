@@ -91,5 +91,5 @@ int __builtin_flt_rounds(void);
 int avocado___flt_rounds(void)
 {
   // Spotted on FreeBSD
-  return __builtin_flt_rounds();
+  return avocado___builtin_flt_rounds();
 }

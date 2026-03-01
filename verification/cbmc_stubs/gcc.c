@@ -55,7 +55,7 @@ __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
   _Bool result = *(char *)ptr == 1;
   *(char *)ptr = 1;
-  __atomic_thread_fence(memorder);
+  avocado___atomic_thread_fence(memorder);
   __CPROVER_atomic_end();
   return result;
 }
@@ -69,7 +69,7 @@ void avocado___atomic_clear(_Bool *ptr, int memorder)
 __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
   *(char *)ptr = 0;
-  __atomic_thread_fence(memorder);
+  avocado___atomic_thread_fence(memorder);
   __CPROVER_atomic_end();
 }
 
@@ -132,7 +132,7 @@ void __atomic_thread_fence(int memorder);
 void avocado___atomic_signal_fence(int memorder)
 {
 __CPROVER_HIDE:;
-  __atomic_thread_fence(memorder);
+  avocado___atomic_thread_fence(memorder);
 }
 
 /* FUNCTION: __atomic_always_lock_free */

@@ -877,7 +877,7 @@ float avocado_sqrtf(float f)
     float lowerSquare = lower * lower;
     __CPROVER_assume(__CPROVER_isnormalf(lowerSquare));
 
-    float upper = nextUpf(lower);
+    float upper = avocado_nextUpf(lower);
     float upperSquare = upper * upper;  // Might be +Inf
 #pragma CPROVER check pop
 
@@ -891,7 +891,7 @@ float avocado_sqrtf(float f)
     __CPROVER_assume(f < upperSquare);
 
     // Select between them to work out which to return
-    switch(fegetround())
+    switch(avocado_fegetround())
     {
     case FE_TONEAREST :
       return (f - lowerSquare < upperSquare - f) ? lower : upper; break;
@@ -967,14 +967,14 @@ double avocado_sqrt(double d)
     double lowerSquare = lower * lower;
     __CPROVER_assume(__CPROVER_isnormald(lowerSquare));
 
-    double upper = nextUp(lower);
+    double upper = avocado_nextUp(lower);
     double upperSquare = upper * upper;  // Might be +Inf
 #pragma CPROVER check pop
 
     __CPROVER_assume(lowerSquare <= d);
     __CPROVER_assume(d < upperSquare);
 
-    switch(fegetround())
+    switch(avocado_fegetround())
     {
     case FE_TONEAREST:
       return (d - lowerSquare < upperSquare - d) ? lower : upper; break;
@@ -1044,14 +1044,14 @@ long double avocado_sqrtl(long double d)
     long double lowerSquare = lower * lower;
     __CPROVER_assume(__CPROVER_isnormalld(lowerSquare));
 
-    long double upper = nextUpl(lower);
+    long double upper = avocado_nextUpl(lower);
     long double upperSquare = upper * upper;  // Might be +Inf
 #pragma CPROVER check pop
 
     __CPROVER_assume(lowerSquare <= d);
     __CPROVER_assume(d < upperSquare);
 
-    switch(fegetround())
+    switch(avocado_fegetround())
     {
     case FE_TONEAREST:
       return (d - lowerSquare < upperSquare - d) ? lower : upper; break;
@@ -1108,7 +1108,7 @@ long double avocado_sqrtl(long double d)
 #endif
 
 // TODO : Should call a __CPROVER_function so that it can be converted to SMT-LIB
-double avocado_fmax(double f, double g) { return ((f >= g) || isnan(g)) ? f : g; }
+double avocado_fmax(double f, double g) { return ((f >= g) || avocado_isnan(g)) ? f : g; }
 
 /* FUNCTION: fmaxf */
 
@@ -1118,7 +1118,7 @@ double avocado_fmax(double f, double g) { return ((f >= g) || isnan(g)) ? f : g;
 #endif
 
 // TODO : Should call a __CPROVER_function so that it can be converted to SMT-LIB
-float avocado_fmaxf(float f, float g) { return ((f >= g) || isnan(g)) ? f : g; }
+float avocado_fmaxf(float f, float g) { return ((f >= g) || avocado_isnan(g)) ? f : g; }
 
 /* FUNCTION: fmaxl */
 
@@ -1128,7 +1128,7 @@ float avocado_fmaxf(float f, float g) { return ((f >= g) || isnan(g)) ? f : g; }
 #endif
 
 // TODO : Should call a __CPROVER_function so that it can be converted to SMT-LIB
-long double avocado_fmaxl(long double f, long double g) { return ((f >= g) || isnan(g)) ? f : g; }
+long double avocado_fmaxl(long double f, long double g) { return ((f >= g) || avocado_isnan(g)) ? f : g; }
 
 
 /* ISO 9899:2011
@@ -1151,7 +1151,7 @@ long double avocado_fmaxl(long double f, long double g) { return ((f >= g) || is
 #endif
  
 // TODO : Should call a __CPROVER_function so that it can be converted to SMT-LIB
-double avocado_fmin(double f, double g) { return ((f <= g) || isnan(g)) ? f : g; }
+double avocado_fmin(double f, double g) { return ((f <= g) || avocado_isnan(g)) ? f : g; }
 
 /* FUNCTION: fminf */
 
@@ -1161,7 +1161,7 @@ double avocado_fmin(double f, double g) { return ((f <= g) || isnan(g)) ? f : g;
 #endif
 
 // TODO : Should call a __CPROVER_function so that it can be converted to SMT-LIB 
-float avocado_fminf(float f, float g) { return ((f <= g) || isnan(g)) ? f : g; }
+float avocado_fminf(float f, float g) { return ((f <= g) || avocado_isnan(g)) ? f : g; }
 
 /* FUNCTION: fminl */
 
@@ -1171,7 +1171,7 @@ float avocado_fminf(float f, float g) { return ((f <= g) || isnan(g)) ? f : g; }
 #endif
 
 // TODO : Should call a __CPROVER_function so that it can be converted to SMT-LIB 
-long double avocado_fminl(long double f, long double g) { return ((f <= g) || isnan(g)) ? f : g; }
+long double avocado_fminl(long double f, long double g) { return ((f <= g) || avocado_isnan(g)) ? f : g; }
 
 
 /* ISO 9899:2011
@@ -2033,7 +2033,7 @@ long double avocado_fmodl(long double x, long double y)
 
 double __sort_of_CPROVER_remainder (int rounding_mode, double x, double y);
 
-double avocado_remainder(double x, double y) { return __sort_of_CPROVER_remainder(FE_TONEAREST, x, y); }
+double avocado_remainder(double x, double y) { return avocado___sort_of_CPROVER_remainder(FE_TONEAREST, x, y); }
 
 
 /* FUNCTION: remainderf */
@@ -2050,7 +2050,7 @@ double avocado_remainder(double x, double y) { return __sort_of_CPROVER_remainde
 
 float __sort_of_CPROVER_remainderf (int rounding_mode, float x, float y);
 
-float avocado_remainderf(float x, float y) { return __sort_of_CPROVER_remainderf(FE_TONEAREST, x, y); }
+float avocado_remainderf(float x, float y) { return avocado___sort_of_CPROVER_remainderf(FE_TONEAREST, x, y); }
 
 
 /* FUNCTION: remainderl */
@@ -2067,7 +2067,7 @@ float avocado_remainderf(float x, float y) { return __sort_of_CPROVER_remainderf
 
 long double __sort_of_CPROVER_remainderl (int rounding_mode, long double x, long double y);
 
-long double avocado_remainderl(long double x, long double y) { return __sort_of_CPROVER_remainderl(FE_TONEAREST, x, y); }
+long double avocado_remainderl(long double x, long double y) { return avocado___sort_of_CPROVER_remainderl(FE_TONEAREST, x, y); }
 
 
 
@@ -2091,8 +2091,8 @@ double fabs (double d);
 
 double avocado_copysign(double x, double y)
 {
-  double abs = fabs(x);
-  return (signbit(y)) ? -abs : abs;
+  double abs = avocado_fabs(x);
+  return (avocado_signbit(y)) ? -abs : abs;
 }
 
 /* FUNCTION: copysignf */
@@ -2106,8 +2106,8 @@ float fabsf (float d);
 
 float avocado_copysignf(float x, float y)
 {
-  float abs = fabsf(x);
-  return (signbit(y)) ? -abs : abs;
+  float abs = avocado_fabsf(x);
+  return (avocado_signbit(y)) ? -abs : abs;
 }
 
 /* FUNCTION: copysignl */
@@ -2121,8 +2121,8 @@ long double fabsl (long double d);
 
 long double avocado_copysignl(long double x, long double y)
 {
-  long double abs = fabsl(x);
-  return (signbit(y)) ? -abs : abs;
+  long double abs = avocado_fabsl(x);
+  return (avocado_signbit(y)) ? -abs : abs;
 }
 
 /* FUNCTION: exp2 */
@@ -2134,7 +2134,7 @@ long double avocado_copysignl(long double x, long double y)
 
 double avocado_exp2(double x)
 {
-  return pow(2.0, x);
+  return avocado_pow(2.0, x);
 }
 
 /* FUNCTION: exp2f */
@@ -2146,7 +2146,7 @@ double avocado_exp2(double x)
 
 float avocado_exp2f(float x)
 {
-  return powf(2.0f, x);
+  return avocado_powf(2.0f, x);
 }
 
 /* FUNCTION: exp2l */
@@ -2158,7 +2158,7 @@ float avocado_exp2f(float x)
 
 long double avocado_exp2l(long double x)
 {
-  return powl(2.0l, x);
+  return avocado_powl(2.0l, x);
 }
 
 /* FUNCTION: exp */
@@ -2343,7 +2343,7 @@ long double avocado_expl(long double x)
     return +0.0l;
 
 #if LDBL_MAX_EXP == DBL_MAX_EXP
-  return exp(x);
+  return avocado_exp(x);
 #else
   // underflow/overflow when the result is not representable in 15 exponent bits
   if(x < -16384.0l * M_LN2)
@@ -2574,7 +2574,7 @@ long double avocado_logl(long double x)
   }
 
 #if LDBL_MAX_EXP == DBL_MAX_EXP
-  return log(x);
+  return avocado_log(x);
 #else
 #  ifndef _MSC_VER
   _Static_assert
@@ -2783,7 +2783,7 @@ long double avocado_log2l(long double x)
   }
 
 #if LDBL_MAX_EXP == DBL_MAX_EXP
-  return log2(x);
+  return avocado_log2(x);
 #else
 #  ifndef _MSC_VER
   _Static_assert
@@ -2997,7 +2997,7 @@ long double avocado_log10l(long double x)
   }
 
 #if LDBL_MAX_EXP == DBL_MAX_EXP
-  return log10(x);
+  return avocado_log10(x);
 #else
 #  ifndef _MSC_VER
   _Static_assert
@@ -3051,7 +3051,7 @@ double avocado_pow(double x, double y)
   // see man pow (https://linux.die.net/man/3/pow)
   if(
     __CPROVER_isfinited(x) && __CPROVER_signd(x) && __CPROVER_isfinited(y) &&
-    nearbyint(y) != y)
+    avocado_nearbyint(y) != y)
   {
     errno = EDOM;
 #pragma CPROVER check push
@@ -3065,49 +3065,49 @@ double avocado_pow(double x, double y)
     return 1.0;
   else if(fpclassify(x) == FP_ZERO && !__CPROVER_signd(y))
   {
-    if(nearbyint(y) == y && fabs(fmod(y, 2.0)) == 1.0)
+    if(avocado_nearbyint(y) == y && avocado_fabs(avocado_fmod(y, 2.0)) == 1.0)
       return x;
     else
       return +0.0;
   }
-  else if(isinf(y))
+  else if(avocado_isinf(y))
   {
     // x == 1.0 and y-is-zero caught above
     if(x == -1.0)
       return 1.0;
     else if(__CPROVER_signd(y))
     {
-      if(fabs(x) < 1.0)
+      if(avocado_fabs(x) < 1.0)
         return __builtin_inf();
       else
         return +0.0;
     }
     else
     {
-      if(fabs(x) < 1.0)
+      if(avocado_fabs(x) < 1.0)
         return +0.0;
       else
         return __builtin_inf();
     }
   }
-  else if(isinf(x) && __CPROVER_signd(x))
+  else if(avocado_isinf(x) && __CPROVER_signd(x))
   {
     if(__CPROVER_signd(y))
     {
-      if(nearbyint(y) == y && fabs(fmod(y, 2.0)) == 1.0)
+      if(avocado_nearbyint(y) == y && avocado_fabs(avocado_fmod(y, 2.0)) == 1.0)
         return -0.0;
       else
         return +0.0;
     }
     else
     {
-      if(nearbyint(y) == y && fabs(fmod(y, 2.0)) == 1.0)
+      if(avocado_nearbyint(y) == y && avocado_fabs(avocado_fmod(y, 2.0)) == 1.0)
         return -__builtin_inf();
       else
         return __builtin_inf();
     }
   }
-  else if(isinf(x) && !__CPROVER_signd(x))
+  else if(avocado_isinf(x) && !__CPROVER_signd(x))
   {
     if(__CPROVER_signd(y))
       return +0.0;
@@ -3119,13 +3119,13 @@ double avocado_pow(double x, double y)
     errno = ERANGE;
 #pragma CPROVER check push
 #pragma CPROVER check disable "float-overflow"
-    if(__CPROVER_signd(x) && nearbyint(y) == y && fabs(fmod(y, 2.0)) == 1.0)
+    if(__CPROVER_signd(x) && avocado_nearbyint(y) == y && avocado_fabs(avocado_fmod(y, 2.0)) == 1.0)
       return -HUGE_VAL;
     else
       return HUGE_VAL;
 #pragma CPROVER check pop
   }
-  else if(isnan(x) || isnan(y))
+  else if(avocado_isnan(x) || avocado_isnan(y))
 #pragma CPROVER check push
 #pragma CPROVER check disable "float-div-by-zero"
     return 0.0 / 0.0;
@@ -3155,7 +3155,7 @@ double avocado_pow(double x, double y)
   double mult_result = y * (double)(u.i[0] - (bias + exp_c));
 #endif
 #pragma CPROVER check pop
-  if(fabs(mult_result) > (double)(1 << 30))
+  if(avocado_fabs(mult_result) > (double)(1 << 30))
   {
     errno = ERANGE;
 #pragma CPROVER check push
@@ -3199,7 +3199,7 @@ float avocado_powf(float x, float y)
   // see man pow (https://linux.die.net/man/3/pow)
   if(
     __CPROVER_isfinitef(x) && __CPROVER_signf(x) && __CPROVER_isfinitef(y) &&
-    nearbyintf(y) != y)
+    avocado_nearbyintf(y) != y)
   {
     errno = EDOM;
 #pragma CPROVER check push
@@ -3213,49 +3213,49 @@ float avocado_powf(float x, float y)
     return 1.0f;
   else if(fpclassify(x) == FP_ZERO && !__CPROVER_signf(y))
   {
-    if(nearbyintf(y) == y && fabsf(fmodf(y, 2.0f)) == 1.0f)
+    if(avocado_nearbyintf(y) == y && avocado_fabsf(avocado_fmodf(y, 2.0f)) == 1.0f)
       return x;
     else
       return +0.0f;
   }
-  else if(isinff(y))
+  else if(avocado_isinff(y))
   {
     // x == 1.0f and y-is-zero caught above
     if(x == -1.0f)
       return 1.0f;
     else if(__CPROVER_signf(y))
     {
-      if(fabsf(x) < 1.0f)
+      if(avocado_fabsf(x) < 1.0f)
         return __builtin_inff();
       else
         return +0.0f;
     }
     else
     {
-      if(fabsf(x) < 1.0f)
+      if(avocado_fabsf(x) < 1.0f)
         return +0.0f;
       else
         return __builtin_inff();
     }
   }
-  else if(isinff(x) && __CPROVER_signf(x))
+  else if(avocado_isinff(x) && __CPROVER_signf(x))
   {
     if(__CPROVER_signf(y))
     {
-      if(nearbyintf(y) == y && fabsf(fmodf(y, 2.0f)) == 1.0f)
+      if(avocado_nearbyintf(y) == y && avocado_fabsf(avocado_fmodf(y, 2.0f)) == 1.0f)
         return -0.0f;
       else
         return +0.0f;
     }
     else
     {
-      if(nearbyintf(y) == y && fabsf(fmodf(y, 2.0f)) == 1.0f)
+      if(avocado_nearbyintf(y) == y && avocado_fabsf(avocado_fmodf(y, 2.0f)) == 1.0f)
         return -__builtin_inff();
       else
         return __builtin_inff();
     }
   }
-  else if(isinff(x) && !__CPROVER_signf(x))
+  else if(avocado_isinff(x) && !__CPROVER_signf(x))
   {
     if(__CPROVER_signf(y))
       return +0.0f;
@@ -3268,7 +3268,7 @@ float avocado_powf(float x, float y)
 #pragma CPROVER check push
 #pragma CPROVER check disable "float-overflow"
     if(
-      __CPROVER_signf(x) && nearbyintf(y) == y && fabsf(fmodf(y, 2.0f)) == 1.0f)
+      __CPROVER_signf(x) && avocado_nearbyintf(y) == y && avocado_fabsf(avocado_fmodf(y, 2.0f)) == 1.0f)
     {
       return -HUGE_VALF;
     }
@@ -3276,7 +3276,7 @@ float avocado_powf(float x, float y)
       return HUGE_VALF;
 #pragma CPROVER check pop
   }
-  else if(isnanf(x) || isnanf(y))
+  else if(avocado_isnanf(x) || avocado_isnanf(y))
 #pragma CPROVER check push
 #pragma CPROVER check disable "float-div-by-zero"
     return 0.0f / 0.0f;
@@ -3301,7 +3301,7 @@ float avocado_powf(float x, float y)
 #pragma CPROVER check disable "signed-overflow"
   float mult_result = y * (float)(u.i - (bias + exp_c));
 #pragma CPROVER check pop
-  if(fabsf(mult_result) > (float)(1 << 30))
+  if(avocado_fabsf(mult_result) > (float)(1 << 30))
   {
     errno = ERANGE;
 #pragma CPROVER check push
@@ -3344,7 +3344,7 @@ long double avocado_powl(long double x, long double y)
   // see man pow (https://linux.die.net/man/3/pow)
   if(
     __CPROVER_isfiniteld(x) && __CPROVER_signld(x) && __CPROVER_isfiniteld(y) &&
-    nearbyintl(y) != y)
+    avocado_nearbyintl(y) != y)
   {
     errno = EDOM;
 #pragma CPROVER check push
@@ -3358,49 +3358,49 @@ long double avocado_powl(long double x, long double y)
     return 1.0l;
   else if(fpclassify(x) == FP_ZERO && !__CPROVER_signld(y))
   {
-    if(nearbyintl(y) == y && fabsl(fmodl(y, 2.0l)) == 1.0l)
+    if(avocado_nearbyintl(y) == y && avocado_fabsl(avocado_fmodl(y, 2.0l)) == 1.0l)
       return x;
     else
       return +0.0l;
   }
-  else if(isinfl(y))
+  else if(avocado_isinfl(y))
   {
     // x == 1.0l and y-is-zero caught above
     if(x == -1.0l)
       return 1.0l;
     else if(__CPROVER_signld(y))
     {
-      if(fabsl(x) < 1.0l)
+      if(avocado_fabsl(x) < 1.0l)
         return __builtin_infl();
       else
         return +0.0l;
     }
     else
     {
-      if(fabsl(x) < 1.0l)
+      if(avocado_fabsl(x) < 1.0l)
         return +0.0l;
       else
         return __builtin_infl();
     }
   }
-  else if(isinfl(x) && __CPROVER_signld(x))
+  else if(avocado_isinfl(x) && __CPROVER_signld(x))
   {
     if(__CPROVER_signld(y))
     {
-      if(nearbyintl(y) == y && fabsl(fmodl(y, 2.0l)) == 1.0l)
+      if(avocado_nearbyintl(y) == y && avocado_fabsl(avocado_fmodl(y, 2.0l)) == 1.0l)
         return -0.0l;
       else
         return +0.0l;
     }
     else
     {
-      if(nearbyintl(y) == y && fabsl(fmodl(y, 2.0l)) == 1.0l)
+      if(avocado_nearbyintl(y) == y && avocado_fabsl(avocado_fmodl(y, 2.0l)) == 1.0l)
         return -__builtin_infl();
       else
         return __builtin_infl();
     }
   }
-  else if(isinfl(x) && !__CPROVER_signld(x))
+  else if(avocado_isinfl(x) && !__CPROVER_signld(x))
   {
     if(__CPROVER_signld(y))
       return +0.0f;
@@ -3413,8 +3413,8 @@ long double avocado_powl(long double x, long double y)
 #pragma CPROVER check push
 #pragma CPROVER check disable "float-overflow"
     if(
-      __CPROVER_signld(x) && nearbyintl(y) == y &&
-      fabsl(fmodl(y, 2.0l)) == 1.0l)
+      __CPROVER_signld(x) && avocado_nearbyintl(y) == y &&
+      avocado_fabsl(avocado_fmodl(y, 2.0l)) == 1.0l)
     {
       return -HUGE_VALL;
     }
@@ -3422,14 +3422,14 @@ long double avocado_powl(long double x, long double y)
       return HUGE_VALL;
 #pragma CPROVER check pop
   }
-  else if(isnanl(x) || isnanl(y))
+  else if(avocado_isnanl(x) || avocado_isnanl(y))
 #pragma CPROVER check push
 #pragma CPROVER check disable "float-div-by-zero"
     return 0.0l / 0.0l;
 #pragma CPROVER check pop
 
 #if LDBL_MAX_EXP == DBL_MAX_EXP
-  return pow(x, y);
+  return avocado_pow(x, y);
 #else
 #  ifndef _MSC_VER
   _Static_assert
@@ -3455,7 +3455,7 @@ long double avocado_powl(long double x, long double y)
 #  pragma CPROVER check disable "signed-overflow"
   long double mult_result = y * (long double)(exponent - (bias + exp_c));
 #  pragma CPROVER check pop
-  if(fabsl(mult_result) > (long double)(1 << 30))
+  if(avocado_fabsl(mult_result) > (long double)(1 << 30))
   {
     errno = ERANGE;
 #  pragma CPROVER check push
@@ -3493,32 +3493,32 @@ double avocado_fma(double x, double y, double z)
   // see man fma (https://linux.die.net/man/3/fma)
 #pragma CPROVER check push
 #pragma CPROVER check disable "float-div-by-zero"
-  if(isnan(x) || isnan(y))
+  if(avocado_isnan(x) || avocado_isnan(y))
     return 0.0 / 0.0;
   else if(
-    (isinf(x) || isinf(y)) &&
+    (avocado_isinf(x) || avocado_isinf(y)) &&
     (fpclassify(x) == FP_ZERO || fpclassify(y) == FP_ZERO))
   {
-    feraiseexcept(FE_INVALID);
+    avocado_feraiseexcept(FE_INVALID);
     return 0.0 / 0.0;
   }
-  else if(isnan(z))
+  else if(avocado_isnan(z))
     return 0.0 / 0.0;
 
 #pragma CPROVER check disable "float-overflow"
   double x_times_y = x * y;
   if(
-    isinf(x_times_y) && isinf(z) &&
+    avocado_isinf(x_times_y) && avocado_isinf(z) &&
     __CPROVER_signd(x_times_y) != __CPROVER_signd(z))
   {
-    feraiseexcept(FE_INVALID);
+    avocado_feraiseexcept(FE_INVALID);
     return 0.0 / 0.0;
   }
 #pragma CPROVER check pop
 
-  if(isinf(x_times_y))
+  if(avocado_isinf(x_times_y))
   {
-    feraiseexcept(FE_OVERFLOW);
+    avocado_feraiseexcept(FE_OVERFLOW);
     return __CPROVER_signd(x_times_y) ? -__builtin_inf() : __builtin_inf();
   }
   // TODO: detect underflow (FE_UNDERFLOW), return +/- 0
@@ -3545,32 +3545,32 @@ float avocado_fmaf(float x, float y, float z)
   // see man fma (https://linux.die.net/man/3/fma)
 #pragma CPROVER check push
 #pragma CPROVER check disable "float-div-by-zero"
-  if(isnanf(x) || isnanf(y))
+  if(avocado_isnanf(x) || avocado_isnanf(y))
     return 0.0f / 0.0f;
   else if(
-    (isinff(x) || isinff(y)) &&
+    (avocado_isinff(x) || avocado_isinff(y)) &&
     (fpclassify(x) == FP_ZERO || fpclassify(y) == FP_ZERO))
   {
-    feraiseexcept(FE_INVALID);
+    avocado_feraiseexcept(FE_INVALID);
     return 0.0f / 0.0f;
   }
-  else if(isnanf(z))
+  else if(avocado_isnanf(z))
     return 0.0f / 0.0f;
 
 #pragma CPROVER check disable "float-overflow"
   float x_times_y = x * y;
   if(
-    isinff(x_times_y) && isinff(z) &&
+    avocado_isinff(x_times_y) && avocado_isinff(z) &&
     __CPROVER_signf(x_times_y) != __CPROVER_signf(z))
   {
-    feraiseexcept(FE_INVALID);
+    avocado_feraiseexcept(FE_INVALID);
     return 0.0f / 0.0f;
   }
 #pragma CPROVER check pop
 
-  if(isinff(x_times_y))
+  if(avocado_isinff(x_times_y))
   {
-    feraiseexcept(FE_OVERFLOW);
+    avocado_feraiseexcept(FE_OVERFLOW);
     return __CPROVER_signf(x_times_y) ? -__builtin_inff() : __builtin_inff();
   }
   // TODO: detect underflow (FE_UNDERFLOW), return +/- 0
@@ -3602,35 +3602,35 @@ long double avocado_fmal(long double x, long double y, long double z)
   // see man fma (https://linux.die.net/man/3/fma)
 #pragma CPROVER check push
 #pragma CPROVER check disable "float-div-by-zero"
-  if(isnanl(x) || isnanl(y))
+  if(avocado_isnanl(x) || avocado_isnanl(y))
     return 0.0l / 0.0l;
   else if(
-    (isinfl(x) || isinfl(y)) &&
+    (avocado_isinfl(x) || avocado_isinfl(y)) &&
     (fpclassify(x) == FP_ZERO || fpclassify(y) == FP_ZERO))
   {
-    feraiseexcept(FE_INVALID);
+    avocado_feraiseexcept(FE_INVALID);
     return 0.0l / 0.0l;
   }
-  else if(isnanl(z))
+  else if(avocado_isnanl(z))
     return 0.0l / 0.0l;
 
 #pragma CPROVER check disable "float-overflow"
   long double x_times_y = x * y;
   if(
-    isinfl(x_times_y) && isinfl(z) &&
+    avocado_isinfl(x_times_y) && avocado_isinfl(z) &&
     __CPROVER_signld(x_times_y) != __CPROVER_signld(z))
   {
-    feraiseexcept(FE_INVALID);
+    avocado_feraiseexcept(FE_INVALID);
     return 0.0l / 0.0l;
   }
 #pragma CPROVER check pop
 
 #if LDBL_MAX_EXP == DBL_MAX_EXP
-  return fma(x, y, z);
+  return avocado_fma(x, y, z);
 #else
-  if(isinfl(x_times_y))
+  if(avocado_isinfl(x_times_y))
   {
-    feraiseexcept(FE_OVERFLOW);
+    avocado_feraiseexcept(FE_OVERFLOW);
     return __CPROVER_signld(x_times_y) ? -__builtin_infl() : __builtin_infl();
   }
   // TODO: detect underflow (FE_UNDERFLOW), return +/- 0
@@ -3675,7 +3675,7 @@ double avocado___builtin_powi(double x, int y)
     else
       return +0.0;
   }
-  else if(isinf(x) && __CPROVER_signd(x))
+  else if(avocado_isinf(x) && __CPROVER_signd(x))
   {
     if(y < 0)
     {
@@ -3692,7 +3692,7 @@ double avocado___builtin_powi(double x, int y)
         return __builtin_inf();
     }
   }
-  else if(isinf(x) && !__CPROVER_signd(x))
+  else if(avocado_isinf(x) && !__CPROVER_signd(x))
   {
     if(y < 0)
       return +0.0;
@@ -3710,7 +3710,7 @@ double avocado___builtin_powi(double x, int y)
       return HUGE_VAL;
 #pragma CPROVER check pop
   }
-  else if(isnan(x))
+  else if(avocado_isnan(x))
 #pragma CPROVER check push
 #pragma CPROVER check disable "float-div-by-zero"
     return 0.0 / 0.0;
@@ -3740,7 +3740,7 @@ double avocado___builtin_powi(double x, int y)
   double mult_result = (double)(y) * (double)(u.i[0] - (bias + exp_c));
 #endif
 #pragma CPROVER check pop
-  if(fabs(mult_result) > (double)(1 << 30))
+  if(avocado_fabs(mult_result) > (double)(1 << 30))
   {
     errno = ERANGE;
 #pragma CPROVER check push
@@ -3794,7 +3794,7 @@ float avocado___builtin_powif(float x, int y)
     else
       return +0.0f;
   }
-  else if(isinff(x) && __CPROVER_signf(x))
+  else if(avocado_isinff(x) && __CPROVER_signf(x))
   {
     if(y < 0)
     {
@@ -3811,7 +3811,7 @@ float avocado___builtin_powif(float x, int y)
         return __builtin_inff();
     }
   }
-  else if(isinff(x) && !__CPROVER_signf(x))
+  else if(avocado_isinff(x) && !__CPROVER_signf(x))
   {
     if(y < 0)
       return +0.0f;
@@ -3831,7 +3831,7 @@ float avocado___builtin_powif(float x, int y)
       return HUGE_VALF;
 #pragma CPROVER check pop
   }
-  else if(isnanf(x))
+  else if(avocado_isnanf(x))
 #pragma CPROVER check push
 #pragma CPROVER check disable "float-div-by-zero"
     return 0.0f / 0.0f;
@@ -3856,7 +3856,7 @@ float avocado___builtin_powif(float x, int y)
 #pragma CPROVER check disable "signed-overflow"
   float mult_result = (float)(y) * (float)(u.i - (bias + exp_c));
 #pragma CPROVER check pop
-  if(fabsf(mult_result) > (float)(1 << 30))
+  if(avocado_fabsf(mult_result) > (float)(1 << 30))
   {
     errno = ERANGE;
 #pragma CPROVER check push
@@ -3910,7 +3910,7 @@ long double avocado___builtin_powil(long double x, int y)
     else
       return +0.0l;
   }
-  else if(isinf(x) && __CPROVER_signld(x))
+  else if(avocado_isinf(x) && __CPROVER_signld(x))
   {
     if(y < 0)
     {
@@ -3927,7 +3927,7 @@ long double avocado___builtin_powil(long double x, int y)
         return __builtin_infl();
     }
   }
-  else if(isinf(x) && !__CPROVER_signld(x))
+  else if(avocado_isinf(x) && !__CPROVER_signld(x))
   {
     if(y < 0)
       return +0.0f;
@@ -3947,14 +3947,14 @@ long double avocado___builtin_powil(long double x, int y)
       return HUGE_VALL;
 #pragma CPROVER check pop
   }
-  else if(isnan(x))
+  else if(avocado_isnan(x))
 #pragma CPROVER check push
 #pragma CPROVER check disable "float-div-by-zero"
     return 0.0l / 0.0l;
 #pragma CPROVER check pop
 
 #if LDBL_MAX_EXP == DBL_MAX_EXP
-  return __builtin_powi(x, y);
+  return avocado___builtin_powi(x, y);
 #else
 #  ifndef _MSC_VER
   _Static_assert
@@ -3981,7 +3981,7 @@ long double avocado___builtin_powil(long double x, int y)
   long double mult_result =
     (long double)y * (long double)(exponent - (bias + exp_c));
 #  pragma CPROVER check pop
-  if(fabsl(mult_result) > (long double)(1 << 30))
+  if(avocado_fabsl(mult_result) > (long double)(1 << 30))
   {
     errno = ERANGE;
 #  pragma CPROVER check push

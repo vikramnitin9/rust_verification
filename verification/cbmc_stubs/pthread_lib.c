@@ -663,7 +663,7 @@ int avocado_pthread_create(
 #endif
 
   __CPROVER_ASYNC_1:
-    __spawned_thread(
+    avocado___spawned_thread(
       this_thread_id,
 #if 0
       // Destructor support is disabled as it is too expensive due to its

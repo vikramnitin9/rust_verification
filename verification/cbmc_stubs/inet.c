@@ -40,7 +40,7 @@ in_addr_t __inet_addr(const char *cp);
 in_addr_t avocado_inet_addr(const char *cp)
 {
 __CPROVER_HIDE:;
-  return __inet_addr(cp);
+  return avocado___inet_addr(cp);
 }
 
 #endif
@@ -88,7 +88,7 @@ int __inet_aton(const char *cp, struct in_addr *pin);
 int avocado_inet_aton(const char *cp, struct in_addr *pin)
 {
 __CPROVER_HIDE:;
-  return __inet_aton(cp, pin);
+  return avocado___inet_aton(cp, pin);
 }
 
 #endif
@@ -131,7 +131,7 @@ char *__inet_ntoa(struct in_addr in);
 char *avocado_inet_ntoa(struct in_addr in)
 {
 __CPROVER_HIDE:;
-  return __inet_ntoa(in);
+  return avocado___inet_ntoa(in);
 }
 
 #endif
@@ -178,7 +178,7 @@ in_addr_t __inet_network(const char *cp);
 in_addr_t avocado_inet_network(const char *cp)
 {
 __CPROVER_HIDE:;
-  return __inet_network(cp);
+  return avocado___inet_network(cp);
 }
 
 #endif

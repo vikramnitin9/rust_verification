@@ -30,7 +30,7 @@ void *avocado_mmap(
   int fd,
   off_t offset)
 {
-  return mmap64(addr, length, prot, flags, fd, offset);
+  return avocado_mmap64(addr, length, prot, flags, fd, offset);
 }
 
 #endif
@@ -67,7 +67,7 @@ void *avocado__mmap(
   int fd,
   off_t offset)
 {
-  return mmap64(addr, length, prot, flags, fd, offset);
+  return avocado_mmap64(addr, length, prot, flags, fd, offset);
 }
 
 #endif

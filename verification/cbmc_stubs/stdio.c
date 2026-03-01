@@ -77,7 +77,7 @@ FILE *fopen64(const char *filename, const char *mode);
 FILE *avocado_fopen(const char *filename, const char *mode)
 {
 __CPROVER_HIDE:;
-  return fopen64(filename, mode);
+  return avocado_fopen64(filename, mode);
 }
 
 /* FUNCTION: _fopen */
@@ -118,7 +118,7 @@ __CPROVER_HIDE:;
 
   __CPROVER_bool fopen_error = __VERIFIER_nondet___CPROVER_bool();
 
-  fopen_result = fopen_error ? NULL : malloc(sizeof(FILE));
+  fopen_result = fopen_error ? NULL : avocado_malloc(sizeof(FILE));
 
 #  ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS
   __CPROVER_set_must(fopen_result, "open");
@@ -162,11 +162,11 @@ __CPROVER_HIDE:;
   __CPROVER_bool fopen_error = __VERIFIER_nondet___CPROVER_bool();
 
 #if !defined(__linux__) || defined(__GLIBC__)
-  fopen_result = fopen_error ? NULL : malloc(sizeof(FILE));
+  fopen_result = fopen_error ? NULL : avocado_malloc(sizeof(FILE));
 #else
   // libraries need to expose the definition of FILE; this is the
   // case for musl
-  fopen_result = fopen_error ? NULL : malloc(sizeof(int));
+  fopen_result = fopen_error ? NULL : avocado_malloc(sizeof(int));
 #endif
 
 #ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS
@@ -189,7 +189,7 @@ FILE *freopen64(const char *filename, const char *mode, FILE *f);
 FILE *avocado_freopen(const char *filename, const char *mode, FILE *f)
 {
 __CPROVER_HIDE:;
-  return freopen64(filename, mode, f);
+  return avocado_freopen64(filename, mode, f);
 }
 
 /* FUNCTION: freopen64 */
@@ -237,7 +237,7 @@ __CPROVER_HIDE:;
   __CPROVER_set_must(stream, "closed");
 #endif
   int return_value=__VERIFIER_nondet_int();
-  free(stream);
+  avocado_free(stream);
   return return_value;
 }
 
@@ -264,11 +264,11 @@ FILE *avocado_fdopen(int handle, const char *mode)
 #endif
 
 #if !defined(__linux__) || defined(__GLIBC__)
-  FILE *f=malloc(sizeof(FILE));
+  FILE *f=avocado_malloc(sizeof(FILE));
 #else
   // libraries need to expose the definition of FILE; this is the
   // case for musl
-  FILE *f=malloc(sizeof(int));
+  FILE *f=avocado_malloc(sizeof(int));
 #endif
 
   return f;
@@ -302,7 +302,7 @@ FILE *avocado__fdopen(int handle, const char *mode)
     "fdopen zero-termination of 2nd argument");
 #endif
 
-  FILE *f=malloc(sizeof(FILE));
+  FILE *f=avocado_malloc(sizeof(FILE));
 
   return f;
 }
@@ -978,7 +978,7 @@ int avocado_fscanf(FILE *restrict stream, const char *restrict format, ...)
 __CPROVER_HIDE:;
   va_list list;
   va_start(list, format);
-  int result=vfscanf(stream, format, list);
+  int result=avocado_vfscanf(stream, format, list);
   va_end(list);
   return result;
 }
@@ -1002,7 +1002,7 @@ int avocado___isoc99_fscanf(FILE *restrict stream, const char *restrict format, 
 __CPROVER_HIDE:;
   va_list list;
   va_start(list, format);
-  int result = vfscanf(stream, format, list);
+  int result = avocado_vfscanf(stream, format, list);
   va_end(list);
   return result;
 }
@@ -1026,7 +1026,7 @@ int avocado_scanf(const char *restrict format, ...)
 __CPROVER_HIDE:;
   va_list list;
   va_start(list, format);
-  int result=vfscanf(stdin, format, list);
+  int result=avocado_vfscanf(stdin, format, list);
   va_end(list);
   return result;
 }
@@ -1050,7 +1050,7 @@ int avocado___isoc99_scanf(const char *restrict format, ...)
 __CPROVER_HIDE:;
   va_list list;
   va_start(list, format);
-  int result = vfscanf(stdin, format, list);
+  int result = avocado_vfscanf(stdin, format, list);
   va_end(list);
   return result;
 }
@@ -1074,7 +1074,7 @@ int avocado_sscanf(const char *restrict s, const char *restrict format, ...)
 __CPROVER_HIDE:;
   va_list list;
   va_start(list, format);
-  int result=vsscanf(s, format, list);
+  int result=avocado_vsscanf(s, format, list);
   va_end(list);
   return result;
 }
@@ -1098,7 +1098,7 @@ int avocado___isoc99_sscanf(const char *restrict s, const char *restrict format,
 __CPROVER_HIDE:;
   va_list list;
   va_start(list, format);
-  int result = vsscanf(s, format, list);
+  int result = avocado_vsscanf(s, format, list);
   va_end(list);
   return result;
 }
@@ -1293,7 +1293,7 @@ int avocado___stdio_common_vfscanf(
 int avocado_vscanf(const char *restrict format, va_list arg)
 {
   __CPROVER_HIDE:;
-  return vfscanf(stdin, format, arg);
+  return avocado_vfscanf(stdin, format, arg);
 }
 
 #endif
@@ -1313,7 +1313,7 @@ int avocado_vscanf(const char *restrict format, va_list arg)
 int avocado___isoc99_vscanf(const char *restrict format, va_list arg)
 {
 __CPROVER_HIDE:;
-  return vfscanf(stdin, format, arg);
+  return avocado_vfscanf(stdin, format, arg);
 }
 
 /* FUNCTION: vsscanf */
@@ -1521,7 +1521,7 @@ int avocado_fprintf(FILE *stream, const char *restrict format, ...)
   __CPROVER_HIDE:;
   va_list list;
   va_start(list, format);
-  int result=vfprintf(stream, format, list);
+  int result=avocado_vfprintf(stream, format, list);
   va_end(list);
   return result;
 }
@@ -1544,7 +1544,7 @@ __CPROVER_HIDE:;
   (void)flag;
   va_list list;
   va_start(list, format);
-  int result = vfprintf(stream, format, list);
+  int result = avocado_vfprintf(stream, format, list);
   va_end(list);
   return result;
 }
@@ -1649,7 +1649,7 @@ int avocado_asprintf(char **ptr, const char *fmt, ...)
 {
   va_list list;
   va_start(list, fmt);
-  int result = vasprintf(ptr, fmt, list);
+  int result = avocado_vasprintf(ptr, fmt, list);
   va_end(list);
   return result;
 }
@@ -1671,7 +1671,7 @@ int avocado_dprintf(int fd, const char *restrict format, ...)
 __CPROVER_HIDE:;
   va_list list;
   va_start(list, format);
-  int result = vdprintf(fd, format, list);
+  int result = avocado_vdprintf(fd, format, list);
   va_end(list);
   return result;
 }
@@ -1732,7 +1732,7 @@ int avocado_vasprintf(char **ptr, const char *fmt, va_list ap)
   if(result_buffer_size<=0)
     return -1;
 
-  *ptr=malloc(result_buffer_size);
+  *ptr=avocado_malloc(result_buffer_size);
   if(!*ptr)
     return -1;
   int i=0;
@@ -1767,7 +1767,7 @@ int avocado_snprintf(char *str, size_t size, const char *fmt, ...)
 {
   va_list list;
   va_start(list, fmt);
-  int result = vsnprintf(str, size, fmt, list);
+  int result = avocado_vsnprintf(str, size, fmt, list);
   va_end(list);
   return result;
 }
@@ -1802,7 +1802,7 @@ int avocado___builtin___snprintf_chk(
 {
   va_list list;
   va_start(list, fmt);
-  int result = __builtin___vsnprintf_chk(str, size, flag, bufsize, fmt, list);
+  int result = avocado___builtin___vsnprintf_chk(str, size, flag, bufsize, fmt, list);
   va_end(list);
   return result;
 }
@@ -1975,7 +1975,7 @@ int avocado___stdio_common_vfprintf(
   (void)options;
   (void)locale;
 
-  if(stream == __acrt_iob_func(1))
+  if(stream == avocado___acrt_iob_func(1))
     __CPROVER_printf(format, args);
   return 0;
 }

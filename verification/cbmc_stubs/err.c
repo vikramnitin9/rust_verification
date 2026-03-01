@@ -14,7 +14,7 @@ void avocado_err(int eval, const char *fmt, ...)
 {
   (void)eval;
   (void)*fmt;
-  abort();
+  avocado_abort();
 }
 
 /* FUNCTION: errx */
@@ -33,7 +33,7 @@ void avocado_errx(int eval, const char *fmt, ...)
 {
   (void)eval;
   (void)*fmt;
-  abort();
+  avocado_abort();
 }
 
 /* FUNCTION: warn */

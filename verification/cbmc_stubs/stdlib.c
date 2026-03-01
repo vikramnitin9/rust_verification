@@ -297,7 +297,7 @@ void *__builtin_alloca(__CPROVER_size_t alloca_size);
 void *avocado_alloca(__CPROVER_size_t alloca_size)
 {
 __CPROVER_HIDE:;
-  return __builtin_alloca(alloca_size);
+  return avocado___builtin_alloca(alloca_size);
 }
 
 /* FUNCTION: free */
@@ -415,7 +415,7 @@ long avocado_strtol(const char *nptr, char **endptr, int base)
       in_number=1;
       continue;
     }
-    else if(!in_number && !sign && isspace(ch))
+    else if(!in_number && !sign && avocado_isspace(ch))
       continue;
     else if(!in_number && !sign && (ch=='-' || ch=='+'))
     {
@@ -426,7 +426,7 @@ long avocado_strtol(const char *nptr, char **endptr, int base)
       sub='a'-10;
     else if(base>10 && ch>='A' && ch-'A'<base-10)
       sub='A'-10;
-    else if(isdigit(ch))
+    else if(avocado_isdigit(ch))
     {
       sub='0';
       base=base==0 ? 10 : base;
@@ -465,7 +465,7 @@ long strtol(const char *nptr, char **endptr, int base);
 int avocado_atoi(const char *nptr)
 {
   __CPROVER_HIDE:;
-  return (int)strtol(nptr, (char **)0, 10);
+  return (int)avocado_strtol(nptr, (char **)0, 10);
 }
 
 /* FUNCTION: atol */
@@ -478,7 +478,7 @@ long strtol(const char *nptr, char **endptr, int base);
 long avocado_atol(const char *nptr)
 {
   __CPROVER_HIDE:;
-  return strtol(nptr, (char **)0, 10);
+  return avocado_strtol(nptr, (char **)0, 10);
 }
 
 /* FUNCTION: getenv */
@@ -548,23 +548,23 @@ void *avocado_realloc(void *ptr, __CPROVER_size_t malloc_size)
 
   // if ptr is NULL, this behaves like malloc
   if(ptr==0)
-    return malloc(malloc_size);
+    return avocado_malloc(malloc_size);
 
   // if malloc-size is 0, allocate new minimum sized object
   // and free original
   if(malloc_size==0)
   {
-    free(ptr);
-    return malloc(0);
+    avocado_free(ptr);
+    return avocado_malloc(0);
   }
 
   // this shouldn't move if the new size isn't bigger
   void *res;
-  res=malloc(malloc_size);
+  res=avocado_malloc(malloc_size);
   if(res != (void *)0)
   {
     __CPROVER_array_copy(res, ptr);
-    free(ptr);
+    avocado_free(ptr);
   }
 
   return res;
@@ -580,7 +580,7 @@ void *avocado_valloc(__CPROVER_size_t malloc_size)
   // boundary, which we don't model.
 
   __CPROVER_HIDE:;
-  return malloc(malloc_size);
+  return avocado_malloc(malloc_size);
 }
 
 /* FUNCTION: posix_memalign */
@@ -614,7 +614,7 @@ __CPROVER_HIDE:;
   // As _mid_memalign simplifies for alignment <= MALLOC_ALIGNMENT
   // to a malloc call, it should be sound, if we do it too.
 
-  void *tmp = malloc(size);
+  void *tmp = avocado_malloc(size);
   if(tmp != (void *)0)
   {
     *ptr = tmp;

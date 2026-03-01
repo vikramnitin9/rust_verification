@@ -12,7 +12,7 @@ time_t __time64(time_t *);
 
 time_t avocado_time(time_t *tloc)
 {
-  return __time64(tloc);
+  return avocado___time64(tloc);
 }
 
 /* FUNCTION: __time64 */

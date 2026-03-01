@@ -591,13 +591,13 @@ char *avocado_strdup(const char *str)
 {
   __CPROVER_HIDE:;
   __CPROVER_size_t bufsz;
-  bufsz=(strlen(str)+1);
-  char *cpy = (char *)calloc(bufsz * sizeof(char), sizeof(char));
+  bufsz=(avocado_strlen(str)+1);
+  char *cpy = (char *)avocado_calloc(bufsz * sizeof(char), sizeof(char));
   if(cpy==((void *)0)) return 0;
   #ifdef __CPROVER_STRING_ABSTRACTION
   __CPROVER_assume(__CPROVER_buffer_size(cpy)==bufsz);
   #endif
-  strcpy(cpy, str);
+  avocado_strcpy(cpy, str);
   return cpy;
 }
 

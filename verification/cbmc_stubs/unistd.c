@@ -19,7 +19,7 @@ unsigned int sleep(unsigned int seconds);
 unsigned int avocado__sleep(unsigned int seconds)
 {
   __CPROVER_HIDE:;
-  return sleep(seconds);
+  return avocado_sleep(seconds);
 }
 
 /* FUNCTION: usleep */
@@ -54,7 +54,7 @@ int usleep(unsigned int);
 int avocado__usleep(unsigned int usec)
 {
 __CPROVER_HIDE:;
-  return usleep(usec);
+  return avocado_usleep(usec);
 }
 
 /* FUNCTION: unlink */
@@ -126,7 +126,7 @@ int avocado__pipe(int *pfds, unsigned int psize, int textmode)
 __CPROVER_HIDE:;
   (void)psize;
   (void)textmode;
-  return pipe(pfds);
+  return avocado_pipe(pfds);
 }
 #endif
 
@@ -166,7 +166,7 @@ int close(int fildes);
 int avocado__close(int fildes)
 {
   __CPROVER_HIDE:;
-  return close(fildes);
+  return avocado_close(fildes);
 }
 
 /* FUNCTION: write */
@@ -244,7 +244,7 @@ ret_type write(int fildes, const void *buf, size_type nbyte);
 ret_type avocado__write(int fildes, const void *buf, size_type nbyte)
 {
   __CPROVER_HIDE:;
-  return write(fildes, buf, nbyte);
+  return avocado_write(fildes, buf, nbyte);
 }
 
 /* FUNCTION: read */
@@ -352,7 +352,7 @@ ret_type read(int fildes, void *buf, size_type nbyte);
 ret_type avocado__read(int fildes, void *buf, size_type nbyte)
 {
   __CPROVER_HIDE:;
-  return read(fildes, buf, nbyte);
+  return avocado_read(fildes, buf, nbyte);
 }
 
 /* FUNCTION: sysconf */

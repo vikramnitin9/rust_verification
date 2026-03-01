@@ -24,19 +24,11 @@ class RenameMetadata:
 
     Attributes:
         avocado_name (str): The ANSI-C function's name as an Avocado stub.
-        original_file (Path): The path to the original file in which the function is defined.
+        original_file_path (Path): The path to the original file in which the function is defined.
     """
 
     avocado_name: str
-    original_file: Path
-
-    def get_ansi_c_header(self) -> str:
-        """Return the name of the ANSI-C header where the function is declared.
-
-        Returns:
-            str: The name of the ANSI-C header where the function is declared.
-        """
-        return self.original_file.name.replace(".c", ".h")
+    original_file_path: Path
 
 
 def main() -> None:
@@ -58,27 +50,17 @@ def main() -> None:
     )
     args = parser.parse_args()
     c_src_dir = args.c_sources
-    files = _get_c_files(c_src_dir)
-    for c_src in files:
-        _rename_function_declarations_and_definitions(c_src)
-        # TODO: We also need to rename any calls to stdlib functions within the C files.
+    c_src_files = list(Path(c_src_dir).glob("*.c"))
 
+    # First pass: rename all function declarations and definitions, collecting metadata
+    all_renamed_functions = {}
+    for c_src in c_src_files:
+        original_function_rename_metadata = _rename_function_declarations_and_definitions(c_src)
+        all_renamed_functions.update(original_function_rename_metadata)
 
-def _get_c_files(folder: str) -> list[Path]:
-    """Return the path to the C files (i.e., files ending in '.c') at the given folder.
-
-    Args:
-        folder (str): The folder at which to look for C files.
-
-    Returns:
-        list[Path]: The path to the C files at the given folder.
-    """
-    c_files = []
-    for entry in Path.iterdir(Path(folder)):
-        path = Path(folder) / entry
-        if path.name.endswith(".c"):
-            c_files.append(path)
-    return c_files
+    # Second pass: rename all function calls in all files
+    for c_src in c_src_files:
+        _rename_function_calls_in_file(c_src, all_renamed_functions)
 
 
 def _rename_function_declarations_and_definitions(
@@ -104,6 +86,50 @@ def _rename_function_declarations_and_definitions(
         original_name: RenameMetadata(avocado_name, original_c_src)
         for original_name, avocado_name in original_names_to_avocado_names.items()
     }
+
+
+def _rename_function_calls_in_file(
+    file_path: Path, original_name_to_rename_metadata: dict[str, RenameMetadata]
+) -> None:
+    """Rename function calls in the given source file to use Avocado-prefixed names.
+
+    Args:
+        file_path: The C source file to process.
+        original_name_to_rename_metadata: Map from original function names to their rename metadata.
+    """
+    src_content = file_path.read_bytes()
+    parsed_src = C_PARSER.parse(src_content)
+
+    # Collect all call_expression identifiers that need renaming
+    call_identifiers_to_rename = []
+
+    def traverse(node: Node) -> None:
+        if node.type == "call_expression":
+            function_node = node.child_by_field_name("function")
+            if function_node and function_node.type == "identifier" and function_node.text:
+                original_name = function_node.text.decode()
+                if original_name in original_name_to_rename_metadata:
+                    call_identifiers_to_rename.append(function_node)
+        for child in node.children:
+            traverse(child)
+
+    traverse(parsed_src.root_node)
+
+    if not call_identifiers_to_rename:
+        return
+
+    # Apply renaming in descending byte order
+    renamed_src = bytearray(src_content)
+    for call_node in sorted(call_identifiers_to_rename, key=lambda n: n.start_byte, reverse=True):
+        start = call_node.start_byte
+        end = call_node.end_byte
+        original_name = call_node.text.decode()
+        avocado_name = original_name_to_rename_metadata[original_name].avocado_name
+
+        logger.debug(f"Renaming call to {original_name} -> {avocado_name} in {file_path}")
+        renamed_src[start:end] = avocado_name.encode()
+
+    file_path.write_bytes(bytes(renamed_src))
 
 
 def _collect_function_identifiers(tree: Tree) -> list[Node]:
