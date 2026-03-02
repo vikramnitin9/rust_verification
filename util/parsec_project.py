@@ -159,7 +159,9 @@ class ParsecProject:
             if callee_analysis := self.get_function_or_none(callee_name):
                 callees.append(callee_analysis)
             else:
-                logger.warning(f"LLVM Analysis for callee function {callee_name} not found")
+                logger.warning(
+                    f"Callee function {callee_name} was missing from the ParseC analysis"
+                )
         return callees
 
     def get_functions_in_topological_order(self, *, reverse_order: bool = False) -> list[CFunction]:
@@ -213,20 +215,19 @@ class ParsecProject:
                 ParseC fails to produce an analysis.json file.
         """
         if path.is_file():
-            cmd = ["parsec", "--rename-main=false", "--add-instr=false", str(path)]
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            path_to_result = Path.cwd() / Path("analysis.json")
+            file_list = [str(path)]
         elif path.is_dir():
             file_list = [str(file.resolve()) for file in path.glob("**/*.c")]
             if not file_list:
                 msg = f"No .c files found in directory {path}"
                 raise FileNotFoundError(msg)
-            cmd = ["parsec", "--rename-main=false", "--add-instr=false", *file_list]
-            result = subprocess.run(cmd, capture_output=True, text=True, cwd=path)
-            path_to_result = path / "analysis.json"
         else:
             msg = f"Path does not exist or is not a file or directory: {path}"
             raise FileNotFoundError(msg)
+
+        cmd = ["parsec", "--rename-main=false", "--add-instr=false", str(path)]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        path_to_result = Path.cwd() / Path("analysis.json")
 
         if result.returncode != 0:
             msg = f"Error while running parsec: {result.stderr}"
