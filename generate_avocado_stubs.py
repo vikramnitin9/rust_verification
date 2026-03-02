@@ -172,7 +172,7 @@ def _should_prepend_avocado_prefix(node: Node) -> bool:
         node.type == "identifier"
         and node.text is not None
         and not re.match(DO_NOT_RENAME_PATTERN, node.text.decode())
-        and node.text != "if"  # No idea why this is getting parsed.
+        and node.text.decode() != "if"  # No idea why this is getting parsed.
     )
 
 
