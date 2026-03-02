@@ -47,13 +47,13 @@ void avocado___sync_synchronize(void)
 
 /* FUNCTION: __atomic_test_and_set */
 
-void __atomic_thread_fence(int memorder);
+void avocado___atomic_thread_fence(int memorder);
 
 _Bool avocado___atomic_test_and_set(void *ptr, int memorder)
 {
 __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  _Bool result = *(char *)ptr == 1;
+  _Bool avocado_result = *(char *)ptr == 1;
   *(char *)ptr = 1;
   avocado___atomic_thread_fence(memorder);
   __CPROVER_atomic_end();
@@ -62,7 +62,7 @@ __CPROVER_HIDE:;
 
 /* FUNCTION: __atomic_clear */
 
-void __atomic_thread_fence(int memorder);
+void avocado___atomic_thread_fence(int memorder);
 
 void avocado___atomic_clear(_Bool *ptr, int memorder)
 {
@@ -127,7 +127,7 @@ __CPROVER_HIDE:;
 
 /* FUNCTION: __atomic_signal_fence */
 
-void __atomic_thread_fence(int memorder);
+void avocado___atomic_thread_fence(int memorder);
 
 void avocado___atomic_signal_fence(int memorder)
 {

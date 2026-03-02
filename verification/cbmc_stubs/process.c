@@ -10,7 +10,7 @@ __CPROVER_size_t avocado__beginthread(
   __CPROVER_HIDE:;
   __CPROVER_ASYNC_1: start_address(arglist);
   (void)stack_size;
-  __CPROVER_size_t handle=__VERIFIER_nondet___CPROVER_size_t();
+  __CPROVER_size_t avocado_handle=__VERIFIER_nondet___CPROVER_size_t();
   return handle;
 }
 
@@ -33,6 +33,6 @@ __CPROVER_size_t avocado__beginthreadex(
   (void)stack_size;
   (void)initflag;
   (void)*thrdaddr;
-  __CPROVER_size_t handle=__VERIFIER_nondet___CPROVER_size_t();
+  __CPROVER_size_t avocado_handle=__VERIFIER_nondet___CPROVER_size_t();
   return handle;
 }

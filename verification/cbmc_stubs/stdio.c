@@ -21,7 +21,7 @@ __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 int avocado_putchar(int c)
 {
   __CPROVER_HIDE:;
-  __CPROVER_bool error=__VERIFIER_nondet___CPROVER_bool();
+  __CPROVER_bool avocado_error=__VERIFIER_nondet___CPROVER_bool();
   __CPROVER_printf("%c", c);
   return (error?-1:c);
 }
@@ -39,8 +39,8 @@ int __VERIFIER_nondet_int(void);
 int avocado_puts(const char *s)
 {
   __CPROVER_HIDE:;
-  __CPROVER_bool error=__VERIFIER_nondet___CPROVER_bool();
-  int ret=__VERIFIER_nondet_int();
+  __CPROVER_bool avocado_error=__VERIFIER_nondet___CPROVER_bool();
+  int avocado_ret=__VERIFIER_nondet_int();
   __CPROVER_printf("%s\n", s);
   if(error) ret=-1; else __CPROVER_assume(ret>=0);
   return ret;
@@ -70,9 +70,9 @@ __CPROVER_HIDE:;
 #define __CPROVER_STDLIB_H_INCLUDED
 #endif
 
-void fclose_cleanup(void *stream);
+void avocado_fclose_cleanup(void *stream);
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
-FILE *fopen64(const char *filename, const char *mode);
+FILE *avocado_fopen64(const char *filename, const char *mode);
 
 FILE *avocado_fopen(const char *filename, const char *mode)
 {
@@ -97,7 +97,7 @@ __CPROVER_HIDE:;
 #  define __CPROVER_STDLIB_H_INCLUDED
 #endif
 
-void fclose_cleanup(void *stream);
+void avocado_fclose_cleanup(void *stream);
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 
 #ifdef __APPLE__
@@ -114,9 +114,9 @@ __CPROVER_HIDE:;
     __CPROVER_is_zero_string(mode), "fopen zero-termination of 2nd argument");
 #  endif
 
-  FILE *fopen_result;
+  FILE *avocado_fopen_result;
 
-  __CPROVER_bool fopen_error = __VERIFIER_nondet___CPROVER_bool();
+  __CPROVER_bool avocado_fopen_error = __VERIFIER_nondet___CPROVER_bool();
 
   fopen_result = fopen_error ? NULL : avocado_malloc(sizeof(FILE));
 
@@ -141,7 +141,7 @@ __CPROVER_HIDE:;
 #  define __CPROVER_STDLIB_H_INCLUDED
 #endif
 
-void fclose_cleanup(void *stream);
+void avocado_fclose_cleanup(void *stream);
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 
 FILE *avocado_fopen64(const char *filename, const char *mode)
@@ -157,9 +157,9 @@ __CPROVER_HIDE:;
     __CPROVER_is_zero_string(mode), "fopen zero-termination of 2nd argument");
 #endif
 
-  FILE *fopen_result;
+  FILE *avocado_fopen_result;
 
-  __CPROVER_bool fopen_error = __VERIFIER_nondet___CPROVER_bool();
+  __CPROVER_bool avocado_fopen_error = __VERIFIER_nondet___CPROVER_bool();
 
 #if !defined(__linux__) || defined(__GLIBC__)
   fopen_result = fopen_error ? NULL : avocado_malloc(sizeof(FILE));
@@ -184,7 +184,7 @@ __CPROVER_HIDE:;
 #define __CPROVER_STDIO_H_INCLUDED
 #endif
 
-FILE *freopen64(const char *filename, const char *mode, FILE *f);
+FILE *avocado_freopen64(const char *filename, const char *mode, FILE *f);
 
 FILE *avocado_freopen(const char *filename, const char *mode, FILE *f)
 {
@@ -236,7 +236,7 @@ __CPROVER_HIDE:;
   __CPROVER_clear_must(stream, "open");
   __CPROVER_set_must(stream, "closed");
 #endif
-  int return_value=__VERIFIER_nondet_int();
+  int avocado_return_value=__VERIFIER_nondet_int();
   avocado_free(stream);
   return return_value;
 }
@@ -264,11 +264,11 @@ FILE *avocado_fdopen(int handle, const char *mode)
 #endif
 
 #if !defined(__linux__) || defined(__GLIBC__)
-  FILE *f=avocado_malloc(sizeof(FILE));
+  FILE *avocado_f=avocado_malloc(sizeof(FILE));
 #else
   // libraries need to expose the definition of FILE; this is the
   // case for musl
-  FILE *f=avocado_malloc(sizeof(int));
+  FILE *avocado_f=avocado_malloc(sizeof(int));
 #endif
 
   return f;
@@ -302,7 +302,7 @@ FILE *avocado__fdopen(int handle, const char *mode)
     "fdopen zero-termination of 2nd argument");
 #endif
 
-  FILE *f=avocado_malloc(sizeof(FILE));
+  FILE *avocado_f=avocado_malloc(sizeof(FILE));
 
   return f;
 }
@@ -321,7 +321,7 @@ int __VERIFIER_nondet_int(void);
 char *avocado_fgets(char *str, int size, FILE *stream)
 {
 __CPROVER_HIDE:;
-  __CPROVER_bool error=__VERIFIER_nondet___CPROVER_bool();
+  __CPROVER_bool avocado_error=__VERIFIER_nondet___CPROVER_bool();
 
   (void)size;
   if(stream != stdin)
@@ -339,7 +339,7 @@ __CPROVER_HIDE:;
 #endif
 
 #ifdef __CPROVER_STRING_ABSTRACTION
-  int resulting_size;
+  int avocado_resulting_size;
   __CPROVER_assert(__CPROVER_buffer_size(str)>=size, "buffer-overflow in fgets");
   if(size>0)
   {
@@ -350,10 +350,10 @@ __CPROVER_HIDE:;
 #else
   if(size>0)
   {
-    int str_length=__VERIFIER_nondet_int();
+    int avocado_str_length=__VERIFIER_nondet_int();
     __CPROVER_assume(str_length >= 0 && str_length < size);
     __CPROVER_precondition(__CPROVER_w_ok(str, size), "fgets buffer writable");
-    char contents_nondet[str_length];
+    char avocado_contents_nondet[str_length];
     __CPROVER_array_replace(str, contents_nondet);
     if(!error)
       str[str_length]='\0';
@@ -377,7 +377,7 @@ char *avocado___fgets_chk(char *str, __CPROVER_size_t bufsize, int size, FILE *s
 {
 __CPROVER_HIDE:;
   (void)bufsize;
-  __CPROVER_bool error = __VERIFIER_nondet___CPROVER_bool();
+  __CPROVER_bool avocado_error = __VERIFIER_nondet___CPROVER_bool();
 
   (void)size;
   if(stream != stdin)
@@ -395,7 +395,7 @@ __CPROVER_HIDE:;
 #endif
 
 #ifdef __CPROVER_STRING_ABSTRACTION
-  int resulting_size;
+  int avocado_resulting_size;
   __CPROVER_assert(
     __CPROVER_buffer_size(str) >= size, "buffer-overflow in fgets");
   if(size > 0)
@@ -407,10 +407,10 @@ __CPROVER_HIDE:;
 #else
   if(size > 0)
   {
-    int str_length = __VERIFIER_nondet_int();
+    int avocado_str_length = __VERIFIER_nondet_int();
     __CPROVER_assume(str_length >= 0 && str_length < size);
     __CPROVER_precondition(__CPROVER_w_ok(str, size), "fgets buffer writable");
-    char contents_nondet[str_length];
+    char avocado_contents_nondet[str_length];
     __CPROVER_array_replace(str, contents_nondet);
     if(!error)
       str[str_length] = '\0';
@@ -433,8 +433,8 @@ size_t __VERIFIER_nondet_size_t(void);
 size_t avocado_fread(void *ptr, size_t size, size_t nitems, FILE *stream)
 {
 __CPROVER_HIDE:;
-  size_t bytes_read = __VERIFIER_nondet_size_t();
-  size_t upper_bound = nitems * size;
+  size_t avocado_bytes_read = __VERIFIER_nondet_size_t();
+  size_t avocado_upper_bound = nitems * size;
   __CPROVER_assume(bytes_read <= upper_bound);
 
   if(stream != stdin)
@@ -451,7 +451,7 @@ __CPROVER_HIDE:;
                    "fread file must be open");
 #endif
 
-  for(size_t i = 0; i < bytes_read && i < upper_bound; i++)
+  for(size_t avocado_i = 0; i < bytes_read && i < upper_bound; i++)
   {
     ((char *)ptr)[i] = __VERIFIER_nondet_char();
   }
@@ -473,8 +473,8 @@ size_t
 avocado___fread_chk(void *ptr, size_t ptrlen, size_t size, size_t nitems, FILE *stream)
 {
 __CPROVER_HIDE:;
-  size_t bytes_read = __VERIFIER_nondet_size_t();
-  size_t upper_bound = nitems * size;
+  size_t avocado_bytes_read = __VERIFIER_nondet_size_t();
+  size_t avocado_upper_bound = nitems * size;
   __CPROVER_assume(bytes_read <= upper_bound);
 
   if(stream != stdin)
@@ -491,7 +491,7 @@ __CPROVER_HIDE:;
     __CPROVER_get_must(stream, "open"), "fread file must be open");
 #endif
 
-  for(size_t i = 0; i < bytes_read && i < upper_bound && i < ptrlen; i++)
+  for(size_t avocado_i = 0; i < bytes_read && i < upper_bound && i < ptrlen; i++)
   {
     ((char *)ptr)[i] = __VERIFIER_nondet_char();
   }
@@ -512,7 +512,7 @@ int avocado_feof(FILE *stream)
 {
   // just return nondet
   __CPROVER_HIDE:;
-  int return_value=__VERIFIER_nondet_int();
+  int avocado_return_value=__VERIFIER_nondet_int();
 
   if(stream != stdin)
   {
@@ -544,7 +544,7 @@ int avocado_ferror(FILE *stream)
 {
   // just return nondet
   __CPROVER_HIDE:;
-  int return_value=__VERIFIER_nondet_int();
+  int avocado_return_value=__VERIFIER_nondet_int();
 
   if(stream != stdin)
   {
@@ -582,7 +582,7 @@ __CPROVER_HIDE:;
   else if(stream == stderr)
     return 2;
 
-  int return_value=__VERIFIER_nondet_int();
+  int avocado_return_value=__VERIFIER_nondet_int();
   __CPROVER_assume(return_value >= -1);
 
 #if !defined(__linux__) || defined(__GLIBC__)
@@ -612,7 +612,7 @@ int avocado_fputs(const char *s, FILE *stream)
 {
   // just return nondet
   __CPROVER_HIDE:;
-  int return_value=__VERIFIER_nondet_int();
+  int avocado_return_value=__VERIFIER_nondet_int();
 #ifdef __CPROVER_STRING_ABSTRACTION
   __CPROVER_assert(__CPROVER_is_zero_string(s), "fputs zero-termination of 1st argument");
 #endif
@@ -648,7 +648,7 @@ int avocado_fflush(FILE *stream)
 {
   // just return nondet
   __CPROVER_HIDE:;
-  int return_value=__VERIFIER_nondet_int();
+  int avocado_return_value=__VERIFIER_nondet_int();
   (void)stream;
 
 #ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS
@@ -673,7 +673,7 @@ int avocado_fpurge(FILE *stream)
 {
   // just return nondet
   __CPROVER_HIDE:;
-  int return_value=__VERIFIER_nondet_int();
+  int avocado_return_value=__VERIFIER_nondet_int();
 
   if(stream != stdin && stream != stdout && stream != stderr)
   {
@@ -704,7 +704,7 @@ int __VERIFIER_nondet_int(void);
 int avocado_fgetc(FILE *stream)
 {
   __CPROVER_HIDE:;
-  int return_value=__VERIFIER_nondet_int();
+  int avocado_return_value=__VERIFIER_nondet_int();
 
   if(stream != stdin)
   {
@@ -740,7 +740,7 @@ int __VERIFIER_nondet_int(void);
 int avocado_getc(FILE *stream)
 {
   __CPROVER_HIDE:;
-  int return_value=__VERIFIER_nondet_int();
+  int avocado_return_value=__VERIFIER_nondet_int();
 
   if(stream != stdin)
   {
@@ -776,7 +776,7 @@ int __VERIFIER_nondet_int(void);
 int avocado_getchar(void)
 {
   __CPROVER_HIDE:;
-  int return_value=__VERIFIER_nondet_int();
+  int avocado_return_value=__VERIFIER_nondet_int();
   // it's a byte or EOF
   __CPROVER_assume(return_value>=-1 && return_value<=255);
   __CPROVER_input("getchar", return_value);
@@ -795,7 +795,7 @@ int __VERIFIER_nondet_int(void);
 int avocado_getw(FILE *stream)
 {
   __CPROVER_HIDE:;
-  int return_value=__VERIFIER_nondet_int();
+  int avocado_return_value=__VERIFIER_nondet_int();
 
   if(stream != stdin)
   {
@@ -829,7 +829,7 @@ int __VERIFIER_nondet_int(void);
 int avocado_fseek(FILE *stream, long offset, int whence)
 {
   __CPROVER_HIDE:;
-  int return_value=__VERIFIER_nondet_int();
+  int avocado_return_value=__VERIFIER_nondet_int();
 
 #if !defined(__linux__) || defined(__GLIBC__)
   (void)*stream;
@@ -859,7 +859,7 @@ long __VERIFIER_nondet_long(void);
 long avocado_ftell(FILE *stream)
 {
   __CPROVER_HIDE:;
-  long return_value=__VERIFIER_nondet_long();
+  long avocado_return_value=__VERIFIER_nondet_long();
 
 #if !defined(__linux__) || defined(__GLIBC__)
   (void)*stream;
@@ -931,7 +931,7 @@ size_t avocado_fwrite(
                    "fwrite file must be open");
 #endif
 
-  size_t nwrite=__VERIFIER_nondet_size_t();
+  size_t avocado_nwrite=__VERIFIER_nondet_size_t();
   __CPROVER_assume(nwrite<=nitems);
   return nwrite;
 }
@@ -976,9 +976,9 @@ void avocado_perror(const char *s)
 int avocado_fscanf(FILE *restrict stream, const char *restrict format, ...)
 {
 __CPROVER_HIDE:;
-  va_list list;
+  va_list avocado_list;
   va_start(list, format);
-  int result=avocado_vfscanf(stream, format, list);
+  int avocado_result=avocado_vfscanf(stream, format, list);
   va_end(list);
   return result;
 }
@@ -1000,9 +1000,9 @@ __CPROVER_HIDE:;
 int avocado___isoc99_fscanf(FILE *restrict stream, const char *restrict format, ...)
 {
 __CPROVER_HIDE:;
-  va_list list;
+  va_list avocado_list;
   va_start(list, format);
-  int result = avocado_vfscanf(stream, format, list);
+  int avocado_result = avocado_vfscanf(stream, format, list);
   va_end(list);
   return result;
 }
@@ -1024,9 +1024,9 @@ __CPROVER_HIDE:;
 int avocado_scanf(const char *restrict format, ...)
 {
 __CPROVER_HIDE:;
-  va_list list;
+  va_list avocado_list;
   va_start(list, format);
-  int result=avocado_vfscanf(stdin, format, list);
+  int avocado_result=avocado_vfscanf(stdin, format, list);
   va_end(list);
   return result;
 }
@@ -1048,9 +1048,9 @@ __CPROVER_HIDE:;
 int avocado___isoc99_scanf(const char *restrict format, ...)
 {
 __CPROVER_HIDE:;
-  va_list list;
+  va_list avocado_list;
   va_start(list, format);
-  int result = avocado_vfscanf(stdin, format, list);
+  int avocado_result = avocado_vfscanf(stdin, format, list);
   va_end(list);
   return result;
 }
@@ -1072,9 +1072,9 @@ __CPROVER_HIDE:;
 int avocado_sscanf(const char *restrict s, const char *restrict format, ...)
 {
 __CPROVER_HIDE:;
-  va_list list;
+  va_list avocado_list;
   va_start(list, format);
-  int result=avocado_vsscanf(s, format, list);
+  int avocado_result=avocado_vsscanf(s, format, list);
   va_end(list);
   return result;
 }
@@ -1096,9 +1096,9 @@ __CPROVER_HIDE:;
 int avocado___isoc99_sscanf(const char *restrict s, const char *restrict format, ...)
 {
 __CPROVER_HIDE:;
-  va_list list;
+  va_list avocado_list;
   va_start(list, format);
-  int result = avocado_vsscanf(s, format, list);
+  int avocado_result = avocado_vsscanf(s, format, list);
   va_end(list);
   return result;
 }
@@ -1122,7 +1122,7 @@ int __VERIFIER_nondet_int(void);
 int avocado_vfscanf(FILE *restrict stream, const char *restrict format, va_list arg)
 {
   __CPROVER_HIDE:;
-  int result=__VERIFIER_nondet_int();
+  int avocado_result=__VERIFIER_nondet_int();
 
   if(stream != stdin)
   {
@@ -1138,14 +1138,14 @@ int avocado_vfscanf(FILE *restrict stream, const char *restrict format, va_list 
   while((__CPROVER_size_t)__CPROVER_POINTER_OFFSET(arg.__stack) <
         __CPROVER_OBJECT_SIZE(arg.__stack))
   {
-    void *a = va_arg(arg, void *);
+    void *avocado_a = va_arg(arg, void *);
     __CPROVER_havoc_object(a);
   }
 #  else
   while((__CPROVER_size_t)__CPROVER_POINTER_OFFSET(arg) <
         __CPROVER_OBJECT_SIZE(arg))
   {
-    void *a = va_arg(arg, void *);
+    void *avocado_a = va_arg(arg, void *);
     __CPROVER_havoc_object(a);
   }
 #  endif
@@ -1180,7 +1180,7 @@ int avocado___isoc99_vfscanf(
   va_list arg)
 {
 __CPROVER_HIDE:;
-  int result = __VERIFIER_nondet_int();
+  int avocado_result = __VERIFIER_nondet_int();
 
   if(stream != stdin)
   {
@@ -1196,14 +1196,14 @@ __CPROVER_HIDE:;
   while((__CPROVER_size_t)__CPROVER_POINTER_OFFSET(arg.__stack) <
         __CPROVER_OBJECT_SIZE(arg.__stack))
   {
-    void *a = va_arg(arg, void *);
+    void *avocado_a = va_arg(arg, void *);
     __CPROVER_havoc_object(a);
   }
 #else
   while((__CPROVER_size_t)__CPROVER_POINTER_OFFSET(arg) <
         __CPROVER_OBJECT_SIZE(arg))
   {
-    void *a = va_arg(arg, void *);
+    void *avocado_a = va_arg(arg, void *);
     __CPROVER_havoc_object(a);
   }
 #endif
@@ -1242,7 +1242,7 @@ int avocado___stdio_common_vfscanf(
   (void)options;
   (void)locale;
 
-  int result = __VERIFIER_nondet_int();
+  int avocado_result = __VERIFIER_nondet_int();
 
   if(stream != stdin)
   {
@@ -1254,14 +1254,14 @@ int avocado___stdio_common_vfscanf(
   while((__CPROVER_size_t)__CPROVER_POINTER_OFFSET(args.__stack) <
         __CPROVER_OBJECT_SIZE(args.__stack))
   {
-    void *a = va_arg(args, void *);
+    void *avocado_a = va_arg(args, void *);
     __CPROVER_havoc_object(a);
   }
 #  else
   while((__CPROVER_size_t)__CPROVER_POINTER_OFFSET(args) <
         __CPROVER_OBJECT_SIZE(args))
   {
-    void *a = va_arg(args, void *);
+    void *avocado_a = va_arg(args, void *);
     __CPROVER_havoc_object(a);
   }
 #  endif
@@ -1335,21 +1335,21 @@ int __VERIFIER_nondet_int(void);
 int avocado_vsscanf(const char *restrict s, const char *restrict format, va_list arg)
 {
 __CPROVER_HIDE:;
-  int result = __VERIFIER_nondet_int();
+  int avocado_result = __VERIFIER_nondet_int();
   (void)*s;
   (void)*format;
 #  if(defined(__aarch64__) || defined(_M_ARM64)) && !defined(__APPLE__)
   while((__CPROVER_size_t)__CPROVER_POINTER_OFFSET(arg.__stack) <
         __CPROVER_OBJECT_SIZE(arg.__stack))
   {
-    void *a = va_arg(arg, void *);
+    void *avocado_a = va_arg(arg, void *);
     __CPROVER_havoc_object(a);
   }
 #  else
   while((__CPROVER_size_t)__CPROVER_POINTER_OFFSET(arg) <
         __CPROVER_OBJECT_SIZE(arg))
   {
-    void *a = va_arg(arg, void *);
+    void *avocado_a = va_arg(arg, void *);
     __CPROVER_havoc_object(a);
   }
 #  endif
@@ -1379,21 +1379,21 @@ int avocado___isoc99_vsscanf(
   va_list arg)
 {
 __CPROVER_HIDE:;
-  int result = __VERIFIER_nondet_int();
+  int avocado_result = __VERIFIER_nondet_int();
   (void)*s;
   (void)*format;
 #if(defined(__aarch64__) || defined(_M_ARM64)) && !defined(__APPLE__)
   while((__CPROVER_size_t)__CPROVER_POINTER_OFFSET(arg.__stack) <
         __CPROVER_OBJECT_SIZE(arg.__stack))
   {
-    void *a = va_arg(arg, void *);
+    void *avocado_a = va_arg(arg, void *);
     __CPROVER_havoc_object(a);
   }
 #else
   while((__CPROVER_size_t)__CPROVER_POINTER_OFFSET(arg) <
         __CPROVER_OBJECT_SIZE(arg))
   {
-    void *a = va_arg(arg, void *);
+    void *avocado_a = va_arg(arg, void *);
     __CPROVER_havoc_object(a);
   }
 #endif
@@ -1428,7 +1428,7 @@ int avocado___stdio_common_vsscanf(
   (void)options;
   (void)locale;
 
-  int result = __VERIFIER_nondet_int();
+  int avocado_result = __VERIFIER_nondet_int();
 
   (void)*s;
   (void)*format;
@@ -1436,14 +1436,14 @@ int avocado___stdio_common_vsscanf(
   while((__CPROVER_size_t)__CPROVER_POINTER_OFFSET(args.__stack) <
         __CPROVER_OBJECT_SIZE(args.__stack))
   {
-    void *a = va_arg(args, void *);
+    void *avocado_a = va_arg(args, void *);
     __CPROVER_havoc_object(a);
   }
 #  else
   while((__CPROVER_size_t)__CPROVER_POINTER_OFFSET(args) <
         __CPROVER_OBJECT_SIZE(args))
   {
-    void *a = va_arg(args, void *);
+    void *avocado_a = va_arg(args, void *);
     __CPROVER_havoc_object(a);
   }
 #  endif
@@ -1470,8 +1470,8 @@ int __VERIFIER_nondet_int(void);
 int avocado_printf(const char *format, ...)
 {
 __CPROVER_HIDE:;
-  int result = __VERIFIER_nondet_int();
-  va_list list;
+  int avocado_result = __VERIFIER_nondet_int();
+  va_list avocado_list;
   va_start(list, format);
   __CPROVER_printf(format, list);
   va_end(list);
@@ -1496,8 +1496,8 @@ int avocado___printf_chk(int flag, const char *format, ...)
 {
 __CPROVER_HIDE:;
   (void)flag;
-  int result = __VERIFIER_nondet_int();
-  va_list list;
+  int avocado_result = __VERIFIER_nondet_int();
+  va_list avocado_list;
   va_start(list, format);
   __CPROVER_printf(format, list);
   va_end(list);
@@ -1519,9 +1519,9 @@ __CPROVER_HIDE:;
 int avocado_fprintf(FILE *stream, const char *restrict format, ...)
 {
   __CPROVER_HIDE:;
-  va_list list;
+  va_list avocado_list;
   va_start(list, format);
-  int result=avocado_vfprintf(stream, format, list);
+  int avocado_result=avocado_vfprintf(stream, format, list);
   va_end(list);
   return result;
 }
@@ -1542,9 +1542,9 @@ int avocado___fprintf_chk(FILE *stream, int flag, const char *restrict format, .
 {
 __CPROVER_HIDE:;
   (void)flag;
-  va_list list;
+  va_list avocado_list;
   va_start(list, format);
-  int result = avocado_vfprintf(stream, format, list);
+  int avocado_result = avocado_vfprintf(stream, format, list);
   va_end(list);
   return result;
 }
@@ -1567,7 +1567,7 @@ int avocado_vfprintf(FILE *stream, const char *restrict format, va_list arg)
 {
   __CPROVER_HIDE:;
 
-  int result=__VERIFIER_nondet_int();
+  int avocado_result=__VERIFIER_nondet_int();
 
   if(stream != stdout && stream != stderr)
   {
@@ -1612,7 +1612,7 @@ int avocado___vfprintf_chk(
 __CPROVER_HIDE:;
   (void)flag;
 
-  int result = __VERIFIER_nondet_int();
+  int avocado_result = __VERIFIER_nondet_int();
 
   if(stream != stdout && stream != stderr)
   {
@@ -1643,13 +1643,13 @@ __CPROVER_HIDE:;
 
 // declare here instead of relying on stdio.h as even those platforms that do
 // have it at all may require _GNU_SOURCE to be set
-int vasprintf(char **ptr, const char *fmt, va_list ap);
+int avocado_vasprintf(char **ptr, const char *fmt, va_list ap);
 
 int avocado_asprintf(char **ptr, const char *fmt, ...)
 {
-  va_list list;
+  va_list avocado_list;
   va_start(list, fmt);
-  int result = avocado_vasprintf(ptr, fmt, list);
+  int avocado_result = avocado_vasprintf(ptr, fmt, list);
   va_end(list);
   return result;
 }
@@ -1669,9 +1669,9 @@ int avocado_asprintf(char **ptr, const char *fmt, ...)
 int avocado_dprintf(int fd, const char *restrict format, ...)
 {
 __CPROVER_HIDE:;
-  va_list list;
+  va_list avocado_list;
   va_start(list, format);
-  int result = avocado_vdprintf(fd, format, list);
+  int avocado_result = avocado_vdprintf(fd, format, list);
   va_end(list);
   return result;
 }
@@ -1694,7 +1694,7 @@ int avocado_vdprintf(int fd, const char *restrict format, va_list arg)
 {
 __CPROVER_HIDE:;
 
-  int result = __VERIFIER_nondet_int();
+  int avocado_result = __VERIFIER_nondet_int();
 
   (void)fd;
   (void)*format;
@@ -1728,17 +1728,17 @@ int avocado_vasprintf(char **ptr, const char *fmt, va_list ap)
   (void)*fmt;
   (void)ap;
 
-  int result_buffer_size=__VERIFIER_nondet_int();
+  int avocado_result_buffer_size=__VERIFIER_nondet_int();
   if(result_buffer_size<=0)
     return -1;
 
   *ptr=avocado_malloc(result_buffer_size);
   if(!*ptr)
     return -1;
-  int i=0;
+  int avocado_i=0;
   for( ; i<result_buffer_size; ++i)
   {
-    char c=__VERIFIER_nondet_char();
+    char avocado_c=__VERIFIER_nondet_char();
     (*ptr)[i]=c;
     if(c=='\0')
       break;
@@ -1765,9 +1765,9 @@ int avocado_vasprintf(char **ptr, const char *fmt, va_list ap)
 
 int avocado_snprintf(char *str, size_t size, const char *fmt, ...)
 {
-  va_list list;
+  va_list avocado_list;
   va_start(list, fmt);
-  int result = avocado_vsnprintf(str, size, fmt, list);
+  int avocado_result = avocado_vsnprintf(str, size, fmt, list);
   va_end(list);
   return result;
 }
@@ -1784,7 +1784,7 @@ int avocado_snprintf(char *str, size_t size, const char *fmt, ...)
 #  define __CPROVER_STDARG_H_INCLUDED
 #endif
 
-int __builtin___vsnprintf_chk(
+int avocado___builtin___vsnprintf_chk(
   char *str,
   size_t size,
   int flag,
@@ -1800,9 +1800,9 @@ int avocado___builtin___snprintf_chk(
   const char *fmt,
   ...)
 {
-  va_list list;
+  va_list avocado_list;
   va_start(list, fmt);
-  int result = avocado___builtin___vsnprintf_chk(str, size, flag, bufsize, fmt, list);
+  int avocado_result = avocado___builtin___vsnprintf_chk(str, size, flag, bufsize, fmt, list);
   va_end(list);
   return result;
 }
@@ -1849,10 +1849,10 @@ int avocado_vsnprintf(char *str, size_t size, const char *fmt, va_list ap)
   }
 #endif
 
-  size_t i = 0;
+  size_t avocado_i = 0;
   for(; i < size; ++i)
   {
-    char c = __VERIFIER_nondet_char();
+    char avocado_c = __VERIFIER_nondet_char();
     str[i] = c;
     if(c == '\0')
       break;
@@ -1909,10 +1909,10 @@ int avocado___builtin___vsnprintf_chk(
   }
 #endif
 
-  size_t i = 0;
+  size_t avocado_i = 0;
   for(; i < size; ++i)
   {
-    char c = __VERIFIER_nondet_char();
+    char avocado_c = __VERIFIER_nondet_char();
     str[i] = c;
     if(c == '\0')
       break;
@@ -1932,9 +1932,9 @@ int avocado___builtin___vsnprintf_chk(
 
 FILE *avocado___acrt_iob_func(unsigned fd)
 {
-  static FILE stdin_file;
-  static FILE stdout_file;
-  static FILE stderr_file;
+  static FILE avocado_stdin_file;
+  static FILE avocado_stdout_file;
+  static FILE avocado_stderr_file;
 
   switch(fd)
   {
@@ -2011,10 +2011,10 @@ int avocado___stdio_common_vsprintf(
   (void)locale;
   (void)args;
 
-  size_t i = 0;
+  size_t avocado_i = 0;
   for(; i < size; ++i)
   {
-    char c = __VERIFIER_nondet_char();
+    char avocado_c = __VERIFIER_nondet_char();
     str[i] = c;
     if(c == '\0')
       break;

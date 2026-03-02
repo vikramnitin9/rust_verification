@@ -21,7 +21,7 @@ __CPROVER_HIDE:;
     return -1;
   }
 
-  int return_value=__VERIFIER_nondet_int();
+  int avocado_return_value=__VERIFIER_nondet_int();
   (void)fd;
   (void)cmd;
   return return_value;
@@ -75,7 +75,7 @@ int __VERIFIER_nondet_int(void);
 int __CPROVER_open(const char *pathname, int flags)
 {
 __CPROVER_HIDE:;
-  int return_value = __VERIFIER_nondet_int();
+  int avocado_return_value = __VERIFIER_nondet_int();
   __CPROVER_assume(return_value >= -1);
   (void)*pathname;
   (void)flags;
@@ -129,7 +129,7 @@ int __VERIFIER_nondet_int(void);
 int __CPROVER_creat(const char *pathname, MODE_T mode)
 {
 __CPROVER_HIDE:;
-  int return_value = __VERIFIER_nondet_int();
+  int avocado_return_value = __VERIFIER_nondet_int();
   __CPROVER_assume(return_value >= -1);
   (void)*pathname;
   (void)mode;
@@ -225,7 +225,7 @@ __CPROVER_HIDE:;
     return -1;
   }
 
-  int return_value = __VERIFIER_nondet_int();
+  int avocado_return_value = __VERIFIER_nondet_int();
   __CPROVER_assume(return_value >= -1);
   (void)dirfd;
   (void)*pathname;

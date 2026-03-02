@@ -17,11 +17,11 @@ struct hostent *avocado_gethostbyname(const char *name)
   #endif
   (void)*name;
 
-  __CPROVER_bool error=__VERIFIER_nondet___CPROVER_bool();
+  __CPROVER_bool avocado_error=__VERIFIER_nondet___CPROVER_bool();
   if(error) return 0;
 
   // quite restrictive, as will alias between calls
-  static struct hostent result;
+  static struct hostent avocado_result;
 
   // we whould be filling in the fields of this
   return &result;
@@ -44,11 +44,11 @@ struct hostent *avocado_gethostbyaddr(const void *addr, socklen_t len, int type)
   (void)len;
   (void)type;
 
-  __CPROVER_bool error=__VERIFIER_nondet___CPROVER_bool();
+  __CPROVER_bool avocado_error=__VERIFIER_nondet___CPROVER_bool();
   if(error) return 0;
 
   // quite restrictive, as will alias between calls
-  static struct hostent result;
+  static struct hostent avocado_result;
 
   // we whould be filling in the fields of this
   return &result;
@@ -65,11 +65,11 @@ struct hostent *avocado_gethostent(void)
 {
   __CPROVER_HIDE:;
 
-  __CPROVER_bool error=__VERIFIER_nondet___CPROVER_bool();
+  __CPROVER_bool avocado_error=__VERIFIER_nondet___CPROVER_bool();
   if(error) return 0;
 
   // quite restrictive, as will alias between calls
-  static struct hostent result;
+  static struct hostent avocado_result;
 
   // we whould be filling in the fields of this
   return &result;

@@ -21,7 +21,11 @@ C_LANGUAGE = Language(tsc.language())
 C_PARSER = Parser(C_LANGUAGE)
 AVOCADO_FUNCTION_PREFIX = "avocado_"
 CPROVER_PREFIX = "__CPROVER"
-DO_NOT_RENAME_PATTERN = rf"^({re.escape(AVOCADO_FUNCTION_PREFIX)}|{re.escape(CPROVER_PREFIX)})"
+VERIFIER_PREFIX = "__VERIFIER"
+DO_NOT_RENAME_PATTERN = (
+    rf"^({re.escape(AVOCADO_FUNCTION_PREFIX)}|"
+    rf"{re.escape(VERIFIER_PREFIX)}|{re.escape(CPROVER_PREFIX)})"
+)
 
 
 def main() -> None:
@@ -191,7 +195,7 @@ def _rename_functions_in_src(
         start = ident_node.start_byte
         end = ident_node.end_byte
         if not ident_node.text:
-            msg = "Identity node '' was missing a '.text' attribute"
+            msg = "Identifier node '' was missing a '.text' attribute"
             logger.error(msg)
             raise ValueError(msg)
         original_function_id = ident_node.text.decode()

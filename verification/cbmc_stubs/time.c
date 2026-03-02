@@ -8,7 +8,7 @@
 #undef time
 
 time_t __VERIFIER_nondet_time_t(void);
-time_t __time64(time_t *);
+time_t avocado___time64(time_t *);
 
 time_t avocado_time(time_t *tloc)
 {
@@ -26,7 +26,7 @@ time_t __VERIFIER_nondet_time_t(void);
 
 time_t avocado___time64(time_t *tloc)
 {
-  time_t res=__VERIFIER_nondet_time_t();
+  time_t avocado_res=__VERIFIER_nondet_time_t();
   if(tloc)
     *tloc = res;
   return res;
@@ -45,7 +45,7 @@ time_t __VERIFIER_nondet_time_t(void);
 
 time_t avocado__time64(time_t *tloc)
 {
-  time_t res = __VERIFIER_nondet_time_t();
+  time_t avocado_res = __VERIFIER_nondet_time_t();
   if(tloc)
     *tloc = res;
   return res;
@@ -66,7 +66,7 @@ __time32_t __VERIFIER_nondet_time32_t(void);
 
 __time32_t avocado__time32(__time32_t *tloc)
 {
-  __time32_t res = __VERIFIER_nondet_time32_t();
+  __time32_t avocado_res = __VERIFIER_nondet_time32_t();
   if(tloc)
     *tloc = res;
   return res;
@@ -90,11 +90,11 @@ struct tm *avocado_gmtime(const time_t *clock)
   (void)*clock;
   #ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS
   __CPROVER_event("invalidate_pointer", "gmtime_result");
-  struct tm *gmtime_result;
+  struct tm *avocado_gmtime_result;
   __CPROVER_set_must(gmtime_result, "gmtime_result");
   return gmtime_result;
   #else
-  static struct tm return_value;
+  static struct tm avocado_return_value;
   return &return_value;
   #endif
 }
@@ -131,11 +131,11 @@ struct tm *avocado_localtime(const time_t *clock)
   (void)*clock;
   #ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS
   __CPROVER_event("invalidate_pointer", "localtime_result");
-  struct tm *localtime_result;
+  struct tm *avocado_localtime_result;
   __CPROVER_set_must(localtime_result, "localtime_result");
   return localtime_result;
   #else
-  static struct tm return_value;
+  static struct tm avocado_return_value;
   return &return_value;
   #endif
 }
@@ -170,7 +170,7 @@ time_t __VERIFIER_nondet_time_t(void);
 time_t avocado_mktime(struct tm *timeptr)
 {
   (void)*timeptr;
-  time_t result=__VERIFIER_nondet_time_t();
+  time_t avocado_result=__VERIFIER_nondet_time_t();
   return result;
 }
 
@@ -188,7 +188,7 @@ time_t __VERIFIER_nondet_time_t(void);
 time_t avocado_timegm(struct tm *timeptr)
 {
   (void)*timeptr;
-  time_t result=__VERIFIER_nondet_time_t();
+  time_t avocado_result=__VERIFIER_nondet_time_t();
   return result;
 }
 
@@ -204,11 +204,11 @@ char *avocado_asctime(const struct tm *timeptr)
   (void)*timeptr;
   #ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS
   __CPROVER_event("invalidate_pointer", "asctime_result");
-  char *asctime_result;
+  char *avocado_asctime_result;
   __CPROVER_set_must(asctime_result, "asctime_result");
   return asctime_result;
   #else
-  static char asctime_result[1];
+  static char avocado_asctime_result[1];
   return asctime_result;
   #endif
 }
@@ -225,11 +225,11 @@ char *avocado_ctime(const time_t *clock)
   (void)*clock;
   #ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS
   __CPROVER_event("invalidate_pointer", "ctime_result");
-  char *ctime_result;
+  char *avocado_ctime_result;
   __CPROVER_set_must(ctime_result, "ctime_result");
   return ctime_result;
   #else
-  static char ctime_result[1];
+  static char avocado_ctime_result[1];
   return ctime_result;
   #endif
 }
@@ -249,7 +249,7 @@ avocado_strftime(char *s, __CPROVER_size_t max, const char *format, const struct
   (void)*format;
   (void)*tm;
   __CPROVER_havoc_slice(s, max);
-  __CPROVER_size_t length = __VERIFIER_nondet_size_t();
+  __CPROVER_size_t avocado_length = __VERIFIER_nondet_size_t();
   if(length >= max)
     return 0;
   s[length] = '\0';
@@ -274,7 +274,7 @@ __CPROVER_size_t avocado__strftime(
   (void)*format;
   (void)*tm;
   __CPROVER_havoc_slice(s, max);
-  __CPROVER_size_t length = __VERIFIER_nondet_size_t();
+  __CPROVER_size_t avocado_length = __VERIFIER_nondet_size_t();
   if(length >= max)
     return 0;
   s[length] = '\0';
@@ -320,18 +320,18 @@ __CPROVER_HIDE:;
 #pragma GCC diagnostic pop
 
   // Non-deterministically choose success or failure
-  int result = __VERIFIER_nondet_int();
+  int avocado_result = __VERIFIER_nondet_int();
 
   if(result == 0)
   {
     // Success case: fill in the timespec structure with non-deterministic but valid values
-    time_t sec = __VERIFIER_nondet_time_t();
+    time_t avocado_sec = __VERIFIER_nondet_time_t();
     // Assume reasonable time values (non-negative for typical use cases)
     __CPROVER_assume(sec >= 0);
     tp->tv_sec = sec;
 
     // Nanoseconds should be between 0 and 999,999,999
-    long nanosec = __VERIFIER_nondet_long();
+    long avocado_nanosec = __VERIFIER_nondet_long();
     __CPROVER_assume(nanosec >= 0 && nanosec <= 999999999L);
     tp->tv_nsec = nanosec;
 
@@ -340,7 +340,7 @@ __CPROVER_HIDE:;
   else
   {
     // Failure case: set errno and return -1
-    int error_code = __VERIFIER_nondet_int();
+    int avocado_error_code = __VERIFIER_nondet_int();
     // Most common error codes for clock_gettime
     __CPROVER_assume(
       error_code == EINVAL || error_code == EACCES || error_code == ENODEV ||

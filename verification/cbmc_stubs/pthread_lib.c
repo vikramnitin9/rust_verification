@@ -19,7 +19,7 @@ int avocado_pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type)
   (void)type;
   #endif
 
-  int result=__VERIFIER_nondet_int();
+  int avocado_result=__VERIFIER_nondet_int();
   return result;
 }
 
@@ -42,7 +42,7 @@ int avocado_pthread_cancel(pthread_t thread)
                    "pthread_cancel must be given valid thread ID");
   #endif
 
-  int result=__VERIFIER_nondet_int();
+  int avocado_result=__VERIFIER_nondet_int();
   return result;
 }
 
@@ -161,7 +161,7 @@ typedef signed char __CPROVER_mutex_t;
 int avocado_pthread_mutex_trylock(pthread_mutex_t *mutex)
 {
   __CPROVER_HIDE:;
-  int return_value;
+  int avocado_return_value;
   __CPROVER_atomic_begin();
 
   #ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS
@@ -298,7 +298,7 @@ __CPROVER_thread_local unsigned long __CPROVER_thread_id = 0;
   // use of shared variables.
 __CPROVER_thread_local const void
   *__CPROVER_thread_keys[__CPROVER_constant_infinity_uint];
-__CPROVER_thread_local void (
+__CPROVER_thread_local avocado_void (
   *__CPROVER_thread_key_dtors[__CPROVER_constant_infinity_uint])(void *);
 __CPROVER_thread_local unsigned long __CPROVER_next_thread_key = 0;
 #endif
@@ -310,9 +310,9 @@ void avocado_pthread_exit(void *value_ptr)
 #if 0
   // Destructor support is disabled as it is too expensive due to its extensive
   // use of shared variables.
-  for(unsigned long i = 0; i < __CPROVER_next_thread_key; ++i)
+  for(unsigned long avocado_i = 0; i < __CPROVER_next_thread_key; ++i)
   {
-    const void *key = __CPROVER_thread_keys[i];
+    const void *avocado_key = __CPROVER_thread_keys[i];
     __CPROVER_thread_keys[i] = 0;
     if(__CPROVER_thread_key_dtors[i] && key)
       __CPROVER_thread_key_dtors[i](key);
@@ -553,7 +553,7 @@ __CPROVER_thread_local unsigned long __CPROVER_thread_id = 0;
   // use of shared variables.
 __CPROVER_thread_local const void
   *__CPROVER_thread_keys[__CPROVER_constant_infinity_uint];
-__CPROVER_thread_local void (
+__CPROVER_thread_local avocado_void (
   *__CPROVER_thread_key_dtors[__CPROVER_constant_infinity_uint])(void *);
 #endif
 __CPROVER_thread_local unsigned long __CPROVER_next_thread_key = 0;
@@ -575,7 +575,7 @@ __CPROVER_HIDE:;
 #if 0
   // Destructor support is disabled as it is too expensive due to its extensive
   // use of shared variables.
-  for(unsigned long i = 0; i < __CPROVER_next_thread_key; ++i)
+  for(unsigned long avocado_i = 0; i < __CPROVER_next_thread_key; ++i)
     __CPROVER_thread_key_dtors[i] = thread_key_dtors[i];
 #endif
 #ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS
@@ -596,9 +596,9 @@ __CPROVER_HIDE:;
 #if 0
   // Destructor support is disabled as it is too expensive due to its extensive
   // use of shared variables.
-  for(unsigned long i = 0; i < __CPROVER_next_thread_key; ++i)
+  for(unsigned long avocado_i = 0; i < __CPROVER_next_thread_key; ++i)
   {
-    const void *key = __CPROVER_thread_keys[i];
+    const void *avocado_key = __CPROVER_thread_keys[i];
     __CPROVER_thread_keys[i] = 0;
     if(__CPROVER_thread_key_dtors[i] && key)
       __CPROVER_thread_key_dtors[i](key);
@@ -617,13 +617,13 @@ __CPROVER_HIDE:;
 #ifndef LIBRARY_CHECK
 unsigned long __CPROVER_next_thread_id;
 #  if 0
-__CPROVER_thread_local void (
+__CPROVER_thread_local avocado_void (
   *__CPROVER_thread_key_dtors[__CPROVER_constant_infinity_uint])(void *);
 #  endif
 __CPROVER_thread_local unsigned long __CPROVER_next_thread_key = 0;
 #endif
 
-void __spawned_thread(
+void avocado___spawned_thread(
   unsigned long this_thread_id,
 #if 0
   // Destructor support is disabled as it is too expensive due to its extensive
@@ -641,7 +641,7 @@ int avocado_pthread_create(
   void *arg)                      // may be null
 {
   __CPROVER_HIDE:;
-  unsigned long this_thread_id;
+  unsigned long avocado_this_thread_id;
   __CPROVER_atomic_begin();
   this_thread_id=++__CPROVER_next_thread_id;
   __CPROVER_atomic_end();
@@ -655,11 +655,11 @@ int avocado_pthread_create(
 
   if(attr) (void)*attr;
 
-  unsigned long next_thread_key = __CPROVER_next_thread_key;
+  unsigned long avocado_next_thread_key = __CPROVER_next_thread_key;
 #if 0
   // Destructor support is disabled as it is too expensive due to its extensive
   // use of shared variables.
-  void (**thread_key_dtors)(void *) = __CPROVER_thread_key_dtors;
+  void (**avocado_thread_key_dtors)(void *) = __CPROVER_thread_key_dtors;
 #endif
 
   __CPROVER_ASYNC_1:
@@ -815,7 +815,7 @@ int avocado_pthread_spin_unlock(pthread_spinlock_t *lock)
 int avocado_pthread_spin_trylock(pthread_spinlock_t *lock)
 {
   __CPROVER_HIDE:;
-  int result;
+  int avocado_result;
   __CPROVER_atomic_begin();
   if(*((unsigned *)lock))
     result=EBUSY;
@@ -859,7 +859,7 @@ int avocado_pthread_barrier_init(
   __CPROVER_clear_may(barrier, "barrier-destroyed");
   #endif
 
-  int result=__VERIFIER_nondet_int();
+  int avocado_result=__VERIFIER_nondet_int();
   return result;
 }
 #endif
@@ -881,7 +881,7 @@ __CPROVER_HIDE:;
   __CPROVER_clear_may(barrier, "barrier-destroyed");
 #endif
 
-  int result = __VERIFIER_nondet_int();
+  int avocado_result = __VERIFIER_nondet_int();
   return result;
 }
 #endif
@@ -911,7 +911,7 @@ int avocado_pthread_barrier_destroy(pthread_barrier_t *barrier)
   __CPROVER_set_may(barrier, "barrier-destroyed");
   #endif
 
-  int result=__VERIFIER_nondet_int();
+  int avocado_result=__VERIFIER_nondet_int();
   return result;
 }
 #endif
@@ -940,7 +940,7 @@ int avocado_pthread_barrier_wait(pthread_barrier_t *barrier)
                    "pthread barrier must not be destroyed");
   #endif
 
-  int result=__VERIFIER_nondet_int();
+  int avocado_result=__VERIFIER_nondet_int();
   return result;
 }
 #endif
@@ -956,7 +956,7 @@ __CPROVER_thread_local const void
   *__CPROVER_thread_keys[__CPROVER_constant_infinity_uint];
 #ifndef LIBRARY_CHECK
 #  if 0
-__CPROVER_thread_local void (
+__CPROVER_thread_local avocado_void (
   *__CPROVER_thread_key_dtors[__CPROVER_constant_infinity_uint])(void *);
 #  endif
 __CPROVER_thread_local unsigned long __CPROVER_next_thread_key = 0;

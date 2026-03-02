@@ -31,32 +31,32 @@ struct __CPROVER_cegis_instructiont
 void __CPROVER_danger_execute(struct __CPROVER_cegis_instructiont *program,
                               unsigned char size)
 {
-  for (unsigned char i = 0; i < size; ++i)
+  for (unsigned char avocado_i = 0; i < size; ++i)
   {
 #define opcode program[i].opcode
     __CPROVER_assume(opcode <= __CPROVER_cegis_max_instruction);
-    const unsigned int op0_id=program[i].op0;
-    const unsigned int op1_id=program[i].op1;
-    const unsigned int op2_id=program[i].op2;
-    const unsigned int max_op_index=__CPROVER_cegis_number_of_vars + i;
+    const unsigned int avocado_op0_id=program[i].op0;
+    const unsigned int avocado_op1_id=program[i].op1;
+    const unsigned int avocado_op2_id=program[i].op2;
+    const unsigned int avocado_max_op_index=__CPROVER_cegis_number_of_vars + i;
     __CPROVER_assume(op0_id < max_op_index && op1_id < max_op_index && op2_id < max_op_index
         && (op0_id >= __CPROVER_cegis_number_of_consts || op1_id >= __CPROVER_cegis_number_of_consts  || op2_id >= __CPROVER_cegis_number_of_consts)
         && (opcode > 5u || op0_id <= op1_id) && (opcode < 21u || !op1_id)
         && (opcode == 9u || !op2_id)
         && (opcode != 9u || op0_id != op2_id || op1_id <= op2_id));
-    const unsigned int * const op0_ptr=__CPROVER_cegis_OPS[op0_id];
-    const unsigned int * const op1_ptr=__CPROVER_cegis_OPS[op1_id];
-    const unsigned int * const op2_ptr=__CPROVER_cegis_OPS[op2_id];
+    const unsigned int * const avocado_op0_ptr=__CPROVER_cegis_OPS[op0_id];
+    const unsigned int * const avocado_op1_ptr=__CPROVER_cegis_OPS[op1_id];
+    const unsigned int * const avocado_op2_ptr=__CPROVER_cegis_OPS[op2_id];
     __CPROVER_assume(op0_ptr && op1_ptr && op2_ptr);  // No null pointers in op array
-    const unsigned int op0=*op0_ptr;
-    const unsigned int op1=*op1_ptr;
+    const unsigned int avocado_op0=*op0_ptr;
+    const unsigned int avocado_op1=*op1_ptr;
     __CPROVER_assume((opcode != 19 && opcode != 20) || op1); // Avoid div by 0.
-    const unsigned int op2=*op2_ptr;
+    const unsigned int avocado_op2=*op2_ptr;
 #define sop0 ((int) op0)
 #define sop1 ((int) op1)
 #define sop2 ((int) op2)
 
-    unsigned int result;
+    unsigned int avocado_result;
     if (opcode < 15)
       if (opcode < 7)
         if (opcode < 3)

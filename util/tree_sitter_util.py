@@ -15,7 +15,7 @@ def collect_function_identifiers(tree_root: Node) -> list[Node]:
     result = []
 
     def traverse(node: Node) -> None:
-        if node.type in {"function_definition", "function_declaration"}:
+        if node.type in {"function_definition", "function_declaration", "declaration"}:
             declarator = node.child_by_field_name("declarator")
             identifier = _find_identifier_in_declarator(declarator)
             if identifier is not None:

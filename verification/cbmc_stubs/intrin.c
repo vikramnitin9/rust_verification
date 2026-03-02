@@ -8,7 +8,7 @@ long avocado__InterlockedDecrement(long volatile *p)
   // This function generates a full memory barrier (or fence) to ensure that
   // memory operations are completed in order.
   __CPROVER_atomic_begin();
-  long result=--(*p);
+  long avocado_result=--(*p);
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
   __CPROVER_atomic_end();
   return result;
@@ -20,7 +20,7 @@ long avocado__InterlockedExchange(long volatile *p, long v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  long old=*p;
+  long avocado_old=*p;
   *p=v;
   __CPROVER_atomic_end();
   return old;
@@ -32,7 +32,7 @@ short avocado__InterlockedExchange16(short volatile *p, short v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  short old=*p;
+  short avocado_old=*p;
   *p=v;
   __CPROVER_atomic_end();
   return old;
@@ -44,7 +44,7 @@ char avocado__InterlockedExchange8(char volatile *p, char v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  char old=*p;
+  char avocado_old=*p;
   *p=v;
   __CPROVER_atomic_end();
   return old;
@@ -56,7 +56,7 @@ long avocado__InterlockedExchangeAdd(long volatile *p, long v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  long result=(*p)+=v;
+  long avocado_result=(*p)+=v;
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
   __CPROVER_atomic_end();
   return result;
@@ -68,7 +68,7 @@ short avocado__InterlockedExchangeAdd16(short volatile *p, short v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  short result=(*p)+=v;
+  short avocado_result=(*p)+=v;
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
   __CPROVER_atomic_end();
   return result;
@@ -80,7 +80,7 @@ char avocado__InterlockedExchangeAdd8(char volatile *p, char v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  char result=(*p)+=v;
+  char avocado_result=(*p)+=v;
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
   __CPROVER_atomic_end();
   return result;
@@ -92,7 +92,7 @@ long avocado__InterlockedCompareExchange(long volatile *p, long v1, long v2)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  long old=(*p);
+  long avocado_old=(*p);
   *p=(old==v2)?v1:old;
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
   __CPROVER_atomic_end();
@@ -106,7 +106,7 @@ avocado__InterlockedCompareExchange64(long long volatile *p, long long v1, long 
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  long long old=(*p);
+  long long avocado_old=(*p);
   *p=(old==v2)?v1:old;
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
   __CPROVER_atomic_end();
@@ -119,7 +119,7 @@ long avocado__InterlockedIncrement(long volatile *p)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  long result=++(*p);
+  long avocado_result=++(*p);
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
   __CPROVER_atomic_end();
   return result;
@@ -131,7 +131,7 @@ long avocado__InterlockedOr(long volatile *p, long v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  long result=(*p)|=v;
+  long avocado_result=(*p)|=v;
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
   __CPROVER_atomic_end();
   return result;
@@ -143,7 +143,7 @@ char avocado__InterlockedOr8(char volatile *p, char v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  char result=(*p)|=v;
+  char avocado_result=(*p)|=v;
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
   __CPROVER_atomic_end();
   return result;
@@ -155,7 +155,7 @@ short avocado__InterlockedOr16(short volatile *p, short v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  short result=(*p)|=v;
+  short avocado_result=(*p)|=v;
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
   __CPROVER_atomic_end();
   return result;
@@ -167,7 +167,7 @@ long avocado__InterlockedXor(long volatile *p, long v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  long result=(*p)^=v;
+  long avocado_result=(*p)^=v;
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
   __CPROVER_atomic_end();
   return result;
@@ -179,7 +179,7 @@ char avocado__InterlockedXor8(char volatile *p, char v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  char result=(*p)^=v;
+  char avocado_result=(*p)^=v;
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
   __CPROVER_atomic_end();
   return result;
@@ -191,7 +191,7 @@ short avocado__InterlockedXor16(short volatile *p, short v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  short result=(*p)^=v;
+  short avocado_result=(*p)^=v;
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
   __CPROVER_atomic_end();
   return result;
@@ -203,7 +203,7 @@ long avocado__InterlockedAnd(long volatile *p, long v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  long result=(*p)&=v;
+  long avocado_result=(*p)&=v;
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
   __CPROVER_atomic_end();
   return result;
@@ -215,7 +215,7 @@ char avocado__InterlockedAnd8(char volatile *p, char v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  char result=(*p)&=v;
+  char avocado_result=(*p)&=v;
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
   __CPROVER_atomic_end();
   return result;
@@ -227,7 +227,7 @@ short avocado__InterlockedAnd16(short volatile *p, short v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  short result=(*p)&=v;
+  short avocado_result=(*p)&=v;
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
   __CPROVER_atomic_end();
   return result;
@@ -239,7 +239,7 @@ long avocado__InterlockedAdd(long volatile *p, long v)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  long result=(*p)+=v;
+  long avocado_result=(*p)+=v;
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
   __CPROVER_atomic_end();
   return result;
@@ -300,7 +300,7 @@ short avocado__InterlockedIncrement16(short volatile *p)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  short result=++(*p);
+  short avocado_result=++(*p);
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
   __CPROVER_atomic_end();
   return result;
@@ -312,7 +312,7 @@ short avocado__InterlockedDecrement16(short volatile *p)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  short result=--(*p);
+  short avocado_result=--(*p);
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
   __CPROVER_atomic_end();
   return result;
@@ -324,7 +324,7 @@ short avocado__InterlockedCompareExchange16(short volatile *p, short v1, short v
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  short old=(*p);
+  short avocado_old=(*p);
   *p=(old==v2)?v1:old;
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
   __CPROVER_atomic_end();
@@ -337,7 +337,7 @@ char avocado__InterlockedCompareExchange8(char volatile *p, char v1, char v2)
 {
   __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  char old=(*p);
+  char avocado_old=(*p);
   *p=(old==v2)?v1:old;
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
   __CPROVER_atomic_end();

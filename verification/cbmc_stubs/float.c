@@ -54,7 +54,7 @@ __CPROVER_thread_local unsigned __CPROVER_fpu_control_word;
 
 void avocado__statusfp2(unsigned int *px86, unsigned int *pSSE2)
 {
-  unsigned SSE2_status;
+  unsigned avocado_SSE2_status;
   *px86=__CPROVER_fpu_control_word;
   *pSSE2=SSE2_status; // nondet
 }
@@ -86,7 +86,7 @@ int avocado___builtin_flt_rounds(void)
 
 /* FUNCTION: __flt_rounds */
 
-int __builtin_flt_rounds(void);
+int avocado___builtin_flt_rounds(void);
 
 int avocado___flt_rounds(void)
 {

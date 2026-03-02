@@ -25,10 +25,10 @@ ssize_t avocado_getrandom(void *buf, size_t buflen, unsigned int flags)
   if(flags & GRND_NONBLOCK && __VERIFIER_nondet___CPROVER_bool())
     return -1;
 
-  char bytes[buflen];
+  char avocado_bytes[buflen];
   __CPROVER_array_replace(buf, bytes);
 
-  size_t actual_bytes = __VERIFIER_nondet_size_t();
+  size_t avocado_actual_bytes = __VERIFIER_nondet_size_t();
   __CPROVER_assume(actual_bytes <= buflen);
   return (ssize_t)actual_bytes;
 }
