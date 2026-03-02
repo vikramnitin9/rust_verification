@@ -214,18 +214,20 @@ class ParsecProject:
             RuntimeError: If an error occurs while running ParseC, or if
                 ParseC fails to produce an analysis.json file.
         """
+        file_list = []
         if path.is_file():
             file_list = [str(path)]
         elif path.is_dir():
             file_list = [str(file.resolve()) for file in path.glob("**/*.c")]
-            if not file_list:
-                msg = f"No .c files found in directory {path}"
-                raise FileNotFoundError(msg)
         else:
             msg = f"Path does not exist or is not a file or directory: {path}"
             raise FileNotFoundError(msg)
 
-        cmd = ["parsec", "--rename-main=false", "--add-instr=false", str(path)]
+        if not file_list:
+            msg = f"No .c files found in: {path}"
+            raise FileNotFoundError(msg)
+
+        cmd = ["parsec", "--rename-main=false", "--add-instr=false", *file_list]
         result = subprocess.run(cmd, capture_output=True, text=True)
         path_to_result = Path.cwd() / Path("analysis.json")
 
