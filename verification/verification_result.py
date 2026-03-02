@@ -13,14 +13,14 @@ class VerificationResult:
 
     Attributes:
         verification_input (VerificationInput): The input that resulted in this verification result.
-        verification_command (str): The command used to invoke the verifier.
+        verification_commands (list[list[str]]): The commands used to invoke the verifier.
         succeeded (bool): True iff the input for this verification result successfully verified.
         failure_messages (str | None): Any failure messages for this verification result, if its
             input failed verification.
     """
 
     verification_input: VerificationInput
-    verification_command: str
+    verification_commands: list[list[str]]
     succeeded: bool
     stdout: str
     stderr: str
