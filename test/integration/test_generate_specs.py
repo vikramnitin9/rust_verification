@@ -50,7 +50,7 @@ def test_generate_specs_max_min() -> None:
         shutil.copytree(LLM_CACHE_DIR_FOR_INTEGRATION_TESTS, tmp_cache_dir, dirs_exist_ok=True)
 
         cmd = (
-            f"./main.py {path_to_max_min_source}"
+            f"./main.py --input-path {path_to_max_min_source}"
             f" --num-specification-candidates 5"
             f" --num-repair-candidates 2"
             f" --num-specification-repair-iterations 1"
