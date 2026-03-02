@@ -15,11 +15,18 @@ def collect_function_identifiers(tree_root: Node) -> list[Node]:
     result = []
 
     def traverse(node: Node) -> None:
-        if node.type in {"function_definition", "function_declaration", "declaration"}:
+        if node.type in {"function_definition", "function_declaration"}:
             declarator = node.child_by_field_name("declarator")
             identifier = _find_identifier_in_declarator(declarator)
             if identifier is not None:
                 result.append(identifier)
+        elif node.type == "declaration":
+            # Only include declarations that are function prototypes, not variable declarations
+            declarator = node.child_by_field_name("declarator")
+            if _is_function_declarator(declarator):
+                identifier = _find_identifier_in_declarator(declarator)
+                if identifier is not None:
+                    result.append(identifier)
         for child in node.children:
             traverse(child)
 
@@ -48,6 +55,27 @@ def collect_call_identifiers(tree_root: Node) -> list[Node]:
 
     traverse(tree_root)
     return result
+
+
+def _is_function_declarator(declarator: Node | None) -> bool:
+    """Check if a declarator is or contains a function_declarator.
+
+    Args:
+        declarator: The declarator node to check.
+
+    Returns:
+        True if the declarator is or contains a function_declarator, False otherwise.
+    """
+    if declarator is None:
+        return False
+    if declarator.type == "function_declarator":
+        return True
+
+    nested_declarator = declarator.child_by_field_name("declarator")
+    if nested_declarator is not None:
+        return _is_function_declarator(nested_declarator)
+
+    return False
 
 
 def _find_identifier_in_declarator(declarator: Node | None) -> Node | None:

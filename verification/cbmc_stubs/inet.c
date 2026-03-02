@@ -18,7 +18,7 @@ in_addr_t avocado___inet_addr(const char *cp)
   #endif
   (void)*cp;
 
-  in_addr_t avocado_result=__VERIFIER_nondet_in_addr_t();
+  in_addr_t result=__VERIFIER_nondet_in_addr_t();
   return result;
 }
 
@@ -66,7 +66,7 @@ int avocado___inet_aton(const char *cp, struct in_addr *pin)
   (void)*cp;
   (void)*pin;
 
-  int avocado_result=__VERIFIER_nondet_int();
+  int result=__VERIFIER_nondet_int();
   return result;
 }
 
@@ -102,7 +102,7 @@ __CPROVER_HIDE:;
 #    define __CPROVER_INET_H_INCLUDED
 #  endif
 
-char avocado___inet_ntoa_buffer[16];
+char __inet_ntoa_buffer[16];
 
 char *avocado___inet_ntoa(struct in_addr in)
 {
@@ -156,7 +156,7 @@ in_addr_t avocado___inet_network(const char *cp)
   #endif
   (void)*cp;
 
-  in_addr_t avocado_result=__VERIFIER_nondet_in_addr_t();
+  in_addr_t result=__VERIFIER_nondet_in_addr_t();
   return result;
 }
 

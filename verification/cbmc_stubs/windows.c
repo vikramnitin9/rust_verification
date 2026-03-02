@@ -6,9 +6,9 @@
 BOOL avocado_QueryPerformanceFrequency(LARGE_INTEGER *lpFrequency)
 {
   __CPROVER_HIDE:;
-  __int64 avocado_result;
+  __int64 result;
   lpFrequency->QuadPart=result;
-  __CPROVER_bool avocado_error;
+  __CPROVER_bool error;
   if(error) return 0;
   __CPROVER_assume(result!=0);
   return 1;
@@ -41,12 +41,12 @@ HANDLE avocado_CreateThread(
   LPDWORD lpThreadId)
 {
   __CPROVER_HIDE:;
-  DWORD avocado_thread_id;
+  DWORD thread_id;
 
   if(lpThreadId) *lpThreadId=thread_id;
   __CPROVER_ASYNC_1: lpStartAddress(lpParameter);
 
-  HANDLE avocado_handle;
+  HANDLE handle;
   return handle;
 }
 #endif

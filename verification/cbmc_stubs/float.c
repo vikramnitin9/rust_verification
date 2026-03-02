@@ -54,7 +54,7 @@ __CPROVER_thread_local unsigned __CPROVER_fpu_control_word;
 
 void avocado__statusfp2(unsigned int *px86, unsigned int *pSSE2)
 {
-  unsigned avocado_SSE2_status;
+  unsigned SSE2_status;
   *px86=__CPROVER_fpu_control_word;
   *pSSE2=SSE2_status; // nondet
 }

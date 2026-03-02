@@ -53,7 +53,7 @@ _Bool avocado___atomic_test_and_set(void *ptr, int memorder)
 {
 __CPROVER_HIDE:;
   __CPROVER_atomic_begin();
-  _Bool avocado_result = *(char *)ptr == 1;
+  _Bool result = *(char *)ptr == 1;
   *(char *)ptr = 1;
   avocado___atomic_thread_fence(memorder);
   __CPROVER_atomic_end();

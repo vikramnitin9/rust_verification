@@ -461,7 +461,7 @@ double __VERIFIER_nondet_double(void);
 double avocado_sin(double x)
 {
   // gross over-approximation
-  double avocado_ret=__VERIFIER_nondet_double();
+  double ret=__VERIFIER_nondet_double();
 
   if(__CPROVER_isinfd(x) || __CPROVER_isnand(x))
     __CPROVER_assume(__CPROVER_isnand(ret));
@@ -482,7 +482,7 @@ long double __VERIFIER_nondet_long_double(void);
 long double avocado_sinl(long double x)
 {
   // gross over-approximation
-  long double avocado_ret=__VERIFIER_nondet_long_double();
+  long double ret=__VERIFIER_nondet_long_double();
 
   if(__CPROVER_isinfld(x) || __CPROVER_isnanld(x))
     __CPROVER_assume(__CPROVER_isnanld(ret));
@@ -503,7 +503,7 @@ float __VERIFIER_nondet_float(void);
 float avocado_sinf(float x)
 {
   // gross over-approximation
-  float avocado_ret=__VERIFIER_nondet_float();
+  float ret=__VERIFIER_nondet_float();
 
   if(__CPROVER_isinff(x) || __CPROVER_isnanf(x))
     __CPROVER_assume(__CPROVER_isnanf(ret));
@@ -524,7 +524,7 @@ double __VERIFIER_nondet_double(void);
 double avocado_cos(double x)
 {
   // gross over-approximation
-  double avocado_ret=__VERIFIER_nondet_double();
+  double ret=__VERIFIER_nondet_double();
 
   if(__CPROVER_isinfd(x) || __CPROVER_isnand(x))
     __CPROVER_assume(__CPROVER_isnand(ret));
@@ -545,7 +545,7 @@ long double __VERIFIER_nondet_long_double(void);
 long double avocado_cosl(long double x)
 {
   // gross over-approximation
-  long double avocado_ret=__VERIFIER_nondet_long_double();
+  long double ret=__VERIFIER_nondet_long_double();
 
   if(__CPROVER_isinfld(x) || __CPROVER_isnanld(x))
     __CPROVER_assume(__CPROVER_isnanld(ret));
@@ -567,7 +567,7 @@ float avocado_cosf(float x)
 {
 __CPROVER_hide:;
   // gross over-approximation
-  float avocado_ret=__VERIFIER_nondet_float();
+  float ret=__VERIFIER_nondet_float();
 
   if(__CPROVER_isinff(x) || __CPROVER_isnanf(x))
     __CPROVER_assume(__CPROVER_isnanf(ret));
@@ -693,7 +693,7 @@ __CPROVER_hide:;
     if (__CPROVER_isinff(f))
       return f;
 
-    union mixf avocado_m;
+    union mixf m;
     m.f = f;
     ++m.bv;
     return m.f;
@@ -702,7 +702,7 @@ __CPROVER_hide:;
   {
     //assert(f < 0.0f);
 
-    union mixf avocado_m;
+    union mixf m;
     m.f = f;
     --m.bv;
     return m.f;
@@ -745,7 +745,7 @@ __CPROVER_hide:;
     if (__CPROVER_isinfd(d))
       return d;
 
-    union mixd avocado_m;
+    union mixd m;
     m.f = d;
     ++m.bv;
     return m.f;
@@ -754,7 +754,7 @@ __CPROVER_hide:;
   {
     //assert(d < 0.0);
 
-    union mixd avocado_m;
+    union mixd m;
     m.f = d;
     --m.bv;
     return m.f;
@@ -791,7 +791,7 @@ __CPROVER_hide:;
 #pragma CPROVER check pop
   else if (d == 0.0)
   {
-    union mixl avocado_m;
+    union mixl m;
     m.bv = 0x1;
     return m.f;
   }
@@ -800,7 +800,7 @@ __CPROVER_hide:;
     if(__CPROVER_isinfld(d))
       return d;
 
-    union mixl avocado_m;
+    union mixl m;
     m.f = d;
     ++m.bv;
     return m.f;
@@ -809,7 +809,7 @@ __CPROVER_hide:;
   {
     //assert(d < 0.0);
 
-    union mixl avocado_m;
+    union mixl m;
     m.f = d;
     --m.bv;
     return m.f;
@@ -865,7 +865,7 @@ float avocado_sqrtf(float f)
     return f;
   else if (__CPROVER_isnormalf(f))
   {
-    float avocado_lower=__VERIFIER_nondet_float();
+    float lower=__VERIFIER_nondet_float();
     __CPROVER_assume(lower > 0.0f);
     __CPROVER_assume(__CPROVER_isnormalf(lower));
     // Tighter bounds can be given but are dependent on the
@@ -874,11 +874,11 @@ float avocado_sqrtf(float f)
 
 #pragma CPROVER check push
 #pragma CPROVER check disable "float-overflow"
-    float avocado_lowerSquare = lower * lower;
+    float lowerSquare = lower * lower;
     __CPROVER_assume(__CPROVER_isnormalf(lowerSquare));
 
-    float avocado_upper = avocado_nextUpf(lower);
-    float avocado_upperSquare = upper * upper;  // Might be +Inf
+    float upper = avocado_nextUpf(lower);
+    float upperSquare = upper * upper;  // Might be +Inf
 #pragma CPROVER check pop
 
     // Restrict these to bound f and thus compute the possible
@@ -913,7 +913,7 @@ float avocado_sqrtf(float f)
     // With respect to the algebra of floating point number
     // all subnormals seem to be perfect squares, thus ...
 
-    float avocado_root=__VERIFIER_nondet_float();
+    float root=__VERIFIER_nondet_float();
     __CPROVER_assume(root >= 0.0f);
 
     __CPROVER_assume(root * root == f);
@@ -958,17 +958,17 @@ double avocado_sqrt(double d)
     return d;
   else if (__CPROVER_isnormald(d))
   {
-    double avocado_lower=__VERIFIER_nondet_double();
+    double lower=__VERIFIER_nondet_double();
     __CPROVER_assume(lower > 0.0);
     __CPROVER_assume(__CPROVER_isnormald(lower));
 
 #pragma CPROVER check push
 #pragma CPROVER check disable "float-overflow"
-    double avocado_lowerSquare = lower * lower;
+    double lowerSquare = lower * lower;
     __CPROVER_assume(__CPROVER_isnormald(lowerSquare));
 
-    double avocado_upper = avocado_nextUp(lower);
-    double avocado_upperSquare = upper * upper;  // Might be +Inf
+    double upper = avocado_nextUp(lower);
+    double upperSquare = upper * upper;  // Might be +Inf
 #pragma CPROVER check pop
 
     __CPROVER_assume(lowerSquare <= d);
@@ -993,7 +993,7 @@ double avocado_sqrt(double d)
     //assert(fpclassify(d) == FP_SUBNORMAL);
     //assert(d > 0.0);
 
-    double avocado_root=__VERIFIER_nondet_double();
+    double root=__VERIFIER_nondet_double();
     __CPROVER_assume(root >= 0.0);
 
     __CPROVER_assume(root * root == d);
@@ -1035,17 +1035,17 @@ long double avocado_sqrtl(long double d)
     return d;
   else if (__CPROVER_isnormalld(d))
   {
-    long double avocado_lower=__VERIFIER_nondet_long_double();
+    long double lower=__VERIFIER_nondet_long_double();
     __CPROVER_assume(lower > 0.0l);
     __CPROVER_assume(__CPROVER_isnormalld(lower));
 
 #pragma CPROVER check push
 #pragma CPROVER check disable "float-overflow"
-    long double avocado_lowerSquare = lower * lower;
+    long double lowerSquare = lower * lower;
     __CPROVER_assume(__CPROVER_isnormalld(lowerSquare));
 
-    long double avocado_upper = avocado_nextUpl(lower);
-    long double avocado_upperSquare = upper * upper;  // Might be +Inf
+    long double upper = avocado_nextUpl(lower);
+    long double upperSquare = upper * upper;  // Might be +Inf
 #pragma CPROVER check pop
 
     __CPROVER_assume(lowerSquare <= d);
@@ -1070,7 +1070,7 @@ long double avocado_sqrtl(long double d)
     //assert(fpclassify(d) == FP_SUBNORMAL);
     //assert(d > 0.0l);
 
-    long double avocado_root=__VERIFIER_nondet_long_double();
+    long double root=__VERIFIER_nondet_long_double();
     __CPROVER_assume(root >= 0.0l);
 
     __CPROVER_assume(root * root == d);
@@ -1605,7 +1605,7 @@ extern int __CPROVER_rounding_mode;
 
 long int avocado_lrint(double x)
 {
-  double avocado_rti = __CPROVER_round_to_integrald(x, __CPROVER_rounding_mode);
+  double rti = __CPROVER_round_to_integrald(x, __CPROVER_rounding_mode);
   return (long int)rti;
 }
 
@@ -1625,7 +1625,7 @@ extern int __CPROVER_rounding_mode;
 
 long int avocado_lrintf(float x)
 {
-  float avocado_rti = __CPROVER_round_to_integralf(x, __CPROVER_rounding_mode);
+  float rti = __CPROVER_round_to_integralf(x, __CPROVER_rounding_mode);
   return (long int)rti;
 }
 
@@ -1646,7 +1646,7 @@ extern int __CPROVER_rounding_mode;
 
 long int avocado_lrintl(long double x)
 {
-  long double avocado_rti = __CPROVER_round_to_integralld(x, __CPROVER_rounding_mode);
+  long double rti = __CPROVER_round_to_integralld(x, __CPROVER_rounding_mode);
   return (long int)rti;
 }
 
@@ -1667,7 +1667,7 @@ extern int __CPROVER_rounding_mode;
 
 long long int avocado_llrint(double x)
 {
-  double avocado_rti = __CPROVER_round_to_integrald(x, __CPROVER_rounding_mode);
+  double rti = __CPROVER_round_to_integrald(x, __CPROVER_rounding_mode);
   return (long long int)rti;
 }
 
@@ -1687,7 +1687,7 @@ extern int __CPROVER_rounding_mode;
 
 long long int avocado_llrintf(float x)
 {
-  float avocado_rti = __CPROVER_round_to_integralf(x, __CPROVER_rounding_mode);
+  float rti = __CPROVER_round_to_integralf(x, __CPROVER_rounding_mode);
   return (long long int)rti;
 }
 
@@ -1708,7 +1708,7 @@ extern int __CPROVER_rounding_mode;
 
 long long int avocado_llrintl(long double x)
 {
-  long double avocado_rti = __CPROVER_round_to_integralld(x, __CPROVER_rounding_mode);
+  long double rti = __CPROVER_round_to_integralld(x, __CPROVER_rounding_mode);
   return (long long int)rti;
 }
 
@@ -1736,7 +1736,7 @@ long long int avocado_llrintl(long double x)
 
 long int avocado_lround(double x)
 {
-  double avocado_rti = __CPROVER_round_to_integrald(x, 4); // RNA
+  double rti = __CPROVER_round_to_integrald(x, 4); // RNA
   return (long int)rti;
 }
 
@@ -1754,7 +1754,7 @@ long int avocado_lround(double x)
 
 long int avocado_lroundf(float x)
 {
-  float avocado_rti = __CPROVER_round_to_integralf(x, 4); // RNA
+  float rti = __CPROVER_round_to_integralf(x, 4); // RNA
   return (long int)rti;
 }
 
@@ -1773,7 +1773,7 @@ long int avocado_lroundf(float x)
 
 long int avocado_lroundl(long double x)
 {
-  long double avocado_rti = __CPROVER_round_to_integralld(x, 4); // RNA
+  long double rti = __CPROVER_round_to_integralld(x, 4); // RNA
   return (long int)rti;
 }
 
@@ -1792,7 +1792,7 @@ long int avocado_lroundl(long double x)
 
 long long int avocado_llround(double x)
 {
-  double avocado_rti = __CPROVER_round_to_integrald(x, 4); // RNA
+  double rti = __CPROVER_round_to_integrald(x, 4); // RNA
   return (long long int)rti;
 }
 
@@ -1810,7 +1810,7 @@ long long int avocado_llround(double x)
 
 long long int avocado_llroundf(float x)
 {
-  float avocado_rti = __CPROVER_round_to_integralf(x, 4); // RNA
+  float rti = __CPROVER_round_to_integralf(x, 4); // RNA
   return (long long int)rti;
 }
 
@@ -1829,7 +1829,7 @@ long long int avocado_llroundf(float x)
 
 long long int avocado_llroundl(long double x)
 {
-  long double avocado_rti = __CPROVER_round_to_integralld(x, 4); // RNA
+  long double rti = __CPROVER_round_to_integralld(x, 4); // RNA
   return (long long int)rti;
 }
 
@@ -1908,9 +1908,9 @@ double avocado___sort_of_CPROVER_remainder (int rounding_mode, double x, double 
     return x;
 
   // Extended precision helps... a bit...
-  long double avocado_div = x/y;
-  long double avocado_n = __CPROVER_round_to_integrald(rounding_mode, div);
-  long double avocado_res = (-y * n) + x;   // TODO : FMA would be an improvement
+  long double div = x/y;
+  long double n = __CPROVER_round_to_integrald(rounding_mode, div);
+  long double res = (-y * n) + x;   // TODO : FMA would be an improvement
   return res;
 }
 
@@ -1923,9 +1923,9 @@ float avocado___sort_of_CPROVER_remainderf (int rounding_mode, float x, float y)
     return x;
 
   // Extended precision helps... a bit...
-  long double avocado_div = x/y;
-  long double avocado_n = __CPROVER_round_to_integralf(rounding_mode, div);
-  long double avocado_res = (-y * n) + x;   // TODO : FMA would be an improvement
+  long double div = x/y;
+  long double n = __CPROVER_round_to_integralf(rounding_mode, div);
+  long double res = (-y * n) + x;   // TODO : FMA would be an improvement
   return res;
 }
 
@@ -1938,9 +1938,9 @@ long double avocado___sort_of_CPROVER_remainderl (int rounding_mode, long double
     return x;
 
   // Extended precision helps... a bit...
-  long double avocado_div = x/y;
-  long double avocado_n = __CPROVER_round_to_integralld(rounding_mode, div);
-  long double avocado_res = (-y * n) + x;   // TODO : FMA would be an improvement
+  long double div = x/y;
+  long double n = __CPROVER_round_to_integralld(rounding_mode, div);
+  long double res = (-y * n) + x;   // TODO : FMA would be an improvement
   return res;
 }
 
@@ -2091,7 +2091,7 @@ double avocado_fabs (double d);
 
 double avocado_copysign(double x, double y)
 {
-  double avocado_abs = avocado_fabs(x);
+  double abs = avocado_fabs(x);
   return (avocado_signbit(y)) ? -abs : abs;
 }
 
@@ -2106,7 +2106,7 @@ float avocado_fabsf (float d);
 
 float avocado_copysignf(float x, float y)
 {
-  float avocado_abs = avocado_fabsf(x);
+  float abs = avocado_fabsf(x);
   return (avocado_signbit(y)) ? -abs : abs;
 }
 
@@ -2121,7 +2121,7 @@ long double avocado_fabsl (long double d);
 
 long double avocado_copysignl(long double x, long double y)
 {
-  long double avocado_abs = avocado_fabsl(x);
+  long double abs = avocado_fabsl(x);
   return (avocado_signbit(y)) ? -abs : abs;
 }
 
@@ -2208,20 +2208,20 @@ double avocado_exp(double x)
   // Function. Neural Computation 11(4), 1999
   // https://schraudolph.org/pubs/Schraudolph99.pdf
   // 20 is 32 - 1 sign bit - 11 exponent bits
-  int32_t avocado_bias = (1 << 20) * ((1 << 10) - 1);
-  int32_t avocado_exp_a_x = (int32_t)(x / M_LN2 * (double)(1 << 20)) + bias;
+  int32_t bias = (1 << 20) * ((1 << 10) - 1);
+  int32_t exp_a_x = (int32_t)(x / M_LN2 * (double)(1 << 20)) + bias;
   // EXP'C controls the approximation; the paper suggests 60801, but -1 yields
   // an upper bound and 90253 a lower bound, and we pick a value in between.
-  int32_t avocado_lower = exp_a_x - 90253;
-  int32_t avocado_upper = exp_a_x + 1;
-  int32_t avocado_result = __VERIFIER_nondet_int32_t();
+  int32_t lower = exp_a_x - 90253;
+  int32_t upper = exp_a_x + 1;
+  int32_t result = __VERIFIER_nondet_int32_t();
   __CPROVER_assume(result >= lower);
   __CPROVER_assume(result <= upper);
 
 #ifndef _MSC_VER
   _Static_assert
 #else
-  avocado_static_assert
+  static_assert
 #endif
     (sizeof(double) == 2 * sizeof(int32_t),
      "bit width of double is 2x bit width of int32_t");
@@ -2231,9 +2231,9 @@ double avocado_exp(double x)
     int32_t i[2];
   };
 #if !defined(__BYTE_ORDER__) || __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-  union U avocado_u = {.i = {0, result}};
+  union U u = {.i = {0, result}};
 #else
-  union U avocado_u = {.i = {result, 0}};
+  union U u = {.i = {result, 0}};
 #endif
   return u.d;
 }
@@ -2282,20 +2282,20 @@ float avocado_expf(float x)
   }
 
   // 23 is 32 - 1 sign bit - 8 exponent bits
-  int32_t avocado_bias = (1 << 23) * ((1 << 7) - 1);
-  int32_t avocado_exp_a_x = (int32_t)(x / (float)M_LN2 * (float)(1 << 23)) + bias;
+  int32_t bias = (1 << 23) * ((1 << 7) - 1);
+  int32_t exp_a_x = (int32_t)(x / (float)M_LN2 * (float)(1 << 23)) + bias;
   // 722019 is 2^23 * [1 - [ln(ln(2)) + 1] / ln(2)] rounded up -- see Appendix
   // of Schraudolph's paper
-  int32_t avocado_lower = exp_a_x - 722019;
-  int32_t avocado_upper = exp_a_x + 1;
-  int32_t avocado_result = __VERIFIER_nondet_int32_t();
+  int32_t lower = exp_a_x - 722019;
+  int32_t upper = exp_a_x + 1;
+  int32_t result = __VERIFIER_nondet_int32_t();
   __CPROVER_assume(result >= lower);
   __CPROVER_assume(result <= upper);
 
 #ifndef _MSC_VER
   _Static_assert
 #else
-  avocado_static_assert
+  static_assert
 #endif
     (sizeof(float) == sizeof(int32_t),
      "bit width of float and int32_t should match");
@@ -2304,7 +2304,7 @@ float avocado_expf(float x)
     float f;
     int32_t i;
   };
-  union U avocado_u = {.i = result};
+  union U u = {.i = result};
   return u.f;
 }
 
@@ -2360,20 +2360,20 @@ long double avocado_expl(long double x)
 #  pragma CPROVER check pop
   }
   // 16 is 32 - 1 sign bit - 15 exponent bits
-  int32_t avocado_bias = (1 << 16) * ((1 << 14) - 1);
-  int32_t avocado_exp_a_x = (int32_t)(x / M_LN2 * (long double)(1 << 16)) + bias;
+  int32_t bias = (1 << 16) * ((1 << 14) - 1);
+  int32_t exp_a_x = (int32_t)(x / M_LN2 * (long double)(1 << 16)) + bias;
   // 5641 is 2^16 * [1 - [ln(ln(2)) + 1] / ln(2)] rounded up -- see Appendix
   // of Schraudolph's paper
-  int32_t avocado_lower = exp_a_x - 5641;
-  int32_t avocado_upper = exp_a_x + 1;
-  int32_t avocado_result = __VERIFIER_nondet_int32_t();
+  int32_t lower = exp_a_x - 5641;
+  int32_t upper = exp_a_x + 1;
+  int32_t result = __VERIFIER_nondet_int32_t();
   __CPROVER_assume(result >= lower);
   __CPROVER_assume(result <= upper);
 
 #  ifndef _MSC_VER
   _Static_assert
 #  else
-  avocado_static_assert
+  static_assert
 #  endif
     (sizeof(long double) % sizeof(int32_t) == 0,
      "bit width of long double is a multiple of bit width of int32_t");
@@ -2381,7 +2381,7 @@ long double avocado_expl(long double x)
   {
     long double l;
     int32_t i[sizeof(long double) / sizeof(int32_t)];
-  } avocado_u = {.i = {0}};
+  } u = {.i = {0}};
 #  if !defined(__BYTE_ORDER__) || __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   u.i[sizeof(long double) / sizeof(int32_t) - 1] = result;
 #  else
@@ -2439,7 +2439,7 @@ double avocado_log(double x)
 #ifndef _MSC_VER
   _Static_assert
 #else
-  avocado_static_assert
+  static_assert
 #endif
     (sizeof(double) == 2 * sizeof(int32_t),
      "bit width of double is 2x bit width of int32_t");
@@ -2448,9 +2448,9 @@ double avocado_log(double x)
   {
     double d;
     int32_t i[2];
-  } avocado_u = {x};
-  int32_t avocado_bias = (1 << 20) * ((1 << 10) - 1);
-  int32_t avocado_exp_c = __VERIFIER_nondet_int32_t();
+  } u = {x};
+  int32_t bias = (1 << 20) * ((1 << 10) - 1);
+  int32_t exp_c = __VERIFIER_nondet_int32_t();
   __CPROVER_assume(exp_c >= -90253 && exp_c <= 1);
 #if !defined(__BYTE_ORDER__) || __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   return ((double)u.i[1] - (double)(bias + exp_c)) * M_LN2 / (double)(1 << 20);
@@ -2507,7 +2507,7 @@ float avocado_logf(float x)
 #ifndef _MSC_VER
   _Static_assert
 #else
-  avocado_static_assert
+  static_assert
 #endif
     (sizeof(float) == sizeof(int32_t),
      "bit width of float and int32_t should match");
@@ -2516,9 +2516,9 @@ float avocado_logf(float x)
   {
     float f;
     int32_t i;
-  } avocado_u = {x};
-  int32_t avocado_bias = (1 << 23) * ((1 << 7) - 1);
-  int32_t avocado_exp_c = __VERIFIER_nondet_int32_t();
+  } u = {x};
+  int32_t bias = (1 << 23) * ((1 << 7) - 1);
+  int32_t exp_c = __VERIFIER_nondet_int32_t();
   __CPROVER_assume(exp_c >= -722019 && exp_c <= 1);
   return ((float)u.i - (float)(bias + exp_c)) * (float)M_LN2 / (float)(1 << 23);
 }
@@ -2579,7 +2579,7 @@ long double avocado_logl(long double x)
 #  ifndef _MSC_VER
   _Static_assert
 #  else
-  avocado_static_assert
+  static_assert
 #  endif
     (sizeof(long double) % sizeof(int32_t) == 0,
      "bit width of long double is a multiple of bit width of int32_t");
@@ -2587,9 +2587,9 @@ long double avocado_logl(long double x)
   {
     long double l;
     int32_t i[sizeof(long double) / sizeof(int32_t)];
-  } avocado_u = {x};
-  int32_t avocado_bias = (1 << 16) * ((1 << 14) - 1);
-  int32_t avocado_exp_c = __VERIFIER_nondet_int32_t();
+  } u = {x};
+  int32_t bias = (1 << 16) * ((1 << 14) - 1);
+  int32_t exp_c = __VERIFIER_nondet_int32_t();
   __CPROVER_assume(exp_c >= -5641 && exp_c <= 1);
 #  if !defined(__BYTE_ORDER__) || __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   return ((long double)u.i[sizeof(long double) / sizeof(int32_t) - 1] -
@@ -2650,7 +2650,7 @@ double avocado_log2(double x)
 #ifndef _MSC_VER
   _Static_assert
 #else
-  avocado_static_assert
+  static_assert
 #endif
     (sizeof(double) == 2 * sizeof(int32_t),
      "bit width of double is 2x bit width of int32_t");
@@ -2658,9 +2658,9 @@ double avocado_log2(double x)
   {
     double d;
     int32_t i[2];
-  } avocado_u = {x};
-  int32_t avocado_bias = (1 << 20) * ((1 << 10) - 1);
-  int32_t avocado_exp_c = __VERIFIER_nondet_int32_t();
+  } u = {x};
+  int32_t bias = (1 << 20) * ((1 << 10) - 1);
+  int32_t exp_c = __VERIFIER_nondet_int32_t();
   __CPROVER_assume(exp_c >= -90253 && exp_c <= 1);
 #if !defined(__BYTE_ORDER__) || __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   return ((double)u.i[1] - (double)(bias + exp_c)) / (double)(1 << 20);
@@ -2717,7 +2717,7 @@ float avocado_log2f(float x)
 #ifndef _MSC_VER
   _Static_assert
 #else
-  avocado_static_assert
+  static_assert
 #endif
     (sizeof(float) == sizeof(int32_t),
      "bit width of float and int32_t should match");
@@ -2725,9 +2725,9 @@ float avocado_log2f(float x)
   {
     float f;
     int32_t i;
-  } avocado_u = {x};
-  int32_t avocado_bias = (1 << 23) * ((1 << 7) - 1);
-  int32_t avocado_exp_c = __VERIFIER_nondet_int32_t();
+  } u = {x};
+  int32_t bias = (1 << 23) * ((1 << 7) - 1);
+  int32_t exp_c = __VERIFIER_nondet_int32_t();
   __CPROVER_assume(exp_c >= -722019 && exp_c <= 1);
   return ((float)u.i - (float)(bias + exp_c)) / (float)(1 << 23);
 }
@@ -2788,7 +2788,7 @@ long double avocado_log2l(long double x)
 #  ifndef _MSC_VER
   _Static_assert
 #  else
-  avocado_static_assert
+  static_assert
 #  endif
     (sizeof(long double) % sizeof(int32_t) == 0,
      "bit width of long double is a multiple of bit width of int32_t");
@@ -2796,9 +2796,9 @@ long double avocado_log2l(long double x)
   {
     long double l;
     int32_t i[sizeof(long double) / sizeof(int32_t)];
-  } avocado_u = {x};
-  int32_t avocado_bias = (1 << 16) * ((1 << 14) - 1);
-  int32_t avocado_exp_c = __VERIFIER_nondet_int32_t();
+  } u = {x};
+  int32_t bias = (1 << 16) * ((1 << 14) - 1);
+  int32_t exp_c = __VERIFIER_nondet_int32_t();
   __CPROVER_assume(exp_c >= -5641 && exp_c <= 1);
 #  if !defined(__BYTE_ORDER__) || __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   return ((long double)u.i[sizeof(long double) / sizeof(int32_t) - 1] -
@@ -2859,7 +2859,7 @@ double avocado_log10(double x)
 #ifndef _MSC_VER
   _Static_assert
 #else
-  avocado_static_assert
+  static_assert
 #endif
     (sizeof(double) == 2 * sizeof(int32_t),
      "bit width of double is 2x bit width of int32_t");
@@ -2868,9 +2868,9 @@ double avocado_log10(double x)
   {
     double d;
     int32_t i[2];
-  } avocado_u = {x};
-  int32_t avocado_bias = (1 << 20) * ((1 << 10) - 1);
-  int32_t avocado_exp_c = __VERIFIER_nondet_int32_t();
+  } u = {x};
+  int32_t bias = (1 << 20) * ((1 << 10) - 1);
+  int32_t exp_c = __VERIFIER_nondet_int32_t();
   __CPROVER_assume(exp_c >= -90253 && exp_c <= 1);
 #if !defined(__BYTE_ORDER__) || __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   return ((double)u.i[1] - (double)(bias + exp_c)) * (M_LN2 / M_LN10) /
@@ -2929,7 +2929,7 @@ float avocado_log10f(float x)
 #ifndef _MSC_VER
   _Static_assert
 #else
-  avocado_static_assert
+  static_assert
 #endif
     (sizeof(float) == sizeof(int32_t),
      "bit width of float and int32_t should match");
@@ -2938,9 +2938,9 @@ float avocado_log10f(float x)
   {
     float f;
     int32_t i;
-  } avocado_u = {x};
-  int32_t avocado_bias = (1 << 23) * ((1 << 7) - 1);
-  int32_t avocado_exp_c = __VERIFIER_nondet_int32_t();
+  } u = {x};
+  int32_t bias = (1 << 23) * ((1 << 7) - 1);
+  int32_t exp_c = __VERIFIER_nondet_int32_t();
   __CPROVER_assume(exp_c >= -722019 && exp_c <= 1);
   return ((float)u.i - (float)(bias + exp_c)) * (float)(M_LN2 / M_LN10) /
          (float)(1 << 23);
@@ -3002,7 +3002,7 @@ long double avocado_log10l(long double x)
 #  ifndef _MSC_VER
   _Static_assert
 #  else
-  avocado_static_assert
+  static_assert
 #  endif
     (sizeof(long double) % sizeof(int32_t) == 0,
      "bit width of long double is a multiple of bit width of int32_t");
@@ -3010,9 +3010,9 @@ long double avocado_log10l(long double x)
   {
     long double l;
     int32_t i[sizeof(long double) / sizeof(int32_t)];
-  } avocado_u = {x};
-  int32_t avocado_bias = (1 << 16) * ((1 << 14) - 1);
-  int32_t avocado_exp_c = __VERIFIER_nondet_int32_t();
+  } u = {x};
+  int32_t bias = (1 << 16) * ((1 << 14) - 1);
+  int32_t exp_c = __VERIFIER_nondet_int32_t();
   __CPROVER_assume(exp_c >= -5641 && exp_c <= 1);
 #  if !defined(__BYTE_ORDER__) || __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   return ((long double)u.i[sizeof(long double) / sizeof(int32_t) - 1] -
@@ -3134,7 +3134,7 @@ double avocado_pow(double x, double y)
 #ifndef _MSC_VER
   _Static_assert
 #else
-  avocado_static_assert
+  static_assert
 #endif
     (sizeof(double) == 2 * sizeof(int32_t),
      "bit width of double is 2x bit width of int32_t");
@@ -3143,16 +3143,16 @@ double avocado_pow(double x, double y)
   {
     double d;
     int32_t i[2];
-  } avocado_u = {x};
-  int32_t avocado_bias = (1 << 20) * ((1 << 10) - 1);
-  int32_t avocado_exp_c = __VERIFIER_nondet_int32_t();
+  } u = {x};
+  int32_t bias = (1 << 20) * ((1 << 10) - 1);
+  int32_t exp_c = __VERIFIER_nondet_int32_t();
   __CPROVER_assume(exp_c >= -90253 && exp_c <= 1);
 #pragma CPROVER check push
 #pragma CPROVER check disable "signed-overflow"
 #if !defined(__BYTE_ORDER__) || __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-  double avocado_mult_result = y * (double)(u.i[1] - (bias + exp_c));
+  double mult_result = y * (double)(u.i[1] - (bias + exp_c));
 #else
-  double avocado_mult_result = y * (double)(u.i[0] - (bias + exp_c));
+  double mult_result = y * (double)(u.i[0] - (bias + exp_c));
 #endif
 #pragma CPROVER check pop
   if(avocado_fabs(mult_result) > (double)(1 << 30))
@@ -3285,7 +3285,7 @@ float avocado_powf(float x, float y)
 #ifndef _MSC_VER
   _Static_assert
 #else
-  avocado_static_assert
+  static_assert
 #endif
     (sizeof(float) == sizeof(int32_t),
      "bit width of float and int32_t should match");
@@ -3293,13 +3293,13 @@ float avocado_powf(float x, float y)
   {
     float f;
     int32_t i;
-  } avocado_u = {x};
-  int32_t avocado_bias = (1 << 23) * ((1 << 7) - 1);
-  int32_t avocado_exp_c = __VERIFIER_nondet_int32_t();
+  } u = {x};
+  int32_t bias = (1 << 23) * ((1 << 7) - 1);
+  int32_t exp_c = __VERIFIER_nondet_int32_t();
   __CPROVER_assume(exp_c >= -722019 && exp_c <= 1);
 #pragma CPROVER check push
 #pragma CPROVER check disable "signed-overflow"
-  float avocado_mult_result = y * (float)(u.i - (bias + exp_c));
+  float mult_result = y * (float)(u.i - (bias + exp_c));
 #pragma CPROVER check pop
   if(avocado_fabsf(mult_result) > (float)(1 << 30))
   {
@@ -3434,7 +3434,7 @@ long double avocado_powl(long double x, long double y)
 #  ifndef _MSC_VER
   _Static_assert
 #  else
-  avocado_static_assert
+  static_assert
 #  endif
     (sizeof(long double) % sizeof(int32_t) == 0,
      "bit width of long double is a multiple of bit width of int32_t");
@@ -3442,18 +3442,18 @@ long double avocado_powl(long double x, long double y)
   {
     long double l;
     int32_t i[sizeof(long double) / sizeof(int32_t)];
-  } avocado_u = {x};
+  } u = {x};
 #  if !defined(__BYTE_ORDER__) || __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-  int32_t avocado_exponent = u.i[sizeof(long double) / sizeof(int32_t) - 1];
+  int32_t exponent = u.i[sizeof(long double) / sizeof(int32_t) - 1];
 #  else
-  int32_t avocado_exponent = u.i[0];
+  int32_t exponent = u.i[0];
 #  endif
-  int32_t avocado_bias = (1 << 16) * ((1 << 14) - 1);
-  int32_t avocado_exp_c = __VERIFIER_nondet_int32_t();
+  int32_t bias = (1 << 16) * ((1 << 14) - 1);
+  int32_t exp_c = __VERIFIER_nondet_int32_t();
   __CPROVER_assume(exp_c >= -5641 && exp_c <= 1);
 #  pragma CPROVER check push
 #  pragma CPROVER check disable "signed-overflow"
-  long double avocado_mult_result = y * (long double)(exponent - (bias + exp_c));
+  long double mult_result = y * (long double)(exponent - (bias + exp_c));
 #  pragma CPROVER check pop
   if(avocado_fabsl(mult_result) > (long double)(1 << 30))
   {
@@ -3463,8 +3463,8 @@ long double avocado_powl(long double x, long double y)
     return y > 0.0l ? HUGE_VALL : 0.0l;
 #  pragma CPROVER check pop
   }
-  int32_t avocado_result = (int32_t)mult_result + (bias + exp_c);
-  union U avocado_result_u = {.i = {0}};
+  int32_t result = (int32_t)mult_result + (bias + exp_c);
+  union U result_u = {.i = {0}};
 #  if !defined(__BYTE_ORDER__) || __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   result_u.i[sizeof(long double) / sizeof(int32_t) - 1] = result;
 #  else
@@ -3506,7 +3506,7 @@ double avocado_fma(double x, double y, double z)
     return 0.0 / 0.0;
 
 #pragma CPROVER check disable "float-overflow"
-  double avocado_x_times_y = x * y;
+  double x_times_y = x * y;
   if(
     avocado_isinf(x_times_y) && avocado_isinf(z) &&
     __CPROVER_signd(x_times_y) != __CPROVER_signd(z))
@@ -3558,7 +3558,7 @@ float avocado_fmaf(float x, float y, float z)
     return 0.0f / 0.0f;
 
 #pragma CPROVER check disable "float-overflow"
-  float avocado_x_times_y = x * y;
+  float x_times_y = x * y;
   if(
     avocado_isinff(x_times_y) && avocado_isinff(z) &&
     __CPROVER_signf(x_times_y) != __CPROVER_signf(z))
@@ -3615,7 +3615,7 @@ long double avocado_fmal(long double x, long double y, long double z)
     return 0.0l / 0.0l;
 
 #pragma CPROVER check disable "float-overflow"
-  long double avocado_x_times_y = x * y;
+  long double x_times_y = x * y;
   if(
     avocado_isinfl(x_times_y) && avocado_isinfl(z) &&
     __CPROVER_signld(x_times_y) != __CPROVER_signld(z))
@@ -3719,7 +3719,7 @@ double avocado___builtin_powi(double x, int y)
 #ifndef _MSC_VER
   _Static_assert
 #else
-  avocado_static_assert
+  static_assert
 #endif
     (sizeof(double) == 2 * sizeof(int32_t),
      "bit width of double is 2x bit width of int32_t");
@@ -3728,16 +3728,16 @@ double avocado___builtin_powi(double x, int y)
   {
     double d;
     int32_t i[2];
-  } avocado_u = {x};
-  int32_t avocado_bias = (1 << 20) * ((1 << 10) - 1);
-  int32_t avocado_exp_c = __VERIFIER_nondet_int32_t();
+  } u = {x};
+  int32_t bias = (1 << 20) * ((1 << 10) - 1);
+  int32_t exp_c = __VERIFIER_nondet_int32_t();
   __CPROVER_assume(exp_c >= -90253 && exp_c <= 1);
 #pragma CPROVER check push
 #pragma CPROVER check disable "signed-overflow"
 #if !defined(__BYTE_ORDER__) || __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-  double avocado_mult_result = (double)(y) * (double)(u.i[1] - (bias + exp_c));
+  double mult_result = (double)(y) * (double)(u.i[1] - (bias + exp_c));
 #else
-  double avocado_mult_result = (double)(y) * (double)(u.i[0] - (bias + exp_c));
+  double mult_result = (double)(y) * (double)(u.i[0] - (bias + exp_c));
 #endif
 #pragma CPROVER check pop
   if(avocado_fabs(mult_result) > (double)(1 << 30))
@@ -3840,7 +3840,7 @@ float avocado___builtin_powif(float x, int y)
 #ifndef _MSC_VER
   _Static_assert
 #else
-  avocado_static_assert
+  static_assert
 #endif
     (sizeof(float) == sizeof(int32_t),
      "bit width of float and int32_t should match");
@@ -3848,13 +3848,13 @@ float avocado___builtin_powif(float x, int y)
   {
     float f;
     int32_t i;
-  } avocado_u = {x};
-  int32_t avocado_bias = (1 << 23) * ((1 << 7) - 1);
-  int32_t avocado_exp_c = __VERIFIER_nondet_int32_t();
+  } u = {x};
+  int32_t bias = (1 << 23) * ((1 << 7) - 1);
+  int32_t exp_c = __VERIFIER_nondet_int32_t();
   __CPROVER_assume(exp_c >= -722019 && exp_c <= 1);
 #pragma CPROVER check push
 #pragma CPROVER check disable "signed-overflow"
-  float avocado_mult_result = (float)(y) * (float)(u.i - (bias + exp_c));
+  float mult_result = (float)(y) * (float)(u.i - (bias + exp_c));
 #pragma CPROVER check pop
   if(avocado_fabsf(mult_result) > (float)(1 << 30))
   {
@@ -3959,7 +3959,7 @@ long double avocado___builtin_powil(long double x, int y)
 #  ifndef _MSC_VER
   _Static_assert
 #  else
-  avocado_static_assert
+  static_assert
 #  endif
     (sizeof(long double) % sizeof(int32_t) == 0,
      "bit width of long double is a multiple of bit width of int32_t");
@@ -3967,18 +3967,18 @@ long double avocado___builtin_powil(long double x, int y)
   {
     long double l;
     int32_t i[sizeof(long double) / sizeof(int32_t)];
-  } avocado_u = {x};
+  } u = {x};
 #  if !defined(__BYTE_ORDER__) || __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-  int32_t avocado_exponent = u.i[sizeof(long double) / sizeof(int32_t) - 1];
+  int32_t exponent = u.i[sizeof(long double) / sizeof(int32_t) - 1];
 #  else
-  int32_t avocado_exponent = u.i[0];
+  int32_t exponent = u.i[0];
 #  endif
-  int32_t avocado_bias = (1 << 16) * ((1 << 14) - 1);
-  int32_t avocado_exp_c = __VERIFIER_nondet_int32_t();
+  int32_t bias = (1 << 16) * ((1 << 14) - 1);
+  int32_t exp_c = __VERIFIER_nondet_int32_t();
   __CPROVER_assume(exp_c >= -5641 && exp_c <= 1);
 #  pragma CPROVER check push
 #  pragma CPROVER check disable "signed-overflow"
-  long double avocado_mult_result =
+  long double mult_result =
     (long double)y * (long double)(exponent - (bias + exp_c));
 #  pragma CPROVER check pop
   if(avocado_fabsl(mult_result) > (long double)(1 << 30))
@@ -3989,8 +3989,8 @@ long double avocado___builtin_powil(long double x, int y)
     return y > 0 ? HUGE_VALL : 0.0l;
 #  pragma CPROVER check pop
   }
-  int32_t avocado_result = (int32_t)mult_result + (bias + exp_c);
-  union U avocado_result_u = {.i = {0}};
+  int32_t result = (int32_t)mult_result + (bias + exp_c);
+  union U result_u = {.i = {0}};
 #  if !defined(__BYTE_ORDER__) || __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   result_u.i[sizeof(long double) / sizeof(int32_t) - 1] = result;
 #  else
