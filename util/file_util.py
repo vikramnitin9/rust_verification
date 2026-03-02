@@ -22,6 +22,25 @@ def copy_file_to_folder(input_file_path: Path, destination_folder_name: str) -> 
     return output_file_path
 
 
+def copy_folder_to_folder(input_folder_path: Path, destination_folder_name: str) -> Path:
+    """Copy a folder to a destination folder, and return the path of the copy.
+
+    If the target folder already exists, the contents of the input folder will be merged
+    into the target folder, and existing files with the same name will be overwritten.
+
+    Args:
+        input_folder_path (Path): The input folder path.
+        destination_folder_name (str): The destination folder under which to copy the folder.
+
+    Returns:
+        Path: The path of the copy of the input folder.
+    """
+    Path(destination_folder_name).mkdir(parents=True, exist_ok=True)
+    output_folder = Path(destination_folder_name) / input_folder_path.name
+    shutil.copytree(input_folder_path, output_folder, dirs_exist_ok=True)
+    return output_folder
+
+
 def ensure_lines_at_beginning(lines_to_insert: Sequence[str], file_path: Path) -> None:
     """Ensure the given lines appear in the given file.
 
