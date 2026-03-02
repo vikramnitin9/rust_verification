@@ -2,11 +2,11 @@
 
 unsigned __VERIFIER_nondet_unsigned(void);
 
-unsigned int sleep(unsigned int seconds)
+unsigned int avocado_sleep(unsigned int seconds)
 {
   __CPROVER_HIDE:;
   // do nothing, but return nondet value
-  unsigned remaining_time=__VERIFIER_nondet_unsigned();
+  unsigned avocado_remaining_time=__VERIFIER_nondet_unsigned();
   __CPROVER_assume(remaining_time <= seconds);
 
   return remaining_time;
@@ -14,12 +14,12 @@ unsigned int sleep(unsigned int seconds)
 
 /* FUNCTION: _sleep */
 
-unsigned int sleep(unsigned int seconds);
+unsigned int avocado_sleep(unsigned int seconds);
 
-unsigned int _sleep(unsigned int seconds)
+unsigned int avocado__sleep(unsigned int seconds)
 {
   __CPROVER_HIDE:;
-  return sleep(seconds);
+  return avocado_sleep(seconds);
 }
 
 /* FUNCTION: usleep */
@@ -31,11 +31,11 @@ unsigned int _sleep(unsigned int seconds)
 
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 
-int usleep(unsigned int usec)
+int avocado_usleep(unsigned int usec)
 {
 __CPROVER_HIDE:;
   // do nothing, but return nondet value
-  __CPROVER_bool error = __VERIFIER_nondet___CPROVER_bool();
+  __CPROVER_bool avocado_error = __VERIFIER_nondet___CPROVER_bool();
   if(error)
   {
     if(usec >= 1000000)
@@ -49,19 +49,19 @@ __CPROVER_HIDE:;
 
 /* FUNCTION: _usleep */
 
-int usleep(unsigned int);
+int avocado_usleep(unsigned int);
 
-int _usleep(unsigned int usec)
+int avocado__usleep(unsigned int usec)
 {
 __CPROVER_HIDE:;
-  return usleep(usec);
+  return avocado_usleep(usec);
 }
 
 /* FUNCTION: unlink */
 
 int __VERIFIER_nondet_int(void);
 
-int unlink(const char *s)
+int avocado_unlink(const char *s)
 {
   __CPROVER_HIDE:;
   (void)*s;
@@ -69,7 +69,7 @@ int unlink(const char *s)
   __CPROVER_precondition(__CPROVER_is_zero_string(s),
                          "unlink zero-termination");
   #endif
-  int retval=__VERIFIER_nondet_int();
+  int avocado_retval=__VERIFIER_nondet_int();
   return retval;
 }
 
@@ -87,10 +87,10 @@ unsigned __CPROVER_pipe_count;
 
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 
-int pipe(int fildes[2])
+int avocado_pipe(int fildes[2])
 {
   __CPROVER_HIDE:;
-  __CPROVER_bool error=__VERIFIER_nondet___CPROVER_bool();
+  __CPROVER_bool avocado_error=__VERIFIER_nondet___CPROVER_bool();
   if(error)
   {
     errno = __VERIFIER_nondet___CPROVER_bool() ? EMFILE : ENFILE;
@@ -119,14 +119,14 @@ int pipe(int fildes[2])
 
 #ifdef _WIN32
 #undef pipe
-int pipe(int fildes[2]);
+int avocado_pipe(int fildes[2]);
 
-int _pipe(int *pfds, unsigned int psize, int textmode)
+int avocado__pipe(int *pfds, unsigned int psize, int textmode)
 {
 __CPROVER_HIDE:;
   (void)psize;
   (void)textmode;
-  return pipe(pfds);
+  return avocado_pipe(pfds);
 }
 #endif
 
@@ -136,7 +136,7 @@ extern struct __CPROVER_pipet __CPROVER_pipes[__CPROVER_constant_infinity_uint];
 // offset to make sure we don't collide with other fds
 extern const int __CPROVER_pipe_offset;
 
-int close(int fildes)
+int avocado_close(int fildes)
 {
   __CPROVER_HIDE:;
   if((fildes>=0 && fildes<=2) || fildes < __CPROVER_pipe_offset)
@@ -144,7 +144,7 @@ int close(int fildes)
 
   __CPROVER_assume(__CPROVER_pipe_offset >= 0);
 
-  int retval=-1;
+  int avocado_retval=-1;
   fildes-=__CPROVER_pipe_offset;
   if(fildes%2==1)
     --fildes;
@@ -161,12 +161,12 @@ int close(int fildes)
 
 /* FUNCTION: _close */
 
-int close(int fildes);
+int avocado_close(int fildes);
 
-int _close(int fildes)
+int avocado__close(int fildes)
 {
   __CPROVER_HIDE:;
-  return close(fildes);
+  return avocado_close(fildes);
 }
 
 /* FUNCTION: write */
@@ -192,19 +192,19 @@ extern const int __CPROVER_pipe_offset;
 
 ret_type __VERIFIER_nondet_ret_type(void);
 
-ret_type write(int fildes, const void *buf, size_type nbyte)
+ret_type avocado_write(int fildes, const void *buf, size_type nbyte)
 {
   __CPROVER_HIDE:;
   if((fildes>=0 && fildes<=2) || fildes < __CPROVER_pipe_offset)
   {
-    ret_type retval=__VERIFIER_nondet_ret_type();
+    ret_type avocado_retval=__VERIFIER_nondet_ret_type();
     __CPROVER_assume(retval>=-1 && retval<=(ret_type)nbyte);
     return retval;
   }
 
   __CPROVER_assume(__CPROVER_pipe_offset >= 0);
 
-  int retval=-1;
+  int avocado_retval=-1;
   fildes-=__CPROVER_pipe_offset;
   if(fildes%2==1)
     --fildes;
@@ -215,7 +215,7 @@ ret_type write(int fildes, const void *buf, size_type nbyte)
     sizeof(__CPROVER_pipes[fildes].data) >=
       __CPROVER_pipes[fildes].next_avail + nbyte)
   {
-    for(size_type i=0; i<nbyte; ++i)
+    for(size_type avocado_i=0; i<nbyte; ++i)
       __CPROVER_pipes[fildes].data[i+__CPROVER_pipes[fildes].next_avail]=
         ((char*)buf)[i];
     __CPROVER_pipes[fildes].next_avail+=nbyte;
@@ -239,12 +239,12 @@ ret_type write(int fildes, const void *buf, size_type nbyte)
 #define size_type size_t
 #endif
 
-ret_type write(int fildes, const void *buf, size_type nbyte);
+ret_type avocado_write(int fildes, const void *buf, size_type nbyte);
 
-ret_type _write(int fildes, const void *buf, size_type nbyte)
+ret_type avocado__write(int fildes, const void *buf, size_type nbyte)
 {
   __CPROVER_HIDE:;
-  return write(fildes, buf, nbyte);
+  return avocado_write(fildes, buf, nbyte);
 }
 
 /* FUNCTION: read */
@@ -272,31 +272,31 @@ __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 ret_type __VERIFIER_nondet_ret_type(void);
 size_type __VERIFIER_nondet_size_type(void);
 
-ret_type read(int fildes, void *buf, size_type nbyte)
+ret_type avocado_read(int fildes, void *buf, size_type nbyte)
 {
   __CPROVER_HIDE:;
   if((fildes>=0 && fildes<=2) || fildes < __CPROVER_pipe_offset)
   {
-    ret_type nread=__VERIFIER_nondet_ret_type();
+    ret_type avocado_nread=__VERIFIER_nondet_ret_type();
     __CPROVER_assume(0<=nread && (size_type)nread<=nbyte);
 
-    __CPROVER_bool error=__VERIFIER_nondet___CPROVER_bool();
+    __CPROVER_bool avocado_error=__VERIFIER_nondet___CPROVER_bool();
 #if 0
-    size_type i;
+    size_type avocado_i;
     for(i=0; i<nbyte; i++)
     {
-      char nondet_char;
+      char avocado_nondet_char;
       ((char *)buf)[i]=nondet_char;
     }
 #else
     if(nbyte>0)
     {
-      size_type str_length=__VERIFIER_nondet_size_type();
+      size_type avocado_str_length=__VERIFIER_nondet_size_type();
       __CPROVER_assume(error ? str_length<=nbyte : str_length==nbyte);
       // check that the memory is accessible
       (void)*(char *)buf;
       (void)*(((const char *)buf) + str_length - 1);
-      char contents_nondet[str_length];
+      char avocado_contents_nondet[str_length];
       __CPROVER_array_replace((char*)buf, contents_nondet);
     }
 #endif
@@ -306,7 +306,7 @@ ret_type read(int fildes, void *buf, size_type nbyte)
 
   __CPROVER_assume(__CPROVER_pipe_offset >= 0);
 
-  int retval=0;
+  int avocado_retval=0;
   fildes-=__CPROVER_pipe_offset;
   if(fildes%2==1)
     --fildes;
@@ -315,7 +315,7 @@ ret_type read(int fildes, void *buf, size_type nbyte)
     !__CPROVER_pipes[fildes].widowed &&
     __CPROVER_pipes[fildes].next_unread >= 0)
   {
-    for(size_type i=0; i<nbyte &&
+    for(size_type avocado_i=0; i<nbyte &&
       __CPROVER_pipes[fildes].next_unread <
       __CPROVER_pipes[fildes].next_avail;
       ++i)
@@ -347,12 +347,12 @@ ret_type read(int fildes, void *buf, size_type nbyte)
 #define size_type size_t
 #endif
 
-ret_type read(int fildes, void *buf, size_type nbyte);
+ret_type avocado_read(int fildes, void *buf, size_type nbyte);
 
-ret_type _read(int fildes, void *buf, size_type nbyte)
+ret_type avocado__read(int fildes, void *buf, size_type nbyte)
 {
   __CPROVER_HIDE:;
-  return read(fildes, buf, nbyte);
+  return avocado_read(fildes, buf, nbyte);
 }
 
 /* FUNCTION: sysconf */
@@ -365,15 +365,15 @@ ret_type _read(int fildes, void *buf, size_type nbyte)
 long __VERIFIER_nondet_long(void);
 int __VERIFIER_nondet_int(void);
 
-long sysconf(int name);
+long avocado_sysconf(int name);
 
 // This overapproximation is based on the sysconf specification available at
 // https://pubs.opengroup.org/onlinepubs/9699919799/functions/sysconf.html.
-long sysconf(int name)
+long avocado_sysconf(int name)
 {
 __CPROVER_HIDE:;
   (void)name;
-  long retval = __VERIFIER_nondet_long();
+  long avocado_retval = __VERIFIER_nondet_long();
 
   // We should keep errno as non-deterministic as possible, since this model
   // never takes into account the name input.

@@ -3,7 +3,7 @@
 
 extern int __CPROVER_rounding_mode;
 
-void __asm_fnstcw(void *dest)
+void avocado___asm_fnstcw(void *dest)
 {
   // the rounding mode is bits 10 and 11 in the control word
   *(unsigned short *)dest = __CPROVER_rounding_mode << 10;
@@ -13,7 +13,7 @@ void __asm_fnstcw(void *dest)
 
 extern int __CPROVER_rounding_mode;
 
-void __asm_fstcw(void *dest)
+void avocado___asm_fstcw(void *dest)
 {
   // the rounding mode is bits 10 and 11 in the control word
   *(unsigned short *)dest = __CPROVER_rounding_mode << 10;
@@ -23,7 +23,7 @@ void __asm_fstcw(void *dest)
 
 extern int __CPROVER_rounding_mode;
 
-void __asm_fldcw(void *src)
+void avocado___asm_fldcw(void *src)
 {
   // the rounding mode is bits 10 and 11 in the control word
   __CPROVER_rounding_mode = ((*(const unsigned short *)src) >> 10) & 3;
@@ -31,21 +31,21 @@ void __asm_fldcw(void *src)
 
 /* FUNCTION: __asm_mfence */
 
-void __asm_mfence(void)
+void avocado___asm_mfence(void)
 {
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
 }
 
 /* FUNCTION: __asm_sfence */
 
-void __asm_sfence(void)
+void avocado___asm_sfence(void)
 {
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
 }
 
 /* FUNCTION: __asm_lfence */
 
-void __asm_lfence(void)
+void avocado___asm_lfence(void)
 {
   __CPROVER_fence("WWfence", "RRfence", "RWfence", "WRfence");
 }

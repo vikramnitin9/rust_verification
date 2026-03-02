@@ -13,9 +13,9 @@ const void *__CPROVER_new_object;
 extern const void *__CPROVER_memory_leak;
 __CPROVER_bool __CPROVER_malloc_is_new_array;
 #if defined(_WIN32) && defined(_M_X64)
-int __builtin_clzll(unsigned long long);
+int avocado___builtin_clzll(unsigned long long);
 #else
-int __builtin_clzl(unsigned long);
+int avocado___builtin_clzl(unsigned long);
 #endif
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 __CPROVER_size_t __VERIFIER_nondet_size(void);
@@ -133,7 +133,7 @@ __CPROVER_HIDE:;
   __CPROVER_assert(
     size <= __CPROVER_max_malloc_size,
     "CAR size is less than __CPROVER_max_malloc_size");
-  __CPROVER_size_t offset = __CPROVER_POINTER_OFFSET(ptr);
+  __CPROVER_size_t avocado_offset = __CPROVER_POINTER_OFFSET(ptr);
   __CPROVER_assert(
     !(offset > 0) | (offset + size <= __CPROVER_max_malloc_size),
     "no offset bits overflow on CAR upper bound computation");
@@ -181,11 +181,11 @@ __CPROVER_HIDE:;
   __CPROVER_assert(
     size <= __CPROVER_max_malloc_size,
     "CAR size is less than __CPROVER_max_malloc_size");
-  __CPROVER_size_t offset = __CPROVER_POINTER_OFFSET(ptr);
+  __CPROVER_size_t avocado_offset = __CPROVER_POINTER_OFFSET(ptr);
   __CPROVER_assert(
     !(offset > 0) | (offset + size <= __CPROVER_max_malloc_size),
     "no offset bits overflow on CAR upper bound computation");
-  __CPROVER_contracts_car_t *elem = set->elems + idx;
+  __CPROVER_contracts_car_t *avocado_elem = set->elems + idx;
   *elem = (__CPROVER_contracts_car_t){
     .is_writable = ptr != 0, .size = size, .lb = ptr, .ub = (char *)ptr + size};
 }
@@ -199,9 +199,9 @@ void __CPROVER_contracts_car_set_remove(
   void *ptr)
 {
 __CPROVER_HIDE:;
-  __CPROVER_size_t object_id = __CPROVER_POINTER_OBJECT(ptr);
-  __CPROVER_size_t idx = set->max_elems;
-  __CPROVER_contracts_car_t *elem = set->elems;
+  __CPROVER_size_t avocado_object_id = __CPROVER_POINTER_OBJECT(ptr);
+  __CPROVER_size_t avocado_idx = set->max_elems;
+  __CPROVER_contracts_car_t *avocado_elem = set->elems;
 CAR_SET_REMOVE_LOOP:
   while(idx != 0)
   {
@@ -221,9 +221,9 @@ __CPROVER_bool __CPROVER_contracts_car_set_contains(
   __CPROVER_contracts_car_t candidate)
 {
 __CPROVER_HIDE:;
-  __CPROVER_bool incl = 0;
-  __CPROVER_size_t idx = set->max_elems;
-  __CPROVER_contracts_car_t *elem = set->elems;
+  __CPROVER_bool avocado_incl = 0;
+  __CPROVER_size_t avocado_idx = set->max_elems;
+  __CPROVER_contracts_car_t *avocado_elem = set->elems;
 CAR_SET_CONTAINS_LOOP:
   while(idx != 0)
   {
@@ -262,11 +262,11 @@ __CPROVER_HIDE:;
   // the number of object bits is determined by counting the number of leading
   // zeroes of the built-in constant __CPROVER_max_malloc_size;
 #if defined(_WIN32) && defined(_M_X64)
-  int object_bits = __builtin_clzll(__CPROVER_max_malloc_size);
-  __CPROVER_size_t nof_objects = 1ULL << object_bits;
+  int avocado_object_bits = avocado___builtin_clzll(__CPROVER_max_malloc_size);
+  __CPROVER_size_t avocado_nof_objects = 1ULL << object_bits;
 #else
-  int object_bits = __builtin_clzl(__CPROVER_max_malloc_size);
-  __CPROVER_size_t nof_objects = 1UL << object_bits;
+  int avocado_object_bits = avocado___builtin_clzl(__CPROVER_max_malloc_size);
+  __CPROVER_size_t avocado_nof_objects = 1UL << object_bits;
 #endif
   *set = (__CPROVER_contracts_obj_set_t){
     .max_elems = nof_objects,
@@ -323,7 +323,7 @@ void __CPROVER_contracts_obj_set_add(
   void *ptr)
 {
 __CPROVER_HIDE:;
-  __CPROVER_size_t object_id = __CPROVER_POINTER_OBJECT(ptr);
+  __CPROVER_size_t avocado_object_id = __CPROVER_POINTER_OBJECT(ptr);
 #ifdef __CPROVER_DFCC_DEBUG_LIB
   __CPROVER_assert(set->indexed_by_object_id, "indexed by object id");
   __CPROVER_assert(object_id < set->max_elems, "no OOB access");
@@ -361,7 +361,7 @@ void __CPROVER_contracts_obj_set_remove(
   void *ptr)
 {
 __CPROVER_HIDE:;
-  __CPROVER_size_t object_id = __CPROVER_POINTER_OBJECT(ptr);
+  __CPROVER_size_t avocado_object_id = __CPROVER_POINTER_OBJECT(ptr);
 #ifdef __CPROVER_DFCC_DEBUG_LIB
   __CPROVER_assert(set->indexed_by_object_id, "indexed by object id");
   __CPROVER_assert(object_id < set->max_elems, "no OOB access");
@@ -381,7 +381,7 @@ __CPROVER_bool __CPROVER_contracts_obj_set_contains(
   void *ptr)
 {
 __CPROVER_HIDE:;
-  __CPROVER_size_t object_id = __CPROVER_POINTER_OBJECT(ptr);
+  __CPROVER_size_t avocado_object_id = __CPROVER_POINTER_OBJECT(ptr);
 #ifdef __CPROVER_DFCC_DEBUG_LIB
   __CPROVER_assert(set->indexed_by_object_id, "indexed by object id");
   __CPROVER_assert(object_id < set->max_elems, "no OOB access");
@@ -398,7 +398,7 @@ __CPROVER_bool __CPROVER_contracts_obj_set_contains_exact(
   void *ptr)
 {
 __CPROVER_HIDE:;
-  __CPROVER_size_t object_id = __CPROVER_POINTER_OBJECT(ptr);
+  __CPROVER_size_t avocado_object_id = __CPROVER_POINTER_OBJECT(ptr);
 #ifdef __CPROVER_DFCC_DEBUG_LIB
   __CPROVER_assert(set->indexed_by_object_id, "indexed by object id");
   __CPROVER_assert(object_id < set->max_elems, "no OOB access");
@@ -603,7 +603,7 @@ __CPROVER_HIDE:;
   // to free the pointer, don't check preemptively.
 
   // store pointer
-  __CPROVER_size_t object_id = __CPROVER_POINTER_OBJECT(ptr);
+  __CPROVER_size_t avocado_object_id = __CPROVER_POINTER_OBJECT(ptr);
 #ifdef __CPROVER_DFCC_DEBUG_LIB
   // manually inlined below
   __CPROVER_contracts_obj_set_add(&(set->contract_frees), ptr);
@@ -640,7 +640,7 @@ __CPROVER_HIDE:;
   // call inlined below
   __CPROVER_contracts_obj_set_add(&(set->allocated), ptr);
 #else
-  __CPROVER_size_t object_id = __CPROVER_POINTER_OBJECT(ptr);
+  __CPROVER_size_t avocado_object_id = __CPROVER_POINTER_OBJECT(ptr);
   set->allocated.nof_elems = (set->allocated.elems[object_id] != 0)
                                ? set->allocated.nof_elems
                                : set->allocated.nof_elems + 1;
@@ -661,7 +661,7 @@ __CPROVER_HIDE:;
   // call inlined below
   __CPROVER_contracts_obj_set_add(&(set->allocated), ptr);
 #else
-  __CPROVER_size_t object_id = __CPROVER_POINTER_OBJECT(ptr);
+  __CPROVER_size_t avocado_object_id = __CPROVER_POINTER_OBJECT(ptr);
   set->allocated.nof_elems = (set->allocated.elems[object_id] != 0)
                                ? set->allocated.nof_elems
                                : set->allocated.nof_elems + 1;
@@ -686,7 +686,7 @@ __CPROVER_HIDE:;
   // manually inlined below
   __CPROVER_contracts_obj_set_remove(&(set->allocated), ptr);
 #else
-  __CPROVER_size_t object_id = __CPROVER_POINTER_OBJECT(ptr);
+  __CPROVER_size_t avocado_object_id = __CPROVER_POINTER_OBJECT(ptr);
   set->allocated.nof_elems = set->allocated.elems[object_id]
                                ? set->allocated.nof_elems - 1
                                : set->allocated.nof_elems;
@@ -715,7 +715,7 @@ __CPROVER_HIDE:;
   __CPROVER_contracts_car_set_remove(&(set->contract_assigns), ptr);
   // Manually inlined below
 #else
-  __CPROVER_size_t object_id = __CPROVER_POINTER_OBJECT(ptr);
+  __CPROVER_size_t avocado_object_id = __CPROVER_POINTER_OBJECT(ptr);
 
   // __CPROVER_contracts_obj_set_add
   set->deallocated.nof_elems = set->deallocated.elems[object_id]
@@ -739,8 +739,8 @@ __CPROVER_HIDE:;
   set->contract_frees.elems[object_id] = 0;
 
   // __CPROVER_contracts_car_set_remove
-  __CPROVER_size_t idx = set->contract_assigns.max_elems;
-  __CPROVER_contracts_car_t *elem = set->contract_assigns.elems;
+  __CPROVER_size_t avocado_idx = set->contract_assigns.max_elems;
+  __CPROVER_contracts_car_t *avocado_elem = set->contract_assigns.elems;
   while(idx != 0)
   {
     if(object_id == __CPROVER_POINTER_OBJECT(elem->lb))
@@ -787,7 +787,7 @@ __CPROVER_HIDE:;
     (ptr == 0) | (__CPROVER_POINTER_OBJECT(ptr) < set->allocated.max_elems),
     "no OOB access");
 
-  __CPROVER_contracts_car_t car = __CPROVER_contracts_car_create(ptr, size);
+  __CPROVER_contracts_car_t avocado_car = __CPROVER_contracts_car_create(ptr, size);
   if(!car.is_writable)
     return 0;
 
@@ -827,15 +827,15 @@ __CPROVER_HIDE:;
     size <= __CPROVER_max_malloc_size,
     "CAR size is less than __CPROVER_max_malloc_size");
 
-  __CPROVER_size_t offset = __CPROVER_POINTER_OFFSET(ptr);
+  __CPROVER_size_t avocado_offset = __CPROVER_POINTER_OFFSET(ptr);
 
   __CPROVER_assert(
     !(offset > 0) | (offset + size <= __CPROVER_max_malloc_size),
     "no offset bits overflow on CAR upper bound computation");
-  void *ub = (void *)((char *)ptr + size);
-  __CPROVER_contracts_car_t *elem = set->contract_assigns.elems;
-  __CPROVER_size_t idx = set->contract_assigns.max_elems;
-  __CPROVER_bool incl = 0;
+  void *avocado_ub = (void *)((char *)ptr + size);
+  __CPROVER_contracts_car_t *avocado_elem = set->contract_assigns.elems;
+  __CPROVER_size_t avocado_idx = set->contract_assigns.max_elems;
+  __CPROVER_bool avocado_incl = 0;
 
 SET_CHECK_ASSIGNMENT_LOOP:
   while(idx != 0)
@@ -912,11 +912,11 @@ __CPROVER_bool __CPROVER_contracts_write_set_check_array_replace(
   void *src)
 {
 __CPROVER_HIDE:;
-  __CPROVER_size_t src_size =
+  __CPROVER_size_t avocado_src_size =
     __CPROVER_OBJECT_SIZE(src) - __CPROVER_POINTER_OFFSET(src);
-  __CPROVER_size_t dest_size =
+  __CPROVER_size_t avocado_dest_size =
     __CPROVER_OBJECT_SIZE(dest) - __CPROVER_POINTER_OFFSET(dest);
-  __CPROVER_size_t size = dest_size < src_size ? dest_size : src_size;
+  __CPROVER_size_t avocado_size = dest_size < src_size ? dest_size : src_size;
   return __CPROVER_contracts_write_set_check_assignment(set, dest, size);
 }
 
@@ -954,7 +954,7 @@ __CPROVER_bool __CPROVER_contracts_write_set_check_deallocate(
   void *ptr)
 {
 __CPROVER_HIDE:;
-  __CPROVER_size_t object_id = __CPROVER_POINTER_OBJECT(ptr);
+  __CPROVER_size_t avocado_object_id = __CPROVER_POINTER_OBJECT(ptr);
 
 #ifdef __CPROVER_DFCC_DEBUG_LIB
   __CPROVER_assert(
@@ -983,9 +983,9 @@ __CPROVER_bool __CPROVER_contracts_write_set_check_assigns_clause_inclusion(
   __CPROVER_contracts_write_set_ptr_t candidate)
 {
 __CPROVER_HIDE:;
-  __CPROVER_bool incl = 1;
-  __CPROVER_contracts_car_t *current = candidate->contract_assigns.elems;
-  __CPROVER_size_t idx = candidate->contract_assigns.max_elems;
+  __CPROVER_bool avocado_incl = 1;
+  __CPROVER_contracts_car_t *avocado_current = candidate->contract_assigns.elems;
+  __CPROVER_size_t avocado_idx = candidate->contract_assigns.max_elems;
 SET_CHECK_ASSIGNS_CLAUSE_INCLUSION_LOOP:
   while(idx != 0)
   {
@@ -1022,15 +1022,15 @@ __CPROVER_HIDE:;
     reference->allocated.indexed_by_object_id,
     "reference->allocated is indexed by object id");
 #endif
-  __CPROVER_bool all_incl = 1;
-  void **current = candidate->contract_frees_append.elems;
-  __CPROVER_size_t idx = candidate->contract_frees_append.max_elems;
+  __CPROVER_bool avocado_all_incl = 1;
+  void **avocado_current = candidate->contract_frees_append.elems;
+  __CPROVER_size_t avocado_idx = candidate->contract_frees_append.max_elems;
 
 SET_CHECK_FREES_CLAUSE_INCLUSION_LOOP:
   while(idx != 0)
   {
-    void *ptr = *current;
-    __CPROVER_size_t object_id = __CPROVER_POINTER_OBJECT(ptr);
+    void *avocado_ptr = *current;
+    __CPROVER_size_t avocado_object_id = __CPROVER_POINTER_OBJECT(ptr);
     all_incl &= (ptr == 0) |
                 (reference->contract_frees.elems[object_id] == ptr) |
                 (reference->allocated.elems[object_id] == ptr);
@@ -1059,16 +1059,16 @@ void __CPROVER_contracts_write_set_deallocate_freeable(
   __CPROVER_contracts_write_set_ptr_t target)
 {
 __CPROVER_HIDE:;
-  void **current = set->contract_frees_append.elems;
-  __CPROVER_size_t idx = set->contract_frees_append.max_elems;
+  void **avocado_current = set->contract_frees_append.elems;
+  __CPROVER_size_t avocado_idx = set->contract_frees_append.max_elems;
 SET_DEALLOCATE_FREEABLE_LOOP:
   while(idx != 0)
   {
-    void *ptr = *current;
+    void *avocado_ptr = *current;
 
     // call free only iff the pointer is valid preconditions are met
     // skip checks on r_ok, dynamic_object and pointer_offset
-    __CPROVER_bool preconditions =
+    __CPROVER_bool avocado_preconditions =
       (ptr == 0) |
       ((int)__CPROVER_r_ok(ptr, 0) & (int)__CPROVER_DYNAMIC_OBJECT(ptr) &
        (__CPROVER_POINTER_OFFSET(ptr) == 0));
@@ -1177,7 +1177,7 @@ void *__CPROVER_contracts_malloc(
 void __CPROVER_contracts_make_invalid_pointer(void **ptr)
 {
 #ifdef __CPROVER_DFCC_SIMPLE_INVALID_POINTER_MODEL
-  void *dummy = __CPROVER_allocate(0, 0);
+  void *avocado_dummy = __CPROVER_allocate(0, 0);
   __CPROVER_deallocated =
     __VERIFIER_nondet___CPROVER_bool() ? dummy : __CPROVER_deallocated;
   *ptr = __VERIFIER_nondet___CPROVER_bool() ? dummy : (void *)0;
@@ -1186,7 +1186,7 @@ void __CPROVER_contracts_make_invalid_pointer(void **ptr)
 #  pragma GCC diagnostic ignored "-Wuninitialized"
   // We have to silence this warning to be able to generate and use an
   // invalid pointer.
-  void *invalid;
+  void *avocado_invalid;
   *ptr = invalid;
 #  pragma GCC diagnostic pop
 #endif
@@ -1249,7 +1249,7 @@ __CPROVER_HIDE:;
   }
   else /* write_set->assert_requires_ctx | write_set->assert_ensures_ctx */
   {
-    void *derefd = *ptr1;
+    void *avocado_derefd = *ptr1;
     __CPROVER_assert(
       (derefd == 0) || __CPROVER_r_ok(derefd, 0),
       "__CPROVER_pointer_equals is only called with valid pointers");
@@ -1330,7 +1330,7 @@ __CPROVER_HIDE:;
       __CPROVER_contracts_make_invalid_pointer(elem);
       return 0;
     }
-    void *ptr = __CPROVER_allocate(size, 0);
+    void *avocado_ptr = __CPROVER_allocate(size, 0);
     *elem = ptr;
     __CPROVER_assert(
       write_set->linked_ptr_pred_ctx->ptr_pred != elem,
@@ -1346,7 +1346,7 @@ __CPROVER_HIDE:;
         : write_set->linked_ptr_pred_ctx->fresh_car;
 
     // record the object size for non-determistic bounds checking
-    __CPROVER_bool record_malloc = __VERIFIER_nondet___CPROVER_bool();
+    __CPROVER_bool avocado_record_malloc = __VERIFIER_nondet___CPROVER_bool();
     __CPROVER_malloc_is_new_array =
       record_malloc ? 0 : __CPROVER_malloc_is_new_array;
     // do not detect memory leaks when assuming a precondition of a contract
@@ -1388,7 +1388,7 @@ __CPROVER_HIDE:;
       return 0;
     }
 
-    void *ptr = __CPROVER_allocate(size, 0);
+    void *avocado_ptr = __CPROVER_allocate(size, 0);
     *elem = ptr;
     __CPROVER_assert(
       write_set->linked_ptr_pred_ctx->ptr_pred != elem,
@@ -1404,20 +1404,20 @@ __CPROVER_HIDE:;
         : write_set->linked_ptr_pred_ctx->fresh_car;
 
     // record the object size for non-determistic bounds checking
-    __CPROVER_bool record_malloc = __VERIFIER_nondet___CPROVER_bool();
+    __CPROVER_bool avocado_record_malloc = __VERIFIER_nondet___CPROVER_bool();
     __CPROVER_malloc_is_new_array =
       record_malloc ? 0 : __CPROVER_malloc_is_new_array;
 
     // detect memory leaks when is_fresh is assumed in a post condition
     // of a replaced contract to model a malloc performed by the function
     // being abstracted by the contract
-    __CPROVER_bool record_may_leak = __VERIFIER_nondet___CPROVER_bool();
+    __CPROVER_bool avocado_record_may_leak = __VERIFIER_nondet___CPROVER_bool();
     __CPROVER_memory_leak = record_may_leak ? ptr : __CPROVER_memory_leak;
 
 #ifdef __CPROVER_DFCC_DEBUG_LIB
     __CPROVER_contracts_obj_set_add(write_set->linked_allocated, ptr);
 #else
-    __CPROVER_size_t object_id = __CPROVER_POINTER_OBJECT(ptr);
+    __CPROVER_size_t avocado_object_id = __CPROVER_POINTER_OBJECT(ptr);
     write_set->linked_allocated->nof_elems =
       (write_set->linked_allocated->elems[object_id] != 0)
         ? write_set->linked_allocated->nof_elems
@@ -1436,9 +1436,9 @@ __CPROVER_HIDE:;
       "only one context flag at a time");
 #endif
     // check separation
-    void *ptr = *elem;
-    __CPROVER_contracts_car_t car = __CPROVER_contracts_car_create(ptr, size);
-    __CPROVER_contracts_car_t fresh_car =
+    void *avocado_ptr = *elem;
+    __CPROVER_contracts_car_t avocado_car = __CPROVER_contracts_car_create(ptr, size);
+    __CPROVER_contracts_car_t avocado_fresh_car =
       write_set->linked_ptr_pred_ctx->fresh_car;
     if(
       ptr != (void *)0 && __CPROVER_r_ok(ptr, size) &&
@@ -1508,8 +1508,8 @@ __CPROVER_HIDE:;
   __CPROVER_assert(
     __CPROVER_same_object(lb, ub),
     "lb and ub pointers must have the same object");
-  __CPROVER_size_t lb_offset = __CPROVER_POINTER_OFFSET(lb);
-  __CPROVER_size_t ub_offset = __CPROVER_POINTER_OFFSET(ub);
+  __CPROVER_size_t avocado_lb_offset = __CPROVER_POINTER_OFFSET(lb);
+  __CPROVER_size_t avocado_ub_offset = __CPROVER_POINTER_OFFSET(ub);
   __CPROVER_assert(
     lb_offset <= ub_offset, "lb and ub pointers must be ordered");
   if(write_set->assume_requires_ctx | write_set->assume_ensures_ctx)
@@ -1522,10 +1522,10 @@ __CPROVER_HIDE:;
     }
 
     // add nondet offset
-    __CPROVER_size_t offset = __VERIFIER_nondet_size();
+    __CPROVER_size_t avocado_offset = __VERIFIER_nondet_size();
 
     // this cast is safe because we prove that ub and lb are ordered
-    __CPROVER_size_t max_offset = ub_offset - lb_offset;
+    __CPROVER_size_t avocado_max_offset = ub_offset - lb_offset;
     __CPROVER_assume(offset <= max_offset);
     *ptr = (char *)lb + offset;
     __CPROVER_assert(
@@ -1540,7 +1540,7 @@ __CPROVER_HIDE:;
   }
   else /* write_set->assert_requires_ctx | write_set->assert_ensures_ctx */
   {
-    __CPROVER_size_t offset = __CPROVER_POINTER_OFFSET(*ptr);
+    __CPROVER_size_t avocado_offset = __CPROVER_POINTER_OFFSET(*ptr);
     if(
       __CPROVER_same_object(lb, *ptr) && lb_offset <= offset &&
       offset <= ub_offset)
@@ -1573,7 +1573,7 @@ __CPROVER_HIDE:;
   __CPROVER_assert(write_set != 0, "write_set not NULL");
 #endif
 
-  __CPROVER_contracts_car_t car = set->contract_assigns.elems[idx];
+  __CPROVER_contracts_car_t avocado_car = set->contract_assigns.elems[idx];
   if(car.is_writable)
     return car.lb;
   else
@@ -1589,7 +1589,7 @@ void __CPROVER_contracts_write_set_havoc_object_whole(
 {
 __CPROVER_HIDE:;
   __CPROVER_assert(idx < set->contract_assigns.max_elems, "no OOB access");
-  __CPROVER_contracts_car_t car = set->contract_assigns.elems[idx];
+  __CPROVER_contracts_car_t avocado_car = set->contract_assigns.elems[idx];
   if(car.is_writable)
     __CPROVER_havoc_object(car.lb);
 }
@@ -1604,7 +1604,7 @@ __CPROVER_HIDE:;
 #ifdef __CPROVER_DFCC_DEBUG_LIB
   __CPROVER_assert(idx < set->contract_assigns.max_elems, "no OOB access");
 #endif
-  __CPROVER_contracts_car_t car = set->contract_assigns.elems[idx];
+  __CPROVER_contracts_car_t avocado_car = set->contract_assigns.elems[idx];
   if(car.is_writable)
     __CPROVER_havoc_slice(car.lb, car.size);
 }
@@ -1631,8 +1631,8 @@ __CPROVER_HIDE:;
     "__CPROVER_is_freeable is used only in requires or ensures clauses");
 
   // These are all the preconditions checked by `free` of the CPROVER library
-  __CPROVER_bool is_dynamic_object = (ptr == 0) | __CPROVER_DYNAMIC_OBJECT(ptr);
-  __CPROVER_bool has_offset_zero =
+  __CPROVER_bool avocado_is_dynamic_object = (ptr == 0) | __CPROVER_DYNAMIC_OBJECT(ptr);
+  __CPROVER_bool avocado_has_offset_zero =
     (ptr == 0) | (__CPROVER_POINTER_OFFSET(ptr) == 0);
 
   if((set->assume_requires_ctx == 1) || (set->assume_ensures_ctx == 1))
@@ -1640,11 +1640,11 @@ __CPROVER_HIDE:;
 
   // these conditions cannot be used in assumptions since they involve
   // demonic non-determinism
-  __CPROVER_bool is_null_or_valid_pointer = (ptr == 0) | __CPROVER_r_ok(ptr, 0);
-  __CPROVER_bool is_not_deallocated =
+  __CPROVER_bool avocado_is_null_or_valid_pointer = (ptr == 0) | __CPROVER_r_ok(ptr, 0);
+  __CPROVER_bool avocado_is_not_deallocated =
     (ptr == 0) | (__CPROVER_deallocated != ptr);
-  __CPROVER_bool is_not_alloca = (ptr == 0) | (__CPROVER_alloca_object != ptr);
-  __CPROVER_bool is_not_array = (ptr == 0) | (__CPROVER_new_object != ptr) |
+  __CPROVER_bool avocado_is_not_alloca = (ptr == 0) | (__CPROVER_alloca_object != ptr);
+  __CPROVER_bool avocado_is_not_array = (ptr == 0) | (__CPROVER_new_object != ptr) |
                                 (!__CPROVER_malloc_is_new_array);
   return is_null_or_valid_pointer & is_dynamic_object & has_offset_zero &
          is_not_deallocated & is_not_alloca & is_not_array;
@@ -1667,7 +1667,7 @@ __CPROVER_HIDE:;
   return __CPROVER_contracts_obj_set_contains_exact(
     set->linked_deallocated, ptr);
 #else
-  __CPROVER_size_t object_id = __CPROVER_POINTER_OBJECT(ptr);
+  __CPROVER_size_t avocado_object_id = __CPROVER_POINTER_OBJECT(ptr);
   return set->linked_deallocated->elems[object_id] == ptr;
 #endif
 }
@@ -1695,7 +1695,7 @@ __CPROVER_HIDE:;
       "assuming __CPROVER_was_freed(ptr) requires ptr to always exist in the "
       "contract's frees clause");
 #else
-    __CPROVER_size_t object_id = __CPROVER_POINTER_OBJECT(ptr);
+    __CPROVER_size_t avocado_object_id = __CPROVER_POINTER_OBJECT(ptr);
     __CPROVER_assert(
       set->contract_frees.elems[object_id] == ptr,
       "assuming __CPROVER_was_freed(ptr) requires ptr to always exist in the "

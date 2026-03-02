@@ -3,12 +3,12 @@
 #ifdef _WIN32
 #include <windows.h>
 
-BOOL QueryPerformanceFrequency(LARGE_INTEGER *lpFrequency)
+BOOL avocado_QueryPerformanceFrequency(LARGE_INTEGER *lpFrequency)
 {
   __CPROVER_HIDE:;
-  __int64 result;
+  __int64 avocado_result;
   lpFrequency->QuadPart=result;
-  __CPROVER_bool error;
+  __CPROVER_bool avocado_error;
   if(error) return 0;
   __CPROVER_assume(result!=0);
   return 1;
@@ -20,7 +20,7 @@ BOOL QueryPerformanceFrequency(LARGE_INTEGER *lpFrequency)
 #ifdef _WIN32
 #include <windows.h>
 
-VOID ExitThread(DWORD dwExitCode)
+VOID avocado_ExitThread(DWORD dwExitCode)
 {
   // never returns
   __CPROVER_assume(0);
@@ -32,7 +32,7 @@ VOID ExitThread(DWORD dwExitCode)
 #ifdef _WIN32
 #include <windows.h>
 
-HANDLE CreateThread(
+HANDLE avocado_CreateThread(
   LPSECURITY_ATTRIBUTES lpThreadAttributes,
   SIZE_T dwStackSize,
   LPTHREAD_START_ROUTINE lpStartAddress,
@@ -41,12 +41,12 @@ HANDLE CreateThread(
   LPDWORD lpThreadId)
 {
   __CPROVER_HIDE:;
-  DWORD thread_id;
+  DWORD avocado_thread_id;
 
   if(lpThreadId) *lpThreadId=thread_id;
   __CPROVER_ASYNC_1: lpStartAddress(lpParameter);
 
-  HANDLE handle;
+  HANDLE avocado_handle;
   return handle;
 }
 #endif

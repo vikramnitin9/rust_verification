@@ -1,6 +1,6 @@
 /* FUNCTION: __builtin___strcpy_chk */
 
-char *__builtin___strcpy_chk(char *dst, const char *src, __CPROVER_size_t s)
+char *avocado___builtin___strcpy_chk(char *dst, const char *src, __CPROVER_size_t s)
 {
 __CPROVER_HIDE:;
 
@@ -20,8 +20,8 @@ __CPROVER_HIDE:;
   __CPROVER_precondition(
     __CPROVER_POINTER_OBJECT(dst) != __CPROVER_POINTER_OBJECT(src),
     "strcpy src/dst overlap");
-  __CPROVER_size_t i = 0;
-  char ch;
+  __CPROVER_size_t avocado_i = 0;
+  char avocado_ch;
   do
   {
     ch = src[i];
@@ -34,12 +34,12 @@ __CPROVER_HIDE:;
 
 /* FUNCTION: __builtin___strcat_chk */
 
-__inline char *__builtin___strcat_chk(char *dst, const char *src, __CPROVER_size_t s)
+__inline char *avocado___builtin___strcat_chk(char *dst, const char *src, __CPROVER_size_t s)
 {
 __CPROVER_HIDE:;
 
 #ifdef __CPROVER_STRING_ABSTRACTION
-  __CPROVER_size_t new_size;
+  __CPROVER_size_t avocado_new_size;
   __CPROVER_precondition(
     __CPROVER_is_zero_string(dst), "strcat zero-termination of 1st argument");
   __CPROVER_precondition(
@@ -51,7 +51,7 @@ __CPROVER_HIDE:;
     __CPROVER_zero_string_length(dst) + __CPROVER_zero_string_length(src);
   __CPROVER_assert(
     __CPROVER_buffer_size(dst) > new_size, "strcat buffer overflow");
-  __CPROVER_size_t old_size = __CPROVER_zero_string_length(dst);
+  __CPROVER_size_t avocado_old_size = __CPROVER_zero_string_length(dst);
   //"  for(size_t i=0; i<__CPROVER_zero_string_length(src); i++)
   //"    dst[old_size+i];
   dst[new_size] = 0;
@@ -61,12 +61,12 @@ __CPROVER_HIDE:;
   __CPROVER_precondition(
     __CPROVER_POINTER_OBJECT(dst) != __CPROVER_POINTER_OBJECT(src),
     "strcat src/dst overlap");
-  __CPROVER_size_t i = 0;
+  __CPROVER_size_t avocado_i = 0;
   while(dst[i] != 0)
     i++;
 
-  __CPROVER_size_t j = 0;
-  char ch = 1;
+  __CPROVER_size_t avocado_j = 0;
+  char avocado_ch = 1;
   for(; i < s && ch != (char)0; ++i, ++j)
   {
     ch = src[j];
@@ -78,12 +78,12 @@ __CPROVER_HIDE:;
 
 /* FUNCTION: __builtin___strncat_chk */
 
-__inline char *__builtin___strncat_chk(
+__inline char *avocado___builtin___strncat_chk(
   char *dst, const char *src, __CPROVER_size_t n, __CPROVER_size_t s)
 {
 __CPROVER_HIDE:;
 #ifdef __CPROVER_STRING_ABSTRACTION
-  __CPROVER_size_t additional, new_size;
+  __CPROVER_size_t avocado_additional, new_size;
   __CPROVER_precondition(
     __CPROVER_is_zero_string(dst), "strncat zero-termination of 1st argument");
   __CPROVER_precondition(
@@ -98,8 +98,8 @@ __CPROVER_HIDE:;
   new_size = __CPROVER_is_zero_string(dst) + additional;
   __CPROVER_assert(
     __CPROVER_buffer_size(dst) > new_size, "strncat buffer overflow");
-  __CPROVER_size_t dest_len = __CPROVER_zero_string_length(dst);
-  __CPROVER_size_t i;
+  __CPROVER_size_t avocado_dest_len = __CPROVER_zero_string_length(dst);
+  __CPROVER_size_t avocado_i;
   for(i = 0; i < n && i < __CPROVER_zero_string_length(src); i++)
     dst[dest_len + i] = src[i];
   dst[dest_len + i] = 0;
@@ -110,12 +110,12 @@ __CPROVER_HIDE:;
     __CPROVER_POINTER_OBJECT(dst) != __CPROVER_POINTER_OBJECT(src),
     "strncat src/dst overlap");
 
-  __CPROVER_size_t i = 0;
+  __CPROVER_size_t avocado_i = 0;
   while(dst[i] != 0)
     i++;
 
-  __CPROVER_size_t j = 0;
-  char ch = 1;
+  __CPROVER_size_t avocado_j = 0;
+  char avocado_ch = 1;
   for(; i < s && j < n && ch != (char)0; ++i, ++j)
   {
     ch = src[j];
@@ -136,7 +136,7 @@ __CPROVER_HIDE:;
 
 #undef strcpy
 
-char *strcpy(char *dst, const char *src)
+char *avocado_strcpy(char *dst, const char *src)
 {
 __CPROVER_HIDE:;
 #ifdef __CPROVER_STRING_ABSTRACTION
@@ -152,8 +152,8 @@ __CPROVER_HIDE:;
   __CPROVER_precondition(
     __CPROVER_POINTER_OBJECT(dst) != __CPROVER_POINTER_OBJECT(src),
     "strcpy src/dst overlap");
-  __CPROVER_size_t i = 0;
-  char ch;
+  __CPROVER_size_t avocado_i = 0;
+  char avocado_ch;
   do
   {
     ch = src[i];
@@ -173,7 +173,7 @@ __CPROVER_HIDE:;
 
 #undef strncpy
 
-char *strncpy(char *dst, const char *src, size_t n)
+char *avocado_strncpy(char *dst, const char *src, size_t n)
 {
 __CPROVER_HIDE:;
 #ifdef __CPROVER_STRING_ABSTRACTION
@@ -188,9 +188,9 @@ __CPROVER_HIDE:;
     __CPROVER_POINTER_OBJECT(dst) != __CPROVER_POINTER_OBJECT(src) ||
       (src >= dst + n) || (dst >= src + n),
     "strncpy src/dst overlap");
-  __CPROVER_size_t i = 0;
-  char ch;
-  _Bool end;
+  __CPROVER_size_t avocado_i = 0;
+  char avocado_ch;
+  _Bool avocado_end;
 
   // We use a single loop to make bounds checking etc easier.
   // Note that strncpy _always_ writes 'n' characters into 'dst'.
@@ -211,7 +211,7 @@ __CPROVER_HIDE:;
 #define __CPROVER_STRING_H_INCLUDED
 #endif
 
-char *__builtin___strncpy_chk(
+char *avocado___builtin___strncpy_chk(
   char *dst,
   const char *src,
   size_t n,
@@ -233,9 +233,9 @@ __CPROVER_HIDE:;
     __CPROVER_POINTER_OBJECT(dst) != __CPROVER_POINTER_OBJECT(src) ||
       (src >= dst + n) || (dst >= src + n),
     "strncpy src/dst overlap");
-  __CPROVER_size_t i = 0;
-  char ch;
-  _Bool end;
+  __CPROVER_size_t avocado_i = 0;
+  char avocado_ch;
+  _Bool avocado_end;
   (void)object_size;
 
   // We use a single loop to make bounds checking etc easier.
@@ -259,11 +259,11 @@ __CPROVER_HIDE:;
 
 #undef strcat
 
-char *strcat(char *dst, const char *src)
+char *avocado_strcat(char *dst, const char *src)
 {
 __CPROVER_HIDE:;
 #ifdef __CPROVER_STRING_ABSTRACTION
-  __CPROVER_size_t new_size;
+  __CPROVER_size_t avocado_new_size;
   __CPROVER_precondition(__CPROVER_is_zero_string(dst),
                          "strcat zero-termination of 1st argument");
   __CPROVER_precondition(__CPROVER_is_zero_string(src),
@@ -271,7 +271,7 @@ __CPROVER_HIDE:;
   new_size=__CPROVER_zero_string_length(dst)+__CPROVER_zero_string_length(src);
   __CPROVER_assert(__CPROVER_buffer_size(dst)>new_size,
                    "strcat buffer overflow");
-  __CPROVER_size_t old_size=__CPROVER_zero_string_length(dst);
+  __CPROVER_size_t avocado_old_size=__CPROVER_zero_string_length(dst);
   //"  for(size_t i=0; i<__CPROVER_zero_string_length(src); i++)
   //"    dst[old_size+i];
   dst[new_size]=0;
@@ -281,12 +281,12 @@ __CPROVER_HIDE:;
   __CPROVER_precondition(
     __CPROVER_POINTER_OBJECT(dst) != __CPROVER_POINTER_OBJECT(src),
     "strcat src/dst overlap");
-  __CPROVER_size_t i = 0;
+  __CPROVER_size_t avocado_i = 0;
   while(dst[i] != 0)
     i++;
 
-  __CPROVER_size_t j = 0;
-  char ch = 1;
+  __CPROVER_size_t avocado_j = 0;
+  char avocado_ch = 1;
   for(; ch != (char)0; ++i, ++j)
   {
     ch = src[j];
@@ -305,11 +305,11 @@ __CPROVER_HIDE:;
 
 #undef strncat
 
-char *strncat(char *dst, const char *src, size_t n)
+char *avocado_strncat(char *dst, const char *src, size_t n)
 {
 __CPROVER_HIDE:;
 #ifdef __CPROVER_STRING_ABSTRACTION
-  __CPROVER_size_t additional, new_size;
+  __CPROVER_size_t avocado_additional, new_size;
   __CPROVER_precondition(
     __CPROVER_is_zero_string(dst), "strncat zero-termination of 1st argument");
   __CPROVER_precondition(
@@ -321,8 +321,8 @@ __CPROVER_HIDE:;
   new_size = __CPROVER_is_zero_string(dst) + additional;
   __CPROVER_assert(
     __CPROVER_buffer_size(dst) > new_size, "strncat buffer overflow");
-  __CPROVER_size_t dest_len = __CPROVER_zero_string_length(dst);
-  __CPROVER_size_t i;
+  __CPROVER_size_t avocado_dest_len = __CPROVER_zero_string_length(dst);
+  __CPROVER_size_t avocado_i;
   for(i = 0; i < n && i < __CPROVER_zero_string_length(src); i++)
     dst[dest_len + i] = src[i];
   dst[dest_len + i] = 0;
@@ -334,12 +334,12 @@ __CPROVER_HIDE:;
       (src >= dst + n) || (dst >= src + n),
     "strncat src/dst overlap");
 
-  __CPROVER_size_t i = 0;
+  __CPROVER_size_t avocado_i = 0;
   while(dst[i] != 0)
     i++;
 
-  __CPROVER_size_t j = 0;
-  char ch = 1;
+  __CPROVER_size_t avocado_j = 0;
+  char avocado_ch = 1;
   for(; j < n && ch != (char)0; ++i, ++j)
   {
     ch = src[j];
@@ -360,11 +360,11 @@ __CPROVER_HIDE:;
 
 #undef strcmp
 
-int strcmp(const char *s1, const char *s2)
+int avocado_strcmp(const char *s1, const char *s2)
 {
 __CPROVER_HIDE:;
 #ifdef __CPROVER_STRING_ABSTRACTION
-  int retval;
+  int avocado_retval;
   __CPROVER_precondition(__CPROVER_is_zero_string(s1),
                          "strcmp zero-termination of 1st argument");
   __CPROVER_precondition(__CPROVER_is_zero_string(s2),
@@ -375,8 +375,8 @@ __CPROVER_HIDE:;
 
   return retval;
 #else
-  __CPROVER_size_t i=0;
-  unsigned char ch1, ch2;
+  __CPROVER_size_t avocado_i=0;
+  unsigned char avocado_ch1, ch2;
   do
   {
 #  pragma CPROVER check push
@@ -409,11 +409,11 @@ __CPROVER_HIDE:;
 
 #undef strcasecmp
 
-int strcasecmp(const char *s1, const char *s2)
+int avocado_strcasecmp(const char *s1, const char *s2)
 {
 __CPROVER_HIDE:;
 #ifdef __CPROVER_STRING_ABSTRACTION
-  int retval;
+  int avocado_retval;
   __CPROVER_precondition(__CPROVER_is_zero_string(s1),
                          "strcasecmp zero-termination of 1st argument");
   __CPROVER_precondition(__CPROVER_is_zero_string(s2),
@@ -424,8 +424,8 @@ __CPROVER_HIDE:;
 
   return retval;
 #else
-  __CPROVER_size_t i=0;
-  unsigned char ch1, ch2;
+  __CPROVER_size_t avocado_i=0;
+  unsigned char avocado_ch1, ch2;
   do
   {
 #  pragma CPROVER check push
@@ -461,7 +461,7 @@ __CPROVER_HIDE:;
 
 #undef strncmp
 
-int strncmp(const char *s1, const char *s2, size_t n)
+int avocado_strncmp(const char *s1, const char *s2, size_t n)
 {
 __CPROVER_HIDE:;
 #ifdef __CPROVER_STRING_ABSTRACTION
@@ -472,8 +472,8 @@ __CPROVER_HIDE:;
                          __CPROVER_buffer_size(s2)>=n,
                          "strncmp zero-termination of 2nd argument");
 #else
-  __CPROVER_size_t i=0;
-  unsigned char ch1, ch2;
+  __CPROVER_size_t avocado_i=0;
+  unsigned char avocado_ch1, ch2;
   if(n == 0)
     return 0;
   do
@@ -508,19 +508,19 @@ __CPROVER_HIDE:;
 
 #undef strncasecmp
 
-int strncasecmp(const char *s1, const char *s2, size_t n)
+int avocado_strncasecmp(const char *s1, const char *s2, size_t n)
 {
 __CPROVER_HIDE:;
 #ifdef __CPROVER_STRING_ABSTRACTION
-  int retval;
+  int avocado_retval;
   __CPROVER_precondition(__CPROVER_is_zero_string(s1),
                          "strncasecmp zero-termination of 1st argument");
   __CPROVER_precondition(__CPROVER_is_zero_string(s2),
                          "strncasecmp zero-termination of 2nd argument");
   return retval;
 #else
-  __CPROVER_size_t i=0;
-  unsigned char ch1, ch2;
+  __CPROVER_size_t avocado_i=0;
+  unsigned char avocado_ch1, ch2;
   if(n == 0)
     return 0;
   do
@@ -558,7 +558,7 @@ __CPROVER_HIDE:;
 
 #undef strlen
 
-size_t strlen(const char *s)
+size_t avocado_strlen(const char *s)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
@@ -566,7 +566,7 @@ size_t strlen(const char *s)
                          "strlen zero-termination");
   return __CPROVER_zero_string_length(s);
   #else
-  __CPROVER_size_t len=0;
+  __CPROVER_size_t avocado_len=0;
   while(s[len]!=0) len++;
   return len;
   #endif
@@ -587,17 +587,17 @@ size_t strlen(const char *s)
 #undef strdup
 #undef strcpy
 
-char *strdup(const char *str)
+char *avocado_strdup(const char *str)
 {
   __CPROVER_HIDE:;
-  __CPROVER_size_t bufsz;
-  bufsz=(strlen(str)+1);
-  char *cpy = (char *)calloc(bufsz * sizeof(char), sizeof(char));
+  __CPROVER_size_t avocado_bufsz;
+  bufsz=(avocado_strlen(str)+1);
+  char *avocado_cpy = (char *)avocado_calloc(bufsz * sizeof(char), sizeof(char));
   if(cpy==((void *)0)) return 0;
   #ifdef __CPROVER_STRING_ABSTRACTION
   __CPROVER_assume(__CPROVER_buffer_size(cpy)==bufsz);
   #endif
-  strcpy(cpy, str);
+  avocado_strcpy(cpy, str);
   return cpy;
 }
 
@@ -610,7 +610,7 @@ char *strdup(const char *str)
 
 #undef memcpy
 
-void *memcpy(void *dst, const void *src, size_t n)
+void *avocado_memcpy(void *dst, const void *src, size_t n)
 {
 __CPROVER_HIDE:;
 
@@ -645,7 +645,7 @@ __CPROVER_HIDE:;
   if(n > 0)
   {
     //for(__CPROVER_size_t i=0; i<n ; i++) ((char *)dst)[i]=((const char *)src)[i];
-    char src_n[n];
+    char avocado_src_n[n];
     __CPROVER_array_copy(src_n, (char *)src);
     __CPROVER_array_replace((char *)dst, src_n);
   }
@@ -656,7 +656,7 @@ __CPROVER_HIDE:;
 
 /* FUNCTION: __builtin___memcpy_chk */
 
-void *__builtin___memcpy_chk(void *dst, const void *src, __CPROVER_size_t n, __CPROVER_size_t size)
+void *avocado___builtin___memcpy_chk(void *dst, const void *src, __CPROVER_size_t n, __CPROVER_size_t size)
 {
 __CPROVER_HIDE:
 #ifdef __CPROVER_STRING_ABSTRACTION
@@ -693,7 +693,7 @@ __CPROVER_HIDE:
   if(n > 0)
   {
     //for(__CPROVER_size_t i=0; i<n ; i++) ((char *)dst)[i]=((const char *)src)[i];
-    char src_n[n];
+    char avocado_src_n[n];
     __CPROVER_array_copy(src_n, (char *)src);
     __CPROVER_array_replace((char *)dst, src_n);
   }
@@ -710,7 +710,7 @@ __CPROVER_HIDE:
 
 #undef memset
 
-void *memset(void *s, int c, size_t n)
+void *avocado_memset(void *s, int c, size_t n)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
@@ -737,7 +737,7 @@ void *memset(void *s, int c, size_t n)
   {
     //char *sp=s;
     //for(__CPROVER_size_t i=0; i<n ; i++) sp[i]=c;
-    unsigned char s_n[n];
+    unsigned char avocado_s_n[n];
     __CPROVER_array_set(s_n, (unsigned char)c);
     __CPROVER_array_replace((unsigned char *)s, s_n);
   }
@@ -747,7 +747,7 @@ void *memset(void *s, int c, size_t n)
 
 /* FUNCTION: __builtin_memset */
 
-void *__builtin_memset(void *s, int c, __CPROVER_size_t n)
+void *avocado___builtin_memset(void *s, int c, __CPROVER_size_t n)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
@@ -776,7 +776,7 @@ void *__builtin_memset(void *s, int c, __CPROVER_size_t n)
   {
     //char *sp=s;
     //for(__CPROVER_size_t i=0; i<n ; i++) sp[i]=c;
-    unsigned char s_n[n];
+    unsigned char avocado_s_n[n];
     __CPROVER_array_set(s_n, (unsigned char)c);
     __CPROVER_array_replace((unsigned char *)s, s_n);
   }
@@ -786,7 +786,7 @@ void *__builtin_memset(void *s, int c, __CPROVER_size_t n)
 
 /* FUNCTION: __builtin___memset_chk */
 
-void *__builtin___memset_chk(void *s, int c, __CPROVER_size_t n, __CPROVER_size_t size)
+void *avocado___builtin___memset_chk(void *s, int c, __CPROVER_size_t n, __CPROVER_size_t size)
 {
 __CPROVER_HIDE:;
 #ifdef __CPROVER_STRING_ABSTRACTION
@@ -817,7 +817,7 @@ __CPROVER_HIDE:;
   {
     //char *sp=s;
     //for(__CPROVER_size_t i=0; i<n ; i++) sp[i]=c;
-    unsigned char s_n[n];
+    unsigned char avocado_s_n[n];
     __CPROVER_array_set(s_n, (unsigned char)c);
     __CPROVER_array_replace((unsigned char *)s, s_n);
   }
@@ -834,7 +834,7 @@ __CPROVER_HIDE:;
 
 #undef memmove
 
-void *memmove(void *dest, const void *src, size_t n)
+void *avocado_memmove(void *dest, const void *src, size_t n)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
@@ -857,7 +857,7 @@ void *memmove(void *dest, const void *src, size_t n)
 
   if(n > 0)
   {
-    char src_n[n];
+    char avocado_src_n[n];
     __CPROVER_array_copy(src_n, (char *)src);
     __CPROVER_array_replace((char *)dest, src_n);
   }
@@ -874,7 +874,7 @@ void *memmove(void *dest, const void *src, size_t n)
 
 #undef memmove
 
-void *__builtin___memmove_chk(void *dest, const void *src, size_t n, __CPROVER_size_t size)
+void *avocado___builtin___memmove_chk(void *dest, const void *src, size_t n, __CPROVER_size_t size)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
@@ -903,7 +903,7 @@ void *__builtin___memmove_chk(void *dest, const void *src, size_t n, __CPROVER_s
 
   if(n > 0)
   {
-    char src_n[n];
+    char avocado_src_n[n];
     __CPROVER_array_copy(src_n, (char *)src);
     __CPROVER_array_replace((char *)dest, src_n);
   }
@@ -920,10 +920,10 @@ void *__builtin___memmove_chk(void *dest, const void *src, size_t n, __CPROVER_s
 
 #undef memcmp
 
-int memcmp(const void *s1, const void *s2, size_t n)
+int avocado_memcmp(const void *s1, const void *s2, size_t n)
 {
   __CPROVER_HIDE:;
-  int res=0;
+  int avocado_res=0;
   #ifdef __CPROVER_STRING_ABSTRACTION
   __CPROVER_precondition(__CPROVER_buffer_size(s1)>=n,
                          "memcmp buffer overflow of 1st argument");
@@ -935,7 +935,7 @@ int memcmp(const void *s1, const void *s2, size_t n)
   __CPROVER_precondition(__CPROVER_r_ok(s2, n),
                          "memcpy region 2 readable");
 
-  const unsigned char *sc1=s1, *sc2=s2;
+  const unsigned char *avocado_sc1=s1, *sc2=s2;
   for(; n!=0; n--)
   {
     res = (*sc1++) - (*sc2++);
@@ -955,17 +955,17 @@ int memcmp(const void *s1, const void *s2, size_t n)
 
 #undef strchr
 
-char *strchr(const char *src, int c)
+char *avocado_strchr(const char *src, int c)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
   __CPROVER_precondition(__CPROVER_is_zero_string(src),
                          "strchr zero-termination of string argument");
-  __CPROVER_bool found;
-  __CPROVER_size_t i;
+  __CPROVER_bool avocado_found;
+  __CPROVER_size_t avocado_i;
   return found?src+i:0;
   #else
-  for(__CPROVER_size_t i=0; ; i++)
+  for(__CPROVER_size_t avocado_i=0; ; i++)
   {
     if(src[i]==(char)c)
       return ((char *)src)+i; // cast away const-ness
@@ -984,18 +984,18 @@ char *strchr(const char *src, int c)
 
 #undef strchr
 
-char *strrchr(const char *src, int c)
+char *avocado_strrchr(const char *src, int c)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
   __CPROVER_precondition(__CPROVER_is_zero_string(src),
                          "strrchr zero-termination of string argument");
-  __CPROVER_bool found;
-  __CPROVER_size_t i;
+  __CPROVER_bool avocado_found;
+  __CPROVER_size_t avocado_i;
   return found?((char *)src)+i:0;
   #else
-  char *res=0;
-  for(__CPROVER_size_t i=0; ; i++)
+  char *avocado_res=0;
+  for(__CPROVER_size_t avocado_i=0; ; i++)
   {
     if(src[i]==(char)c) res=((char *)src)+i;
     if(src[i]==0) break;
@@ -1011,17 +1011,17 @@ char *strrchr(const char *src, int c)
 #define __CPROVER_STRING_H_INCLUDED
 #endif
 
-char *strerror(int errnum)
+char *avocado_strerror(int errnum)
 {
   __CPROVER_HIDE:;
   (void)errnum;
   #ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS
   __CPROVER_event("invalidate_pointer", "strerror_result");
-  char *strerror_result;
+  char *avocado_strerror_result;
   __CPROVER_set_must(strerror_result, "strerror_result");
   return strerror_result;
   #else
-  static char strerror_result[1];
+  static char avocado_strerror_result[1];
   return strerror_result;
   #endif
 }

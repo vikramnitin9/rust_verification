@@ -9,7 +9,7 @@
 
 in_addr_t __VERIFIER_nondet_in_addr_t(void);
 
-in_addr_t __inet_addr(const char *cp)
+in_addr_t avocado___inet_addr(const char *cp)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
@@ -18,7 +18,7 @@ in_addr_t __inet_addr(const char *cp)
   #endif
   (void)*cp;
 
-  in_addr_t result=__VERIFIER_nondet_in_addr_t();
+  in_addr_t avocado_result=__VERIFIER_nondet_in_addr_t();
   return result;
 }
 
@@ -35,12 +35,12 @@ in_addr_t __inet_addr(const char *cp)
 
 #  undef inet_addr
 
-in_addr_t __inet_addr(const char *cp);
+in_addr_t avocado___inet_addr(const char *cp);
 
-in_addr_t inet_addr(const char *cp)
+in_addr_t avocado_inet_addr(const char *cp)
 {
 __CPROVER_HIDE:;
-  return __inet_addr(cp);
+  return avocado___inet_addr(cp);
 }
 
 #endif
@@ -56,7 +56,7 @@ __CPROVER_HIDE:;
 
 int __VERIFIER_nondet_int(void);
 
-int __inet_aton(const char *cp, struct in_addr *pin)
+int avocado___inet_aton(const char *cp, struct in_addr *pin)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
@@ -66,7 +66,7 @@ int __inet_aton(const char *cp, struct in_addr *pin)
   (void)*cp;
   (void)*pin;
 
-  int result=__VERIFIER_nondet_int();
+  int avocado_result=__VERIFIER_nondet_int();
   return result;
 }
 
@@ -83,12 +83,12 @@ int __inet_aton(const char *cp, struct in_addr *pin)
 
 #  undef inet_aton
 
-int __inet_aton(const char *cp, struct in_addr *pin);
+int avocado___inet_aton(const char *cp, struct in_addr *pin);
 
-int inet_aton(const char *cp, struct in_addr *pin)
+int avocado_inet_aton(const char *cp, struct in_addr *pin)
 {
 __CPROVER_HIDE:;
-  return __inet_aton(cp, pin);
+  return avocado___inet_aton(cp, pin);
 }
 
 #endif
@@ -102,9 +102,9 @@ __CPROVER_HIDE:;
 #    define __CPROVER_INET_H_INCLUDED
 #  endif
 
-char __inet_ntoa_buffer[16];
+char avocado___inet_ntoa_buffer[16];
 
-char *__inet_ntoa(struct in_addr in)
+char *avocado___inet_ntoa(struct in_addr in)
 {
 __CPROVER_HIDE:;
   (void)in;
@@ -126,12 +126,12 @@ __CPROVER_HIDE:;
 
 #  undef inet_ntoa
 
-char *__inet_ntoa(struct in_addr in);
+char *avocado___inet_ntoa(struct in_addr in);
 
-char *inet_ntoa(struct in_addr in)
+char *avocado_inet_ntoa(struct in_addr in)
 {
 __CPROVER_HIDE:;
-  return __inet_ntoa(in);
+  return avocado___inet_ntoa(in);
 }
 
 #endif
@@ -147,7 +147,7 @@ __CPROVER_HIDE:;
 
 in_addr_t __VERIFIER_nondet_in_addr_t(void);
 
-in_addr_t __inet_network(const char *cp)
+in_addr_t avocado___inet_network(const char *cp)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
@@ -156,7 +156,7 @@ in_addr_t __inet_network(const char *cp)
   #endif
   (void)*cp;
 
-  in_addr_t result=__VERIFIER_nondet_in_addr_t();
+  in_addr_t avocado_result=__VERIFIER_nondet_in_addr_t();
   return result;
 }
 
@@ -173,12 +173,12 @@ in_addr_t __inet_network(const char *cp)
 
 #  undef inet_network
 
-in_addr_t __inet_network(const char *cp);
+in_addr_t avocado___inet_network(const char *cp);
 
-in_addr_t inet_network(const char *cp)
+in_addr_t avocado_inet_network(const char *cp)
 {
 __CPROVER_HIDE:;
-  return __inet_network(cp);
+  return avocado___inet_network(cp);
 }
 
 #endif
@@ -192,12 +192,12 @@ __CPROVER_HIDE:;
 
 #undef htonl
 
-uint32_t __builtin_bswap32(uint32_t);
+uint32_t avocado___builtin_bswap32(uint32_t);
 
-uint32_t htonl(uint32_t hostlong)
+uint32_t avocado_htonl(uint32_t hostlong)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-  return __builtin_bswap32(hostlong);
+  return avocado___builtin_bswap32(hostlong);
 #else
   return hostlong;
 #endif
@@ -212,12 +212,12 @@ uint32_t htonl(uint32_t hostlong)
 
 #undef htons
 
-uint16_t __builtin_bswap16(uint16_t);
+uint16_t avocado___builtin_bswap16(uint16_t);
 
-uint16_t htons(uint16_t hostshort)
+uint16_t avocado_htons(uint16_t hostshort)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-  return __builtin_bswap16(hostshort);
+  return avocado___builtin_bswap16(hostshort);
 #else
   return hostshort;
 #endif
@@ -233,12 +233,12 @@ uint16_t htons(uint16_t hostshort)
 
 #undef ntohl
 
-uint32_t __builtin_bswap32(uint32_t);
+uint32_t avocado___builtin_bswap32(uint32_t);
 
-uint32_t ntohl(uint32_t netlong)
+uint32_t avocado_ntohl(uint32_t netlong)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-  return __builtin_bswap32(netlong);
+  return avocado___builtin_bswap32(netlong);
 #else
   return netlong;
 #endif
@@ -254,12 +254,12 @@ uint32_t ntohl(uint32_t netlong)
 
 #undef ntohs
 
-uint16_t __builtin_bswap16(uint16_t);
+uint16_t avocado___builtin_bswap16(uint16_t);
 
-uint16_t ntohs(uint16_t netshort)
+uint16_t avocado_ntohs(uint16_t netshort)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-  return __builtin_bswap16(netshort);
+  return avocado___builtin_bswap16(netshort);
 #else
   return netshort;
 #endif

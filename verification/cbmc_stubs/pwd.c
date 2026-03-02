@@ -11,7 +11,7 @@ unsigned __VERIFIER_nondet_unsigned(void);
 
 struct passwd __CPROVER_passwd;
 
-struct passwd *getpwnam(const char *name)
+struct passwd *avocado_getpwnam(const char *name)
 {
   // make some fields non-null
   __CPROVER_passwd.pw_name = (char *)name;
@@ -37,7 +37,7 @@ unsigned __VERIFIER_nondet_unsigned(void);
 struct passwd __CPROVER_passwd;
 #  endif
 
-struct passwd *getpwuid(uid_t uid)
+struct passwd *avocado_getpwuid(uid_t uid)
 {
   // make some fields non-null
   __CPROVER_passwd.pw_uid = uid;

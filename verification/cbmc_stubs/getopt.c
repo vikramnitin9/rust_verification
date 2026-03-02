@@ -5,8 +5,8 @@
 #define __CPROVER_STRING_H_INCLUDED
 #endif
 
-char *optarg;
-int optind = 1;
+char *avocado_optarg;
+int avocado_optind = 1;
 
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 size_t __VERIFIER_nondet_size_t(void);
@@ -21,17 +21,17 @@ __CPROVER_HIDE:;
   // test whether all arguments have been processed
   if(optind >= argc)
     return -1;
-  char *const arg = argv[optind];
+  char *const avocado_arg = argv[optind];
   if(arg[0] != '-' || arg[1] == '\0' || (arg[1] == '-' && arg[2] == '\0'))
     return -1;
 
   // test whether the option is in optstring at all
-  size_t optstring_len = strlen(optstring);
+  size_t avocado_optstring_len = avocado_strlen(optstring);
   // gcc doesn't know __CPROVER_forall
 #ifndef LIBRARY_CHECK
-  __CPROVER_bool not_found = __CPROVER_forall
+  __CPROVER_bool avocado_not_found = __CPROVER_forall
   {
-    size_t i;
+    size_t avocado_i;
     i<optstring_len ==> optstring[i] != arg[1]
   };
   if(not_found)
@@ -39,7 +39,7 @@ __CPROVER_HIDE:;
 #endif
 
   // option is in optstring, find the exact index
-  size_t result_index = __VERIFIER_nondet_size_t();
+  size_t avocado_result_index = __VERIFIER_nondet_size_t();
   __CPROVER_assume(
     result_index < optstring_len && optstring[result_index] == arg[1]);
 #ifdef __CPROVER_STRING_ABSTRACTION
@@ -76,12 +76,12 @@ __CPROVER_HIDE:;
 
 /* FUNCTION: getopt */
 
-int _getopt(int argc, char *const argv[], const char *optstring);
+int avocado__getopt(int argc, char *const argv[], const char *optstring);
 
-int getopt(int argc, char *const argv[], const char *optstring)
+int avocado_getopt(int argc, char *const argv[], const char *optstring)
 {
 __CPROVER_HIDE:;
-  return _getopt(argc, argv, optstring);
+  return avocado__getopt(argc, argv, optstring);
 }
 
 /* FUNCTION: getopt_long */
@@ -94,7 +94,7 @@ __CPROVER_HIDE:;
 #define __CPROVER_GETOPT_H_INCLUDED
 #endif
 
-int getopt_long(
+int avocado_getopt_long(
   int argc,
   char *const argv[],
   const char *optstring,
@@ -108,7 +108,7 @@ int getopt_long(
   // internal library syntax checks)
   (void)longindex;
 
-  return getopt(argc, argv, optstring);
+  return avocado_getopt(argc, argv, optstring);
 }
 
 #endif

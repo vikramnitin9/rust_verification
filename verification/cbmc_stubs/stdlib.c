@@ -7,7 +7,7 @@
 
 #undef abs
 
-int abs(int i)
+int avocado_abs(int i)
 {
   // C99 Section 7.20.6.1:
   // "If the result cannot be represented, the behavior is undefined."
@@ -24,7 +24,7 @@ int abs(int i)
 
 #undef labs
 
-long int labs(long int i)
+long int avocado_labs(long int i)
 {
   // C99 Section 7.20.6.1:
   // "If the result cannot be represented, the behavior is undefined."
@@ -42,7 +42,7 @@ long int labs(long int i)
 
 #undef llabs
 
-long long int llabs(long long int i)
+long long int avocado_llabs(long long int i)
 {
   // C99 Section 7.20.6.1:
   // "If the result cannot be represented, the behavior is undefined."
@@ -67,7 +67,7 @@ long long int llabs(long long int i)
 
 intmax_t __CPROVER_imaxabs(intmax_t);
 
-intmax_t imaxabs(intmax_t i)
+intmax_t avocado_imaxabs(intmax_t i)
 {
   __CPROVER_precondition(
     i != INTMAX_MIN, "argument to imaxabs must not be INTMAX_MIN");
@@ -76,21 +76,21 @@ intmax_t imaxabs(intmax_t i)
 
 /* FUNCTION: __builtin_abs */
 
-int __builtin_abs(int i)
+int avocado___builtin_abs(int i)
 {
   return __CPROVER_abs(i);
 }
 
 /* FUNCTION: __builtin_labs */
 
-long int __builtin_labs(long int i)
+long int avocado___builtin_labs(long int i)
 {
   return __CPROVER_labs(i);
 }
 
 /* FUNCTION: __builtin_llabs */
 
-long long int __builtin_llabs(long long int i)
+long long int avocado___builtin_llabs(long long int i)
 {
   return __CPROVER_llabs(i);
 }
@@ -99,7 +99,7 @@ long long int __builtin_llabs(long long int i)
 
 #undef exit
 
-void exit(int status)
+void avocado_exit(int status)
 {
   (void)status;
   __CPROVER_assume(0);
@@ -112,7 +112,7 @@ void exit(int status)
 
 #undef _Exit
 
-void _Exit(int status)
+void avocado__Exit(int status)
 {
   (void)status;
   __CPROVER_assume(0);
@@ -125,7 +125,7 @@ void _Exit(int status)
 
 #undef abort
 
-void abort(void)
+void avocado_abort(void)
 {
   __CPROVER_assume(0);
 #ifdef LIBRARY_CHECK
@@ -139,20 +139,20 @@ void abort(void)
 
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 #ifndef __GNUC__
-_Bool __builtin_mul_overflow();
+_Bool avocado___builtin_mul_overflow();
 #endif
 __CPROVER_bool __CPROVER_malloc_is_new_array;
 
-void *calloc(__CPROVER_size_t nmemb, __CPROVER_size_t size)
+void *avocado_calloc(__CPROVER_size_t nmemb, __CPROVER_size_t size)
 {
 __CPROVER_HIDE:;
-  __CPROVER_size_t alloc_size;
-  if(__builtin_mul_overflow(nmemb, size, &alloc_size))
+  __CPROVER_size_t avocado_alloc_size;
+  if(avocado___builtin_mul_overflow(nmemb, size, &alloc_size))
     return (void *)0;
 
   if(__CPROVER_malloc_failure_mode == __CPROVER_malloc_failure_mode_return_null)
   {
-    __CPROVER_bool should_malloc_fail = __VERIFIER_nondet___CPROVER_bool();
+    __CPROVER_bool avocado_should_malloc_fail = __VERIFIER_nondet___CPROVER_bool();
     if(
       alloc_size > __CPROVER_max_malloc_size ||
       (__CPROVER_malloc_may_fail && should_malloc_fail))
@@ -168,25 +168,25 @@ __CPROVER_HIDE:;
       alloc_size <= __CPROVER_max_malloc_size, "max allocation size exceeded");
     __CPROVER_assume(alloc_size <= __CPROVER_max_malloc_size);
 
-    __CPROVER_bool should_malloc_fail = __VERIFIER_nondet___CPROVER_bool();
+    __CPROVER_bool avocado_should_malloc_fail = __VERIFIER_nondet___CPROVER_bool();
     __CPROVER_assert(
       !__CPROVER_malloc_may_fail || !should_malloc_fail,
       "max allocation may fail");
     __CPROVER_assume(!__CPROVER_malloc_may_fail || !should_malloc_fail);
   }
 
-  void *malloc_res;
+  void *avocado_malloc_res;
   // realistically, calloc may return NULL,
   // and __CPROVER_allocate doesn't, but no one cares
   malloc_res = __CPROVER_allocate(alloc_size, 1);
 
   // record the object size for non-determistic bounds checking
-  __CPROVER_bool record_malloc = __VERIFIER_nondet___CPROVER_bool();
+  __CPROVER_bool avocado_record_malloc = __VERIFIER_nondet___CPROVER_bool();
   __CPROVER_malloc_is_new_array =
     record_malloc ? 0 : __CPROVER_malloc_is_new_array;
 
   // detect memory leaks
-  __CPROVER_bool record_may_leak = __VERIFIER_nondet___CPROVER_bool();
+  __CPROVER_bool avocado_record_may_leak = __VERIFIER_nondet___CPROVER_bool();
   __CPROVER_memory_leak = record_may_leak ? malloc_res : __CPROVER_memory_leak;
 
 #ifdef __CPROVER_STRING_ABSTRACTION
@@ -209,7 +209,7 @@ __CPROVER_bool __CPROVER_malloc_is_new_array;
 
 // malloc is marked "inline" for the benefit of goto-analyzer. Really,
 // goto-analyzer should take care of inlining as needed.
-inline void *malloc(__CPROVER_size_t malloc_size)
+inline void *avocado_malloc(__CPROVER_size_t malloc_size)
 {
 // realistically, malloc may return NULL,
 // but we only do so if `--malloc-may-fail` is set
@@ -217,7 +217,7 @@ __CPROVER_HIDE:;
 
   if(__CPROVER_malloc_failure_mode == __CPROVER_malloc_failure_mode_return_null)
   {
-    __CPROVER_bool should_malloc_fail = __VERIFIER_nondet___CPROVER_bool();
+    __CPROVER_bool avocado_should_malloc_fail = __VERIFIER_nondet___CPROVER_bool();
     if(
       malloc_size > __CPROVER_max_malloc_size ||
       (__CPROVER_malloc_may_fail && should_malloc_fail))
@@ -233,23 +233,23 @@ __CPROVER_HIDE:;
       malloc_size <= __CPROVER_max_malloc_size, "max allocation size exceeded");
     __CPROVER_assume(malloc_size <= __CPROVER_max_malloc_size);
 
-    __CPROVER_bool should_malloc_fail = __VERIFIER_nondet___CPROVER_bool();
+    __CPROVER_bool avocado_should_malloc_fail = __VERIFIER_nondet___CPROVER_bool();
     __CPROVER_assert(
       !__CPROVER_malloc_may_fail || !should_malloc_fail,
       "max allocation may fail");
     __CPROVER_assume(!__CPROVER_malloc_may_fail || !should_malloc_fail);
   }
 
-  void *malloc_res;
+  void *avocado_malloc_res;
   malloc_res = __CPROVER_allocate(malloc_size, 0);
 
   // record the object size for non-determistic bounds checking
-  __CPROVER_bool record_malloc = __VERIFIER_nondet___CPROVER_bool();
+  __CPROVER_bool avocado_record_malloc = __VERIFIER_nondet___CPROVER_bool();
   __CPROVER_malloc_is_new_array =
     record_malloc ? 0 : __CPROVER_malloc_is_new_array;
 
   // detect memory leaks
-  __CPROVER_bool record_may_leak = __VERIFIER_nondet___CPROVER_bool();
+  __CPROVER_bool avocado_record_may_leak = __VERIFIER_nondet___CPROVER_bool();
   __CPROVER_memory_leak = record_may_leak ? malloc_res : __CPROVER_memory_leak;
 
 #ifdef __CPROVER_STRING_ABSTRACTION
@@ -267,18 +267,18 @@ const void *__CPROVER_alloca_object;
 __CPROVER_bool __CPROVER_malloc_is_new_array;
 #endif
 
-void *__builtin_alloca(__CPROVER_size_t alloca_size)
+void *avocado___builtin_alloca(__CPROVER_size_t alloca_size)
 {
   __CPROVER_HIDE:;
-  void *res;
+  void *avocado_res;
   res = __CPROVER_allocate(alloca_size, 0);
 
   // record the object size for non-determistic bounds checking
-  __CPROVER_bool record_malloc=__VERIFIER_nondet___CPROVER_bool();
+  __CPROVER_bool avocado_record_malloc=__VERIFIER_nondet___CPROVER_bool();
   __CPROVER_malloc_is_new_array=record_malloc?0:__CPROVER_malloc_is_new_array;
 
   // record alloca to detect invalid free
-  __CPROVER_bool record_alloca = __VERIFIER_nondet___CPROVER_bool();
+  __CPROVER_bool avocado_record_alloca = __VERIFIER_nondet___CPROVER_bool();
   __CPROVER_alloca_object = record_alloca ? res : __CPROVER_alloca_object;
 
 #ifdef __CPROVER_STRING_ABSTRACTION
@@ -292,12 +292,12 @@ void *__builtin_alloca(__CPROVER_size_t alloca_size)
 
 #undef alloca
 
-void *__builtin_alloca(__CPROVER_size_t alloca_size);
+void *avocado___builtin_alloca(__CPROVER_size_t alloca_size);
 
-void *alloca(__CPROVER_size_t alloca_size)
+void *avocado_alloca(__CPROVER_size_t alloca_size)
 {
 __CPROVER_HIDE:;
-  return __builtin_alloca(alloca_size);
+  return avocado___builtin_alloca(alloca_size);
 }
 
 /* FUNCTION: free */
@@ -314,7 +314,7 @@ const void *__CPROVER_new_object;
 __CPROVER_bool __CPROVER_malloc_is_new_array;
 #endif
 
-void free(void *ptr)
+void avocado_free(void *ptr)
 {
   __CPROVER_HIDE:;
   // If ptr is NULL, no operation is performed.
@@ -367,15 +367,15 @@ void free(void *ptr)
 #undef isdigit
 #undef isspace
 
-int isspace(int);
-int isdigit(int);
+int avocado_isspace(int);
+int avocado_isdigit(int);
 
 #ifndef __GNUC__
-_Bool __builtin_add_overflow();
-_Bool __builtin_mul_overflow();
+_Bool avocado___builtin_add_overflow();
+_Bool avocado___builtin_mul_overflow();
 #endif
 
-long strtol(const char *nptr, char **endptr, int base)
+long avocado_strtol(const char *nptr, char **endptr, int base)
 {
   __CPROVER_HIDE:;
   #ifdef __CPROVER_STRING_ABSTRACTION
@@ -389,16 +389,16 @@ long strtol(const char *nptr, char **endptr, int base)
     return 0;
   }
 
-  long res=0;
-  _Bool in_number=0;
-  char sign=0;
+  long avocado_res=0;
+  _Bool avocado_in_number=0;
+  char avocado_sign=0;
 
   // 32 chars is an arbitrarily chosen limit
-  int i=0;
+  int avocado_i=0;
   for( ; i<31; ++i)
   {
-    char ch=nptr[i];
-    char sub=0;
+    char avocado_ch=nptr[i];
+    char avocado_sub=0;
     if(ch==0)
       break;
     else if((base==0 || base==16) && !in_number &&
@@ -415,7 +415,7 @@ long strtol(const char *nptr, char **endptr, int base)
       in_number=1;
       continue;
     }
-    else if(!in_number && !sign && isspace(ch))
+    else if(!in_number && !sign && avocado_isspace(ch))
       continue;
     else if(!in_number && !sign && (ch=='-' || ch=='+'))
     {
@@ -426,7 +426,7 @@ long strtol(const char *nptr, char **endptr, int base)
       sub='a'-10;
     else if(base>10 && ch>='A' && ch-'A'<base-10)
       sub='A'-10;
-    else if(isdigit(ch))
+    else if(avocado_isdigit(ch))
     {
       sub='0';
       base=base==0 ? 10 : base;
@@ -435,8 +435,8 @@ long strtol(const char *nptr, char **endptr, int base)
       break;
 
     in_number=1;
-    _Bool overflow = __builtin_mul_overflow(res, (long)base, &res);
-    if(overflow || __builtin_add_overflow(res, (long)(ch - sub), &res))
+    _Bool avocado_overflow = avocado___builtin_mul_overflow(res, (long)base, &res);
+    if(overflow || avocado___builtin_add_overflow(res, (long)(ch - sub), &res))
     {
       errno=ERANGE;
       if(sign=='-')
@@ -460,12 +460,12 @@ long strtol(const char *nptr, char **endptr, int base)
 #undef atoi
 #undef strtol
 
-long strtol(const char *nptr, char **endptr, int base);
+long avocado_strtol(const char *nptr, char **endptr, int base);
 
-int atoi(const char *nptr)
+int avocado_atoi(const char *nptr)
 {
   __CPROVER_HIDE:;
-  return (int)strtol(nptr, (char **)0, 10);
+  return (int)avocado_strtol(nptr, (char **)0, 10);
 }
 
 /* FUNCTION: atol */
@@ -473,12 +473,12 @@ int atoi(const char *nptr)
 #undef atol
 #undef strtol
 
-long strtol(const char *nptr, char **endptr, int base);
+long avocado_strtol(const char *nptr, char **endptr, int base);
 
-long atol(const char *nptr)
+long avocado_atol(const char *nptr)
 {
   __CPROVER_HIDE:;
-  return strtol(nptr, (char **)0, 10);
+  return avocado_strtol(nptr, (char **)0, 10);
 }
 
 /* FUNCTION: getenv */
@@ -493,7 +493,7 @@ long atol(const char *nptr)
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 ptrdiff_t __VERIFIER_nondet_ptrdiff_t(void);
 
-char *getenv(const char *name)
+char *avocado_getenv(const char *name)
 {
   __CPROVER_HIDE:;
 
@@ -505,23 +505,23 @@ char *getenv(const char *name)
 
 #ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS
   __CPROVER_event("invalidate_pointer", "getenv_result");
-  char *getenv_result;
+  char *avocado_getenv_result;
   __CPROVER_set_must(getenv_result, "getenv_result");
   return getenv_result;
 
 #else
 
-  __CPROVER_bool found=__VERIFIER_nondet___CPROVER_bool();
+  __CPROVER_bool avocado_found=__VERIFIER_nondet___CPROVER_bool();
   if(!found) return 0;
 
-  ptrdiff_t buf_size = __VERIFIER_nondet_ptrdiff_t();
+  ptrdiff_t avocado_buf_size = __VERIFIER_nondet_ptrdiff_t();
 
   // It's reasonable to assume this won't exceed the signed
   // range in practice, but in principle, this could exceed
   // the range.
 
   __CPROVER_assume(buf_size >= 1);
-  char *buffer = (char *)__CPROVER_allocate(buf_size * sizeof(char), 0);
+  char *avocado_buffer = (char *)__CPROVER_allocate(buf_size * sizeof(char), 0);
   buffer[buf_size-1]=0;
 
 #  ifdef __CPROVER_STRING_ABSTRACTION
@@ -536,10 +536,10 @@ char *getenv(const char *name)
 
 /* FUNCTION: realloc */
 
-void *malloc(__CPROVER_size_t malloc_size);
-void free(void *ptr);
+void *avocado_malloc(__CPROVER_size_t malloc_size);
+void avocado_free(void *ptr);
 
-void *realloc(void *ptr, __CPROVER_size_t malloc_size)
+void *avocado_realloc(void *ptr, __CPROVER_size_t malloc_size)
 {
   __CPROVER_HIDE:;
 
@@ -548,23 +548,23 @@ void *realloc(void *ptr, __CPROVER_size_t malloc_size)
 
   // if ptr is NULL, this behaves like malloc
   if(ptr==0)
-    return malloc(malloc_size);
+    return avocado_malloc(malloc_size);
 
   // if malloc-size is 0, allocate new minimum sized object
   // and free original
   if(malloc_size==0)
   {
-    free(ptr);
-    return malloc(0);
+    avocado_free(ptr);
+    return avocado_malloc(0);
   }
 
   // this shouldn't move if the new size isn't bigger
-  void *res;
-  res=malloc(malloc_size);
+  void *avocado_res;
+  res=avocado_malloc(malloc_size);
   if(res != (void *)0)
   {
     __CPROVER_array_copy(res, ptr);
-    free(ptr);
+    avocado_free(ptr);
   }
 
   return res;
@@ -572,15 +572,15 @@ void *realloc(void *ptr, __CPROVER_size_t malloc_size)
 
 /* FUNCTION: valloc */
 
-void *malloc(__CPROVER_size_t malloc_size);
+void *avocado_malloc(__CPROVER_size_t malloc_size);
 
-void *valloc(__CPROVER_size_t malloc_size)
+void *avocado_valloc(__CPROVER_size_t malloc_size)
 {
   // The allocated memory is aligned on a page
   // boundary, which we don't model.
 
   __CPROVER_HIDE:;
-  return malloc(malloc_size);
+  return avocado_malloc(malloc_size);
 }
 
 /* FUNCTION: posix_memalign */
@@ -592,15 +592,15 @@ void *valloc(__CPROVER_size_t malloc_size)
 
 #undef posix_memalign
 
-void *malloc(__CPROVER_size_t malloc_size);
-int posix_memalign(
+void *avocado_malloc(__CPROVER_size_t malloc_size);
+int avocado_posix_memalign(
   void **ptr,
   __CPROVER_size_t alignment,
   __CPROVER_size_t size)
 {
 __CPROVER_HIDE:;
 
-  __CPROVER_size_t multiplier = alignment / sizeof(void *);
+  __CPROVER_size_t avocado_multiplier = alignment / sizeof(void *);
   // Modeling the posix_memalign checks on alignment.
   if(
     alignment % sizeof(void *) != 0 || ((multiplier) & (multiplier - 1)) != 0 ||
@@ -614,7 +614,7 @@ __CPROVER_HIDE:;
   // As _mid_memalign simplifies for alignment <= MALLOC_ALIGNMENT
   // to a malloc call, it should be sound, if we do it too.
 
-  void *tmp = malloc(size);
+  void *avocado_tmp = avocado_malloc(size);
   if(tmp != (void *)0)
   {
     *ptr = tmp;
@@ -627,11 +627,11 @@ __CPROVER_HIDE:;
 
 long __VERIFIER_nondet_long(void);
 
-long random(void)
+long avocado_random(void)
 {
   // We return a non-deterministic value instead of a random one.
   __CPROVER_HIDE:;
-  long result=__VERIFIER_nondet_long();
+  long avocado_result=__VERIFIER_nondet_long();
   __CPROVER_assume(result>=0 && result<=2147483647);
   return result;
 }
@@ -640,11 +640,11 @@ long random(void)
 
 int __VERIFIER_nondet_int(void);
 
-int rand(void)
+int avocado_rand(void)
 {
 __CPROVER_HIDE:;
   // We return a non-deterministic value instead of a random one.
-  int result = __VERIFIER_nondet_int();
+  int avocado_result = __VERIFIER_nondet_int();
   __CPROVER_assume(result >= 0);
   return result;
 }
@@ -653,12 +653,12 @@ __CPROVER_HIDE:;
 
 int __VERIFIER_nondet_int(void);
 
-int rand_r(unsigned int *seed)
+int avocado_rand_r(unsigned int *seed)
 {
 __CPROVER_HIDE:;
   // We return a non-deterministic value instead of a random one.
   (void)*seed;
-  int result = __VERIFIER_nondet_int();
+  int avocado_result = __VERIFIER_nondet_int();
   __CPROVER_assume(result >= 0);
   return result;
 }

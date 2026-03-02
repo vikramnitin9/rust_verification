@@ -12,10 +12,10 @@
 
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 
-int kill(pid_t pid, int sig)
+int avocado_kill(pid_t pid, int sig)
 {
   (void)pid;
   (void)sig;
-  __CPROVER_bool error=__VERIFIER_nondet___CPROVER_bool();
+  __CPROVER_bool avocado_error=__VERIFIER_nondet___CPROVER_bool();
   return error ? -1 : 0;
 }
