@@ -11,6 +11,7 @@ from loguru import logger
 from util import file_util, text_util
 from verification.verification_result import VerificationResult
 
+from .avocado_stub_util import AVOCADO_STUB_DIR
 from .verification_client import VerificationClient
 from .verification_input import VerificationInput
 
@@ -117,6 +118,9 @@ class CbmcVerificationClient(VerificationClient):
             for callee_name in callee_names
             for arg in ("--replace-call-with-contract", callee_name)
         ]
+        header_names = verification_input.get_headers()
+        avocado_headers = [f"{AVOCADO_STUB_DIR}/{header_name}" for header_name in header_names]
+        header_args = " ".join(avocado_headers)
         return [
             [
                 "goto-cc",
@@ -124,7 +128,7 @@ class CbmcVerificationClient(VerificationClient):
                 f"{function_name}.goto",
                 # These seemingly gratuitous f-strings are necessary for type-checking:
                 # they convert a Path into a string.
-                f"{file_to_verify}",
+                f"{header_args}{file_to_verify}",
                 "--function",
                 f"{function_name}",
             ],

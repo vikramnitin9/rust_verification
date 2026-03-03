@@ -81,3 +81,19 @@ def test_hashing_same_function() -> None:
     func_cache = {}
     func_cache[input_for_a] = "Some value"
     assert input_for_a_copy in func_cache, f"{input_for_a_copy} should be present in {func_cache}"
+
+def test_get_headers() -> None:
+    test_file = "test/data/avocado_stub/test_header_detection.c"
+    is_separator = get_function_or_none(test_file, function_name="is_separator")
+    input_for_is_separator = VerificationInput(
+        function=is_separator,
+        spec=FunctionSpecification(preconditions=["__CPROVER_requires(1)"], postconditions=[]),
+        context=VerificationContext(callee_specs={}, global_variable_specs={}),
+        contents_of_file_to_verify=Path(test_file).read_text()
+    )
+    headers_parsed_from_file = input_for_is_separator.get_headers()
+    assert headers_parsed_from_file == [
+        "stdlib.h",
+        "ctype.h",
+        "stdio.h",
+    ]

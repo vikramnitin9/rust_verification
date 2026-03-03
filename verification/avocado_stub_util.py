@@ -5,6 +5,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
+AVOCADO_STUB_DIR = "verification/cbmc_stubs"
+DEFAULT_STUB_MAPPINGS = f"{AVOCADO_STUB_DIR}/c_stub_rename_map.pkl"
+
 
 @dataclass(frozen=True)
 class RenameMetadata:
@@ -17,9 +20,6 @@ class RenameMetadata:
 
     avocado_name: str
     original_file_path: Path
-
-
-DEFAULT_STUB_MAPPINGS = "verification/cbmc_stubs/c_stub_rename_map.pkl"
 
 
 def get_stub_mappings(
@@ -37,3 +37,12 @@ def get_stub_mappings(
     with Path(path_to_stub_mappings).open(mode="rb") as f:
         data = pkl.load(f)
         return cast("dict[str, RenameMetadata]", data)
+
+
+def apply_stub_renaming(src_file_path: Path, stub_mappings: dict[str, RenameMetadata]) -> None:
+    """TODO: Document me.
+
+    Args:
+        src_file_path (Path): _description_
+        stub_mappings (dict[str, RenameMetadata]): _description_
+    """
