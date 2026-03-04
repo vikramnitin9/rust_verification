@@ -144,7 +144,8 @@ def verify_program(program) -> List[Map[Fn, Spec]]:
   """
   The entry point: Verify all the functions in a program.
   Input: a program
-  Output: a list of program specifications.  A program specification contains a specification for each function in the program
+  Output: a list of program specifications.
+          A program specification contains a specification for each function in the program.
   """
   # Since workstacks are immutable, a workstack can be represented as a tuple rather than as a Stack.
   initial_workstack: Stack[WorkItem] = all functions in `program`, in reverse topological
