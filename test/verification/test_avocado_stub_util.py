@@ -40,7 +40,7 @@ int is_separator(int c)
     )
 
 
-def test_apply_stub_renaming_existing_avocado_names() -> None:
+def test_apply_stub_renaming_existing_avocado_name() -> None:
     content_pre_renaming = _read_file_content(
         "test/data/avocado_stub/test_renaming_existing_avocado_names.c"
     )
