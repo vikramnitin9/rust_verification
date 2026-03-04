@@ -11,7 +11,7 @@ from loguru import logger
 from util import file_util, text_util
 from verification.verification_result import VerificationResult
 
-from .avocado_stub_util import AVOCADO_STUB_DIR
+from .avocado_stub_util import AVOCADO_STUB_DIR, apply_stub_renaming
 from .verification_client import VerificationClient
 from .verification_input import VerificationInput
 
@@ -56,7 +56,8 @@ class CbmcVerificationClient(VerificationClient):
             with tempfile.NamedTemporaryFile(
                 mode="w+t", prefix=function.name, suffix=".c"
             ) as tmp_f:
-                tmp_f.write(vinput.contents_of_file_to_verify)
+                contents_with_avocado_stubs = apply_stub_renaming(vinput.contents_of_file_to_verify)
+                tmp_f.write(contents_with_avocado_stubs)
                 tmp_f.flush()
                 file = Path(tmp_f.name)
                 file_util.ensure_lines_at_beginning(

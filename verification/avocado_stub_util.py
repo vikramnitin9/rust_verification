@@ -1,6 +1,7 @@
 """Module for utility functions for working with Avocado stubs."""
 
 import pickle as pkl
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
@@ -22,6 +23,25 @@ class RenameMetadata:
     original_file_path: Path
 
 
+def apply_stub_renaming(file_content: str) -> str:
+    """Return the file content after stub function replacements have been applied.
+
+    Args:
+        file_content (str): The content of the file to which to apply renaming.
+
+    Returns:
+        str: The file content after stub function replacements have been applied.
+    """
+    file_content_with_renaming = file_content
+    for original_name, rename_metadata in get_stub_mappings().items():
+        # Don't replace names twice (i.e., replace only exact matches)
+        name_to_replace_pattern = r"\b" + original_name + r"\b"
+        file_content_with_renaming = re.sub(
+            name_to_replace_pattern, rename_metadata.avocado_name, file_content_with_renaming
+        )
+    return file_content_with_renaming
+
+
 def get_stub_mappings(
     path_to_stub_mappings: str = DEFAULT_STUB_MAPPINGS,
 ) -> dict[str, RenameMetadata]:
@@ -37,12 +57,3 @@ def get_stub_mappings(
     with Path(path_to_stub_mappings).open(mode="rb") as f:
         data = pkl.load(f)
         return cast("dict[str, RenameMetadata]", data)
-
-
-def apply_stub_renaming(src_file_path: Path, stub_mappings: dict[str, RenameMetadata]) -> None:
-    """TODO: Document me.
-
-    Args:
-        src_file_path (Path): _description_
-        stub_mappings (dict[str, RenameMetadata]): _description_
-    """
