@@ -102,7 +102,7 @@ immutable class ProofState:
   * There might be a specification for a function that is on the workstack.  This is important to
     handle recursion and even when the call graph is a dag rather than a tree.
   * TODO: add information to distinguish verified/assumed/unverified/not-yet processed functions?
-* workstack: Stack[WorkItem]
+* workstack: Stack[WorkItem]:
   A stack of functions that need to be (re)processed.
   * Immutable, so can be represented more efficiently than as a Stack.
     It could be a tuple of all the elements, or it could be implemented as a manual linked list, as
