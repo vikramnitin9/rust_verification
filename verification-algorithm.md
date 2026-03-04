@@ -310,7 +310,7 @@ def current_context(fn, proofstate) -> context:
   # Look up from proofstate's `specs` field.
 
 def llm(...):
-  This function calls the API we're using for LLMs.  It should use a cache.
+  # This function calls the API we're using for LLMs.  It should use a cache.
 ```
 
 Suppose that, after creating a VerificationInput, the system changes some
