@@ -119,7 +119,9 @@ def _rename_function_calls(file_path: Path, name_to_rename_data: dict[str, Renam
         assert node.text is not None, (
             f"Expected a call_identifier node '{node}' to have a non-None 'text' field"
         )
-        return node.text is not None and node.text.decode() in name_to_rename_data
+        if node.parent is None or node.parent.type != "call_expression":
+            return False
+        return node.text.decode() in name_to_rename_data
 
     call_identifiers = get_call_identifiers(parsed_src.root_node)
     call_identifiers_to_rename = [
