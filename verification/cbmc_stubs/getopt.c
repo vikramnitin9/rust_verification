@@ -11,7 +11,10 @@ int optind = 1;
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 size_t __VERIFIER_nondet_size_t(void);
 
-int _getopt(int argc, char *const argv[], const char *optstring)
+// Manually applied the `_avocado` prefix here. Tree-sitter appears to be unable to detect this
+// function definition. If I delete the body (leaving only the parens), it does detect it. I suspect
+// there is a parsing error in the body somehere.
+int _avocado__getopt(int argc, char *const argv[], const char *optstring)
 {
 __CPROVER_HIDE:;
   // re-init requested by environment, we just reset optind
