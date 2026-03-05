@@ -7,7 +7,7 @@ from .proof_state import ProofState, WorkStack, WorkItem
 from .verification_input import VerificationContext, VerificationInput
 from .verification_result import VerificationResult
 
-from .avocado_stub_util import RenameMetadata
+from .avocado_stub_util import RenameData
 
 __all__ = [
     "CbmcVerificationClient",

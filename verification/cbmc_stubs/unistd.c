@@ -2,7 +2,7 @@
 
 unsigned __VERIFIER_nondet_unsigned(void);
 
-unsigned int avocado_sleep(unsigned int seconds)
+unsigned int _avocado_sleep(unsigned int seconds)
 {
   __CPROVER_HIDE:;
   // do nothing, but return nondet value
@@ -14,12 +14,12 @@ unsigned int avocado_sleep(unsigned int seconds)
 
 /* FUNCTION: _sleep */
 
-unsigned int avocado_sleep(unsigned int seconds);
+unsigned int _avocado_sleep(unsigned int seconds);
 
-unsigned int avocado__sleep(unsigned int seconds)
+unsigned int _avocado__sleep(unsigned int seconds)
 {
   __CPROVER_HIDE:;
-  return avocado_sleep(seconds);
+  return _avocado_sleep(seconds);
 }
 
 /* FUNCTION: usleep */
@@ -31,7 +31,7 @@ unsigned int avocado__sleep(unsigned int seconds)
 
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 
-int avocado_usleep(unsigned int usec)
+int _avocado_usleep(unsigned int usec)
 {
 __CPROVER_HIDE:;
   // do nothing, but return nondet value
@@ -49,19 +49,19 @@ __CPROVER_HIDE:;
 
 /* FUNCTION: _usleep */
 
-int avocado_usleep(unsigned int);
+int _avocado_usleep(unsigned int);
 
-int avocado__usleep(unsigned int usec)
+int _avocado__usleep(unsigned int usec)
 {
 __CPROVER_HIDE:;
-  return avocado_usleep(usec);
+  return _avocado_usleep(usec);
 }
 
 /* FUNCTION: unlink */
 
 int __VERIFIER_nondet_int(void);
 
-int avocado_unlink(const char *s)
+int _avocado_unlink(const char *s)
 {
   __CPROVER_HIDE:;
   (void)*s;
@@ -87,7 +87,7 @@ unsigned __CPROVER_pipe_count;
 
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 
-int avocado_pipe(int fildes[2])
+int _avocado_pipe(int fildes[2])
 {
   __CPROVER_HIDE:;
   __CPROVER_bool error=__VERIFIER_nondet___CPROVER_bool();
@@ -119,14 +119,14 @@ int avocado_pipe(int fildes[2])
 
 #ifdef _WIN32
 #undef pipe
-int avocado_pipe(int fildes[2]);
+int _avocado_pipe(int fildes[2]);
 
-int avocado__pipe(int *pfds, unsigned int psize, int textmode)
+int _avocado__pipe(int *pfds, unsigned int psize, int textmode)
 {
 __CPROVER_HIDE:;
   (void)psize;
   (void)textmode;
-  return avocado_pipe(pfds);
+  return _avocado_pipe(pfds);
 }
 #endif
 
@@ -136,7 +136,7 @@ extern struct __CPROVER_pipet __CPROVER_pipes[__CPROVER_constant_infinity_uint];
 // offset to make sure we don't collide with other fds
 extern const int __CPROVER_pipe_offset;
 
-int avocado_close(int fildes)
+int _avocado_close(int fildes)
 {
   __CPROVER_HIDE:;
   if((fildes>=0 && fildes<=2) || fildes < __CPROVER_pipe_offset)
@@ -161,12 +161,12 @@ int avocado_close(int fildes)
 
 /* FUNCTION: _close */
 
-int avocado_close(int fildes);
+int _avocado_close(int fildes);
 
-int avocado__close(int fildes)
+int _avocado__close(int fildes)
 {
   __CPROVER_HIDE:;
-  return avocado_close(fildes);
+  return _avocado_close(fildes);
 }
 
 /* FUNCTION: write */
@@ -192,7 +192,7 @@ extern const int __CPROVER_pipe_offset;
 
 ret_type __VERIFIER_nondet_ret_type(void);
 
-ret_type avocado_write(int fildes, const void *buf, size_type nbyte)
+ret_type _avocado_write(int fildes, const void *buf, size_type nbyte)
 {
   __CPROVER_HIDE:;
   if((fildes>=0 && fildes<=2) || fildes < __CPROVER_pipe_offset)
@@ -239,12 +239,12 @@ ret_type avocado_write(int fildes, const void *buf, size_type nbyte)
 #define size_type size_t
 #endif
 
-ret_type avocado_write(int fildes, const void *buf, size_type nbyte);
+ret_type _avocado_write(int fildes, const void *buf, size_type nbyte);
 
-ret_type avocado__write(int fildes, const void *buf, size_type nbyte)
+ret_type _avocado__write(int fildes, const void *buf, size_type nbyte)
 {
   __CPROVER_HIDE:;
-  return avocado_write(fildes, buf, nbyte);
+  return _avocado_write(fildes, buf, nbyte);
 }
 
 /* FUNCTION: read */
@@ -272,7 +272,7 @@ __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 ret_type __VERIFIER_nondet_ret_type(void);
 size_type __VERIFIER_nondet_size_type(void);
 
-ret_type avocado_read(int fildes, void *buf, size_type nbyte)
+ret_type _avocado_read(int fildes, void *buf, size_type nbyte)
 {
   __CPROVER_HIDE:;
   if((fildes>=0 && fildes<=2) || fildes < __CPROVER_pipe_offset)
@@ -347,12 +347,12 @@ ret_type avocado_read(int fildes, void *buf, size_type nbyte)
 #define size_type size_t
 #endif
 
-ret_type avocado_read(int fildes, void *buf, size_type nbyte);
+ret_type _avocado_read(int fildes, void *buf, size_type nbyte);
 
-ret_type avocado__read(int fildes, void *buf, size_type nbyte)
+ret_type _avocado__read(int fildes, void *buf, size_type nbyte)
 {
   __CPROVER_HIDE:;
-  return avocado_read(fildes, buf, nbyte);
+  return _avocado_read(fildes, buf, nbyte);
 }
 
 /* FUNCTION: sysconf */
@@ -365,11 +365,11 @@ ret_type avocado__read(int fildes, void *buf, size_type nbyte)
 long __VERIFIER_nondet_long(void);
 int __VERIFIER_nondet_int(void);
 
-long avocado_sysconf(int name);
+long _avocado_sysconf(int name);
 
 // This overapproximation is based on the sysconf specification available at
 // https://pubs.opengroup.org/onlinepubs/9699919799/functions/sysconf.html.
-long avocado_sysconf(int name)
+long _avocado_sysconf(int name)
 {
 __CPROVER_HIDE:;
   (void)name;

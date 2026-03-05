@@ -12,7 +12,7 @@ from .spec_syntax_fixer import fix_syntax
 from .json_util import parse_object
 from .backtracking_util import parse_backtracking_info
 from .execution.execution_util import run_with_timeout
-from .tree_sitter_util import collect_call_identifiers, collect_function_identifiers
+from .tree_sitter_util import get_call_identifiers, get_function_identifiers
 
 __all__ = [
     "SpecificationGenerationNextStep",
@@ -37,6 +37,6 @@ __all__ = [
     "SpecGenGranularity",
     "fix_syntax",
     "run_with_timeout",
-    "collect_call_identifiers",
-    "collect_function_identifiers"
+    "get_call_identifiers",
+    "get_function_identifiers"
 ]

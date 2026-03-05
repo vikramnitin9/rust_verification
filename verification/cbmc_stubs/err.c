@@ -10,11 +10,11 @@
 #define __CPROVER_STDLIB_H_INCLUDED
 #endif
 
-void avocado_err(int eval, const char *fmt, ...)
+void _avocado_err(int eval, const char *fmt, ...)
 {
   (void)eval;
   (void)*fmt;
-  avocado_abort();
+  _avocado_abort();
 }
 
 /* FUNCTION: errx */
@@ -29,11 +29,11 @@ void avocado_err(int eval, const char *fmt, ...)
 #define __CPROVER_STDLIB_H_INCLUDED
 #endif
 
-void avocado_errx(int eval, const char *fmt, ...)
+void _avocado_errx(int eval, const char *fmt, ...)
 {
   (void)eval;
   (void)*fmt;
-  avocado_abort();
+  _avocado_abort();
 }
 
 /* FUNCTION: warn */
@@ -43,7 +43,7 @@ void avocado_errx(int eval, const char *fmt, ...)
 #define __CPROVER_ERR_H_INCLUDED
 #endif
 
-void avocado_warn(const char *fmt, ...)
+void _avocado_warn(const char *fmt, ...)
 {
   (void)*fmt;
 }
@@ -55,7 +55,7 @@ void avocado_warn(const char *fmt, ...)
 #define __CPROVER_ERR_H_INCLUDED
 #endif
 
-void avocado_warnx(const char *fmt, ...)
+void _avocado_warnx(const char *fmt, ...)
 {
   (void)*fmt;
 }

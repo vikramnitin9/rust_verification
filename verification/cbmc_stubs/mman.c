@@ -20,9 +20,9 @@
 #  endif
 
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
-void *avocado_mmap64(void *, __CPROVER_size_t, int, int, int, off_t);
+void *_avocado_mmap64(void *, __CPROVER_size_t, int, int, int, off_t);
 
-void *avocado_mmap(
+void *_avocado_mmap(
   void *addr,
   __CPROVER_size_t length,
   int prot,
@@ -30,7 +30,7 @@ void *avocado_mmap(
   int fd,
   off_t offset)
 {
-  return avocado_mmap64(addr, length, prot, flags, fd, offset);
+  return _avocado_mmap64(addr, length, prot, flags, fd, offset);
 }
 
 #endif
@@ -57,9 +57,9 @@ void *avocado_mmap(
 #  endif
 
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
-void *avocado_mmap64(void *, __CPROVER_size_t, int, int, int, off_t);
+void *_avocado_mmap64(void *, __CPROVER_size_t, int, int, int, off_t);
 
-void *avocado__mmap(
+void *_avocado__mmap(
   void *addr,
   __CPROVER_size_t length,
   int prot,
@@ -67,7 +67,7 @@ void *avocado__mmap(
   int fd,
   off_t offset)
 {
-  return avocado_mmap64(addr, length, prot, flags, fd, offset);
+  return _avocado_mmap64(addr, length, prot, flags, fd, offset);
 }
 
 #endif
@@ -95,7 +95,7 @@ void *avocado__mmap(
 
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 
-void *avocado_mmap64(
+void *_avocado_mmap64(
   void *addr,
   __CPROVER_size_t length,
   int prot,
@@ -129,7 +129,7 @@ void *avocado_mmap64(
 
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 
-int avocado_munmap(void *addr, __CPROVER_size_t length)
+int _avocado_munmap(void *addr, __CPROVER_size_t length)
 {
   (void)length;
 
@@ -142,7 +142,7 @@ int avocado_munmap(void *addr, __CPROVER_size_t length)
 
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 
-int avocado__munmap(void *addr, __CPROVER_size_t length)
+int _avocado__munmap(void *addr, __CPROVER_size_t length)
 {
   (void)length;
 
