@@ -7,15 +7,26 @@
 # parse CBMC specifications into the representation we work with in this codebase.
 #
 
+from __future__ import annotations
 import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol
 
 from lark import Transformer, ast_utils, v_args
 from lark.tree import Meta
 
-from .mutable import Mutable
+
+class Mutable(Protocol):
+    """Class to represent AST nodes from which mutant nodes can be generated."""
+
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        """Return the type(s) of CBMCAst nodes that this node may be mutated into.
+
+        Returns:
+            list[type[CBMCAst]]: The type(s) of CBMCAst nodes that this node may be mutated into.
+        """
+        return []
 
 
 class CBMCAst(ast_utils.Ast, Mutable):
