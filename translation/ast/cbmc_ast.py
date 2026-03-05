@@ -15,8 +15,10 @@ from typing import Any
 from lark import Transformer, ast_utils, v_args
 from lark.tree import Meta
 
+from .mutable import Mutable
 
-class CBMCAst(ast_utils.Ast):
+
+class CBMCAst(ast_utils.Ast, Mutable):
     pass
 
 

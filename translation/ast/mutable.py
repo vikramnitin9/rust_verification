@@ -14,4 +14,4 @@ class Mutable(Protocol):
         Returns:
             list[type[CBMCAst]]: The type(s) of CBMCAst nodes that this node may be mutated into.
         """
-        ...
+        return []
