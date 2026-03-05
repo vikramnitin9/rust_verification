@@ -20,7 +20,7 @@ class VerificationResult:
     """
 
     verification_input: VerificationInput
-    verification_commands: str
+    verification_command: str
     succeeded: bool
     stdout: str
     stderr: str

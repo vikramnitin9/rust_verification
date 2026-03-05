@@ -66,7 +66,7 @@ class CbmcVerificationClient(VerificationClient):
                         vinput, path_to_file_to_verify=file
                     )
                     logger.debug(f"Running command: {vcommand}")
-                    result = subprocess.run(vcommand, capture_output=True, text=True)
+                    result = subprocess.run(vcommand, capture_output=True, text=True, shell=True)
                     # Normalize the temp file path in CBMC output so that LLM cache keys
                     # are deterministic across runs (temp file names are random).
                     normalized_stdout = text_util.normalize_cbmc_output_paths(
