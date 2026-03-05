@@ -3,7 +3,7 @@
 #ifdef _WIN32
 #include <windows.h>
 
-BOOL avocado_QueryPerformanceFrequency(LARGE_INTEGER *lpFrequency)
+BOOL _avocado_QueryPerformanceFrequency(LARGE_INTEGER *lpFrequency)
 {
   __CPROVER_HIDE:;
   __int64 result;
@@ -20,7 +20,7 @@ BOOL avocado_QueryPerformanceFrequency(LARGE_INTEGER *lpFrequency)
 #ifdef _WIN32
 #include <windows.h>
 
-VOID avocado_ExitThread(DWORD dwExitCode)
+VOID _avocado_ExitThread(DWORD dwExitCode)
 {
   // never returns
   __CPROVER_assume(0);
@@ -32,7 +32,7 @@ VOID avocado_ExitThread(DWORD dwExitCode)
 #ifdef _WIN32
 #include <windows.h>
 
-HANDLE avocado_CreateThread(
+HANDLE _avocado_CreateThread(
   LPSECURITY_ATTRIBUTES lpThreadAttributes,
   SIZE_T dwStackSize,
   LPTHREAD_START_ROUTINE lpStartAddress,

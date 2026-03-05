@@ -8,11 +8,11 @@
 #undef time
 
 time_t __VERIFIER_nondet_time_t(void);
-time_t avocado___time64(time_t *);
+time_t _avocado___time64(time_t *);
 
-time_t avocado_time(time_t *tloc)
+time_t _avocado_time(time_t *tloc)
 {
-  return avocado___time64(tloc);
+  return _avocado___time64(tloc);
 }
 
 /* FUNCTION: __time64 */
@@ -24,7 +24,7 @@ time_t avocado_time(time_t *tloc)
 
 time_t __VERIFIER_nondet_time_t(void);
 
-time_t avocado___time64(time_t *tloc)
+time_t _avocado___time64(time_t *tloc)
 {
   time_t res=__VERIFIER_nondet_time_t();
   if(tloc)
@@ -43,7 +43,7 @@ time_t avocado___time64(time_t *tloc)
 
 time_t __VERIFIER_nondet_time_t(void);
 
-time_t avocado__time64(time_t *tloc)
+time_t _avocado__time64(time_t *tloc)
 {
   time_t res = __VERIFIER_nondet_time_t();
   if(tloc)
@@ -64,7 +64,7 @@ time_t avocado__time64(time_t *tloc)
 
 __time32_t __VERIFIER_nondet_time32_t(void);
 
-__time32_t avocado__time32(__time32_t *tloc)
+__time32_t _avocado__time32(__time32_t *tloc)
 {
   __time32_t res = __VERIFIER_nondet_time32_t();
   if(tloc)
@@ -83,7 +83,7 @@ __time32_t avocado__time32(__time32_t *tloc)
 
 #undef gmtime
 
-struct tm *avocado_gmtime(const time_t *clock)
+struct tm *_avocado_gmtime(const time_t *clock)
 {
   // not very general, may be too restrictive
   // need to set the fields to something meaningful
@@ -108,7 +108,7 @@ struct tm *avocado_gmtime(const time_t *clock)
 
 #undef gmtime
 
-struct tm *avocado_gmtime_r(const time_t *clock, struct tm *result)
+struct tm *_avocado_gmtime_r(const time_t *clock, struct tm *result)
 {
   // need to set the fields to something meaningful
   (void)*clock;
@@ -124,7 +124,7 @@ struct tm *avocado_gmtime_r(const time_t *clock, struct tm *result)
 
 #undef localtime
 
-struct tm *avocado_localtime(const time_t *clock)
+struct tm *_avocado_localtime(const time_t *clock)
 {
   // not very general, may be too restrictive
   // need to set the fields to something meaningful
@@ -149,7 +149,7 @@ struct tm *avocado_localtime(const time_t *clock)
 
 #undef localtime
 
-struct tm *avocado_localtime_r(const time_t *clock, struct tm *result)
+struct tm *_avocado_localtime_r(const time_t *clock, struct tm *result)
 {
   // need to set the fields to something meaningful
   (void)*clock;
@@ -167,7 +167,7 @@ struct tm *avocado_localtime_r(const time_t *clock, struct tm *result)
 
 time_t __VERIFIER_nondet_time_t(void);
 
-time_t avocado_mktime(struct tm *timeptr)
+time_t _avocado_mktime(struct tm *timeptr)
 {
   (void)*timeptr;
   time_t result=__VERIFIER_nondet_time_t();
@@ -185,7 +185,7 @@ time_t avocado_mktime(struct tm *timeptr)
 
 time_t __VERIFIER_nondet_time_t(void);
 
-time_t avocado_timegm(struct tm *timeptr)
+time_t _avocado_timegm(struct tm *timeptr)
 {
   (void)*timeptr;
   time_t result=__VERIFIER_nondet_time_t();
@@ -199,7 +199,7 @@ time_t avocado_timegm(struct tm *timeptr)
 #define __CPROVER_TIME_H_INCLUDED
 #endif
 
-char *avocado_asctime(const struct tm *timeptr)
+char *_avocado_asctime(const struct tm *timeptr)
 {
   (void)*timeptr;
   #ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS
@@ -220,7 +220,7 @@ char *avocado_asctime(const struct tm *timeptr)
 #define __CPROVER_TIME_H_INCLUDED
 #endif
 
-char *avocado_ctime(const time_t *clock)
+char *_avocado_ctime(const time_t *clock)
 {
   (void)*clock;
   #ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS
@@ -244,7 +244,7 @@ char *avocado_ctime(const time_t *clock)
 __CPROVER_size_t __VERIFIER_nondet_size_t(void);
 
 __CPROVER_size_t
-avocado_strftime(char *s, __CPROVER_size_t max, const char *format, const struct tm *tm)
+_avocado_strftime(char *s, __CPROVER_size_t max, const char *format, const struct tm *tm)
 {
   (void)*format;
   (void)*tm;
@@ -265,7 +265,7 @@ avocado_strftime(char *s, __CPROVER_size_t max, const char *format, const struct
 
 __CPROVER_size_t __VERIFIER_nondet_size_t(void);
 
-__CPROVER_size_t avocado__strftime(
+__CPROVER_size_t _avocado__strftime(
   char *s,
   __CPROVER_size_t max,
   const char *format,
@@ -301,7 +301,7 @@ long __VERIFIER_nondet_long(void);
 typedef int clockid_t;
 #endif
 
-int avocado_clock_gettime(clockid_t clockid, struct timespec *tp)
+int _avocado_clock_gettime(clockid_t clockid, struct timespec *tp)
 {
 __CPROVER_HIDE:;
 

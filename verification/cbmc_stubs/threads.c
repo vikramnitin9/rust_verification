@@ -7,7 +7,7 @@
 #define __CPROVER_THREADS_H_INCLUDED
 #endif
 
-int avocado_thrd_create(thrd_t *thr, thrd_start_t func, void *arg)
+int _avocado_thrd_create(thrd_t *thr, thrd_start_t func, void *arg)
 {
 }
 
@@ -18,7 +18,7 @@ int avocado_thrd_create(thrd_t *thr, thrd_start_t func, void *arg)
 #define __CPROVER_THREADS_H_INCLUDED
 #endif
 
-int avocado_thrd_equal( thrd_t lhs, thrd_t rhs )
+int _avocado_thrd_equal( thrd_t lhs, thrd_t rhs )
 {
 }
 
@@ -29,7 +29,7 @@ int avocado_thrd_equal( thrd_t lhs, thrd_t rhs )
 #define __CPROVER_THREADS_H_INCLUDED
 #endif
 
-thrd_t avocado_thrd_current()
+thrd_t _avocado_thrd_current()
 {
 }
 
@@ -40,20 +40,20 @@ thrd_t avocado_thrd_current()
 #define __CPROVER_THREADS_H_INCLUDED
 #endif
 
-int avocado_thrd_sleep(const struct timespec* time_point,
+int _avocado_thrd_sleep(const struct timespec* time_point,
                struct timespec* remaining)
 {
 }
 
 /* FUNCTION: thrd_yield */
 
-void avocado_thrd_yield()
+void _avocado_thrd_yield()
 {
 }
 
 /* FUNCTION: thrd_exit */
 
-void avocado_thrd_exit(int res)
+void _avocado_thrd_exit(int res)
 {
   __CPROVER_assume(0);
 }
@@ -65,7 +65,7 @@ void avocado_thrd_exit(int res)
 #define __CPROVER_THREADS_H_INCLUDED
 #endif
 
-int avocado_mtx_init( mtx_t* mutex, int type )
+int _avocado_mtx_init( mtx_t* mutex, int type )
 {
 }
 
@@ -76,7 +76,7 @@ int avocado_mtx_init( mtx_t* mutex, int type )
 #define __CPROVER_THREADS_H_INCLUDED
 #endif
 
-int avocado_mtx_lock(mtx_t* mutex)
+int _avocado_mtx_lock(mtx_t* mutex)
 {
 }
 
@@ -87,7 +87,7 @@ int avocado_mtx_lock(mtx_t* mutex)
 #define __CPROVER_THREADS_H_INCLUDED
 #endif
 
-int avocado_mtx_timedlock(mtx_t *restrict mutex,
+int _avocado_mtx_timedlock(mtx_t *restrict mutex,
                   const struct timespec *restrict time_point)
 {
 
@@ -100,7 +100,7 @@ int avocado_mtx_timedlock(mtx_t *restrict mutex,
 #define __CPROVER_THREADS_H_INCLUDED
 #endif
 
-int avocado_mtx_trylock(mtx_t *mutex)
+int _avocado_mtx_trylock(mtx_t *mutex)
 {
 }
 
@@ -111,7 +111,7 @@ int avocado_mtx_trylock(mtx_t *mutex)
 #define __CPROVER_THREADS_H_INCLUDED
 #endif
 
-int avocado_mtx_unlock(mtx_t *mutex)
+int _avocado_mtx_unlock(mtx_t *mutex)
 {
 
 }
@@ -123,7 +123,7 @@ int avocado_mtx_unlock(mtx_t *mutex)
 #define __CPROVER_THREADS_H_INCLUDED
 #endif
 
-void avocado_mtx_destroy(mtx_t *mutex)
+void _avocado_mtx_destroy(mtx_t *mutex)
 {
 }
 
@@ -134,7 +134,7 @@ void avocado_mtx_destroy(mtx_t *mutex)
 #define __CPROVER_THREADS_H_INCLUDED
 #endif
 
-void avocado_call_once(once_flag* flag, void (*func)(void))
+void _avocado_call_once(once_flag* flag, void (*func)(void))
 {
 }
 
@@ -145,7 +145,7 @@ void avocado_call_once(once_flag* flag, void (*func)(void))
 #define __CPROVER_THREADS_H_INCLUDED
 #endif
 
-int avocado_cnd_init(cnd_t* cond)
+int _avocado_cnd_init(cnd_t* cond)
 {
 }
 
@@ -156,7 +156,7 @@ int avocado_cnd_init(cnd_t* cond)
 #define __CPROVER_THREADS_H_INCLUDED
 #endif
 
-int avocado_cnd_signal(cnd_t *cond)
+int _avocado_cnd_signal(cnd_t *cond)
 {
 
 }
@@ -168,7 +168,7 @@ int avocado_cnd_signal(cnd_t *cond)
 #define __CPROVER_THREADS_H_INCLUDED
 #endif
 
-int avocado_cnd_broadcast(cnd_t *cond)
+int _avocado_cnd_broadcast(cnd_t *cond)
 {
 }
 
@@ -179,7 +179,7 @@ int avocado_cnd_broadcast(cnd_t *cond)
 #define __CPROVER_THREADS_H_INCLUDED
 #endif
 
-int avocado_cnd_wait(cnd_t* cond, mtx_t* mutex)
+int _avocado_cnd_wait(cnd_t* cond, mtx_t* mutex)
 {
 }
 
@@ -190,7 +190,7 @@ int avocado_cnd_wait(cnd_t* cond, mtx_t* mutex)
 #define __CPROVER_THREADS_H_INCLUDED
 #endif
 
-int avocado_cnd_timedwait(cnd_t* restrict cond, mtx_t* restrict mutex,
+int _avocado_cnd_timedwait(cnd_t* restrict cond, mtx_t* restrict mutex,
                   const struct timespec* restrict time_point)
 {
 }
@@ -202,6 +202,6 @@ int avocado_cnd_timedwait(cnd_t* restrict cond, mtx_t* restrict mutex,
 #define __CPROVER_THREADS_H_INCLUDED
 #endif
 
-void avocado_cnd_destroy(cnd_t* cond)
+void _avocado_cnd_destroy(cnd_t* cond)
 {
 }

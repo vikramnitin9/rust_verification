@@ -11,7 +11,7 @@ int optind = 1;
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 size_t __VERIFIER_nondet_size_t(void);
 
-int _getopt(int argc, char *const argv[], const char *optstring)
+int _avocado__getopt(int argc, char *const argv[], const char *optstring)
 {
 __CPROVER_HIDE:;
   // re-init requested by environment, we just reset optind
@@ -26,7 +26,7 @@ __CPROVER_HIDE:;
     return -1;
 
   // test whether the option is in optstring at all
-  size_t optstring_len = avocado_strlen(optstring);
+  size_t optstring_len = _avocado_strlen(optstring);
   // gcc doesn't know __CPROVER_forall
 #ifndef LIBRARY_CHECK
   __CPROVER_bool not_found = __CPROVER_forall
@@ -76,12 +76,15 @@ __CPROVER_HIDE:;
 
 /* FUNCTION: getopt */
 
-int avocado__getopt(int argc, char *const argv[], const char *optstring);
+// Manually applied the `_avocado` prefix here. Tree-sitter appears to be unable to detect this
+// function definition. If I delete the body (leaving only the parens), it does detect it. I suspect
+// there is a parsing error in the body somehere.
+int _avocado__getopt(int argc, char *const argv[], const char *optstring);
 
-int avocado_getopt(int argc, char *const argv[], const char *optstring)
+int _avocado_getopt(int argc, char *const argv[], const char *optstring)
 {
 __CPROVER_HIDE:;
-  return avocado__getopt(argc, argv, optstring);
+  return _avocado__getopt(argc, argv, optstring);
 }
 
 /* FUNCTION: getopt_long */
@@ -94,7 +97,7 @@ __CPROVER_HIDE:;
 #define __CPROVER_GETOPT_H_INCLUDED
 #endif
 
-int avocado_getopt_long(
+int _avocado_getopt_long(
   int argc,
   char *const argv[],
   const char *optstring,
@@ -108,7 +111,7 @@ int avocado_getopt_long(
   // internal library syntax checks)
   (void)longindex;
 
-  return avocado_getopt(argc, argv, optstring);
+  return _avocado_getopt(argc, argv, optstring);
 }
 
 #endif
