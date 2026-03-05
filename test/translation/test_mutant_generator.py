@@ -1,5 +1,25 @@
 from translation import MutantGenerator
-from translation.ast.cbmc_ast import Bool, EnsuresClause, OrOp, RequiresClause
+from translation.ast.cbmc_ast import (
+    AndOp,
+    Bool,
+    BuiltinType,
+    DivOp,
+    EnsuresClause,
+    EqOp,
+    ExistsExpr,
+    ForallExpr,
+    LeOp,
+    LtOp,
+    MulOp,
+    NegOp,
+    NeqOp,
+    Number,
+    OrOp,
+    QuantifierDecl,
+    RequiresClause,
+    TypeNode,
+    Name,
+)
 
 mutant_generator = MutantGenerator()
 
@@ -9,6 +29,12 @@ def test_boolean_mutants() -> None:
     bools = [True, False]
     for b in bools:
         assert mutant_generator.get_mutant(Bool(value=b)) == Bool(value=not b)
+
+
+def test_neg_mutant() -> None:
+    neg_op = NegOp(Bool(True))
+
+    assert mutant_generator.get_mutant(neg_op) == Bool(True)
 
 
 def test_top_level_clause_mutants() -> None:
@@ -23,5 +49,50 @@ def test_top_level_clause_mutants() -> None:
     )
 
 
-def test_binop_mutants() -> None:
-    print(mutant_generator.get_mutant(OrOp(Bool(True), Bool(False))))
+def test_unnested_binop_mutant() -> None:
+    simple_binop = OrOp(Bool(True), Bool(False))
+    expected_mutant = AndOp(Bool(False), Bool(True))
+
+    assert mutant_generator.get_mutant(simple_binop) == expected_mutant
+
+
+def test_nested_binop_mutant() -> None:
+    simple_binop = OrOp(AndOp(Bool(True), Bool(True)), DivOp(Number(10), Number(2)))
+    expected_mutant = AndOp(OrOp(Bool(False), Bool(False)), MulOp(Number(10), Number(2)))
+
+    assert mutant_generator.get_mutant(simple_binop) == expected_mutant
+
+
+def test_mutate_forall() -> None:
+    forall_expr = ForallExpr(
+        QuantifierDecl(
+            typenode=BuiltinType("int"),
+            name=Name("i")),
+            range_expr=AndOp(LeOp(Number(0), Name("i")), LtOp(Name("i"), Number(10))),
+            expr=EqOp(Name("i"), Number(0)),
+        )
+    expected_mutant = ExistsExpr(
+        QuantifierDecl(
+            typenode=BuiltinType("int"),
+            name=Name("i")),
+            range_expr=AndOp(LeOp(Number(0), Name("i")), LtOp(Name("i"), Number(10))),
+            expr=NeqOp(Name("i"), Number(0)),
+    )
+    assert mutant_generator.get_mutant(forall_expr) == expected_mutant
+
+def test_mutate_exists() -> None:
+    forall_expr = ExistsExpr(
+        QuantifierDecl(
+            typenode=BuiltinType("int"),
+            name=Name("i")),
+            range_expr=AndOp(LeOp(Number(0), Name("i")), LtOp(Name("i"), Number(10))),
+            expr=EqOp(Name("i"), Number(0)),
+        )
+    expected_mutant = ForallExpr(
+        QuantifierDecl(
+            typenode=BuiltinType("int"),
+            name=Name("i")),
+            range_expr=AndOp(LeOp(Number(0), Name("i")), LtOp(Name("i"), Number(10))),
+            expr=NeqOp(Name("i"), Number(0)),
+    )
+    assert mutant_generator.get_mutant(forall_expr) == expected_mutant

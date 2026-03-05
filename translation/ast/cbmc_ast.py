@@ -337,13 +337,17 @@ class Quantifier(CBMCAst):
 @dataclass
 class ForallExpr(Quantifier):
     kind: str = "forall"
-    pass
+
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [ExistsExpr]
 
 
 @dataclass
 class ExistsExpr(Quantifier):
     kind: str = "exists"
-    pass
+
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [ForallExpr]
 
 
 @dataclass

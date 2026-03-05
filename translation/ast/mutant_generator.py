@@ -2,7 +2,15 @@
 
 from typing import cast
 
-from translation.ast.cbmc_ast import BinOp, Bool, CBMCAst, EnsuresClause, RequiresClause
+from translation.ast.cbmc_ast import (
+    BinOp,
+    Bool,
+    CBMCAst,
+    EnsuresClause,
+    NegOp,
+    Quantifier,
+    RequiresClause,
+)
 
 
 class MutantGenerator:
@@ -18,7 +26,9 @@ class MutantGenerator:
             CBMCAst: The mutant of the given AST node.
         """
         match node:
-            # Handle special cases first, e.g., clauses and literals.
+            # Handle special cases first, e.g., clauses, boolean literals, negations.
+            case NegOp(value):
+                return value
             case Bool(value):
                 return Bool(not value)
             case RequiresClause(meta, expr):
@@ -35,5 +45,17 @@ class MutantGenerator:
                 )
                 binop_constructor = binop_mutation_candidates[0]
                 return binop_constructor(self.get_mutant(left), self.get_mutant(right))
+            case Quantifier(decl, range_expr, expr, _):
+                quantifier_mutation_candidates: list[type[Quantifier]] = cast(
+                    "list[type[Quantifier]]", node.get_mutation_candidates()
+                )
+                assert len(quantifier_mutation_candidates) == 1, (
+                    f"Expected exactly one mutation candidate for a quantifier expression: {node}"
+                )
+                quantifier_constructor = quantifier_mutation_candidates[0]
+                # TODO: Should we also mutate the range expression?
+                return quantifier_constructor(
+                    decl, range_expr, self.get_mutant(expr), quantifier_constructor.kind
+                )
             case _:
                 return node
