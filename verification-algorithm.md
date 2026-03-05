@@ -102,7 +102,7 @@ immutable class ProofState:
   * There might be a specification for a function that is on the workstack.  This is important to
     handle recursion and even when the call graph is a dag rather than a tree.
   * TODO: add information to distinguish verified/assumed/unverified/not-yet processed functions?
-* workstack: Stack[WorkItem]
+* workstack: Stack[WorkItem]:
   A stack of functions that need to be (re)processed.
   * Immutable, so can be represented more efficiently than as a Stack.
     It could be a tuple of all the elements, or it could be implemented as a manual linked list, as
@@ -144,7 +144,8 @@ def verify_program(program) -> List[Map[Fn, Spec]]:
   """
   The entry point: Verify all the functions in a program.
   Input: a program
-  Output: a list of program specifications.  A program specification contains a specification for each function in the program
+  Output: a list of program specifications.
+          A program specification contains a specification for each function in the program.
   """
   # Since workstacks are immutable, a workstack can be represented as a tuple rather than as a Stack.
   initial_workstack: Stack[WorkItem] = all functions in `program`, in reverse topological
@@ -309,7 +310,7 @@ def current_context(fn, proofstate) -> context:
   # Look up from proofstate's `specs` field.
 
 def llm(...):
-  This function calls the API we're using for LLMs.  It should use a cache.
+  # This function calls the API we're using for LLMs.  It should use a cache.
 ```
 
 Suppose that, after creating a VerificationInput, the system changes some
