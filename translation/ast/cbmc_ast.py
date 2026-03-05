@@ -101,6 +101,9 @@ class OrOp(BinOp):
     def operator(self) -> str:
         return "||"
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [AndOp]
+
 
 @dataclass
 class AndOp(BinOp):
@@ -109,6 +112,9 @@ class AndOp(BinOp):
 
     def operator(self) -> str:
         return "&&"
+
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [OrOp]
 
 
 @dataclass
@@ -119,6 +125,9 @@ class EqOp(BinOp):
     def operator(self) -> str:
         return "=="
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [NeqOp]
+
 
 @dataclass
 class NeqOp(BinOp):
@@ -127,6 +136,9 @@ class NeqOp(BinOp):
 
     def operator(self) -> str:
         return "!="
+
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [EqOp]
 
 
 @dataclass
@@ -137,6 +149,9 @@ class LtOp(BinOp):
     def operator(self) -> str:
         return "<"
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [GeOp]
+
 
 @dataclass
 class LeOp(BinOp):
@@ -145,6 +160,9 @@ class LeOp(BinOp):
 
     def operator(self) -> str:
         return "<="
+
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [GtOp]
 
 
 @dataclass
@@ -155,6 +173,9 @@ class GtOp(BinOp):
     def operator(self) -> str:
         return ">"
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [LeOp]
+
 
 @dataclass
 class GeOp(BinOp):
@@ -163,6 +184,9 @@ class GeOp(BinOp):
 
     def operator(self) -> str:
         return ">="
+
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [LtOp]
 
 
 @dataclass
@@ -173,6 +197,9 @@ class AddOp(BinOp):
     def operator(self) -> str:
         return "+"
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [SubOp]
+
 
 @dataclass
 class SubOp(BinOp):
@@ -181,6 +208,9 @@ class SubOp(BinOp):
 
     def operator(self) -> str:
         return "-"
+
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [AddOp]
 
 
 @dataclass
@@ -191,6 +221,9 @@ class MulOp(BinOp):
     def operator(self) -> str:
         return "*"
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [DivOp]
+
 
 @dataclass
 class DivOp(BinOp):
@@ -200,6 +233,9 @@ class DivOp(BinOp):
     def operator(self) -> str:
         return "/"
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [MulOp]
+
 
 @dataclass
 class ModOp(BinOp):
@@ -208,6 +244,9 @@ class ModOp(BinOp):
 
     def operator(self) -> str:
         return "%"
+
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [DivOp]
 
 
 @dataclass
