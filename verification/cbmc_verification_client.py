@@ -62,14 +62,11 @@ class CbmcVerificationClient(VerificationClient):
                     CbmcVerificationClient.DEFAULT_HEADERS_FOR_VERIFICATION, file
                 )
                 try:
-                    vcommands = self._get_cbmc_verification_commands(vinput, file_to_verify=file)
-                    logger.debug(f"Running command: {vcommands[0]}")
-                    result = subprocess.run(vcommands[0], capture_output=True, text=True)
-                    for vcommand in vcommands[1:]:
-                        if result.returncode != 0:
-                            break
-                        logger.debug(f"Running command: {vcommand}")
-                        result = subprocess.run(vcommand, capture_output=True, text=True)
+                    vcommand = self._get_cbmc_verification_command(
+                        vinput, path_to_file_to_verify=file
+                    )
+                    logger.debug(f"Running command: {vcommand}")
+                    result = subprocess.run(vcommand, capture_output=True, text=True, shell=True)
                     # Normalize the temp file path in CBMC output so that LLM cache keys
                     # are deterministic across runs (temp file names are random).
                     normalized_stdout = text_util.normalize_cbmc_output_paths(
@@ -80,7 +77,7 @@ class CbmcVerificationClient(VerificationClient):
                     )
                     self._cache[vinput] = VerificationResult(
                         vinput,
-                        vcommands,
+                        vcommand,
                         succeeded=result.returncode == 0,
                         stdout=normalized_stdout,
                         stderr=normalized_stderr,
@@ -96,60 +93,51 @@ class CbmcVerificationClient(VerificationClient):
             logger.error(f"Verification failed for function '{function.name}'")
         return vresult
 
-    def _get_cbmc_verification_commands(
+    def _get_cbmc_verification_command(
         self,
         verification_input: VerificationInput,
-        file_to_verify: Path,
-    ) -> list[list[str]]:
+        path_to_file_to_verify: Path,
+    ) -> str:
         """Return the command used to verify a function in a file with CBMC.
 
         Args:
             verification_input (VerificationInput): The verification input.
-            file_to_verify (Path): The path to the file to verify.
+            path_to_file_to_verify (Path): The path to the file to verify.
 
         Returns:
-            list[list[str]]: The commands used to verify a function in a file with CBMC.
+            str: The command used to verify a function in a file with CBMC.
         """
         function_name = verification_input.function.name
         callee_names = [callee.name for callee in verification_input.get_callees_to_specs()]
-        replace_call_with_contract_args = [
-            arg
-            for callee_name in callee_names
-            for arg in ("--replace-call-with-contract", callee_name)
-        ]
-        return [
+        replace_call_with_contract_args = (
+            ""
+            if not callee_names
+            else " ".join(
+                [
+                    arg
+                    for callee_name in callee_names
+                    for arg in ("--replace-call-with-contract", callee_name)
+                ]
+            )
+        )
+        return " && ".join(
             [
-                "goto-cc",
-                "-o",
-                f"{function_name}.goto",
-                # These seemingly gratuitous f-strings are necessary for type-checking:
-                # they convert a Path into a string.
-                f"{file_to_verify}",
-                "--function",
-                f"{function_name}",
-            ],
-            [
-                "goto-instrument",
-                "--partial-loops",
-                "--unwind",
-                "5",
-                f"{function_name}.goto",
-                f"{function_name}.goto",
-            ],
-            [
-                "goto-instrument",
-                *replace_call_with_contract_args,
-                "--enforce-contract",
-                function_name,
-                f"{function_name}.goto",
-                f"checking-{function_name}-contracts.goto",
-            ],
-            [
-                "cbmc",
-                f"checking-{function_name}-contracts.goto",
-                "--function",
-                function_name,
-                "--depth",
-                "100",
-            ],
-        ]
+                (
+                    f"goto-cc -o {function_name}.goto {path_to_file_to_verify} "
+                    f"--function {function_name}"
+                ),
+                (
+                    f"goto-instrument --partial-loops --unwind 5 "
+                    f"{function_name}.goto {function_name}.goto"
+                ),
+                (
+                    f"goto-instrument {replace_call_with_contract_args} "
+                    f"--enforce-contract {function_name} "
+                    f"{function_name}.goto checking-{function_name}-contracts.goto"
+                ),
+                (
+                    f"cbmc checking-{function_name}-contracts.goto "
+                    f"--function {function_name} --depth 100"
+                ),
+            ]
+        )
