@@ -109,11 +109,17 @@ class CbmcVerificationClient(VerificationClient):
         """
         function_name = verification_input.function.name
         callee_names = [callee.name for callee in verification_input.get_callees_to_specs()]
-        replace_call_with_contract_args = [
-            arg
-            for callee_name in callee_names
-            for arg in ("--replace-call-with-contract", callee_name)
-        ]
+        replace_call_with_contract_args = (
+            ""
+            if not callee_names
+            else " ".join(
+                [
+                    arg
+                    for callee_name in callee_names
+                    for arg in ("--replace-call-with-contract", callee_name)
+                ]
+            )
+        )
         return " && ".join(
             [
                 (
