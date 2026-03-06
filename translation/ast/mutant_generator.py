@@ -23,6 +23,9 @@ class MutantGenerator:
     def get_mutant(self, node: CBMCAst) -> CBMCAst:
         """Return a mutant of the given AST node by recursively applying mutation operations.
 
+        Note: I'm not sure how useful this function is, since it applies multiple mutation operators
+        in one go. It's probably better to use `get_single_point_mutants`.
+
         Args:
             node (CBMCAst): The AST node for which to create a mutant.
 
