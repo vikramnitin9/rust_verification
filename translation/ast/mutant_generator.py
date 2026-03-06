@@ -89,7 +89,13 @@ class MutantGenerator:
             case NegOp(operand):
                 # Remove the negation.
                 mutants.append(operand)
-                mutants.extend(NegOp(m) for m in self.get_single_point_mutants(operand))
+                mutants.extend(
+                    [
+                        NegOp(operand_mutant)
+                        for operand_mutant in self.get_single_point_mutants(operand)
+                        if NegOp(operand_mutant) not in mutants
+                    ]
+                )
             case Bool(value):
                 mutants.append(Bool(value=not value))
             case RequiresClause(meta, expr):
@@ -139,5 +145,5 @@ class MutantGenerator:
                     ]
                 )
             case _:
-                logger.warning(f"No mutant(s) generated for '{node}'")
+                logger.debug(f"No mutant(s) generated for '{node}'")
         return mutants
