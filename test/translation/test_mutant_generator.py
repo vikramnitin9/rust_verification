@@ -3,6 +3,7 @@ from translation.ast.cbmc_ast import (
     AndOp,
     Bool,
     BuiltinType,
+    CBMCAst,
     DivOp,
     EnsuresClause,
     EqOp,
@@ -21,6 +22,16 @@ from translation.ast.cbmc_ast import (
 )
 
 mutant_generator = MutantGenerator()
+
+
+def _assert_mutants(actual_mutants: list[CBMCAst], expected_mutants: list[CBMCAst]) -> None:
+    assert len(actual_mutants) == len(expected_mutants), (
+        f"Number of actual mutants ({len(actual_mutants)}) differs from expected mutants ({len(expected_mutants)})"
+    )
+    for expected_mutant in expected_mutants:
+        assert expected_mutants in actual_mutants, (
+            f"Expected mutant '{expected_mutant}' was not found in actual mutants '{actual_mutants}'"
+        )
 
 
 def test_boolean_mutants() -> None:
@@ -64,44 +75,39 @@ def test_nested_binop_mutant() -> None:
 
 def test_mutate_forall() -> None:
     forall_expr = ForallExpr(
-        QuantifierDecl(
-            typenode=BuiltinType("int"),
-            name=Name("i")),
-            range_expr=AndOp(LeOp(Number(0), Name("i")), LtOp(Name("i"), Number(10))),
-            expr=EqOp(Name("i"), Number(0)),
-        )
+        QuantifierDecl(typenode=BuiltinType("int"), name=Name("i")),
+        range_expr=AndOp(LeOp(Number(0), Name("i")), LtOp(Name("i"), Number(10))),
+        expr=EqOp(Name("i"), Number(0)),
+    )
     expected_mutant = ExistsExpr(
-        QuantifierDecl(
-            typenode=BuiltinType("int"),
-            name=Name("i")),
-            range_expr=AndOp(LeOp(Number(0), Name("i")), LtOp(Name("i"), Number(10))),
-            expr=NeqOp(Name("i"), Number(0)),
+        QuantifierDecl(typenode=BuiltinType("int"), name=Name("i")),
+        range_expr=AndOp(LeOp(Number(0), Name("i")), LtOp(Name("i"), Number(10))),
+        expr=NeqOp(Name("i"), Number(0)),
     )
     assert mutant_generator.get_mutant(forall_expr) == expected_mutant
 
+
 def test_mutate_exists() -> None:
-    forall_expr = ExistsExpr(
-        QuantifierDecl(
-            typenode=BuiltinType("int"),
-            name=Name("i")),
-            range_expr=AndOp(LeOp(Number(0), Name("i")), LtOp(Name("i"), Number(10))),
-            expr=EqOp(Name("i"), Number(0)),
-        )
-    expected_mutant = ForallExpr(
-        QuantifierDecl(
-            typenode=BuiltinType("int"),
-            name=Name("i")),
-            range_expr=AndOp(LeOp(Number(0), Name("i")), LtOp(Name("i"), Number(10))),
-            expr=NeqOp(Name("i"), Number(0)),
+    exists_expr = ExistsExpr(
+        QuantifierDecl(typenode=BuiltinType("int"), name=Name("i")),
+        range_expr=AndOp(LeOp(Number(0), Name("i")), LtOp(Name("i"), Number(10))),
+        expr=EqOp(Name("i"), Number(0)),
     )
-    assert mutant_generator.get_mutant(forall_expr) == expected_mutant
+    expected_mutant = ForallExpr(
+        QuantifierDecl(typenode=BuiltinType("int"), name=Name("i")),
+        range_expr=AndOp(LeOp(Number(0), Name("i")), LtOp(Name("i"), Number(10))),
+        expr=NeqOp(Name("i"), Number(0)),
+    )
+    assert mutant_generator.get_mutant(exists_expr) == expected_mutant
+
 
 def test_get_single_point_mutants_boolean() -> None:
     bools = [True, False]
     for b in bools:
         mutants = mutant_generator.get_single_point_mutants(Bool(value=b))
-        assert len(mutants) == 1, f"Boolean nodes should only have a single mutant"
+        assert len(mutants) == 1, "Boolean nodes should only have a single mutant"
         assert mutants[0] == Bool(value=not b)
+
 
 def test_get_single_point_mutants_negate() -> None:
     # !(True && True) -> True && True, !(True && False), !(False && True), !(True || True)
@@ -113,6 +119,15 @@ def test_get_single_point_mutants_negate() -> None:
         NegOp(AndOp(Bool(False), Bool(True))),
         NegOp(AndOp(Bool(True), Bool(False))),
     ]
-    assert len(mutants) == len(expected_mutants)
-    for expected_mutant in expected_mutants:
-        assert expected_mutant in mutants
+    _assert_mutants(mutants, expected_mutants)
+
+
+def test_get_single_point_mutants_requires_clause() -> None:
+    requires_clause = RequiresClause(meta=None, expr=AndOp(Bool(True), Bool(True)))
+    mutants = mutant_generator.get_single_point_mutants(requires_clause)
+    expected_mutants: list[CBMCAst] = [
+        RequiresClause(OrOp(Bool(True), Bool(True))),
+        RequiresClause(AndOp(Bool(False), Bool(True))),
+        RequiresClause(AndOp(Bool(True), Bool(False))),
+    ]
+    _assert_mutants(mutants, expected_mutants)
