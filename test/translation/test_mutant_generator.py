@@ -29,7 +29,7 @@ def _assert_mutants(actual_mutants: list[CBMCAst], expected_mutants: list[CBMCAs
         f"Number of actual mutants ({len(actual_mutants)}) differs from expected mutants ({len(expected_mutants)})"
     )
     for expected_mutant in expected_mutants:
-        assert expected_mutants in actual_mutants, (
+        assert expected_mutant in actual_mutants, (
             f"Expected mutant '{expected_mutant}' was not found in actual mutants '{actual_mutants}'"
         )
 
@@ -126,8 +126,8 @@ def test_get_single_point_mutants_requires_clause() -> None:
     requires_clause = RequiresClause(meta=None, expr=AndOp(Bool(True), Bool(True)))
     mutants = mutant_generator.get_single_point_mutants(requires_clause)
     expected_mutants: list[CBMCAst] = [
-        RequiresClause(OrOp(Bool(True), Bool(True))),
-        RequiresClause(AndOp(Bool(False), Bool(True))),
-        RequiresClause(AndOp(Bool(True), Bool(False))),
+        RequiresClause(meta=None, expr=OrOp(Bool(True), Bool(True))),
+        RequiresClause(meta=None, expr=AndOp(Bool(False), Bool(True))),
+        RequiresClause(meta=None, expr=AndOp(Bool(True), Bool(False))),
     ]
     _assert_mutants(mutants, expected_mutants)
