@@ -246,6 +246,7 @@ class ModOp(BinOp):
         return "%"
 
     def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        # Default to division. Modulo has no inverse.
         return [DivOp]
 
 

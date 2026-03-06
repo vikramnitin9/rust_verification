@@ -17,7 +17,6 @@ from translation.ast.cbmc_ast import (
     OrOp,
     QuantifierDecl,
     RequiresClause,
-    TypeNode,
     Name,
 )
 
@@ -96,3 +95,24 @@ def test_mutate_exists() -> None:
             expr=NeqOp(Name("i"), Number(0)),
     )
     assert mutant_generator.get_mutant(forall_expr) == expected_mutant
+
+def test_get_single_point_mutants_boolean() -> None:
+    bools = [True, False]
+    for b in bools:
+        mutants = mutant_generator.get_single_point_mutants(Bool(value=b))
+        assert len(mutants) == 1, f"Boolean nodes should only have a single mutant"
+        assert mutants[0] == Bool(value=not b)
+
+def test_get_single_point_mutants_negate() -> None:
+    # !(True && True) -> True && True, !(True && False), !(False && True), !(True || True)
+    negop = NegOp(AndOp(Bool(True), Bool(True)))
+    mutants = mutant_generator.get_single_point_mutants(negop)
+    expected_mutants = [
+        AndOp(Bool(True), Bool(True)),
+        NegOp(OrOp(Bool(True), Bool(True))),
+        NegOp(AndOp(Bool(False), Bool(True))),
+        NegOp(AndOp(Bool(True), Bool(False))),
+    ]
+    assert len(mutants) == len(expected_mutants)
+    for expected_mutant in expected_mutants:
+        assert expected_mutant in mutants
