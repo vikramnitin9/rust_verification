@@ -110,6 +110,10 @@ def _find_identifier_in_declarator_or_definition(
 
     nested_declarator = declarator_or_definition.child_by_field_name("declarator")
     if nested_declarator is not None:
+        # If there is a nested declarator, follow that path first to check
+        # whether there are identifiers to get. A "nested declarator" is
+        # something like `int (*f)(int x)`, which in tree-sitter is a
+        # function_declarator around a pointer_declarator.
         return _find_identifier_in_declarator_or_definition(nested_declarator)
 
     for child in declarator_or_definition.children:
