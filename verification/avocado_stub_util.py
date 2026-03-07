@@ -34,17 +34,17 @@ class RenameData:
     file_path: Path
 
 
-DEFAULT_STUB_MAPPINGS = "verification/cbmc_stubs/c_stub_rename_map.pkl"
+DEFAULT_STUB_MAPPINGS_FILE = "verification/cbmc_stubs/c_stub_rename_map.pkl"
 
 
 def get_stub_mappings(
-    path_to_stub_mappings: str = DEFAULT_STUB_MAPPINGS,
+    path_to_stub_mappings: str = DEFAULT_STUB_MAPPINGS_FILE,
 ) -> dict[str, RenameData]:
     """Return the stub mappings for Avocado stubs for functions declared in the ANSI-C standard.
 
     Args:
         path_to_stub_mappings (str, optional): Path to stub mappings. Defaults to
-            DEFAULT_STUB_MAPPINGS.
+            DEFAULT_STUB_MAPPINGS_FILE.
 
     Returns:
         dict[str, RenameData]: A mapping from the original C function name to rename data.
