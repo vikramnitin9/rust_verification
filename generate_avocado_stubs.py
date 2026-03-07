@@ -1,6 +1,6 @@
 #!/opt/miniconda3/bin/python
 
-"""Generate stub files for libraries defined by the ANSI-C standard, modified for use with Avocado."""
+"""Generate stub files for libraries defined by the ANSI-C standard, modified for use w/Avocado."""
 
 import argparse
 import pickle as pkl
