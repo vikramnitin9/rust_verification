@@ -4,13 +4,13 @@ from tree_sitter import Node
 
 
 def get_function_identifiers(tree_root: Node) -> list[Node]:
-    """Get identifier nodes from definition and declaration nodes in the given tree.
+    """Return all identifier nodes from definition and declaration nodes in the given tree.
 
     Args:
         tree_root: The root node of the tree to search.
 
     Returns:
-        list[Node]: Identifier nodes from definition and declaration nodes in the given tree.
+        list[Node]: All identifier nodes from definition and declaration nodes in the given tree.
     """
     result = []
 
@@ -41,7 +41,7 @@ def get_call_identifiers(tree_root: Node) -> list[Node]:
         tree_root: The root node of the tree to search.
 
     Returns:
-        List of identifier nodes that are function names in call expressions.
+        list[Node]: Identifier nodes that are function names in call expressions.
     """
     result = []
 
@@ -59,7 +59,7 @@ def get_call_identifiers(tree_root: Node) -> list[Node]:
 
 
 def _is_function_declarator(declarator: Node | None) -> bool:
-    """Check if a declarator is or contains a function_declarator.
+    """Return true if a declarator is or contains a function_declarator.
 
     A declarator can be a function_declarator node itself, e.g.,
 
@@ -91,7 +91,7 @@ def _is_function_declarator(declarator: Node | None) -> bool:
 def _find_identifier_in_declarator_or_definition(
     declarator_or_definition: Node | None,
 ) -> Node | None:
-    """Recursively find an identifier node within a declarator or definition node.
+    """Recursively find the unique identifier node within a declarator or definition node.
 
     An identifier node contains the name of a function.
 

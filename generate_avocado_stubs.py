@@ -110,7 +110,7 @@ def _rename_function_calls(file_path: Path, name_to_rename_data: dict[str, Renam
 
     Args:
         file_path: The C source file to modify (i.e., apply renaming to).
-        name_to_rename_data: Map from original function names to their rename metadata.
+        name_to_rename_data: Map from original function names to their rename data.
     """
     src_content = file_path.read_bytes()
     parsed_src = C_PARSER.parse(src_content)

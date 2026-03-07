@@ -10,11 +10,11 @@ from typing import cast
 
 @dataclass(frozen=True)
 class RenameData:
-    """Metadata for renaming functions in libraries defined in the ANSI-C standard to Avocado stubs.
+    """Data for renaming functions in libraries defined in the ANSI-C standard to Avocado stubs.
 
     The CBMC verifier includes its own copy of stub functions in libraries defined in the ANSI-C
-    standard that it uses for verifying client code that makes use them. This can sometimes lead to
-    unexpected issues related to internal C functions that are used by its copy of stub functions:
+    standard that it uses for verifying client code that makes use them. This can lead to
+    issues related to internal C functions that are used by its copy of stub functions:
 
         https://github.com/diffblue/cbmc/issues/8844
 
