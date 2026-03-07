@@ -103,9 +103,7 @@ class MutantGenerator:
                     [RequiresClause(meta, m) for m in self.get_first_order_mutants(expr)]
                 )
             case EnsuresClause(meta, expr):
-                mutants.extend(
-                    [EnsuresClause(meta, m) for m in self.get_first_order_mutants(expr)]
-                )
+                mutants.extend([EnsuresClause(meta, m) for m in self.get_first_order_mutants(expr)])
             case BinOp(left, right):
                 mutation_candidates: list[type[BinOp]] = cast(
                     "list[type[BinOp]]", node.get_mutation_candidates()
