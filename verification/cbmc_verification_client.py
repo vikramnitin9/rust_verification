@@ -57,23 +57,23 @@ class CbmcVerificationClient(VerificationClient):
             ) as tmp_f:
                 tmp_f.write(vinput.contents_of_file_to_verify)
                 tmp_f.flush()
-                path_to_file = Path(tmp_f.name)
+                file = Path(tmp_f.name)
                 file_util.ensure_lines_at_beginning(
-                    CbmcVerificationClient.DEFAULT_HEADERS_FOR_VERIFICATION, path_to_file
+                    CbmcVerificationClient.DEFAULT_HEADERS_FOR_VERIFICATION, file
                 )
                 try:
                     vcommand = self._get_cbmc_verification_command(
-                        vinput, path_to_file_to_verify=path_to_file
+                        vinput, path_to_file_to_verify=file
                     )
                     logger.debug(f"Running command: {vcommand}")
-                    result = subprocess.run(vcommand, shell=True, capture_output=True, text=True)
+                    result = subprocess.run(vcommand, capture_output=True, text=True, shell=True)
                     # Normalize the temp file path in CBMC output so that LLM cache keys
                     # are deterministic across runs (temp file names are random).
                     normalized_stdout = text_util.normalize_cbmc_output_paths(
-                        result.stdout, function.name, temp_file_path=str(path_to_file)
+                        result.stdout, function.name, temp_file_path=str(file)
                     )
                     normalized_stderr = text_util.normalize_cbmc_output_paths(
-                        result.stderr, function.name, temp_file_path=str(path_to_file)
+                        result.stderr, function.name, temp_file_path=str(file)
                     )
                     self._cache[vinput] = VerificationResult(
                         vinput,
@@ -109,8 +109,16 @@ class CbmcVerificationClient(VerificationClient):
         """
         function_name = verification_input.function.name
         callee_names = [callee.name for callee in verification_input.get_callees_to_specs()]
-        replace_call_with_contract_args = " ".join(
-            [f"--replace-call-with-contract {callee_name}" for callee_name in callee_names]
+        replace_call_with_contract_args = (
+            ""
+            if not callee_names
+            else " ".join(
+                [
+                    arg
+                    for callee_name in callee_names
+                    for arg in ("--replace-call-with-contract", callee_name)
+                ]
+            )
         )
         return " && ".join(
             [

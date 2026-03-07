@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 from string import Template
 
-from util import CFunction, ParsecFile, SpecGenGranularity, text_util
+from util import CFunction, ParsecProject, SpecGenGranularity, text_util
 
 from .verification_result import VerificationResult
 
@@ -34,7 +34,10 @@ class PromptBuilder:
     CBMC_OUTPUT_FAILURE_MARKER = "FAILURE"
 
     def specification_generation_prompt(
-        self, function: CFunction, specgen_granularity: SpecGenGranularity, parsec_file: ParsecFile
+        self,
+        function: CFunction,
+        parsec_project: ParsecProject,
+        specgen_granularity: SpecGenGranularity,
     ) -> str:
         """Return the prompt used for specification generation.
 
@@ -43,10 +46,9 @@ class PromptBuilder:
 
         Args:
             function (CFunction): The function for which to generate specifications.
+            parsec_project (ParsecProject): The ParseC project that contains `function`.
             specgen_granularity (SpecGenGranularity): The granularity at which specification
                 generation occurs.
-            parsec_file (ParsecFile): The file that contains `function`.
-
 
         Returns:
             str: The initial prompt used for specification generation.
@@ -54,7 +56,7 @@ class PromptBuilder:
         """
         source_code = function.get_original_source_code(include_documentation_comments=True)
         callee_context = ""
-        if callees := parsec_file.get_callees(function):
+        if callees := parsec_project.get_callees(function):
             if callees_with_specs := [callee for callee in callees if callee.has_specification()]:
                 callee_context = self._get_callee_specs(function.name, callees_with_specs)
 
@@ -78,8 +80,8 @@ class PromptBuilder:
             )
             tmp_f.write(source_code_cbmc_commented_out)
             tmp_f.flush()
-            parsec_file = ParsecFile(Path(tmp_f.name))
-            function = parsec_file.get_function_or_none(
+            parsec_project = ParsecProject(Path(tmp_f.name))
+            function = parsec_project.get_function_or_none(
                 function_name=verification_result.get_function().name
             )
             if not function:
@@ -128,8 +130,8 @@ class PromptBuilder:
             )
             tmp_f.write(source_code_cbmc_commented_out)
             tmp_f.flush()
-            parsec_file = ParsecFile(Path(tmp_f.name))
-            function = parsec_file.get_function_or_none(
+            parsec_project = ParsecProject(Path(tmp_f.name))
+            function = parsec_project.get_function_or_none(
                 function_name=verification_result.get_function().name
             )
             if not function:
