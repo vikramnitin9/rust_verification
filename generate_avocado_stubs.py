@@ -181,9 +181,7 @@ def _should_prepend_avocado_prefix(node: Node) -> bool:
         bool: True iff the node should be renamed with the _avocado_ prefix.
     """
     if node.type == "identifier":
-        assert node.text is not None, (
-            f"Expected an identifier node: '{node}' to have a non-None .text field"
-        )
+        assert node.text is not None, f"Identifier node '{node}' should have a non-None .text field"
         return not (
             re.match(DO_NOT_RENAME_PATTERN, node.text.decode()) or node.text.decode() == "if"
         )
