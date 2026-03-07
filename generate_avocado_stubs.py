@@ -1,6 +1,6 @@
 #!/opt/miniconda3/bin/python
 
-"""Module to generate the CBMC ANSI-C stub files, modified for use with Avocado."""
+"""Generate stub files for libraries defined by the ANSI-C standard, modified for use with Avocado."""
 
 import argparse
 import pickle as pkl
