@@ -7,16 +7,29 @@
 # parse CBMC specifications into the representation we work with in this codebase.
 #
 
+from __future__ import annotations
 import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol
 
 from lark import Transformer, ast_utils, v_args
 from lark.tree import Meta
 
 
-class CBMCAst(ast_utils.Ast):
+class Mutable(Protocol):
+    """Class to represent AST nodes from which mutant nodes can be generated."""
+
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        """Return the type(s) of CBMCAst nodes that this node may be mutated into.
+
+        Returns:
+            list[type[CBMCAst]]: The type(s) of CBMCAst nodes that this node may be mutated into.
+        """
+        return []
+
+
+class CBMCAst(ast_utils.Ast, Mutable):
     pass
 
 
@@ -88,6 +101,9 @@ class OrOp(BinOp):
     def operator(self) -> str:
         return "||"
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [AndOp]
+
 
 @dataclass
 class AndOp(BinOp):
@@ -96,6 +112,9 @@ class AndOp(BinOp):
 
     def operator(self) -> str:
         return "&&"
+
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [OrOp]
 
 
 @dataclass
@@ -106,6 +125,9 @@ class EqOp(BinOp):
     def operator(self) -> str:
         return "=="
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [NeqOp]
+
 
 @dataclass
 class NeqOp(BinOp):
@@ -114,6 +136,9 @@ class NeqOp(BinOp):
 
     def operator(self) -> str:
         return "!="
+
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [EqOp]
 
 
 @dataclass
@@ -124,6 +149,9 @@ class LtOp(BinOp):
     def operator(self) -> str:
         return "<"
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [GeOp]
+
 
 @dataclass
 class LeOp(BinOp):
@@ -132,6 +160,9 @@ class LeOp(BinOp):
 
     def operator(self) -> str:
         return "<="
+
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [GtOp]
 
 
 @dataclass
@@ -142,6 +173,9 @@ class GtOp(BinOp):
     def operator(self) -> str:
         return ">"
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [LeOp]
+
 
 @dataclass
 class GeOp(BinOp):
@@ -150,6 +184,9 @@ class GeOp(BinOp):
 
     def operator(self) -> str:
         return ">="
+
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [LtOp]
 
 
 @dataclass
@@ -160,6 +197,9 @@ class AddOp(BinOp):
     def operator(self) -> str:
         return "+"
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [SubOp]
+
 
 @dataclass
 class SubOp(BinOp):
@@ -168,6 +208,9 @@ class SubOp(BinOp):
 
     def operator(self) -> str:
         return "-"
+
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [AddOp]
 
 
 @dataclass
@@ -178,6 +221,9 @@ class MulOp(BinOp):
     def operator(self) -> str:
         return "*"
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [DivOp]
+
 
 @dataclass
 class DivOp(BinOp):
@@ -187,6 +233,9 @@ class DivOp(BinOp):
     def operator(self) -> str:
         return "/"
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [MulOp]
+
 
 @dataclass
 class ModOp(BinOp):
@@ -195,6 +244,10 @@ class ModOp(BinOp):
 
     def operator(self) -> str:
         return "%"
+
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        # Default to division. Modulo has no inverse.
+        return [DivOp]
 
 
 @dataclass
@@ -285,13 +338,17 @@ class Quantifier(CBMCAst):
 @dataclass
 class ForallExpr(Quantifier):
     kind: str = "forall"
-    pass
+
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [ExistsExpr]
 
 
 @dataclass
 class ExistsExpr(Quantifier):
     kind: str = "exists"
-    pass
+
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [ForallExpr]
 
 
 @dataclass
