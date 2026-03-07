@@ -24,7 +24,7 @@ class MutantGenerator:
         """Return a mutant of the given AST node by recursively applying mutation operations.
 
         Note: I'm not sure how useful this function is, since it applies multiple mutation operators
-        in one go. It's probably better to use `get_single_point_mutants`.
+        in one go. It's probably better to use `get_first_order_mutants`.
 
         Args:
             node (CBMCAst): The AST node for which to create a mutant.
@@ -72,8 +72,8 @@ class MutantGenerator:
             case _:
                 return node
 
-    def get_single_point_mutants(self, node: CBMCAst) -> list[CBMCAst]:
-        """Return all single-point mutants of the given AST node.
+    def get_first_order_mutants(self, node: CBMCAst) -> list[CBMCAst]:
+        """Return all first-order mutants of the given AST node.
 
         Each mutant in the result has exactly one operator changed, with all other
         nodes left unchanged.
@@ -82,7 +82,7 @@ class MutantGenerator:
             node (CBMCAst): The AST node for which to create mutants.
 
         Returns:
-            list[CBMCAst]: All single-point mutants of the given AST node.
+            list[CBMCAst]: All first-order mutants of the given AST node.
         """
         mutants = []
         match node:
@@ -92,7 +92,7 @@ class MutantGenerator:
                 mutants.extend(
                     [
                         NegOp(operand_mutant)
-                        for operand_mutant in self.get_single_point_mutants(operand)
+                        for operand_mutant in self.get_first_order_mutants(operand)
                         if NegOp(operand_mutant) not in mutants
                     ]
                 )
@@ -100,11 +100,11 @@ class MutantGenerator:
                 mutants.append(Bool(value=not value))
             case RequiresClause(meta, expr):
                 mutants.extend(
-                    [RequiresClause(meta, m) for m in self.get_single_point_mutants(expr)]
+                    [RequiresClause(meta, m) for m in self.get_first_order_mutants(expr)]
                 )
             case EnsuresClause(meta, expr):
                 mutants.extend(
-                    [EnsuresClause(meta, m) for m in self.get_single_point_mutants(expr)]
+                    [EnsuresClause(meta, m) for m in self.get_first_order_mutants(expr)]
                 )
             case BinOp(left, right):
                 mutation_candidates: list[type[BinOp]] = cast(
@@ -117,7 +117,7 @@ class MutantGenerator:
                 mutants.extend(
                     [
                         type(node)(left_mutant, right)
-                        for left_mutant in self.get_single_point_mutants(left)
+                        for left_mutant in self.get_first_order_mutants(left)
                     ]
                 )
 
@@ -125,7 +125,7 @@ class MutantGenerator:
                 mutants.extend(
                     [
                         type(node)(left, right_mutant)
-                        for right_mutant in self.get_single_point_mutants(right)
+                        for right_mutant in self.get_first_order_mutants(right)
                     ]
                 )
             case Quantifier(decl, range_expr, expr, _):
@@ -141,7 +141,7 @@ class MutantGenerator:
                 mutants.extend(
                     [
                         type(node)(decl, range_expr, quantifier_body_mutant, node.kind)
-                        for quantifier_body_mutant in self.get_single_point_mutants(expr)
+                        for quantifier_body_mutant in self.get_first_order_mutants(expr)
                     ]
                 )
             case _:

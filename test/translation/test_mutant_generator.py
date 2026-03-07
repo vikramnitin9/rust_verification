@@ -101,18 +101,18 @@ def test_mutate_exists() -> None:
     assert mutant_generator.get_mutant(exists_expr) == expected_mutant
 
 
-def test_get_single_point_mutants_boolean() -> None:
+def test_get_first_order_mutants_boolean() -> None:
     bools = [True, False]
     for b in bools:
-        mutants = mutant_generator.get_single_point_mutants(Bool(value=b))
+        mutants = mutant_generator.get_first_order_mutants(Bool(value=b))
         assert len(mutants) == 1, "Boolean nodes should only have a single mutant"
         assert mutants[0] == Bool(value=not b)
 
 
-def test_get_single_point_mutants_negate() -> None:
+def test_get_first_order_mutants_negate() -> None:
     # !(True && True) -> True && True, !(True && False), !(False && True), !(True || True)
     negop = NegOp(AndOp(Bool(True), Bool(True)))
-    mutants = mutant_generator.get_single_point_mutants(negop)
+    mutants = mutant_generator.get_first_order_mutants(negop)
     expected_mutants = [
         AndOp(Bool(True), Bool(True)),
         NegOp(OrOp(Bool(True), Bool(True))),
@@ -122,9 +122,9 @@ def test_get_single_point_mutants_negate() -> None:
     _assert_mutants(mutants, expected_mutants)
 
 
-def test_get_single_point_mutants_requires_clause() -> None:
+def test_get_first_order_mutants_requires_clause() -> None:
     requires_clause = RequiresClause(meta=None, expr=AndOp(Bool(True), Bool(True)))
-    mutants = mutant_generator.get_single_point_mutants(requires_clause)
+    mutants = mutant_generator.get_first_order_mutants(requires_clause)
     expected_mutants: list[CBMCAst] = [
         RequiresClause(meta=None, expr=OrOp(Bool(True), Bool(True))),
         RequiresClause(meta=None, expr=AndOp(Bool(False), Bool(True))),
