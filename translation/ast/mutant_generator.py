@@ -24,7 +24,8 @@ class MutantGenerator:
         """Return a mutant of the given AST node by recursively applying mutation operations.
 
         Note: I'm not sure how useful this function is, since it applies multiple mutation operators
-        in one go. It's probably better to use `get_first_order_mutants`.
+        in one go. It's probably better to use `get_first_order_mutants`. Keeping it around for now
+        in case it might be useful later.
 
         Args:
             node (CBMCAst): The AST node for which to create a mutant.
@@ -105,11 +106,11 @@ class MutantGenerator:
             case EnsuresClause(meta, expr):
                 mutants.extend([EnsuresClause(meta, m) for m in self.get_first_order_mutants(expr)])
             case BinOp(left, right):
-                mutation_candidates: list[type[BinOp]] = cast(
+                replacement_operators: list[type[BinOp]] = cast(
                     "list[type[BinOp]]", node.get_mutation_candidates()
                 )
                 # Mutate just the operator, keeping children unchanged.
-                mutants.extend([mutation(left, right) for mutation in mutation_candidates])
+                mutants.extend([mutation(left, right) for mutation in replacement_operators])
 
                 # Mutate just the left-hand side, keeping operator and right child.
                 mutants.extend(
@@ -128,11 +129,13 @@ class MutantGenerator:
                 )
             case Quantifier(decl, range_expr, expr, _):
                 # Exists -> Forall, and vice-versa.
-                mutation_candidates = cast("list[type[Quantifier]]", node.get_mutation_candidates())
-                assert len(mutation_candidates) == 1, (
+                replacement_operators = cast(
+                    "list[type[Quantifier]]", node.get_mutation_candidates()
+                )
+                assert len(replacement_operators) == 1, (
                     f"Expected quantifier node '{node}' to have exactly one mutation candidate"
                 )
-                candidate = mutation_candidates[0]
+                candidate = replacement_operators[0]
                 mutants.append(candidate(decl, range_expr, expr, candidate.kind))
 
                 # Mutate the body expression only, keeping this quantifier kind.
