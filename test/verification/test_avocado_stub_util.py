@@ -13,9 +13,9 @@ def test_stub_mapping() -> None:
         "Expected a non-zero number of stub function renamings"
     )
     for name, rename_metadata in name_to_rename_data.items():
-        expected_rename = f"_avocado_{name}"
+        expected_rename = avocado_stub_util.AVOCADO_FUNCTION_PREFIX + name
 
-        assert rename_metadata.avocado_name == expected_rename, (
+        assert rename_metadata.renamed_identifier == expected_rename, (
             f"Expected {name} in {rename_metadata.file_path.name} to be renamed to: {expected_rename}"
         )
 
