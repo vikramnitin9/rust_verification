@@ -47,13 +47,13 @@ class MutantGenerator:
                 return EnsuresClause(meta=meta, expr=self.get_mutant(expr))
             case BinOp(left, right):
                 # There is only one mutation candidate, for now.
-                binop_mutation_candidates: list[type[BinOp]] = cast(
+                replacement_operators: list[type[BinOp]] = cast(
                     "list[type[BinOp]]", node.get_mutation_candidates()
                 )
-                assert len(binop_mutation_candidates) >= 1, (
+                assert len(replacement_operators) >= 1, (
                     f"Expected at least one mutation candidate for a binary operation: {node}"
                 )
-                binop_constructor = binop_mutation_candidates[0]
+                binop_constructor = replacement_operators[0]
                 return binop_constructor(self.get_mutant(left), self.get_mutant(right))
             case Quantifier(decl, range_expr, expr, _):
                 quantifier_mutation_candidates: list[type[Quantifier]] = cast(
@@ -62,13 +62,13 @@ class MutantGenerator:
                 assert len(quantifier_mutation_candidates) == 1, (
                     f"Expected exactly one mutation candidate for a quantifier expression: {node}"
                 )
-                quantifier_constructor = quantifier_mutation_candidates[0]
+                replacement_qualifier = quantifier_mutation_candidates[0]
                 # TODO: Should we also mutate the range expression?
                 # CBMC range expressions for quantifiers must be of the form
                 # low <= INDEX_VAR < hi, so any mutants could modify the bounds, but not the
                 # comparison operators.
-                return quantifier_constructor(
-                    decl, range_expr, self.get_mutant(expr), quantifier_constructor.kind
+                return replacement_qualifier(
+                    decl, range_expr, self.get_mutant(expr), replacement_qualifier.kind
                 )
             case _:
                 return node
