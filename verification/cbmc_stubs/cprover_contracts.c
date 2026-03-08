@@ -13,9 +13,9 @@ const void *__CPROVER_new_object;
 extern const void *__CPROVER_memory_leak;
 __CPROVER_bool __CPROVER_malloc_is_new_array;
 #if defined(_WIN32) && defined(_M_X64)
-int __builtin_clzll(unsigned long long);
+int _avocado___builtin_clzll(unsigned long long);
 #else
-int __builtin_clzl(unsigned long);
+int _avocado___builtin_clzl(unsigned long);
 #endif
 __CPROVER_bool __VERIFIER_nondet___CPROVER_bool(void);
 __CPROVER_size_t __VERIFIER_nondet_size(void);
@@ -262,10 +262,10 @@ __CPROVER_HIDE:;
   // the number of object bits is determined by counting the number of leading
   // zeroes of the built-in constant __CPROVER_max_malloc_size;
 #if defined(_WIN32) && defined(_M_X64)
-  int object_bits = __builtin_clzll(__CPROVER_max_malloc_size);
+  int object_bits = _avocado___builtin_clzll(__CPROVER_max_malloc_size);
   __CPROVER_size_t nof_objects = 1ULL << object_bits;
 #else
-  int object_bits = __builtin_clzl(__CPROVER_max_malloc_size);
+  int object_bits = _avocado___builtin_clzl(__CPROVER_max_malloc_size);
   __CPROVER_size_t nof_objects = 1UL << object_bits;
 #endif
   *set = (__CPROVER_contracts_obj_set_t){
