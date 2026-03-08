@@ -11,7 +11,7 @@ from loguru import logger
 from util import file_util, text_util
 from verification.verification_result import VerificationResult
 
-from .avocado_stub_util import AVOCADO_STUB_DIR, apply_stub_renaming
+from .avocado_stub_util import AVOCADO_STUB_DIR, AvocadoIdentifierRenamer
 from .verification_client import VerificationClient
 from .verification_input import VerificationInput
 
@@ -22,9 +22,13 @@ class CbmcVerificationClient(VerificationClient):
     Attributes:
         _cache (Cache): A cache of verification results mapped to verification inputs. The keys for
             this cache are `VerificationInput` and the values are `VerificationResult`.
+        _avocado_identifier_renamer (AvocadoIdentifierRenamer): Used to rename ANSI-C library
+            function identifiers in C source code to their Avocado identifiers.
+            See `avocado_stub_util.py` for details.
     """
 
     _cache: Cache
+    _avocado_identifier_renamer: AvocadoIdentifierRenamer
 
     # These headers should be inserted into each file that is input to the verifier;
     # generated specs often use constants from these headers (e.g., INT_MAX) assuming they already
@@ -40,6 +44,7 @@ class CbmcVerificationClient(VerificationClient):
     ) -> None:
         """Create a new CbmcVerificationClient."""
         self._cache = cache
+        self._avocado_identifier_renamer = AvocadoIdentifierRenamer()
 
     def verify(self, vinput: VerificationInput) -> VerificationResult:
         """Return the result of verifying the given verification input.
@@ -56,7 +61,11 @@ class CbmcVerificationClient(VerificationClient):
             with tempfile.NamedTemporaryFile(
                 mode="w+t", prefix=function.name, suffix=".c"
             ) as tmp_f:
-                contents_with_avocado_stubs = apply_stub_renaming(vinput.contents_of_file_to_verify)
+                contents_with_avocado_stubs = (
+                    self._avocado_identifier_renamer.rename_ansi_identifiers_to_avocado_identifiers(
+                        vinput.contents_of_file_to_verify
+                    )
+                )
                 tmp_f.write(contents_with_avocado_stubs)
                 tmp_f.flush()
                 file = Path(tmp_f.name)
