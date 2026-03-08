@@ -1,8 +1,12 @@
 """Class representing an input to a verifier (e.g., CBMC)."""
 
+import re
 from dataclasses import dataclass
 
 from util import CFunction, FunctionSpecification
+
+HEADER_IMPORT_PATTERN = r"\#.*include.*\<.*\>"
+ANGLE_DELIMITERS = r"\<(.*?)\>"
 
 
 @dataclass(frozen=True)
@@ -99,6 +103,22 @@ class VerificationInput:
                 f"{self.function.name} has the following callees:\n" + "\n".join(callee_summaries)
             )
         return callee_context_for_prompt
+
+    def get_headers(self) -> list[str]:
+        """Return the headers declared in this verification input's file.
+
+        Returns:
+            list[str]: The headers declared in this verification input's file.
+        """
+        headers = []
+        header_imports = re.findall(HEADER_IMPORT_PATTERN, self.contents_of_file_to_verify)
+        if not header_imports:
+            return headers
+        for header_import in header_imports:
+            header_match = re.search(ANGLE_DELIMITERS, header_import)
+            if header_match:
+                headers.append(header_match.group(1))
+        return headers
 
     def __eq__(self, other: object) -> bool:
         """Return True iff this input is equal to another.

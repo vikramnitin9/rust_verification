@@ -15,13 +15,21 @@ def get_function_identifiers(tree_root: Node) -> list[Node]:
     result = []
 
     def traverse(node: Node) -> None:
+        """Collect the identifier nodes found underneath function definition or declaration nodes.
+
+        This function closes over the `result` variable defined in the enclosing scope.
+
+        Args:
+            node (Node): The node from which to start collecting function definition or declaration
+                nodes.
+        """
         if node.type in {"function_definition", "function_declaration"}:
             declarator = node.child_by_field_name("declarator")
             identifier = _find_identifier_in_declarator_or_definition(declarator)
             if identifier is not None:
                 result.append(identifier)
         elif node.type == "declaration":
-            # Only include declarations that are function prototypes, not variable declarations
+            # Only include declarations that are function prototypes, not variable declarations.
             declarator = node.child_by_field_name("declarator")
             if _is_function_declarator(declarator):
                 identifier = _find_identifier_in_declarator_or_definition(declarator)
@@ -46,10 +54,18 @@ def get_call_identifiers(tree_root: Node) -> list[Node]:
     result = []
 
     def traverse(node: Node) -> None:
+        """Collect the identifier nodes underneath call expression nodes.
+
+        This function closes over the `result` variable defined in the enclosing scope.
+
+        Args:
+            node (Node): The node from which to start collecting identifier nodes.
+        """
         if node.type == "call_expression":
             function_node = node.child_by_field_name("function")
             assert function_node, "Expected a function node under a call_expression node"
-            if function_node.type == "identifier" and function_node.text:
+            if function_node.type == "identifier":
+                assert function_node.text, "Expected an identifier node to have text"
                 result.append(function_node)
         for child in node.children:
             traverse(child)
