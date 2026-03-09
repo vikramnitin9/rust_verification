@@ -14,6 +14,47 @@ AVOCADO_STUB_DIR = "verification/cbmc_stubs"
 
 
 @dataclass(frozen=True)
+class RenameResult:
+    """Class representing the result of a rename operation.
+
+    Attributes:
+        src_after_renaming (str): The C source code after renaming.
+        avocado_stubs (list[Path]): The path(s) to the Avocado stub(s) that define the re-named
+            functions.
+    """
+
+    src_after_renaming: str
+    avocado_stubs: list[Path]
+
+    def get_headers(self) -> list[str]:
+        """Return the name of the header files that define the functions that have been renamed.
+
+        Returns:
+            list[str]: The name of the header files that defined the functions that have been
+                renamed.
+        """
+        return [stub_file_path.name.replace(".c", ".h") for stub_file_path in self.avocado_stubs]
+
+    def get_stub_file_paths(self, default_headers: list[str]) -> list[str]:
+        """Return the path(s) to the stub files used by Avocado for verification.
+
+        The stub files used by Avocado for verification should not take precedence over the default
+        headers and stubs used by CBMC, internally.
+
+        Args:
+            default_headers (list[str]): The default headers to check the stub files against.
+
+        Returns:
+            list[str]: The path(s) to the stub files used by Avocado for verification.
+        """
+        return [
+            str(stub_file_path)
+            for stub_file_path in self.avocado_stubs
+            if stub_file_path.name.replace(".c", ".h") not in default_headers
+        ]
+
+
+@dataclass(frozen=True)
 class RenameData:
     """Data for renaming functions in libraries defined in the ANSI-C standard to Avocado stubs.
 
@@ -61,25 +102,29 @@ class AvocadoIdentifierRenamer:
             msg = f"Failed to load Avocado stub mappings from: {path_to_stub_mappings}"
             raise ValueError(msg) from e
 
-    def rename_ansi_identifiers_to_avocado_identifiers(self, file_content: str) -> str:
-        """Return the file content where ANSI library function ids are replaced with Avocado ids.
+    def rename_ansi_identifiers_to_avocado_identifiers(self, file_content: str) -> RenameResult:
+        """Return the rename result after ANSI library function ids are replaced with Avocado ids.
 
         Args:
             file_content (str): The content of the file to which to apply renaming.
 
         Returns:
-            str: The file content after ANSI library functions have been renamed.
+            str: The rename result after ANSI library functions have been renamed.
         """
         file_content_with_renaming = file_content
+        avocado_stub_files_to_use = set()
         for original_identifier, rename_metadata in self._ansi_id_to_rename_data.items():
             # Don't replace identifiers twice (i.e., replace only exact matches)
             name_to_replace_pattern = r"\b" + original_identifier + r"\b"
-            file_content_with_renaming = re.sub(
+            file_content_with_renaming, count = re.subn(
                 name_to_replace_pattern,
                 rename_metadata.renamed_identifier,
                 file_content_with_renaming,
             )
-        return file_content_with_renaming
+            if count > 0:
+                avocado_stub_files_to_use.add(rename_metadata.file_path)
+
+        return RenameResult(file_content_with_renaming, list(avocado_stub_files_to_use))
 
     def get_identifier_mapping(self) -> MappingProxyType[str, RenameData]:
         """Return the mapping from ANSI-C identifiers to Avocado identifiers.

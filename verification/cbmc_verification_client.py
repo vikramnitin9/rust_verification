@@ -11,7 +11,7 @@ from loguru import logger
 from util import file_util, text_util
 from verification.verification_result import VerificationResult
 
-from .avocado_stub_util import AVOCADO_STUB_DIR, AvocadoIdentifierRenamer
+from .avocado_stub_util import AvocadoIdentifierRenamer, RenameResult
 from .verification_client import VerificationClient
 from .verification_input import VerificationInput
 
@@ -61,22 +61,23 @@ class CbmcVerificationClient(VerificationClient):
             with tempfile.NamedTemporaryFile(
                 mode="w+t", prefix=function.name, suffix=".c"
             ) as tmp_f:
-                contents_with_avocado_stubs = (
+                rename_result = (
                     self._avocado_identifier_renamer.rename_ansi_identifiers_to_avocado_identifiers(
                         vinput.contents_of_file_to_verify
                     )
                 )
-                tmp_f.write(contents_with_avocado_stubs)
+                tmp_f.write(rename_result.src_after_renaming)
                 tmp_f.flush()
                 file = Path(tmp_f.name)
-                default_header_include_lines = [
+                include_header_lines = [
                     f"#include <{header}>"
-                    for header in CbmcVerificationClient.DEFAULT_HEADERS_FOR_VERIFICATION
+                    for header in rename_result.get_headers()
+                    + list(CbmcVerificationClient.DEFAULT_HEADERS_FOR_VERIFICATION)
                 ]
-                file_util.ensure_lines_at_beginning(default_header_include_lines, file)
+                file_util.ensure_lines_at_beginning(include_header_lines, file)
                 try:
                     vcommand = self._get_cbmc_verification_command(
-                        vinput, path_to_file_to_verify=file
+                        vinput, rename_result=rename_result, path_to_file_to_verify=file
                     )
                     logger.debug(f"Running command: {vcommand}")
                     result = subprocess.run(vcommand, capture_output=True, text=True, shell=True)
@@ -109,12 +110,14 @@ class CbmcVerificationClient(VerificationClient):
     def _get_cbmc_verification_command(
         self,
         verification_input: VerificationInput,
+        rename_result: RenameResult,
         path_to_file_to_verify: Path,
     ) -> str:
         """Return the command used to verify a function in a file with CBMC.
 
         Args:
             verification_input (VerificationInput): The verification input.
+            rename_result (RenameResult): The rename result.
             path_to_file_to_verify (Path): The path to the file to verify.
 
         Returns:
@@ -133,14 +136,16 @@ class CbmcVerificationClient(VerificationClient):
                 ]
             )
         )
-        header_names = verification_input.get_headers()
-        avocado_headers = [f"{AVOCADO_STUB_DIR}/{header_name}" for header_name in header_names]
-        header_args = " ".join(avocado_headers)
+        path_to_avocado_stub_files = " ".join(
+            rename_result.get_stub_file_paths(
+                default_headers=list(CbmcVerificationClient.DEFAULT_HEADERS_FOR_VERIFICATION)
+            )
+        )
         return " && ".join(
             [
                 (
                     f"goto-cc -o {function_name}.goto "
-                    f"{header_args} "
+                    f"{path_to_avocado_stub_files} "
                     f"{path_to_file_to_verify} "
                     f"--function {function_name}"
                 ),
