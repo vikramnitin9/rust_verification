@@ -92,6 +92,9 @@ class BinOp(ABC, CBMCAst):
     def operator(self) -> str:
         raise NotImplementedError("Subclasses must implement this method")
 
+    def is_boolean_expression(self) -> bool:
+        return False
+
 
 @dataclass
 class OrOp(BinOp):
@@ -103,6 +106,9 @@ class OrOp(BinOp):
 
     def get_mutation_candidates(self) -> list[type[CBMCAst]]:
         return [AndOp]
+
+    def is_boolean_expression(self) -> bool:
+        return True
 
 
 @dataclass
@@ -116,6 +122,9 @@ class AndOp(BinOp):
     def get_mutation_candidates(self) -> list[type[CBMCAst]]:
         return [OrOp]
 
+    def is_boolean_expression(self) -> bool:
+        return True
+
 
 @dataclass
 class EqOp(BinOp):
@@ -127,6 +136,9 @@ class EqOp(BinOp):
 
     def get_mutation_candidates(self) -> list[type[CBMCAst]]:
         return [NeqOp]
+
+    def is_boolean_expression(self) -> bool:
+        return True
 
 
 @dataclass
@@ -140,6 +152,9 @@ class NeqOp(BinOp):
     def get_mutation_candidates(self) -> list[type[CBMCAst]]:
         return [EqOp]
 
+    def is_boolean_expression(self) -> bool:
+        return True
+
 
 @dataclass
 class LtOp(BinOp):
@@ -151,6 +166,9 @@ class LtOp(BinOp):
 
     def get_mutation_candidates(self) -> list[type[CBMCAst]]:
         return [GeOp]
+
+    def is_boolean_expression(self) -> bool:
+        return True
 
 
 @dataclass
@@ -164,6 +182,9 @@ class LeOp(BinOp):
     def get_mutation_candidates(self) -> list[type[CBMCAst]]:
         return [GtOp]
 
+    def is_boolean_expression(self) -> bool:
+        return True
+
 
 @dataclass
 class GtOp(BinOp):
@@ -176,6 +197,9 @@ class GtOp(BinOp):
     def get_mutation_candidates(self) -> list[type[CBMCAst]]:
         return [LeOp]
 
+    def is_boolean_expression(self) -> bool:
+        return True
+
 
 @dataclass
 class GeOp(BinOp):
@@ -187,6 +211,9 @@ class GeOp(BinOp):
 
     def get_mutation_candidates(self) -> list[type[CBMCAst]]:
         return [LtOp]
+
+    def is_boolean_expression(self) -> bool:
+        return True
 
 
 @dataclass

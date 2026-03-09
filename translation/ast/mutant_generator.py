@@ -92,9 +92,11 @@ class MutantGenerator:
                 mutants.append(operand)
                 mutants.extend(
                     [
-                        NegOp(operand_mutant)
+                        negated_operand_mutant
                         for operand_mutant in self.get_first_order_mutants(operand)
-                        if NegOp(operand_mutant) not in mutants
+                        if (negated_operand_mutant := NegOp(operand_mutant)) not in mutants
+                        # Discard the double-negation generated from negating boolean expressions.
+                        and operand_mutant != node
                     ]
                 )
             case Bool(value):
@@ -127,6 +129,10 @@ class MutantGenerator:
                         for right_mutant in self.get_first_order_mutants(right)
                     ]
                 )
+
+                # Additional mutant for boolean expressions: negate the entire expression.
+                if node.is_boolean_expression():
+                    mutants.append(NegOp(node))
             case Quantifier(decl, range_expr, expr, _):
                 # Exists -> Forall, and vice-versa.
                 replacement_operators = cast(

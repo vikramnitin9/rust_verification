@@ -129,5 +129,6 @@ def test_get_first_order_mutants_requires_clause() -> None:
         RequiresClause(meta=None, expr=OrOp(Bool(True), Bool(True))),
         RequiresClause(meta=None, expr=AndOp(Bool(False), Bool(True))),
         RequiresClause(meta=None, expr=AndOp(Bool(True), Bool(False))),
+        RequiresClause(meta=None, expr=NegOp(AndOp(Bool(True), Bool(True)))),
     ]
     _assert_mutants(mutants, expected_mutants)
