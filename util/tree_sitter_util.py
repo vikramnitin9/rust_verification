@@ -4,24 +4,32 @@ from tree_sitter import Node
 
 
 def get_function_identifiers(tree_root: Node) -> list[Node]:
-    """Get identifier nodes from definition and declaration nodes in the given tree.
+    """Return all identifier nodes from definition and declaration nodes in the given tree.
 
     Args:
         tree_root: The root node of the tree to search.
 
     Returns:
-        list[Node]: Identifier nodes from definition and declaration nodes in the given tree.
+        list[Node]: All identifier nodes from definition and declaration nodes in the given tree.
     """
     result = []
 
     def traverse(node: Node) -> None:
+        """Collect the identifier nodes found underneath function definition or declaration nodes.
+
+        This function closes over the `result` variable defined in the enclosing scope.
+
+        Args:
+            node (Node): The node from which to start collecting function definition or declaration
+                nodes.
+        """
         if node.type in {"function_definition", "function_declaration"}:
             declarator = node.child_by_field_name("declarator")
             identifier = _find_identifier_in_declarator_or_definition(declarator)
             if identifier is not None:
                 result.append(identifier)
         elif node.type == "declaration":
-            # Only include declarations that are function prototypes, not variable declarations
+            # Only include declarations that are function prototypes, not variable declarations.
             declarator = node.child_by_field_name("declarator")
             if _is_function_declarator(declarator):
                 identifier = _find_identifier_in_declarator_or_definition(declarator)
@@ -41,15 +49,23 @@ def get_call_identifiers(tree_root: Node) -> list[Node]:
         tree_root: The root node of the tree to search.
 
     Returns:
-        List of identifier nodes that are function names in call expressions.
+        list[Node]: Identifier nodes that are function names in call expressions.
     """
     result = []
 
     def traverse(node: Node) -> None:
+        """Collect the identifier nodes underneath call expression nodes.
+
+        This function closes over the `result` variable defined in the enclosing scope.
+
+        Args:
+            node (Node): The node from which to start collecting identifier nodes.
+        """
         if node.type == "call_expression":
             function_node = node.child_by_field_name("function")
             assert function_node, "Expected a function node under a call_expression node"
-            if function_node.type == "identifier" and function_node.text:
+            if function_node.type == "identifier":
+                assert function_node.text, "Expected an identifier node to have text"
                 result.append(function_node)
         for child in node.children:
             traverse(child)
@@ -59,7 +75,7 @@ def get_call_identifiers(tree_root: Node) -> list[Node]:
 
 
 def _is_function_declarator(declarator: Node | None) -> bool:
-    """Check if a declarator is or contains a function_declarator.
+    """Return true if a declarator is or contains a function_declarator.
 
     A declarator can be a function_declarator node itself, e.g.,
 
@@ -91,7 +107,7 @@ def _is_function_declarator(declarator: Node | None) -> bool:
 def _find_identifier_in_declarator_or_definition(
     declarator_or_definition: Node | None,
 ) -> Node | None:
-    """Recursively find an identifier node within a declarator or definition node.
+    """Recursively find the unique identifier node within a declarator or definition node.
 
     An identifier node contains the name of a function.
 
