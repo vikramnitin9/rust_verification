@@ -11,7 +11,7 @@ from translation.ast.cbmc_ast import (
     Bool,
     CBMCAst,
     EnsuresClause,
-    NegOp,
+    NotOp,
     Quantifier,
     RequiresClause,
 )
@@ -35,7 +35,7 @@ class MutantGenerator:
         """
         match node:
             # Handle special cases first, e.g., clauses, boolean literals, negations.
-            case NegOp(value):
+            case NotOp(value):
                 # The mutant for a negation operation is to remove the negation and
                 # do nothing else to the operand.
                 return value
@@ -87,14 +87,14 @@ class MutantGenerator:
         """
         mutants = []
         match node:
-            case NegOp(operand):
+            case NotOp(operand):
                 # Remove the negation.
                 mutants.append(operand)
                 mutants.extend(
                     [
                         negated_operand_mutant
                         for operand_mutant in self.get_first_order_mutants(operand)
-                        if (negated_operand_mutant := NegOp(operand_mutant)) not in mutants
+                        if (negated_operand_mutant := NotOp(operand_mutant)) not in mutants
                         # Discard the double-negation generated from negating boolean expressions.
                         and operand_mutant != node
                     ]
@@ -132,7 +132,7 @@ class MutantGenerator:
 
                 # Additional mutant for boolean expressions: negate the entire expression.
                 if node.is_boolean_expression():
-                    mutants.append(NegOp(node))
+                    mutants.append(NotOp(node))
             case Quantifier(decl, range_expr, expr, _):
                 # Exists -> Forall, and vice-versa.
                 replacement_operators = cast(

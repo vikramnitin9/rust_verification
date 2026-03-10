@@ -12,8 +12,8 @@ from translation.ast.cbmc_ast import (
     LeOp,
     LtOp,
     MulOp,
-    NegOp,
     NeqOp,
+    NotOp,
     Number,
     OrOp,
     QuantifierDecl,
@@ -41,10 +41,10 @@ def test_boolean_mutants() -> None:
         assert mutant_generator.get_mutant(Bool(value=b)) == Bool(value=not b)
 
 
-def test_neg_mutant() -> None:
-    neg_op = NegOp(Bool(True))
+def test_negation_mutant() -> None:
+    not_op = NotOp(Bool(True))
 
-    assert mutant_generator.get_mutant(neg_op) == Bool(True)
+    assert mutant_generator.get_mutant(not_op) == Bool(True)
 
 
 def test_top_level_clause_mutants() -> None:
@@ -111,13 +111,13 @@ def test_get_first_order_mutants_boolean() -> None:
 
 def test_get_first_order_mutants_negate() -> None:
     # !(True && True) -> True && True, !(True && False), !(False && True), !(True || True)
-    negop = NegOp(AndOp(Bool(True), Bool(True)))
-    mutants = mutant_generator.get_first_order_mutants(negop)
+    not_op = NotOp(AndOp(Bool(True), Bool(True)))
+    mutants = mutant_generator.get_first_order_mutants(not_op)
     expected_mutants = [
         AndOp(Bool(True), Bool(True)),
-        NegOp(OrOp(Bool(True), Bool(True))),
-        NegOp(AndOp(Bool(False), Bool(True))),
-        NegOp(AndOp(Bool(True), Bool(False))),
+        NotOp(OrOp(Bool(True), Bool(True))),
+        NotOp(AndOp(Bool(False), Bool(True))),
+        NotOp(AndOp(Bool(True), Bool(False))),
     ]
     _assert_mutants(mutants, expected_mutants)
 
@@ -129,6 +129,6 @@ def test_get_first_order_mutants_requires_clause() -> None:
         RequiresClause(meta=None, expr=OrOp(Bool(True), Bool(True))),
         RequiresClause(meta=None, expr=AndOp(Bool(False), Bool(True))),
         RequiresClause(meta=None, expr=AndOp(Bool(True), Bool(False))),
-        RequiresClause(meta=None, expr=NegOp(AndOp(Bool(True), Bool(True)))),
+        RequiresClause(meta=None, expr=NotOp(AndOp(Bool(True), Bool(True)))),
     ]
     _assert_mutants(mutants, expected_mutants)
