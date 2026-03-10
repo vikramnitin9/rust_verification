@@ -29,8 +29,8 @@ class CbmcVerificationClient(VerificationClient):
     # generated specs often use constants from these headers (e.g., INT_MAX) assuming they already
     # exist in the file.
     DEFAULT_HEADERS_FOR_VERIFICATION: Sequence[str] = (
-        "#include <stdlib.h>",
-        "#include <limits.h>",
+        "stdlib.h",
+        "limits.h",
     )
 
     def __init__(
@@ -58,9 +58,11 @@ class CbmcVerificationClient(VerificationClient):
                 tmp_f.write(vinput.contents_of_file_to_verify)
                 tmp_f.flush()
                 file = Path(tmp_f.name)
-                file_util.ensure_lines_at_beginning(
-                    CbmcVerificationClient.DEFAULT_HEADERS_FOR_VERIFICATION, file
-                )
+                default_header_include_lines = [
+                    f"#include <{header}>"
+                    for header in CbmcVerificationClient.DEFAULT_HEADERS_FOR_VERIFICATION
+                ]
+                file_util.ensure_lines_at_beginning(default_header_include_lines, file)
                 try:
                     vcommand = self._get_cbmc_verification_command(
                         vinput, path_to_file_to_verify=file
