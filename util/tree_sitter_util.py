@@ -2,15 +2,18 @@
 
 from tree_sitter import Node
 
+from verification.avocado_stub_util import IdentifierNodeParentType
 
-def get_function_identifiers(tree_root: Node) -> list[Node]:
+
+def get_function_identifiers(tree_root: Node) -> list[tuple[Node, IdentifierNodeParentType]]:
     """Return all identifier nodes from definition and declaration nodes in the given tree.
 
     Args:
         tree_root: The root node of the tree to search.
 
     Returns:
-        list[Node]: All identifier nodes from definition and declaration nodes in the given tree.
+        list[tuple[Node, IdentifierNodeParentType]]: All identifier nodes and the type of their
+            immediate parent node.
     """
     result = []
 
@@ -23,18 +26,18 @@ def get_function_identifiers(tree_root: Node) -> list[Node]:
             node (Node): The node from which to start collecting function definition or declaration
                 nodes.
         """
-        if node.type in {"function_definition", "function_declaration"}:
+        if node.type == "function_definition":
             declarator = node.child_by_field_name("declarator")
             identifier = _find_identifier_in_declarator_or_definition(declarator)
             if identifier is not None:
-                result.append(identifier)
+                result.append((identifier, IdentifierNodeParentType.FUNCTION_DEFINITION))
         elif node.type == "declaration":
             # Only include declarations that are function prototypes, not variable declarations.
             declarator = node.child_by_field_name("declarator")
             if _is_function_declarator(declarator):
                 identifier = _find_identifier_in_declarator_or_definition(declarator)
                 if identifier is not None:
-                    result.append(identifier)
+                    result.append((identifier, IdentifierNodeParentType.DECLARATION))
         for child in node.children:
             traverse(child)
 
@@ -42,14 +45,15 @@ def get_function_identifiers(tree_root: Node) -> list[Node]:
     return result
 
 
-def get_call_identifiers(tree_root: Node) -> list[Node]:
+def get_call_identifiers(tree_root: Node) -> list[tuple[Node, IdentifierNodeParentType]]:
     """Get identifier nodes from function call expressions.
 
     Args:
         tree_root: The root node of the tree to search.
 
     Returns:
-        list[Node]: Identifier nodes that are function names in call expressions.
+        list[tuple[Node, IdentifierNodeParentType]]: All identifier nodes and the type of their
+            immediate parent node.
     """
     result = []
 
@@ -66,7 +70,7 @@ def get_call_identifiers(tree_root: Node) -> list[Node]:
             assert function_node, "Expected a function node under a call_expression node"
             if function_node.type == "identifier":
                 assert function_node.text, "Expected an identifier node to have text"
-                result.append(function_node)
+                result.append((function_node, IdentifierNodeParentType.CALL_EXPRESSION))
         for child in node.children:
             traverse(child)
 

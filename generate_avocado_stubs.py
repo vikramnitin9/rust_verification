@@ -5,6 +5,7 @@
 import argparse
 import pickle as pkl
 import re
+from collections import defaultdict
 from pathlib import Path
 
 import tree_sitter_c as tsc
@@ -15,7 +16,11 @@ from util.tree_sitter_util import (
     get_call_identifiers,
     get_function_identifiers,
 )
-from verification.avocado_stub_util import AVOCADO_FUNCTION_PREFIX, RenameData
+from verification.avocado_stub_util import (
+    AVOCADO_FUNCTION_PREFIX,
+    IdentifierNodeParentType,
+    RenameData,
+)
 
 C_LANGUAGE = Language(tsc.language())
 C_PARSER = Parser(C_LANGUAGE)
@@ -63,13 +68,21 @@ def main() -> None:
     c_src_dir = args.c_sources
     c_src_files = list(Path(c_src_dir).glob("*.c"))
 
-    all_renamed_functions: dict[str, RenameData] = {}
+    all_renamed_functions: dict[str, list[RenameData]] = defaultdict(list)
 
     # Step 1: rename function declarations and definitions in the C stubs matching the check in
     # `_should_prepend_avocado_prefix`.
     for c_src in c_src_files:
-        function_rename_data = _rename_function_declarations_and_definitions(c_src)
-        all_renamed_functions.update(function_rename_data)
+        # Note: rename_data is a list, since an identifier could be found in a definition and
+        # declaration. We need to keep track of this information.
+        original_identifier_to_rename_data_from_file = (
+            _rename_function_declarations_and_definitions(c_src)
+        )
+        for (
+            original_identifier,
+            rename_data,
+        ) in original_identifier_to_rename_data_from_file.items():
+            all_renamed_functions[original_identifier].extend(rename_data)
 
     # Step 2: rename function calls in the C stubs for which an Avocado stub exists.
     for c_src in c_src_files:
@@ -91,7 +104,7 @@ def main() -> None:
 
 def _rename_function_declarations_and_definitions(
     path_to_src: Path,
-) -> dict[str, RenameData]:
+) -> dict[str, list[RenameData]]:
     """Rename each function in the original C program to its Avocado stub identifier.
 
     This updates each file in-place.
@@ -100,24 +113,26 @@ def _rename_function_declarations_and_definitions(
         path_to_src (Path): The path to the original C file.
 
     Returns:
-        dict[str, RenameData]: The rename data for each function in the original C file.
+        dict[str, list[RenameData]]: The rename data for each function in the original C file.
     """
     logger.debug(f"Processing {path_to_src}")
     src_content = path_to_src.read_bytes()
     parsed_src = C_PARSER.parse(src_content)
-    function_identifiers = _get_function_identifiers_for_avocado_stub_renaming(parsed_src)
+    function_identifier_and_parent_node_types = _get_function_identifiers_for_avocado_stub_renaming(
+        parsed_src
+    )
     src_after_renaming, original_names_to_avocado_names = _rename_functions_in_src_in_place(
-        src_content, function_identifiers
+        src_content, function_identifier_and_parent_node_types
     )
     path_to_src.write_text(src_after_renaming.decode(), encoding="utf-8")
-    return {
-        name: RenameData(avocado_name, path_to_src)
-        for name, avocado_name in original_names_to_avocado_names.items()
-    }
+    rename_data = defaultdict(list)
+    for name, (avocado_name, parent_node_type) in original_names_to_avocado_names.items():
+        rename_data[name].append(RenameData(avocado_name, parent_node_type, path_to_src))
+    return rename_data
 
 
 def _rename_function_calls(
-    file_path: Path, identifier_to_rename_data: dict[str, RenameData]
+    file_path: Path, identifier_to_rename_data: dict[str, list[RenameData]]
 ) -> None:
     """Rename function calls in the given source file for which an Avocado stub exists.
 
@@ -148,9 +163,11 @@ def _rename_function_calls(
             return False
         return node.text.decode() in identifier_to_rename_data
 
-    call_identifiers = get_call_identifiers(parsed_src.root_node)
+    call_identifier_and_parent_nodes = get_call_identifiers(parsed_src.root_node)
     call_identifiers_to_rename = [
-        call_id for call_id in call_identifiers if _is_identifier_renamed(call_id)
+        call_id
+        for call_id, _ in call_identifier_and_parent_nodes
+        if _is_identifier_renamed(call_id)
     ]
 
     if not call_identifiers_to_rename:
@@ -164,7 +181,8 @@ def _rename_function_calls(
         start = call_node.start_byte
         end = call_node.end_byte
         function_name = call_node.text.decode()
-        renamed_function_name = identifier_to_rename_data[function_name].renamed_identifier
+
+        renamed_function_name = AVOCADO_FUNCTION_PREFIX + function_name
 
         logger.debug(f"Renaming call to {function_name} -> {renamed_function_name} in {file_path}")
         renamed_src[start:end] = renamed_function_name.encode()
@@ -172,20 +190,22 @@ def _rename_function_calls(
     file_path.write_bytes(bytes(renamed_src))
 
 
-def _get_function_identifiers_for_avocado_stub_renaming(tree: Tree) -> list[Node]:
+def _get_function_identifiers_for_avocado_stub_renaming(
+    tree: Tree,
+) -> list[tuple[Node, IdentifierNodeParentType]]:
     """Return the identifier nodes parsed from function definitions and declarations for renaming.
 
     Args:
         tree (Tree): The tree from which to start collecting identifiers.
 
     Returns:
-        list[Node]: The identifier nodes parsed from function definitions and declarations for
-            renaming.
+        list[tuple[Node, IdentifierNodeParentType]]: The identifier nodes parsed from function
+            definitions and declarations for renaming.
     """
     return [
-        function_id
-        for function_id in get_function_identifiers(tree.root_node)
-        if _should_rename(function_id)
+        function_id_and_parent_type
+        for function_id_and_parent_type in get_function_identifiers(tree.root_node)
+        if _should_rename(function_id_and_parent_type[0])
     ]
 
 
@@ -219,15 +239,17 @@ def _should_rename(node: Node) -> bool:
 
 
 def _rename_functions_in_src_in_place(
-    src_content: bytes, function_id_nodes: list[Node]
-) -> tuple[bytes, dict[str, str]]:
+    src_content: bytes,
+    function_identifier_and_parent_node_type: list[tuple[Node, IdentifierNodeParentType]],
+) -> tuple[bytes, dict[str, tuple[str, IdentifierNodeParentType]]]:
     """Return the C source code and map from previous identifiers to Avocado identifiers.
 
     Note: Renaming is done in-place.
 
     Args:
         src_content (bytes): The source content.
-        function_id_nodes (list[Node]): The function id nodes to rename.
+        function_identifier_and_parent_node_type (list[tuple[Node, IdentifierNodeParentType]]):
+            The function id nodes to rename along with their parent nodes types.
 
     Returns:
         tuple[bytes, dict[str, str]]: The source content and map from previous identifiers to
@@ -235,7 +257,9 @@ def _rename_functions_in_src_in_place(
     """
     renamed_src = bytearray(src_content)
     original_names_to_avocado_names = {}
-    for ident_node in sorted(function_id_nodes, key=lambda node: node.start_byte, reverse=True):
+    for ident_node, parent_node_type in sorted(
+        function_identifier_and_parent_node_type, key=lambda pair: pair[0].start_byte, reverse=True
+    ):
         start = ident_node.start_byte
         end = ident_node.end_byte
         if not ident_node.text:
@@ -254,7 +278,10 @@ def _rename_functions_in_src_in_place(
             raise ValueError(msg)
         renamed_function_id = AVOCADO_FUNCTION_PREFIX + original_function_identifier
         logger.debug(f"Renaming {original_function_identifier} -> {renamed_function_id}")
-        original_names_to_avocado_names[original_function_identifier] = renamed_function_id
+        original_names_to_avocado_names[original_function_identifier] = (
+            renamed_function_id,
+            parent_node_type,
+        )
         renamed_src[start:end] = renamed_function_id.encode()
     return (bytes(renamed_src), original_names_to_avocado_names)
 
