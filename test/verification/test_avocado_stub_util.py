@@ -11,15 +11,15 @@ avocado_renamer = avocado_stub_util.AvocadoIdentifierRenamer()
 
 
 def test_stub_mapping() -> None:
-    identifier_to_rename_data = avocado_renamer.get_identifier_mapping()
-    assert len(identifier_to_rename_data) != 0, (
+    original_identifier_to_renamed_identifier = avocado_renamer.get_identifier_mapping()
+    assert len(original_identifier_to_renamed_identifier) != 0, (
         "Expected a non-zero number of stub function renamings"
     )
-    for identifier, rename_metadata in identifier_to_rename_data.items():
-        expected_rename = avocado_stub_util.AVOCADO_FUNCTION_PREFIX + identifier
+    for original_identifier, renamed_identifier in original_identifier_to_renamed_identifier.items():
+        expected_rename = avocado_stub_util.AVOCADO_FUNCTION_PREFIX + original_identifier
 
-        assert rename_metadata.renamed_identifier == expected_rename, (
-            f"Expected {identifier} in {rename_metadata.file_path.name} to be renamed to: {expected_rename}"
+        assert renamed_identifier == expected_rename, (
+            f"Expected {original_identifier} to be renamed to: {expected_rename}"
         )
 
 
