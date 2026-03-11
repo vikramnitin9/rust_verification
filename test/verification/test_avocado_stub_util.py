@@ -13,9 +13,10 @@ def test_stub_mapping() -> None:
     )
     for identifier, rename_metadata in identifier_to_rename_data.items():
         expected_rename = avocado_stub_util.AVOCADO_FUNCTION_PREFIX + identifier
+        actual_rename = avocado_stub_util.get_renamed_identifier(identifier, rename_metadata)
 
-        assert rename_metadata.renamed_identifier == expected_rename, (
-            f"Expected {identifier} in {rename_metadata.file_path.name} to be renamed to: {expected_rename}"
+        assert actual_rename == expected_rename, (
+            f"Expected {identifier} to be renamed to: {expected_rename}"
         )
 
 

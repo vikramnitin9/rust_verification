@@ -13,12 +13,12 @@ from loguru import logger
 from tree_sitter import Language, Node, Parser, Tree
 
 from util.tree_sitter_util import (
+    IdentifierNodeParentType,
     get_call_identifiers,
     get_function_identifiers,
 )
 from verification.avocado_stub_util import (
     AVOCADO_FUNCTION_PREFIX,
-    IdentifierNodeParentType,
     RenameData,
 )
 

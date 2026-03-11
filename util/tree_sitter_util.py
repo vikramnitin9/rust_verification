@@ -1,8 +1,21 @@
 """Utilities for working with tree-sitter ASTs."""
 
+from enum import StrEnum
+
 from tree_sitter import Node
 
-from verification.avocado_stub_util import IdentifierNodeParentType
+
+class IdentifierNodeParentType(StrEnum):
+    """Represent the parent node type of an identifier node.
+
+    A definition node comprises a function definition in C (i.e., the signature and implementation).
+    A declaration node comprises only the signature.
+    A call expression comprises a function call.
+    """
+
+    FUNCTION_DEFINITION = "function_definition"
+    DECLARATION = "declaration"
+    CALL_EXPRESSION = "call_expression"
 
 
 def get_function_identifiers(tree_root: Node) -> list[tuple[Node, IdentifierNodeParentType]]:
