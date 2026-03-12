@@ -58,7 +58,9 @@ def get_function_identifiers(tree_root: Node) -> list[tuple[Node, IdentifierNode
     return result
 
 
-def get_call_identifiers(tree_root: Node) -> list[tuple[Node, IdentifierNodeParentType]]:
+def get_identifier_nodes_from_call_expressions(
+    tree_root: Node,
+) -> list[tuple[Node, IdentifierNodeParentType]]:
     """Get identifier nodes from function call expressions.
 
     Args:
@@ -71,9 +73,7 @@ def get_call_identifiers(tree_root: Node) -> list[tuple[Node, IdentifierNodePare
     result = []
 
     def traverse(node: Node) -> None:
-        """Collect the identifier nodes underneath call expression nodes.
-
-        This function closes over the `result` variable defined in the enclosing scope.
+        """Collect the into `result` the identifier nodes underneath call expression nodes.
 
         Args:
             node (Node): The node from which to start collecting identifier nodes.
@@ -149,6 +149,8 @@ def _find_identifier_in_declarator_or_definition(
         # function_declarator around a pointer_declarator.
         return _find_identifier_in_declarator_or_definition(nested_declarator)
 
+    # This handles cases where a function identifier might not be contained in an immediate
+    # identifier node (e.g., `int (*fp)(int)`).
     for child in declarator_or_definition.children:
         identifier = _find_identifier_in_declarator_or_definition(child)
         if identifier is not None:

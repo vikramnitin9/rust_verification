@@ -57,10 +57,17 @@ def apply_stub_renaming(file_content: str) -> str:
         str: The file content after stub function replacements have been applied.
     """
     file_content_with_renaming = file_content
-    for original_identifier, rename_metadata in get_stub_mappings().items():
+    original_identifiers_to_rename_data = get_stub_mappings()
+    for original_identifier, rename_data in original_identifiers_to_rename_data.items():
         # Don't replace identifiers twice (i.e., replace only exact matches)
         name_to_replace_pattern = r"\b" + original_identifier + r"\b"
-        renamed_identifier = get_renamed_identifier(original_identifier, rename_metadata)
+        renamed_identifier = get_renamed_identifier(original_identifier, rename_data)
+        if renamed_identifier in original_identifiers_to_rename_data:
+            msg = (
+                f"A renamed identifier was the same as an original identifier: "
+                f"'{renamed_identifier}'"
+            )
+            raise ValueError(msg)
         file_content_with_renaming = re.sub(
             name_to_replace_pattern, renamed_identifier, file_content_with_renaming
         )
@@ -73,7 +80,7 @@ def get_stub_mappings(
     """Return the stub mappings for Avocado stubs for functions declared in the ANSI-C standard.
 
     Args:
-        path_to_stub_mappings (str, optional): Path to stub mappings. Defaults to
+        path_to_stub_mappings (str, optional): Path to pickled stub mappings. Defaults to
             DEFAULT_STUB_MAPPINGS.
 
     Returns:
