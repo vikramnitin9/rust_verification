@@ -258,8 +258,8 @@ def _rename_function_declarations_and_definitions_in_src_in_place(
             The function id nodes to rename along with their parent nodes types.
 
     Returns:
-        tuple[bytes, dict[str, str]]: The source content and map from previous identifiers to
-            Avocado identifiers.
+       tuple[bytes, dict[str, tuple[str, IdentifierNodeParentType]]]: The source content and map
+            from previous identifiers to Avocado identifiers.
     """
     renamed_src = bytearray(src_content)
     original_names_to_avocado_names = {}

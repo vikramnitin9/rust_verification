@@ -84,7 +84,8 @@ def get_stub_mappings(
             DEFAULT_STUB_MAPPINGS.
 
     Returns:
-        dict[str, RenameData]: A mapping from the original C function identifier to rename data.
+        dict[str, list[RenameData]]: A mapping from the original C function identifier to rename
+            data.
     """
     with Path(path_to_stub_mappings).open(mode="rb") as f:
         data = pkl.load(f)
@@ -102,7 +103,7 @@ def get_renamed_identifier(original_identifier: str, rename_data: list[RenameDat
         str: The renamed identifier.
     """
     renamed_identifiers = {rename.renamed_identifier for rename in rename_data}
-    if len(renamed_identifiers) > 1:
+    if len(renamed_identifiers) != 1:
         msg = (
             f"Expected exactly one renaming for {original_identifier}, "
             f"but got {renamed_identifiers}"
