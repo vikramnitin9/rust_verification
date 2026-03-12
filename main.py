@@ -64,7 +64,7 @@ GLOBAL_INCOMPLETE_PROOFSTATES: deque[ProofState] = deque()
 # Every ProofState in this queue is complete (i.e., their worklists are empty.)
 GLOBAL_COMPLETE_PROOFSTATES: list[ProofState] = []
 # The keys for VERIFIER_CACHE are `VerificationInput` and the values are `VerificationResult`.
-VERIFIER_CACHE: Cache = Cache(directory=DEFAULT_VERIFIER_RESULT_CACHE_DIR)
+VERIFIER_CACHE: Cache | None = Cache(directory=DEFAULT_VERIFIER_RESULT_CACHE_DIR)
 
 tempfile.tempdir = DEFAULT_RESULT_DIR
 
@@ -126,6 +126,13 @@ def main() -> None:
         "--disable-llm-cache",
         action="store_true",
         help=("Always call the LLM, do not use cached answers (defaults to False)."),
+    )
+    parser.add_argument(
+        "--disable-verifier-cache",
+        action="store_true",
+        help=(
+            "Always re-run the verifier, do not use cached verifier results (defaults to False)."
+        ),
     )
     parser.add_argument(
         "--fix-illegal-syntax",
@@ -203,6 +210,10 @@ def main() -> None:
         raise ValueError(msg)
 
     specgen_granularity = SpecGenGranularity(args.specgen_granularity)
+
+    global VERIFIER_CACHE
+    if args.disable_verifier_cache:
+        VERIFIER_CACHE = None
 
     verifier: VerificationClient = CbmcVerificationClient(cache=VERIFIER_CACHE)
     specification_generator = LlmSpecificationGenerator(
@@ -392,7 +403,14 @@ def _set_next_step(
         context=proof_state.get_current_context(function=spec_conversation.function),
         contents_of_file_to_verify=spec_conversation.contents_of_file_to_verify,
     )
-    if vresult := VERIFIER_CACHE.get(vinput):
+    if VERIFIER_CACHE is not None:
+        # Use the cache directly (not via verify()) to avoid extra log messages:
+        # verify() logs on every call (including cache hits), but _set_next_step is called
+        # after generate_and_repair_spec which already verified and cached these results.
+        vresult = VERIFIER_CACHE.get(vinput)
+    else:
+        vresult = specification_generator.get_verification_client().verify(vinput)
+    if vresult is not None:
         if vresult.succeeded:
             spec_conversation.next_step = AcceptVerifiedSpec()
             return spec_conversation
@@ -533,12 +551,13 @@ def _is_verified_and_cached(function: CFunction) -> bool:
     Returns:
         bool: True iff the function has a verified and cached specification.
     """
-    for vinput in VERIFIER_CACHE.iterkeys():
-        # This is very inefficient, but still faster than adding all the functions to workstacks
-        # and reading from the cache repeatedly.
-        vresult = VERIFIER_CACHE[vinput]
-        if vresult.succeeded and vresult.get_function() == function:
-            return True
+    if VERIFIER_CACHE is not None:
+        for vinput in VERIFIER_CACHE.iterkeys():
+            # This is very inefficient, but still faster than adding all the functions to workstacks
+            # and reading from the cache repeatedly.
+            vresult = VERIFIER_CACHE[vinput]
+            if vresult.succeeded and vresult.get_function() == function:
+                return True
     return False
 
 
