@@ -403,7 +403,14 @@ def _set_next_step(
         context=proof_state.get_current_context(function=spec_conversation.function),
         contents_of_file_to_verify=spec_conversation.contents_of_file_to_verify,
     )
-    if vresult := specification_generator.get_verification_client().verify(vinput):
+    if VERIFIER_CACHE is not None:
+        # Use the cache directly (not via verify()) to avoid extra log messages:
+        # verify() logs on every call (including cache hits), but _set_next_step is called
+        # after generate_and_repair_spec which already verified and cached these results.
+        vresult = VERIFIER_CACHE.get(vinput)
+    else:
+        vresult = specification_generator.get_verification_client().verify(vinput)
+    if vresult is not None:
         if vresult.succeeded:
             spec_conversation.next_step = AcceptVerifiedSpec()
             return spec_conversation

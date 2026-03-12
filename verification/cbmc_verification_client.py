@@ -50,14 +50,19 @@ class CbmcVerificationClient(VerificationClient):
             VerificationResult: The result of verifying the given verification input.
         """
         if self._cache is None:
-            return self._run_verifier(vinput)
+            vresult = self._run_verifier(vinput)
+        elif vinput in self._cache:
+            vresult = self._cache[vinput]
+        else:
+            logger.debug(f"vresult cache miss for: {vinput.function}")
+            vresult = self._run_verifier(vinput)
+            logger.debug(f"Caching vresult for: {vinput.function}")
+            self._cache[vinput] = vresult
 
-        if vinput in self._cache:
-            return self._cache[vinput]
-
-        logger.debug(f"vresult cache miss for: {vinput.function}")
-        vresult = self._run_verifier(vinput)
-        self._cache[vinput] = vresult
+        if vresult.succeeded:
+            logger.success(f"Verification succeeded for function '{vinput.function.name}'")
+        else:
+            logger.error(f"Verification failed for function '{vinput.function.name}'")
         return vresult
 
     def _run_verifier(self, vinput: VerificationInput) -> VerificationResult:
@@ -84,18 +89,13 @@ class CbmcVerificationClient(VerificationClient):
                 normalized_stderr = text_util.normalize_cbmc_output_paths(
                     result.stderr, vinput.function.name, temp_file_path=str(file)
                 )
-                vresult = VerificationResult(
+                return VerificationResult(
                     vinput,
                     vcommand,
                     succeeded=result.returncode == 0,
                     stdout=normalized_stdout,
                     stderr=normalized_stderr,
                 )
-                if vresult.succeeded:
-                    logger.success(f"Verification succeeded for function '{vinput.function.name}'")
-                else:
-                    logger.error(f"Verification failed for function '{vinput.function.name}'")
-                return vresult
             except Exception as e:
                 msg = f"Error running command for function {vinput.function.name}: {e}"
                 raise RuntimeError(msg) from e
