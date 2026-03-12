@@ -20,14 +20,15 @@ class CbmcVerificationClient(VerificationClient):
     """Verifies source code using CBMC. The entry point is `verify()`.
 
     Attributes:
-        _cache (Cache): A cache of verification results mapped to verification inputs. The keys for
-            this cache are `VerificationInput` and the values are `VerificationResult`.
+        _cache (Cache | None): A cache of verification results mapped to verification inputs. The
+            keys for this cache are `VerificationInput` and the values are `VerificationResult`.
         _avocado_identifier_renamer (AvocadoIdentifierRenamer): Used to rename ANSI-C library
             function identifiers in C source code to their Avocado identifiers.
             See `avocado_stub_util.py` for details.
+
     """
 
-    _cache: Cache
+    _cache: Cache | None
     _avocado_identifier_renamer: AvocadoIdentifierRenamer
 
     # These headers should be inserted into each file that is input to the verifier;
@@ -40,7 +41,7 @@ class CbmcVerificationClient(VerificationClient):
 
     def __init__(
         self,
-        cache: Cache,
+        cache: Cache | None,
     ) -> None:
         """Create a new CbmcVerificationClient."""
         self._cache = cache
@@ -55,57 +56,64 @@ class CbmcVerificationClient(VerificationClient):
         Returns:
             VerificationResult: The result of verifying the given verification input.
         """
-        function = vinput.function
-        if vinput not in self._cache:
-            logger.debug(f"vresult cache miss for: {function}")
-            with tempfile.NamedTemporaryFile(
-                mode="w+t", prefix=function.name, suffix=".c"
-            ) as tmp_f:
-                rename_result = (
-                    self._avocado_identifier_renamer.rename_ansi_identifiers_to_avocado_identifiers(
-                        vinput.contents_of_file_to_verify
-                    )
-                )
-                tmp_f.write(rename_result.src_after_renaming)
-                tmp_f.flush()
-                file = Path(tmp_f.name)
-                include_header_lines = [
-                    f"#include <{header}>"
-                    for header in rename_result.get_headers()
-                    + list(CbmcVerificationClient.DEFAULT_HEADERS_FOR_VERIFICATION)
-                ]
-                file_util.ensure_lines_at_beginning(include_header_lines, file)
-                try:
-                    vcommand = self._get_cbmc_verification_command(
-                        vinput, rename_result=rename_result, path_to_file_to_verify=file
-                    )
-                    logger.debug(f"Running command: {vcommand}")
-                    result = subprocess.run(vcommand, capture_output=True, text=True, shell=True)
-                    # Normalize the temp file path in CBMC output so that LLM cache keys
-                    # are deterministic across runs (temp file names are random).
-                    normalized_stdout = text_util.normalize_cbmc_output_paths(
-                        result.stdout, function.name, temp_file_path=str(file)
-                    )
-                    normalized_stderr = text_util.normalize_cbmc_output_paths(
-                        result.stderr, function.name, temp_file_path=str(file)
-                    )
-                    self._cache[vinput] = VerificationResult(
-                        vinput,
-                        vcommand,
-                        succeeded=result.returncode == 0,
-                        stdout=normalized_stdout,
-                        stderr=normalized_stderr,
-                    )
-                    logger.debug(f"Caching vresult for: {vinput.function}")
-                except Exception as e:
-                    msg = f"Error running command for function {function.name}: {e}"
-                    raise RuntimeError(msg) from e
-        vresult = self._cache[vinput]
-        if vresult.succeeded:
-            logger.success(f"Verification succeeded for function '{function.name}'")
+        if self._cache is None:
+            vresult = self._run_verifier(vinput)
+        elif vinput in self._cache:
+            vresult = self._cache[vinput]
         else:
-            logger.error(f"Verification failed for function '{function.name}'")
+            logger.debug(f"vresult cache miss for: {vinput.function}")
+            vresult = self._run_verifier(vinput)
+            logger.debug(f"Caching vresult for: {vinput.function}")
+            self._cache[vinput] = vresult
+
+        if vresult.succeeded:
+            logger.success(f"Verification succeeded for function '{vinput.function.name}'")
+        else:
+            logger.error(f"Verification failed for function '{vinput.function.name}'")
         return vresult
+
+    def _run_verifier(self, vinput: VerificationInput) -> VerificationResult:
+        with tempfile.NamedTemporaryFile(
+            mode="w+t", prefix=vinput.function.name, suffix=".c"
+        ) as tmp_f:
+            rename_result = (
+                self._avocado_identifier_renamer.rename_ansi_identifiers_to_avocado_identifiers(
+                    vinput.contents_of_file_to_verify
+                )
+            )
+            tmp_f.write(rename_result.src_after_renaming)
+            tmp_f.flush()
+            file = Path(tmp_f.name)
+            include_header_lines = [
+                f"#include <{header}>"
+                for header in rename_result.get_headers()
+                + list(CbmcVerificationClient.DEFAULT_HEADERS_FOR_VERIFICATION)
+            ]
+            file_util.ensure_lines_at_beginning(include_header_lines, file)
+            try:
+                vcommand = self._get_cbmc_verification_command(
+                    vinput, rename_result, path_to_file_to_verify=file
+                )
+                logger.debug(f"Running command: {vcommand}")
+                result = subprocess.run(vcommand, capture_output=True, text=True, shell=True)
+                # Normalize the temp file path in CBMC output so that LLM cache keys
+                # are deterministic across runs (temp file names are random).
+                normalized_stdout = text_util.normalize_cbmc_output_paths(
+                    result.stdout, vinput.function.name, temp_file_path=str(file)
+                )
+                normalized_stderr = text_util.normalize_cbmc_output_paths(
+                    result.stderr, vinput.function.name, temp_file_path=str(file)
+                )
+                return VerificationResult(
+                    vinput,
+                    vcommand,
+                    succeeded=result.returncode == 0,
+                    stdout=normalized_stdout,
+                    stderr=normalized_stderr,
+                )
+            except Exception as e:
+                msg = f"Error running command for function {vinput.function.name}: {e}"
+                raise RuntimeError(msg) from e
 
     def _get_cbmc_verification_command(
         self,

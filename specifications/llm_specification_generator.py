@@ -154,6 +154,14 @@ class LlmSpecificationGenerator:
             )
         return [*verifying_speccs, *repaired_speccs]
 
+    def get_verification_client(self) -> VerificationClient:
+        """Return this specification generator's verification client.
+
+        Returns:
+            VerificationClient: This specification generator's verification client.
+        """
+        return self._verifier
+
     def _generate_unrepaired_speccs(
         self,
         function: CFunction,
