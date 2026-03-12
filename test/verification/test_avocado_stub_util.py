@@ -28,6 +28,7 @@ def test_apply_stub_renaming() -> None:
     )
     expected_content_post_renaming = """#include <stdlib.h>
 #include <ctype.h>
+#include "string.h"
 
 int is_separator(int c)
 {
@@ -35,21 +36,16 @@ int is_separator(int c)
         _avocado_isspace(c) ||
         _avocado_strchr(",.()+-/*=~%[];",c) != NULL;
 }"""
-    assert (
-        avocado_renamer.rename_ansi_identifiers_to_avocado_identifiers(
-            content_pre_renaming
-        ).src_after_renaming
-        == expected_content_post_renaming
-    )
+    rename_result = avocado_renamer.rename_ansi_identifiers_to_avocado_identifiers(
+        content_pre_renaming)
+    assert rename_result.src_after_renaming == expected_content_post_renaming
+    assert rename_result.get_headers_for_renamed_functions() == {"ctype.h", "string.h"}
 
 
 def test_apply_stub_renaming_existing_avocado_name() -> None:
     content_pre_renaming = _read_file_content(
         "test/data/avocado_stub/test_renaming_existing_avocado_names.c"
     )
-    assert (
-        avocado_renamer.rename_ansi_identifiers_to_avocado_identifiers(
-            content_pre_renaming
-        ).src_after_renaming
-        == content_pre_renaming
-    )
+    rename_result = avocado_renamer.rename_ansi_identifiers_to_avocado_identifiers(content_pre_renaming)
+    assert rename_result.src_after_renaming == content_pre_renaming
+    assert len(rename_result.get_headers_for_renamed_functions()) == 0

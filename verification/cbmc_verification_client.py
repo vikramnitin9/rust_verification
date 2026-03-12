@@ -84,11 +84,10 @@ class CbmcVerificationClient(VerificationClient):
             tmp_f.write(rename_result.src_after_renaming)
             tmp_f.flush()
             file = Path(tmp_f.name)
-            include_header_lines = [
-                f"#include <{header}>"
-                for header in rename_result.get_headers()
-                + list(CbmcVerificationClient.DEFAULT_HEADERS_FOR_VERIFICATION)
-            ]
+            headers_for_verification = rename_result.get_headers_for_renamed_functions().union(
+                CbmcVerificationClient.DEFAULT_HEADERS_FOR_VERIFICATION
+            )
+            include_header_lines = [f"#include <{header}>" for header in headers_for_verification]
             file_util.ensure_lines_at_beginning(include_header_lines, file)
             try:
                 vcommand = self._get_cbmc_verification_command(
@@ -163,7 +162,11 @@ class CbmcVerificationClient(VerificationClient):
                 ),
                 (
                     f"goto-instrument "
-                    f"{replace_call_with_contract_args} "
+                    f"{
+                        ' ' + replace_call_with_contract_args
+                        if replace_call_with_contract_args
+                        else ''
+                    } "
                     f"--enforce-contract {function_name} "
                     f"{function_name}.goto checking-{function_name}-contracts.goto"
                 ),

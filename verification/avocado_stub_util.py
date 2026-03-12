@@ -28,14 +28,14 @@ class RenameResult:
     src_after_renaming: str
     avocado_stubs: list[Path]
 
-    def get_headers(self) -> list[str]:
+    def get_headers_for_renamed_functions(self) -> set[str]:
         """Return the name of the header files that define the functions that have been renamed.
 
         Returns:
-            list[str]: The name of the header files that defined the functions that have been
+            set[str]: The name of the header files that defined the functions that have been
                 renamed.
         """
-        return [stub_file_path.name.replace(".c", ".h") for stub_file_path in self.avocado_stubs]
+        return {stub_file_path.name.replace(".c", ".h") for stub_file_path in self.avocado_stubs}
 
     def get_stub_file_paths(self, default_headers: list[str]) -> list[str]:
         """Return the path(s) to the stub files used by Avocado for verification.
