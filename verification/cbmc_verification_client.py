@@ -11,6 +11,7 @@ from loguru import logger
 from util import file_util, text_util
 from verification.verification_result import VerificationResult
 
+from .avocado_stub_util import AVOCADO_STUB_DIR
 from .verification_client import VerificationClient
 from .verification_input import VerificationInput
 
@@ -127,10 +128,15 @@ class CbmcVerificationClient(VerificationClient):
                 ]
             )
         )
+        header_names = verification_input.get_headers()
+        avocado_headers = [f"{AVOCADO_STUB_DIR}/{header_name}" for header_name in header_names]
+        header_args = " ".join(avocado_headers)
         return " && ".join(
             [
                 (
-                    f"goto-cc -o {function_name}.goto {path_to_file_to_verify} "
+                    f"goto-cc -o {function_name}.goto "
+                    f"{header_args} "
+                    f"{path_to_file_to_verify} "
                     f"--function {function_name}"
                 ),
                 (
@@ -138,7 +144,8 @@ class CbmcVerificationClient(VerificationClient):
                     f"{function_name}.goto {function_name}.goto"
                 ),
                 (
-                    f"goto-instrument {replace_call_with_contract_args} "
+                    f"goto-instrument "
+                    f"{replace_call_with_contract_args} "
                     f"--enforce-contract {function_name} "
                     f"{function_name}.goto checking-{function_name}-contracts.goto"
                 ),

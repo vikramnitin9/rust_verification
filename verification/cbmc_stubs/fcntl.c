@@ -31,7 +31,7 @@ __CPROVER_HIDE:;
 
 int __CPROVER_fcntl(int, int);
 
-int fcntl(int fd, int cmd, ...)
+int _avocado_fcntl(int fd, int cmd, ...)
 {
   return __CPROVER_fcntl(fd, cmd);
 }
@@ -40,7 +40,7 @@ int fcntl(int fd, int cmd, ...)
 
 int __CPROVER_fcntl(int, int);
 
-int _fcntl(int fd, int cmd, ...)
+int _avocado__fcntl(int fd, int cmd, ...)
 {
   return __CPROVER_fcntl(fd, cmd);
 }
@@ -49,7 +49,7 @@ int _fcntl(int fd, int cmd, ...)
 
 int __CPROVER_fcntl(int, int);
 
-int fcntl64(int fd, int cmd, ...)
+int _avocado_fcntl64(int fd, int cmd, ...)
 {
   return __CPROVER_fcntl(fd, cmd);
 }
@@ -58,7 +58,7 @@ int fcntl64(int fd, int cmd, ...)
 
 int __CPROVER_fcntl(int, int);
 
-int __fcntl_time64(int fd, int cmd, ...)
+int _avocado___fcntl_time64(int fd, int cmd, ...)
 {
   return __CPROVER_fcntl(fd, cmd);
 }
@@ -86,7 +86,7 @@ __CPROVER_HIDE:;
 
 int __CPROVER_open(const char *, int);
 
-int open(const char *pathname, int flags, ...)
+int _avocado_open(const char *pathname, int flags, ...)
 {
   return __CPROVER_open(pathname, flags);
 }
@@ -95,7 +95,7 @@ int open(const char *pathname, int flags, ...)
 
 int __CPROVER_open(const char *, int);
 
-int _open(const char *pathname, int flags, ...)
+int _avocado__open(const char *pathname, int flags, ...)
 {
   return __CPROVER_open(pathname, flags);
 }
@@ -104,7 +104,7 @@ int _open(const char *pathname, int flags, ...)
 
 int __CPROVER_open(const char *, int);
 
-int open64(const char *pathname, int flags, ...)
+int _avocado_open64(const char *pathname, int flags, ...)
 {
   return __CPROVER_open(pathname, flags);
 }
@@ -153,7 +153,7 @@ __CPROVER_HIDE:;
 
 int __CPROVER_creat(const char *, MODE_T);
 
-int creat(const char *pathname, MODE_T mode)
+int _avocado_creat(const char *pathname, MODE_T mode)
 {
   return __CPROVER_creat(pathname, mode);
 }
@@ -175,7 +175,7 @@ int creat(const char *pathname, MODE_T mode)
 
 int __CPROVER_creat(const char *, MODE_T);
 
-int _creat(const char *pathname, MODE_T mode)
+int _avocado__creat(const char *pathname, MODE_T mode)
 {
   return __CPROVER_creat(pathname, mode);
 }
@@ -197,7 +197,7 @@ int _creat(const char *pathname, MODE_T mode)
 
 int __CPROVER_creat(const char *, MODE_T);
 
-int creat64(const char *pathname, MODE_T mode)
+int _avocado_creat64(const char *pathname, MODE_T mode)
 {
   return __CPROVER_creat(pathname, mode);
 }
@@ -237,7 +237,7 @@ __CPROVER_HIDE:;
 
 int __CPROVER_openat(int dirfd, const char *pathname, int flags);
 
-int openat(int dirfd, const char *pathname, int flags, ...)
+int _avocado_openat(int dirfd, const char *pathname, int flags, ...)
 {
   return __CPROVER_openat(dirfd, pathname, flags);
 }
@@ -246,7 +246,7 @@ int openat(int dirfd, const char *pathname, int flags, ...)
 
 int __CPROVER_openat(int dirfd, const char *pathname, int flags);
 
-int _openat(int dirfd, const char *pathname, int flags, ...)
+int _avocado__openat(int dirfd, const char *pathname, int flags, ...)
 {
   return __CPROVER_openat(dirfd, pathname, flags);
 }
@@ -255,7 +255,7 @@ int _openat(int dirfd, const char *pathname, int flags, ...)
 
 int __CPROVER_openat(int dirfd, const char *pathname, int flags);
 
-int openat64(int dirfd, const char *pathname, int flags, ...)
+int _avocado_openat64(int dirfd, const char *pathname, int flags, ...)
 {
   return __CPROVER_openat(dirfd, pathname, flags);
 }
