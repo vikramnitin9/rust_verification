@@ -14,8 +14,8 @@ from tree_sitter import Language, Node, Parser, Tree
 
 from util.tree_sitter_util import (
     IdentifierNodeParentType,
-    get_call_identifiers,
     get_function_identifiers,
+    get_identifier_nodes_from_call_expressions,
 )
 from verification.avocado_stub_util import (
     AVOCADO_FUNCTION_PREFIX,
@@ -84,7 +84,7 @@ def main() -> None:
         ) in original_identifier_to_rename_data_from_file.items():
             all_renamed_functions[original_identifier].extend(rename_data)
 
-    # Step 2: rename function calls in the C stubs for which an Avocado stub exists.
+    # Step 2: For which an Avocado stub exists, rename function calls in the C stubs.
     for c_src in c_src_files:
         _rename_function_calls(c_src, all_renamed_functions)
 
@@ -105,7 +105,7 @@ def main() -> None:
 def _rename_function_declarations_and_definitions(
     path_to_src: Path,
 ) -> dict[str, list[RenameData]]:
-    """Rename each function in the original C program to its Avocado stub identifier.
+    """Rename each function in a C file (e.g., a program, library) to its Avocado stub identifier.
 
     This updates each file in-place.
 
@@ -121,8 +121,10 @@ def _rename_function_declarations_and_definitions(
     function_identifier_and_parent_node_types = _get_function_identifiers_for_avocado_stub_renaming(
         parsed_src
     )
-    src_after_renaming, original_names_to_avocado_names = _rename_functions_in_src_in_place(
-        src_content, function_identifier_and_parent_node_types
+    src_after_renaming, original_names_to_avocado_names = (
+        _rename_function_declarations_and_definitions_in_src_in_place(
+            src_content, function_identifier_and_parent_node_types
+        )
     )
     path_to_src.write_text(src_after_renaming.decode(), encoding="utf-8")
     rename_data = defaultdict(list)
@@ -134,7 +136,7 @@ def _rename_function_declarations_and_definitions(
 def _rename_function_calls(
     file_path: Path, identifier_to_rename_data: dict[str, list[RenameData]]
 ) -> None:
-    """Rename function calls in the given source file for which an Avocado stub exists.
+    """In the source file, rename function calls for which an Avocado stub exists.
 
     Args:
         file_path: The C source file to modify (i.e., apply renaming to).
@@ -143,14 +145,13 @@ def _rename_function_calls(
     src_content = file_path.read_bytes()
     parsed_src = C_PARSER.parse(src_content)
 
-    def _is_identifier_renamed(node: Node) -> bool:
+    def _should_rename_identifier_node(node: Node) -> bool:
         """Return True iff the node is an identifier node that should be renamed.
 
-        An identifier node should be renamed if it is found in the dictionary of previous
-        identifiers to rename data.
+        An identifier node should be renamed if it is found in identifier_to_rename_data.
 
         Args:
-            node (Node): The node to check for renaming.
+            node (Node): The node to check for renaming, it must be a node of type `identifier`.
 
         Returns:
             bool: True iff the node is an identifier node that should be renamed.
@@ -163,26 +164,28 @@ def _rename_function_calls(
             return False
         return node.text.decode() in identifier_to_rename_data
 
-    call_identifier_and_parent_nodes = get_call_identifiers(parsed_src.root_node)
-    call_identifiers_to_rename = [
-        call_id
-        for call_id, _ in call_identifier_and_parent_nodes
-        if _is_identifier_renamed(call_id)
+    identifier_node_from_call_expressions_and_parent_nodes = (
+        get_identifier_nodes_from_call_expressions(parsed_src.root_node)
+    )
+    identifier_nodes_to_rename = [
+        identifier_node
+        for identifier_node, _ in identifier_node_from_call_expressions_and_parent_nodes
+        if _should_rename_identifier_node(identifier_node)
     ]
 
-    if not call_identifiers_to_rename:
+    if not identifier_nodes_to_rename:
         return
 
     # Apply renaming in the given source file, in descending byte order.
     renamed_src = bytearray(src_content)
-    for call_node in sorted(
-        call_identifiers_to_rename, key=lambda node: node.start_byte, reverse=True
+    for identifier_node_from_call_expression_node in sorted(
+        identifier_nodes_to_rename, key=lambda node: node.start_byte, reverse=True
     ):
-        start = call_node.start_byte
-        end = call_node.end_byte
-        function_name = call_node.text.decode()
+        start = identifier_node_from_call_expression_node.start_byte
+        end = identifier_node_from_call_expression_node.end_byte
+        function_name = identifier_node_from_call_expression_node.text.decode()
 
-        renamed_function_name = AVOCADO_FUNCTION_PREFIX + function_name
+        renamed_function_name = _get_avocado_function_identifier(function_name)
 
         logger.debug(f"Renaming call to {function_name} -> {renamed_function_name} in {file_path}")
         renamed_src[start:end] = renamed_function_name.encode()
@@ -234,17 +237,20 @@ def _should_rename(node: Node) -> bool:
             # There is a check for an `if` here because it seems to be consistently misidentified
             # by tree-sitter as an identifier node (at least for the CBMC stubs).
             return False
-        return not re.match(DO_NOT_RENAME_PATTERN, node.text.decode())
+        return not any(
+            identifier_text.startswith(prefix)
+            for prefix in (AVOCADO_FUNCTION_PREFIX, VERIFIER_PREFIX, CPROVER_PREFIX)
+        )
     return False
 
 
-def _rename_functions_in_src_in_place(
+def _rename_function_declarations_and_definitions_in_src_in_place(
     src_content: bytes,
     function_identifier_and_parent_node_type: list[tuple[Node, IdentifierNodeParentType]],
 ) -> tuple[bytes, dict[str, tuple[str, IdentifierNodeParentType]]]:
     """Return the C source code and map from previous identifiers to Avocado identifiers.
 
-    Note: Renaming is done in-place.
+    Note: Renaming is done in-place and only for function declarations and definitions.
 
     Args:
         src_content (bytes): The source content.
@@ -252,8 +258,8 @@ def _rename_functions_in_src_in_place(
             The function id nodes to rename along with their parent nodes types.
 
     Returns:
-        tuple[bytes, dict[str, str]]: The source content and map from previous identifiers to
-            Avocado identifiers.
+       tuple[bytes, dict[str, tuple[str, IdentifierNodeParentType]]]: The source content and map
+            from previous identifiers to Avocado identifiers.
     """
     renamed_src = bytearray(src_content)
     original_names_to_avocado_names = {}
@@ -262,10 +268,7 @@ def _rename_functions_in_src_in_place(
     ):
         start = ident_node.start_byte
         end = ident_node.end_byte
-        if not ident_node.text:
-            msg = f"Identifier node '{ident_node}' was missing a '.text' attribute"
-            logger.error(msg)
-            raise ValueError(msg)
+        assert ident_node.text, "An identifier node must have a '.text' attribute"
         original_function_identifier = ident_node.text.decode()
         expected_identifier = original_function_identifier.encode()
         original_slice = bytes(renamed_src[start:end])
@@ -276,7 +279,7 @@ def _rename_functions_in_src_in_place(
             )
             logger.error(msg)
             raise ValueError(msg)
-        renamed_function_id = AVOCADO_FUNCTION_PREFIX + original_function_identifier
+        renamed_function_id = _get_avocado_function_identifier(original_function_identifier)
         logger.debug(f"Renaming {original_function_identifier} -> {renamed_function_id}")
         original_names_to_avocado_names[original_function_identifier] = (
             renamed_function_id,
@@ -284,6 +287,18 @@ def _rename_functions_in_src_in_place(
         )
         renamed_src[start:end] = renamed_function_id.encode()
     return (bytes(renamed_src), original_names_to_avocado_names)
+
+
+def _get_avocado_function_identifier(original_function_identifier: str) -> str:
+    """Return the Avocado function identifier for the given identifier.
+
+    Args:
+        original_function_identifier (str): The original function identifier.
+
+    Returns:
+        str: The Avocado function identifier for the given identifier.
+    """
+    return AVOCADO_FUNCTION_PREFIX + original_function_identifier
 
 
 if __name__ == "__main__":
