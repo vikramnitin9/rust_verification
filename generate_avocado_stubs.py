@@ -19,11 +19,16 @@ from util.tree_sitter_util import (
 )
 from verification.avocado_stub_util import (
     AVOCADO_FUNCTION_PREFIX,
+    C_KEYWORD_FILE_PATH,
     RenameData,
 )
 
 C_LANGUAGE = Language(tsc.language())
 C_PARSER = Parser(C_LANGUAGE)
+C_KEYWORDS = {
+    kw for kw in Path(C_KEYWORD_FILE_PATH).read_text().splitlines() if not kw.startswith("//")
+}
+
 CPROVER_PREFIX = "__CPROVER"
 VERIFIER_PREFIX = "__VERIFIER"
 DO_NOT_RENAME_PATTERN = (
@@ -233,9 +238,8 @@ def _should_rename(node: Node) -> bool:
             f"Expected an identifier node: '{node}' to have a non-None .text field"
         )
         identifier_text = node.text.decode()
-        if identifier_text == "if":
-            # There is a check for an `if` here because it seems to be consistently misidentified
-            # by tree-sitter as an identifier node (at least for the CBMC stubs).
+        if identifier_text in C_KEYWORDS:
+            # Do not rename any C keywords.
             return False
         return not any(
             identifier_text.startswith(prefix)
