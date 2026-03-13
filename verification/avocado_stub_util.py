@@ -167,7 +167,7 @@ class AvocadoIdentifierRenamer:
             str: The renamed identifier.
         """
         renamed_identifiers = {rename.renamed_identifier for rename in rename_data}
-        if len(renamed_identifiers) > 1:
+        if not renamed_identifiers or len(renamed_identifiers) > 1:
             msg = (
                 f"Expected exactly one renaming for {original_identifier}, "
                 f"but got {renamed_identifiers}"
@@ -198,7 +198,7 @@ class AvocadoIdentifierRenamer:
             for data in rename_metadata
             if data.parent_node_type == IdentifierNodeParentType.FUNCTION_DEFINITION
         ]
-        if len(rename_data_for_definition) > 1:
+        if not rename_data_for_definition or len(rename_data_for_definition) > 1:
             msg = (
                 f"Expected a single definition for '{original_identifier}', "
                 f"but got {rename_data_for_definition}"
