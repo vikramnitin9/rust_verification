@@ -276,6 +276,10 @@ def _verify_program(
     # Since the initial list of functions is in reverse topological order,
     # the first element processed will be a leaf.
     functions = parsec_project.get_functions_in_topological_order()
+    if not functions:
+        msg = f"'{parsec_project.input_path}' did not have any functions to specify"
+        logger.error(msg)
+        sys.exit(1)
 
     if skip_verified_cached_functions:
         functions = [f for f in functions if not _is_verified_and_cached(f)]
