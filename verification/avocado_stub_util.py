@@ -13,6 +13,7 @@ from util.tree_sitter_util import IdentifierNodeParentType
 
 AVOCADO_FUNCTION_PREFIX = "_avocado_"
 AVOCADO_STUB_DIR = "verification/cbmc_stubs"
+C_KEYWORD_FILE_PATH = f"{AVOCADO_STUB_DIR}/c_keywords.txt"
 
 
 @dataclass(frozen=True)

@@ -298,7 +298,7 @@ __CPROVER_thread_local unsigned long __CPROVER_thread_id = 0;
   // use of shared variables.
 __CPROVER_thread_local const void
   *__CPROVER_thread_keys[__CPROVER_constant_infinity_uint];
-__CPROVER_thread_local _avocado_void (
+__CPROVER_thread_local void (
   *__CPROVER_thread_key_dtors[__CPROVER_constant_infinity_uint])(void *);
 __CPROVER_thread_local unsigned long __CPROVER_next_thread_key = 0;
 #endif
@@ -553,7 +553,7 @@ __CPROVER_thread_local unsigned long __CPROVER_thread_id = 0;
   // use of shared variables.
 __CPROVER_thread_local const void
   *__CPROVER_thread_keys[__CPROVER_constant_infinity_uint];
-__CPROVER_thread_local _avocado_void (
+__CPROVER_thread_local void (
   *__CPROVER_thread_key_dtors[__CPROVER_constant_infinity_uint])(void *);
 #endif
 __CPROVER_thread_local unsigned long __CPROVER_next_thread_key = 0;
@@ -617,7 +617,7 @@ __CPROVER_HIDE:;
 #ifndef LIBRARY_CHECK
 unsigned long __CPROVER_next_thread_id;
 #  if 0
-__CPROVER_thread_local _avocado_void (
+__CPROVER_thread_local void (
   *__CPROVER_thread_key_dtors[__CPROVER_constant_infinity_uint])(void *);
 #  endif
 __CPROVER_thread_local unsigned long __CPROVER_next_thread_key = 0;
@@ -956,7 +956,7 @@ __CPROVER_thread_local const void
   *__CPROVER_thread_keys[__CPROVER_constant_infinity_uint];
 #ifndef LIBRARY_CHECK
 #  if 0
-__CPROVER_thread_local _avocado_void (
+__CPROVER_thread_local void (
   *__CPROVER_thread_key_dtors[__CPROVER_constant_infinity_uint])(void *);
 #  endif
 __CPROVER_thread_local unsigned long __CPROVER_next_thread_key = 0;
