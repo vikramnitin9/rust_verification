@@ -50,3 +50,22 @@ def test_apply_stub_renaming_existing_avocado_name() -> None:
     rename_result = avocado_renamer.rename_ansi_identifiers_to_avocado_identifiers(content_pre_renaming)
     assert rename_result.src_after_renaming == content_pre_renaming
     assert len(rename_result.get_headers_for_renamed_functions()) == 0
+
+def test_apply_stub_renaming_existing_cbmc_specs() -> None:
+    content_pre_renaming = _read_file_content(
+        "test/data/avocado_stub/test_renaming_with_cbmc_specs.c"
+    )
+    expected_content_post_renaming = """#include <stdlib.h>
+#include <ctype.h>
+#include "string.h"
+#include <time.h> // `time` is renamed function name, but this header should not be renamed.
+
+int is_separator(int c)
+__CPROVER_ensures(__CPROVER_return_value == (c == '\\0' || _avocado_isspace(c) || _avocado_strchr(",.()+-/*=~%[];",c) != NULL))
+{
+    return c == '\\0' ||
+        _avocado_isspace(c) ||
+        _avocado_strchr(",.()+-/*=~%[];",c) != NULL;
+}"""
+    rename_result = avocado_renamer.rename_ansi_identifiers_to_avocado_identifiers(content_pre_renaming)
+    assert rename_result.src_after_renaming == expected_content_post_renaming

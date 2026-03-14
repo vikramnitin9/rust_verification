@@ -84,6 +84,20 @@ def get_identifier_nodes_from_call_expressions(
             if function_node.type == "identifier":
                 assert function_node.text, "Expected an identifier node to have text"
                 result.append((function_node, IdentifierNodeParentType.CALL_EXPRESSION))
+        elif node.type == "ERROR":
+            # Within ERROR nodes tree-sitter may fail to recognise function calls as
+            # call_expression nodes (e.g. inside non-standard CBMC annotation syntax such
+            # as __CPROVER_ensures).  Explicitly look for identifier nodes that are
+            # immediately followed by `(` as a sibling — the hallmark of a function call
+            # that error-recovery decomposed into separate tokens.
+            for i, child in enumerate(node.children):
+                if (
+                    child.type == "identifier"
+                    and i + 1 < len(node.children)
+                    and node.children[i + 1].type == "("
+                ):
+                    assert child.text, "Expected an identifier node to have text"
+                    result.append((child, IdentifierNodeParentType.CALL_EXPRESSION))
         for child in node.children:
             traverse(child)
 
