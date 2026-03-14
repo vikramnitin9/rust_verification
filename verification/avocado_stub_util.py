@@ -3,17 +3,24 @@
 from __future__ import annotations
 
 import pickle as pkl
-import re
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
 from typing import cast
 
-from util.tree_sitter_util import IdentifierNodeParentType
+import tree_sitter_c as tsc
+from tree_sitter import Language, Parser
+
+from util.tree_sitter_util import (
+    IdentifierNodeParentType,
+    get_identifier_nodes_from_call_expressions,
+)
 
 AVOCADO_FUNCTION_PREFIX = "_avocado_"
 AVOCADO_STUB_DIR = "verification/cbmc_stubs"
 C_KEYWORD_FILE_PATH = f"{AVOCADO_STUB_DIR}/c_keywords.txt"
+C_LANGUAGE = Language(tsc.language())
+C_PARSER = Parser(C_LANGUAGE)
 
 
 @dataclass(frozen=True)
@@ -121,22 +128,19 @@ class AvocadoIdentifierRenamer:
         Returns:
             str: The rename result after ANSI library functions have been renamed.
         """
-        file_content_with_renaming = file_content
+        identifier_mapping = self.get_identifier_mapping()
+        file_content_with_renaming, renamed_identifiers = _rename_call_site_identifiers(
+            file_content,
+            dict(identifier_mapping),
+        )
+
         avocado_stub_files_to_use = set()
-        for original_identifier, rename_metadata in self._ansi_id_to_rename_data.items():
-            # Don't replace identifiers twice (i.e., replace only exact matches)
-            renamed_identifier = self.get_renamed_identifier(original_identifier, rename_metadata)
-            name_to_replace_pattern = r"\b" + original_identifier + r"\b"
-            file_content_with_renaming, count = re.subn(
-                name_to_replace_pattern,
-                renamed_identifier,
-                file_content_with_renaming,
+        for original_identifier in renamed_identifiers:
+            rename_metadata = self._ansi_id_to_rename_data[original_identifier]
+            rename_data_for_definition = self.get_rename_data_for_file_containing_definition(
+                original_identifier, rename_metadata
             )
-            if count > 0:
-                rename_data_for_definition = self.get_rename_data_for_file_containing_definition(
-                    original_identifier, rename_metadata
-                )
-                avocado_stub_files_to_use.add(rename_data_for_definition.file_path)
+            avocado_stub_files_to_use.add(rename_data_for_definition.file_path)
 
         return RenameResult(file_content_with_renaming, list(avocado_stub_files_to_use))
 
@@ -217,11 +221,9 @@ def apply_stub_renaming(file_content: str) -> str:
     Returns:
         str: The file content after stub function replacements have been applied.
     """
-    file_content_with_renaming = file_content
     original_identifiers_to_rename_data = get_stub_mappings()
+    identifier_mapping: dict[str, str] = {}
     for original_identifier, rename_data in original_identifiers_to_rename_data.items():
-        # Don't replace identifiers twice (i.e., replace only exact matches)
-        name_to_replace_pattern = r"\b" + original_identifier + r"\b"
         renamed_identifier = get_renamed_identifier(original_identifier, rename_data)
         if renamed_identifier in original_identifiers_to_rename_data:
             msg = (
@@ -229,10 +231,58 @@ def apply_stub_renaming(file_content: str) -> str:
                 f"'{renamed_identifier}'"
             )
             raise ValueError(msg)
-        file_content_with_renaming = re.sub(
-            name_to_replace_pattern, renamed_identifier, file_content_with_renaming
-        )
+        identifier_mapping[original_identifier] = renamed_identifier
+
+    file_content_with_renaming, _ = _rename_call_site_identifiers(
+        file_content,
+        identifier_mapping,
+    )
     return file_content_with_renaming
+
+
+def _rename_call_site_identifiers(
+    file_content: str,
+    identifier_mapping: dict[str, str],
+) -> tuple[str, set[str]]:
+    """Rename the ANSI-C identifiers in function calls to Avocado format, in file_content.
+
+    Args:
+        file_content (str): The contents of the file in which to perform renaming.
+        identifier_mapping (dict[str, str]): A map from ANSI-C identifiers to Avocado identifiers.
+
+    Returns:
+        tuple[str, set[str]]: The content of the updated file and the list of renamed identifiers.
+    """
+    src_bytes = file_content.encode("utf-8")
+    parsed_src = C_PARSER.parse(src_bytes)
+
+    identifier_nodes_from_calls = get_identifier_nodes_from_call_expressions(parsed_src.root_node)
+    renamed_identifiers = set()
+    if not identifier_nodes_from_calls:
+        return file_content, renamed_identifiers
+
+    renamed_src = bytearray(src_bytes)
+
+    identifier_nodes_to_rename = [
+        identifier_node
+        for identifier_node, _ in identifier_nodes_from_calls
+        if identifier_node.text and identifier_node.text.decode() in identifier_mapping
+    ]
+
+    for identifier_node in sorted(
+        identifier_nodes_to_rename,
+        key=lambda node: node.start_byte,
+        reverse=True,
+    ):
+        assert identifier_node.text, "Expected identifier node to have text"
+        original_identifier = identifier_node.text.decode()
+        renamed_identifier = identifier_mapping[original_identifier]
+        renamed_identifiers.add(original_identifier)
+        renamed_src[identifier_node.start_byte : identifier_node.end_byte] = (
+            renamed_identifier.encode()
+        )
+
+    return bytes(renamed_src).decode("utf-8"), renamed_identifiers
 
 
 def get_stub_mappings(
