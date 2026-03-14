@@ -29,6 +29,7 @@ def test_apply_stub_renaming() -> None:
     expected_content_post_renaming = """#include <stdlib.h>
 #include <ctype.h>
 #include "string.h"
+#include <time.h>
 
 int is_separator(int c)
 {
