@@ -62,6 +62,7 @@ def test_apply_stub_renaming_existing_cbmc_specs() -> None:
 
 int is_separator(int c)
 __CPROVER_ensures(__CPROVER_return_value == (c == '\\0' || _avocado_isspace(c) || _avocado_strchr(",.()+-/*=~%[];",c) != NULL))
+__CPROVER_ensures((__CPROVER_return_value == 0) ==> (c == '\\0' || _avocado_isspace(c) || _avocado_strchr(",.()+-/*=~%[];",c) == NULL))
 {
     return c == '\\0' ||
         _avocado_isspace(c) ||
