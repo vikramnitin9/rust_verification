@@ -7,16 +7,29 @@
 # parse CBMC specifications into the representation we work with in this codebase.
 #
 
+from __future__ import annotations
 import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol
 
 from lark import Transformer, ast_utils, v_args
 from lark.tree import Meta
 
 
-class CBMCAst(ast_utils.Ast):
+class Mutable(Protocol):
+    """Class to represent AST nodes from which mutant nodes can be generated."""
+
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        """Return the type(s) of CBMCAst nodes that this node may be mutated into.
+
+        Returns:
+            list[type[CBMCAst]]: The type(s) of CBMCAst nodes that this node may be mutated into.
+        """
+        return []
+
+
+class CBMCAst(ast_utils.Ast, Mutable):
     def to_string(self) -> str:
         """Convert this AST node to its string representation.
 
@@ -35,6 +48,9 @@ class CBMCAst(ast_utils.Ast):
         """
         return NotOp(self)
 
+    def is_boolean_expression(self) -> bool:
+        return False
+
 
 def _to_str(node: Any) -> str:
     """Convert an AST node or primitive value to a string.
@@ -52,7 +68,7 @@ def _to_str(node: Any) -> str:
     return str(node)
 
 
-@dataclass
+@dataclass(frozen=True)
 class RequiresClause(CBMCAst, ast_utils.WithMeta):
     meta: Meta
     expr: Any
@@ -61,7 +77,7 @@ class RequiresClause(CBMCAst, ast_utils.WithMeta):
         return f"__CPROVER_requires({_to_str(self.expr)})"
 
 
-@dataclass
+@dataclass(frozen=True)
 class EnsuresClause(CBMCAst, ast_utils.WithMeta):
     meta: Meta
     expr: Any
@@ -70,15 +86,15 @@ class EnsuresClause(CBMCAst, ast_utils.WithMeta):
         return f"__CPROVER_ensures({_to_str(self.expr)})"
 
 
-@dataclass
+@dataclass(frozen=True)
 class ExprList(CBMCAst, ast_utils.AsList):
-    items: list[CBMCAst]
+    items: tuple[CBMCAst, ...]
 
     def to_string(self) -> str:
         return ", ".join(_to_str(item) for item in self.items)
 
 
-@dataclass
+@dataclass(frozen=True)
 class AssignsTargetList(CBMCAst):
     items: ExprList
 
@@ -86,7 +102,7 @@ class AssignsTargetList(CBMCAst):
         return _to_str(self.items)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Assigns(CBMCAst):
     """Definition for a top-level __CPROVER_assigns clause."""
 
@@ -101,7 +117,7 @@ class Assigns(CBMCAst):
         return f"__CPROVER_assigns({targets})"
 
 
-@dataclass
+@dataclass(frozen=True)
 class Name(CBMCAst):
     name: str
 
@@ -109,7 +125,7 @@ class Name(CBMCAst):
         return self.name
 
 
-@dataclass
+@dataclass(frozen=True)
 class Number(CBMCAst):
     value: Any
 
@@ -117,15 +133,18 @@ class Number(CBMCAst):
         return str(self.value)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Bool(CBMCAst):
     value: bool
 
     def to_string(self) -> str:
         return "1" if self.value else "0"
 
+    def is_boolean_expression(self) -> bool:
+        return True
 
-@dataclass
+
+@dataclass(frozen=True)
 class StringLit(CBMCAst):
     value: str
 
@@ -133,10 +152,11 @@ class StringLit(CBMCAst):
         return self.value
 
 
-@dataclass
-class BinOp(ABC, CBMCAst):
+class BinOp(CBMCAst):
     left: Any
     right: Any
+
+    __match_args__ = ("left", "right")
 
     @abstractmethod
     def operator(self) -> str:
@@ -146,7 +166,6 @@ class BinOp(ABC, CBMCAst):
         return f"({_to_str(self.left)} {self.operator()} {_to_str(self.right)})"
 
 
-@dataclass
 class LogicalBinOp(BinOp):
     def __init__(self, left: Any, right: Any):
         self.left = left
@@ -192,8 +211,8 @@ class LogicalBinOp(BinOp):
         return result
 
 
-@dataclass
-class OrOp(LogicalBinOp):
+@dataclass(frozen=True)
+class OrOp(BinOp):
     left: Any
     right: Any
 
@@ -203,9 +222,12 @@ class OrOp(LogicalBinOp):
     def negate(self) -> CBMCAst:
         return AndOp(left=self.left.negate(), right=self.right.negate())
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [AndOp]
 
-@dataclass
-class AndOp(LogicalBinOp):
+
+@dataclass(frozen=True)
+class AndOp(BinOp):
     left: Any
     right: Any
 
@@ -215,8 +237,14 @@ class AndOp(LogicalBinOp):
     def negate(self) -> CBMCAst:
         return OrOp(left=self.left.negate(), right=self.right.negate())
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [OrOp]
 
-@dataclass
+    def is_boolean_expression(self) -> bool:
+        return True
+
+
+@dataclass(frozen=True)
 class EqOp(BinOp):
     left: Any
     right: Any
@@ -227,8 +255,14 @@ class EqOp(BinOp):
     def negate(self) -> CBMCAst:
         return NeqOp(left=self.left, right=self.right)
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [NeqOp]
 
-@dataclass
+    def is_boolean_expression(self) -> bool:
+        return True
+
+
+@dataclass(frozen=True)
 class NeqOp(BinOp):
     left: Any
     right: Any
@@ -239,8 +273,14 @@ class NeqOp(BinOp):
     def negate(self) -> CBMCAst:
         return EqOp(left=self.left, right=self.right)
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [EqOp]
 
-@dataclass
+    def is_boolean_expression(self) -> bool:
+        return True
+
+
+@dataclass(frozen=True)
 class LtOp(BinOp):
     left: Any
     right: Any
@@ -251,8 +291,14 @@ class LtOp(BinOp):
     def negate(self) -> CBMCAst:
         return GeOp(left=self.left, right=self.right)
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [GeOp]
 
-@dataclass
+    def is_boolean_expression(self) -> bool:
+        return True
+
+
+@dataclass(frozen=True)
 class LeOp(BinOp):
     left: Any
     right: Any
@@ -263,8 +309,14 @@ class LeOp(BinOp):
     def negate(self) -> CBMCAst:
         return GtOp(left=self.left, right=self.right)
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [GtOp]
 
-@dataclass
+    def is_boolean_expression(self) -> bool:
+        return True
+
+
+@dataclass(frozen=True)
 class GtOp(BinOp):
     left: Any
     right: Any
@@ -275,8 +327,14 @@ class GtOp(BinOp):
     def negate(self) -> CBMCAst:
         return LeOp(left=self.left, right=self.right)
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [LeOp]
 
-@dataclass
+    def is_boolean_expression(self) -> bool:
+        return True
+
+
+@dataclass(frozen=True)
 class GeOp(BinOp):
     left: Any
     right: Any
@@ -287,8 +345,14 @@ class GeOp(BinOp):
     def negate(self) -> CBMCAst:
         return LtOp(left=self.left, right=self.right)
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [LtOp]
 
-@dataclass
+    def is_boolean_expression(self) -> bool:
+        return True
+
+
+@dataclass(frozen=True)
 class AddOp(BinOp):
     left: Any
     right: Any
@@ -296,8 +360,11 @@ class AddOp(BinOp):
     def operator(self) -> str:
         return "+"
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [SubOp]
 
-@dataclass
+
+@dataclass(frozen=True)
 class SubOp(BinOp):
     left: Any
     right: Any
@@ -305,8 +372,11 @@ class SubOp(BinOp):
     def operator(self) -> str:
         return "-"
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [AddOp]
 
-@dataclass
+
+@dataclass(frozen=True)
 class MulOp(BinOp):
     left: Any
     right: Any
@@ -314,8 +384,11 @@ class MulOp(BinOp):
     def operator(self) -> str:
         return "*"
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [DivOp]
 
-@dataclass
+
+@dataclass(frozen=True)
 class DivOp(BinOp):
     left: Any
     right: Any
@@ -323,8 +396,11 @@ class DivOp(BinOp):
     def operator(self) -> str:
         return "/"
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [MulOp]
 
-@dataclass
+
+@dataclass(frozen=True)
 class ModOp(BinOp):
     left: Any
     right: Any
@@ -332,8 +408,12 @@ class ModOp(BinOp):
     def operator(self) -> str:
         return "%"
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        # Default to division. Modulo has no inverse.
+        return [DivOp]
 
-@dataclass
+
+@dataclass(frozen=True)
 class NotOp(CBMCAst):
     operand: Any
 
@@ -344,7 +424,7 @@ class NotOp(CBMCAst):
         return self.operand
 
 
-@dataclass
+@dataclass(frozen=True)
 class AddrOp(CBMCAst):
     operand: Any
 
@@ -352,7 +432,7 @@ class AddrOp(CBMCAst):
         return f"&{_to_str(self.operand)}"
 
 
-@dataclass
+@dataclass(frozen=True)
 class DerefOp(CBMCAst):
     operand: Any
 
@@ -360,7 +440,7 @@ class DerefOp(CBMCAst):
         return f"*{_to_str(self.operand)}"
 
 
-@dataclass
+@dataclass(frozen=True)
 class NegOp(CBMCAst):
     operand: Any
 
@@ -368,7 +448,7 @@ class NegOp(CBMCAst):
         return f"-({_to_str(self.operand)})"
 
 
-@dataclass
+@dataclass(frozen=True)
 class PosOp(CBMCAst):
     operand: Any
 
@@ -376,7 +456,7 @@ class PosOp(CBMCAst):
         return f"+({_to_str(self.operand)})"
 
 
-@dataclass
+@dataclass(frozen=True)
 class MemberOp(CBMCAst):
     value: CBMCAst
     attr: CBMCAst
@@ -386,7 +466,7 @@ class MemberOp(CBMCAst):
         return f"{_to_str(self.value)}.{attr}"
 
 
-@dataclass
+@dataclass(frozen=True)
 class PtrMemberOp(CBMCAst):
     value: Any
     attr: str
@@ -409,7 +489,7 @@ class PtrMemberOp(CBMCAst):
         return [self.value, self]
 
 
-@dataclass
+@dataclass(frozen=True)
 class IndexOp(CBMCAst):
     value: Any
     index: Any
@@ -418,7 +498,7 @@ class IndexOp(CBMCAst):
         return f"{_to_str(self.value)}[{_to_str(self.index)}]"
 
 
-@dataclass
+@dataclass(frozen=True)
 class CallOp(CBMCAst):
     func: CBMCAst
     args: CBMCAst
@@ -427,9 +507,9 @@ class CallOp(CBMCAst):
         return f"{_to_str(self.func)}({_to_str(self.args)})"
 
 
-@dataclass
+@dataclass(frozen=True)
 class ArgList(CBMCAst, ast_utils.AsList):
-    items: list[Any]
+    items: tuple[Any, ...]
 
     def to_string(self) -> str:
         return ", ".join(_to_str(item) for item in self.items)
@@ -439,7 +519,7 @@ class TypeNode(CBMCAst):
     pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class BuiltinType(TypeNode):
     # e.g., "int", "unsigned", "signed", "bool", "char", "float", "double"
     BUILT_IN_TYPES = {"int", "unsigned", "signed", "char", "long", "float", "double"}
@@ -449,7 +529,7 @@ class BuiltinType(TypeNode):
         return self.name
 
 
-@dataclass
+@dataclass(frozen=True)
 class NamedType(TypeNode):
     # typedef or user-defined type
     name: Name
@@ -458,7 +538,7 @@ class NamedType(TypeNode):
         return _to_str(self.name)
 
 
-@dataclass
+@dataclass(frozen=True)
 class QuantifierDecl(CBMCAst):
     typenode: TypeNode
     name: Name
@@ -467,7 +547,7 @@ class QuantifierDecl(CBMCAst):
         return f"{_to_str(self.typenode)} {_to_str(self.name)}"
 
 
-@dataclass
+@dataclass(frozen=True)
 class Quantifier(CBMCAst):
     decl: QuantifierDecl
     range_expr: Any
@@ -475,7 +555,7 @@ class Quantifier(CBMCAst):
     kind: str = ""
 
 
-@dataclass
+@dataclass(frozen=True)
 class ForallExpr(Quantifier):
     kind: str = "forall"
 
@@ -485,8 +565,11 @@ class ForallExpr(Quantifier):
             f"({_to_str(self.range_expr)}) ==> {_to_str(self.expr)} }}"
         )
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [ExistsExpr]
 
-@dataclass
+
+@dataclass(frozen=True)
 class ExistsExpr(Quantifier):
     kind: str = "exists"
 
@@ -496,8 +579,11 @@ class ExistsExpr(Quantifier):
             f"({_to_str(self.range_expr)}) && {_to_str(self.expr)} }}"
         )
 
+    def get_mutation_candidates(self) -> list[type[CBMCAst]]:
+        return [ForallExpr]
 
-@dataclass
+
+@dataclass(frozen=True)
 class Old(CBMCAst):
     expr: Any
 
@@ -505,7 +591,7 @@ class Old(CBMCAst):
         return f"__CPROVER_old({_to_str(self.expr)})"
 
 
-@dataclass
+@dataclass(frozen=True)
 class ReturnValue(CBMCAst):
     def to_string(self) -> str:
         return "__CPROVER_return_value"
@@ -565,7 +651,8 @@ class _ToAst(Transformer):
 
     @v_args(inline=True)
     def assigns_empty(self):  # type: ignore[no-untyped-def]
-        return Assigns(condition=None, targets=AssignsTargetList(items=ExprList([])))
+        empty_tuple: tuple[CBMCAst, ...] = ()
+        return Assigns(condition=None, targets=AssignsTargetList(items=ExprList(empty_tuple)))
 
     @v_args(inline=True)
     def assigns_unconditional(self, expr_list):  # type: ignore[no-untyped-def]
