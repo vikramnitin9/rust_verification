@@ -1,7 +1,56 @@
 """Class to aid in calculating the complexity of function specifications."""
 
-from translation import CBMCAst
-from translation.ast.cbmc_ast import AndOp, NotOp, OrOp
+from lark.exceptions import UnexpectedToken
+
+from translation import CBMCAst, Parser
+from translation.ast.cbmc_ast import (
+    AndOp,
+    EnsuresClause,
+    EqOp,
+    NotOp,
+    OrOp,
+    Quantifier,
+    RequiresClause,
+    ToAst,
+)
+
+CBMC_PARSER: Parser[CBMCAst] = Parser(
+    path_to_grammar_defn="translation/grammar/cbmc.txt", start="cbmc_clause", transformer=ToAst()
+)
+
+
+def count_atoms_in_clause(clause: str) -> int:
+    """Return the number of atoms in a CBMC clause.
+
+    An atom is a leaf boolean expression. For example, the expression 'a < b' comprises one atom,
+    and the expression 'a < b || c >= d' comprises two,
+
+    Args:
+        clause (str): The clause in which to count atoms.
+
+    Returns:
+        int: The number of atoms in the clause.
+    """
+
+    def count_atoms_in_ast(node: CBMCAst) -> int:
+        match node:
+            case (
+                AndOp(left=left, right=right)
+                | OrOp(left=left, right=right)
+                | EqOp(left=left, right=right)
+            ):
+                return count_atoms_in_ast(left) + count_atoms_in_ast(right)
+            case Quantifier(_, _, body_expr, _):
+                return count_atoms_in_ast(body_expr)
+            case _:
+                return 1
+
+    match _parse_to_ast(clause):
+        case RequiresClause(expr=e) | EnsuresClause(expr=e):
+            return count_atoms_in_ast(e)
+        case _:
+            msg = f"Unexpected AST parsed from clause: {clause}"
+            raise ValueError(msg)
 
 
 def is_tautology(node: CBMCAst) -> bool:
@@ -26,3 +75,11 @@ def is_tautology(node: CBMCAst) -> bool:
             return True
         case _:
             return False
+
+
+def _parse_to_ast(cbmc_str: str) -> CBMCAst:
+    try:
+        return CBMC_PARSER.parse(cbmc_str)
+    except UnexpectedToken as ute:
+        msg = f"Failed to parse a CBMC AST from '{cbmc_str}'"
+        raise ValueError(msg) from ute
