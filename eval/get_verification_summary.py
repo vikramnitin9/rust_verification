@@ -92,9 +92,10 @@ def main() -> None:
 
     verification_summary_for_file = {}
     verification_summary_for_file["file_name"] = args.file
+    verification_summary_for_file["functions"] = []
     for function, lookup_result in function_to_lookup_results.items():
         vsummary = _get_verification_summary(function, lookup_result)
-        verification_summary_for_file[function.name] = asdict(vsummary)
+        verification_summary_for_file["functions"].append(asdict(vsummary))
 
     with _get_result_json_name(args.file).open(mode="w") as f:
         json.dump(verification_summary_for_file, f, indent=4)
