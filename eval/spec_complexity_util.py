@@ -32,22 +32,32 @@ def count_atoms_in_clause(clause: str) -> int:
         int: The number of atoms in the clause.
     """
 
-    def count_atoms_in_ast(node: CBMCAst) -> int:
+    def _count_atoms_in_ast(node: CBMCAst) -> int:
+        """Return the number of atoms in a CBMC AST.
+
+        Atoms are leaf boolean expressions.
+
+        Args:
+            node (CBMCAst): The node in which to count the number of atoms.
+
+        Returns:
+            int: The number of atoms in a CBMC AST.
+        """
         match node:
             case (
                 AndOp(left=left, right=right)
                 | OrOp(left=left, right=right)
                 | EqOp(left=left, right=right)
             ):
-                return count_atoms_in_ast(left) + count_atoms_in_ast(right)
+                return _count_atoms_in_ast(left) + _count_atoms_in_ast(right)
             case Quantifier(_, _, body_expr, _):
-                return count_atoms_in_ast(body_expr)
+                return _count_atoms_in_ast(body_expr)
             case _:
                 return 1
 
     match _parse_to_ast(clause):
         case RequiresClause(expr=e) | EnsuresClause(expr=e):
-            return count_atoms_in_ast(e)
+            return _count_atoms_in_ast(e)
         case _:
             msg = f"Unexpected AST parsed from clause: {clause}"
             raise ValueError(msg)
@@ -78,6 +88,14 @@ def is_tautology(node: CBMCAst) -> bool:
 
 
 def _parse_to_ast(cbmc_str: str) -> CBMCAst:
+    """Return a CBMC AST parsed from a string.
+
+    Args:
+        cbmc_str (str): The string from which to parse an AST.
+
+    Returns:
+        CBMCAst: The AST parsed from the given string.
+    """
     try:
         return CBMC_PARSER.parse(cbmc_str)
     except UnexpectedToken as ute:
