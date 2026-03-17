@@ -1,7 +1,7 @@
 """Class to aid in calculating the complexity of function specifications."""
 
 from translation import CBMCAst
-from translation.ast.cbmc_ast import NotOp, OrOp
+from translation.ast.cbmc_ast import AndOp, NotOp, OrOp
 
 
 def is_tautology(node: CBMCAst) -> bool:
@@ -17,6 +17,12 @@ def is_tautology(node: CBMCAst) -> bool:
         case OrOp(NotOp(a), b) if a == b:
             return True
         case OrOp(a, NotOp(b)) if a == b:
+            return True
+        case NotOp(AndOp(a, NotOp(b))) if a == b:
+            # Equivalent to !(a && !a) -> !a || a
+            return True
+        case NotOp(AndOp(NotOp(a), b)) if a == b:
+            # Equivalent to !(!a && a) -> a || !a
             return True
         case _:
             return False

@@ -1,3 +1,3 @@
-import eval.get_verification_summary as get_verification_summary
+from .spec_complexity_util import is_tautology
 
-__all__ = ["get_verification_summary"]
+__all__ = ["is_tautology"]
