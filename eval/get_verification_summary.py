@@ -16,6 +16,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from dataclasses import asdict, dataclass
 
+from eval import ClauseComplexityInfo, get_complexity
 from util import CFunction, FunctionSpecification, ParsecProject
 from verification import VerificationResult
 
@@ -41,19 +42,34 @@ class CacheLookupResult:
 
 
 @dataclass(frozen=True)
+class SpecWithComplexity:
+    """A specification paired with its clause complexity information.
+
+    Attributes:
+        spec (FunctionSpecification): The specification.
+        precondition_complexity (list[ClauseComplexityInfo]): Complexity info for preconditions.
+        postcondition_complexity (list[ClauseComplexityInfo]): Complexity info for postconditions.
+    """
+
+    spec: FunctionSpecification
+    precondition_complexity: list[ClauseComplexityInfo]
+    postcondition_complexity: list[ClauseComplexityInfo]
+
+
+@dataclass(frozen=True)
 class VerificationSummary:
     """Summary of verification results for a function.
 
     Attributes:
         function_name (str): The name of the function.
-        verifying_specs (list[FunctionSpecification]): The list of verifying specs.
-        failing_specs (list[FunctionSpecification]): The list of failing specs.
+        verifying_specs (list[SpecWithComplexity]): The list of verifying specs with complexity.
+        failing_specs (list[SpecWithComplexity]): The list of failing specs with complexity.
         lookup_errors (list[CacheLookupError]): The list of any cache lookup errors.
     """
 
     function_name: str
-    verifying_specs: list[FunctionSpecification]
-    failing_specs: list[FunctionSpecification]
+    verifying_specs: list[SpecWithComplexity]
+    failing_specs: list[SpecWithComplexity]
     lookup_errors: list[CacheLookupError]
 
 
@@ -141,13 +157,17 @@ def _get_verification_summary(
     ]
 
     # Verifying specs
-    verifying_specs = [vresult.get_spec() for vresult in vresults if vresult.succeeded]
+    verifying_raw = [vresult.get_spec() for vresult in vresults if vresult.succeeded]
+    verifying_specs = [
+        SpecWithComplexity(spec, *_get_complexity_for_clauses(spec)) for spec in verifying_raw
+    ]
 
     # Failing specs
+    verifying_set = set(verifying_raw)
     failing_specs = [
-        failing_spec
+        SpecWithComplexity(spec, *_get_complexity_for_clauses(spec))
         for vresult in vresults
-        if (failing_spec := vresult.get_spec()) and failing_spec not in set(verifying_specs)
+        if (spec := vresult.get_spec()) and spec not in verifying_set
     ]
 
     # Lookup errors
@@ -172,6 +192,15 @@ def _get_result_json_name(input_file: str) -> Path:
     """
     path_to_input = Path(input_file)
     return path_to_input.parent / f"{path_to_input.stem}-verification-summary.json"
+
+
+def _get_complexity_for_clauses(
+    spec: FunctionSpecification,
+) -> tuple[list[ClauseComplexityInfo], list[ClauseComplexityInfo]]:
+    return (
+        [get_complexity(clause) for clause in spec.preconditions],
+        [get_complexity(clause) for clause in spec.postconditions],
+    )
 
 
 if __name__ == "__main__":

@@ -15,14 +15,14 @@ from translation.ast.cbmc_ast import (
     QuantifierDecl,
 )
 
-from eval import is_tautology, get_complexity, ClauseComplexityInfo, get_atoms_in_expression
+from eval import is_tautology, get_complexity, ClauseComplexity, get_atoms_in_expression
 
 
 def test_get_complexity_simple() -> None:
     clause = "__CPROVER_requires(a < b || c && 1 + 2 == d)"
     complexity = get_complexity(clause)
     match complexity:
-        case ClauseComplexityInfo(num_atoms=3, is_tautology=False):
+        case ClauseComplexity(num_atoms=3, is_tautology=False):
             pass
         case _:
             assert False, (
@@ -33,7 +33,7 @@ def test_get_complexity_tautology() -> None:
     clause = "__CPROVER_requires((a < b || c && 1 + 2 == d) || !(a < b || c && 1 + 2 == d))"
     complexity = get_complexity(clause)
     match complexity:
-        case ClauseComplexityInfo(num_atoms=6, is_tautology=True):
+        case ClauseComplexity(num_atoms=6, is_tautology=True):
             pass
         case _:
             assert False, (
