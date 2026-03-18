@@ -1,3 +1,4 @@
+import pytest
 from translation.ast.cbmc_ast import (
     AddOp,
     BuiltinType,
@@ -25,9 +26,10 @@ def test_get_complexity_simple() -> None:
         case ClauseComplexity(num_atoms=3, is_tautology=False):
             pass
         case _:
-            assert False, (
+            pytest.fail(
                 f"'{clause}' should be reported to have 3 atoms and not be a tautology, but got {complexity}"
             )
+
 
 def test_get_complexity_tautology() -> None:
     clause = "__CPROVER_requires((a < b || c && 1 + 2 == d) || !(a < b || c && 1 + 2 == d))"
@@ -36,7 +38,7 @@ def test_get_complexity_tautology() -> None:
         case ClauseComplexity(num_atoms=6, is_tautology=True):
             pass
         case _:
-            assert False, (
+            pytest.fail(
                 f"'{clause}' should be reported to have 6 atoms and be a tautology, but got {complexity}"
             )
 
@@ -61,8 +63,11 @@ def test_count_atoms_in_clause_eq() -> None:
         "The expression 'a < b == 1 + 2' comprises one atom."
     )
 
+
 def test_count_atoms_combined() -> None:
-    expr = OrOp(LtOp(Name("a"), Name("b")), AndOp(Name("c"), EqOp(AddOp(Number(1), Number(2)), Name("d"))))
+    expr = OrOp(
+        LtOp(Name("a"), Name("b")), AndOp(Name("c"), EqOp(AddOp(Number(1), Number(2)), Name("d")))
+    )
     assert len(get_atoms_in_expression(expr)) == 3
 
 

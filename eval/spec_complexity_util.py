@@ -73,8 +73,10 @@ def get_complexity(clause: str) -> ClauseComplexityInfo:
         return ClauseComplexityError(clause=clause, error=str(e))
 
     match ast:
-        case RequiresClause(_, e) | EnsuresClause(_, e) | Assigns(conditions=e, targets=_):
+        case RequiresClause(_, e) | EnsuresClause(_, e) | Assigns(condition=e, targets=_):
             atoms = get_atoms_in_expression(e)
+            # Direct conversion to a set of atoms is not possible due to the CBMC AST nodes not
+            # being hashable types, so we do a direct comparison here with slices.
             unique_atoms = [atom for i, atom in enumerate(atoms) if atom not in atoms[:i]]
             return ClauseComplexity(
                 clause=clause,
@@ -92,6 +94,8 @@ def get_complexity(clause: str) -> ClauseComplexityInfo:
 def get_atoms_in_expression(expr: CBMCAst) -> list[CBMCAst]:
     """Return the atoms comprising the given expression.
 
+    Atoms comprise boolean propositions without top-level logical operators.
+
     Args:
         expr (CBMCAst): The expression from which to obtain atoms.
 
@@ -104,7 +108,7 @@ def get_atoms_in_expression(expr: CBMCAst) -> list[CBMCAst]:
             result = [*result, *get_atoms_in_expression(left), *get_atoms_in_expression(right)]
         case NotOp(e):
             result = [*result, *get_atoms_in_expression(e)]
-        case Quantifier(_, _, body_expr, _):
+        case Quantifier(expr=body_expr):
             result = [*result, *get_atoms_in_expression(body_expr)]
         case e:
             result.append(e)
