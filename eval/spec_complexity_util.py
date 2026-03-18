@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from lark.exceptions import UnexpectedToken
+from lark.exceptions import UnexpectedToken, VisitError
 
 from translation import CBMCAst, Parser
 from translation.ast.cbmc_ast import (
@@ -23,16 +23,37 @@ CBMC_PARSER: Parser[CBMCAst] = Parser(
 
 @dataclass(frozen=True)
 class ClauseComplexityInfo:
-    """Encapsulate values used as proxies for the complexity of a clause.
+    """Base class for clause complexity results."""
+
+    clause: str
+
+
+@dataclass(frozen=True)
+class ClauseComplexity(ClauseComplexityInfo):
+    """Complexity info for a clause that was successfully parsed.
 
     Attributes:
+        clause (str): The original clause string.
         num_atoms (int): The number of atoms in a clause.
+        num_unique_atoms (int): The number of unique atoms in a clause.
         is_tautology (bool): True iff this clause is definitely a tautology.
     """
 
     num_atoms: int
     num_unique_atoms: int
     is_tautology: bool
+
+
+@dataclass(frozen=True)
+class ClauseComplexityError(ClauseComplexityInfo):
+    """Represents a clause that failed to parse.
+
+    Attributes:
+        clause (str): The original clause string.
+        error (str): The error message from the failed parse.
+    """
+
+    error: str
 
 
 def get_complexity(clause: str) -> ClauseComplexityInfo:
@@ -44,17 +65,28 @@ def get_complexity(clause: str) -> ClauseComplexityInfo:
         clause (str): The clause for which to compute complexity information.
 
     Returns:
-        ClauseComplexityInfo: The complexity information parsed from a clause.
+        ClauseComplexityInfo: A ClauseComplexity on success, or ClauseComplexityError on failure.
     """
-    match _parse_to_ast(clause):
+    try:
+        ast = _parse_to_ast(clause)
+    except ValueError as e:
+        return ClauseComplexityError(clause=clause, error=str(e))
+
+    match ast:
         case RequiresClause(_, e) | EnsuresClause(_, e) | Assigns(conditions=e, targets=_):
             atoms = get_atoms_in_expression(e)
-            return ClauseComplexityInfo(
-                num_atoms=len(atoms), num_unique_atoms=len(set(atoms)), is_tautology=is_tautology(e)
+            unique_atoms = [atom for i, atom in enumerate(atoms) if atom not in atoms[:i]]
+            return ClauseComplexity(
+                clause=clause,
+                num_atoms=len(atoms),
+                num_unique_atoms=len(unique_atoms),
+                is_tautology=is_tautology(e),
             )
         case _:
-            msg = f"Cannot compute complexity for unexpected clause '{clause}'"
-            raise ValueError(msg)
+            return ClauseComplexityError(
+                clause=clause,
+                error=f"Cannot compute complexity for unexpected clause '{clause}'",
+            )
 
 
 def get_atoms_in_expression(expr: CBMCAst) -> list[CBMCAst]:
@@ -66,7 +98,7 @@ def get_atoms_in_expression(expr: CBMCAst) -> list[CBMCAst]:
     Returns:
         list[CBMCAst]: The atoms comprising the given expression.
     """
-    result = []
+    result: list[CBMCAst] = []
     match expr:
         case AndOp(left=left, right=right) | OrOp(left=left, right=right):
             result = [*result, *get_atoms_in_expression(left), *get_atoms_in_expression(right)]
@@ -117,3 +149,6 @@ def _parse_to_ast(cbmc_str: str) -> CBMCAst:
     except UnexpectedToken as ute:
         msg = f"Failed to parse a CBMC AST from '{cbmc_str}'"
         raise ValueError(msg) from ute
+    except VisitError as ve:
+        msg = f"Failed to parse a CBMC AST from '{cbmc_str}'"
+        raise ValueError(msg) from ve
