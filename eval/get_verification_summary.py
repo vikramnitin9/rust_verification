@@ -65,7 +65,7 @@ class VerificationSummary:
         function_name (str): The name of the function.
         verifying_specs (list[SpecWithComplexity]): The list of verifying specs with complexity.
         failing_specs (list[SpecWithComplexity]): The list of failing specs with complexity.
-        lookup_errors (list[CacheLookupError]): The list of any cache lookup errors.
+        lookup_errors (list[CacheLookupError]): The list of cache lookup errors.
     """
 
     function_name: str
