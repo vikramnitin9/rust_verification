@@ -81,7 +81,7 @@ def main() -> None:
     It aids in the automation of the analysis of verifier runs.
 
     Implementation detail:  Avocado caches the result of verification runs (i.e., the result of
-    invoking CBMC the specs it generates) in a cache file.
+    invoking CBMC on the specs it generates) in a cache file.
     """
     parser = argparse.ArgumentParser(
         description=("Calculate for functions run through the Avocado verifier in a given C file.")
