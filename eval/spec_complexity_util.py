@@ -1,12 +1,14 @@
 """Class to aid in calculating the complexity of function specifications."""
 
+from dataclasses import dataclass
+
 from lark.exceptions import UnexpectedToken
 
 from translation import CBMCAst, Parser
 from translation.ast.cbmc_ast import (
     AndOp,
+    Assigns,
     EnsuresClause,
-    EqOp,
     NotOp,
     OrOp,
     Quantifier,
@@ -19,48 +21,62 @@ CBMC_PARSER: Parser[CBMCAst] = Parser(
 )
 
 
-def count_atoms_in_clause(clause: str) -> int:
-    """Return the number of atoms in a CBMC clause.
+@dataclass(frozen=True)
+class ClauseComplexityInfo:
+    """Encapsulate values used as proxies for the complexity of a clause.
 
-    An atom is a leaf boolean expression. For example, the expression 'a < b' comprises one atom,
-    and the expression 'a < b || c >= d' comprises two,
-
-    Args:
-        clause (str): The clause in which to count atoms.
-
-    Returns:
-        int: The number of atoms in the clause.
+    Attributes:
+        num_atoms (int): The number of atoms in a clause.
+        is_tautology (bool): True iff this clause is definitely a tautology.
     """
 
-    def _count_atoms_in_ast(node: CBMCAst) -> int:
-        """Return the number of atoms in a CBMC AST.
+    num_atoms: int
+    num_unique_atoms: int
+    is_tautology: bool
 
-        Atoms are leaf boolean expressions.
 
-        Args:
-            node (CBMCAst): The node in which to count the number of atoms.
+def get_complexity(clause: str) -> ClauseComplexityInfo:
+    """Return the clause complexity info for a given CBMC clause.
 
-        Returns:
-            int: The number of atoms in a CBMC AST.
-        """
-        match node:
-            case (
-                AndOp(left=left, right=right)
-                | OrOp(left=left, right=right)
-                | EqOp(left=left, right=right)
-            ):
-                return _count_atoms_in_ast(left) + _count_atoms_in_ast(right)
-            case Quantifier(_, _, body_expr, _):
-                return _count_atoms_in_ast(body_expr)
-            case _:
-                return 1
+    The given clause must be one of a requires, ensures, or assigns clause.
 
+    Args:
+        clause (str): The clause for which to compute complexity information.
+
+    Returns:
+        ClauseComplexityInfo: The complexity information parsed from a clause.
+    """
     match _parse_to_ast(clause):
-        case RequiresClause(expr=e) | EnsuresClause(expr=e):
-            return _count_atoms_in_ast(e)
+        case RequiresClause(_, e) | EnsuresClause(_, e) | Assigns(conditions=e, targets=_):
+            atoms = get_atoms_in_expression(e)
+            return ClauseComplexityInfo(
+                num_atoms=len(atoms), num_unique_atoms=len(set(atoms)), is_tautology=is_tautology(e)
+            )
         case _:
-            msg = f"Unexpected AST parsed from clause: {clause}"
+            msg = f"Cannot compute complexity for unexpected clause '{clause}'"
             raise ValueError(msg)
+
+
+def get_atoms_in_expression(expr: CBMCAst) -> list[CBMCAst]:
+    """Return the atoms comprising the given expression.
+
+    Args:
+        expr (CBMCAst): The expression from which to obtain atoms.
+
+    Returns:
+        list[CBMCAst]: The atoms comprising the given expression.
+    """
+    result = []
+    match expr:
+        case AndOp(left=left, right=right) | OrOp(left=left, right=right):
+            result = [*result, *get_atoms_in_expression(left), *get_atoms_in_expression(right)]
+        case NotOp(e):
+            result = [*result, *get_atoms_in_expression(e)]
+        case Quantifier(_, _, body_expr, _):
+            result = [*result, *get_atoms_in_expression(body_expr)]
+        case e:
+            result.append(e)
+    return result
 
 
 def is_tautology(node: CBMCAst) -> bool:
