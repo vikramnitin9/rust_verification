@@ -77,9 +77,11 @@ class VerificationSummary:
 def main() -> None:
     """Script to calculate metrics for functions run through the Avocado verifier.
 
-    Avocado caches the result of verification runs (i.e., the result of invoking CBMC the specs
-    it generates) in a cache file. This script aids in the automation of the analysis of verifier
-    runs. It reports the verification summary for each function in the file.
+    This script reports the verification summary for each function in the file.
+    It aids in the automation of the analysis of verifier runs.
+
+    Implementation detail:  Avocado caches the result of verification runs (i.e., the result of
+    invoking CBMC the specs it generates) in a cache file.
     """
     parser = argparse.ArgumentParser(
         description=("Calculate for functions run through the Avocado verifier in a given C file.")
