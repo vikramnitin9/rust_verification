@@ -59,10 +59,9 @@ class ClauseComplexityError(ClauseComplexityInfo):
 def get_complexity(clause: str) -> ClauseComplexityInfo:
     """Return the clause complexity info for a given CBMC clause.
 
-    The given clause must be one of a requires, ensures, or assigns clause.
-
     Args:
-        clause (str): The clause for which to compute complexity information.
+        clause (str): A requires, ensures, or assigns clause for which to compute complexity
+            information.
 
     Returns:
         ClauseComplexityInfo: A ClauseComplexity on success, or ClauseComplexityError on failure.
@@ -95,8 +94,7 @@ def _get_complexity_from_expression(clause: str, expr: CBMCAst | None) -> Clause
     if not expr:
         return ClauseComplexity(clause=clause, num_atoms=0, num_unique_atoms=0, is_tautology=False)
     atoms = get_atoms_in_expression(expr)
-    # Direct conversion to a set of atoms is not possible due to the CBMC AST nodes not
-    # being hashable types, so we do a direct comparison here with slices.
+    # Cannot use `set(atoms)` because the CBMCAst class is not hashable.
     unique_atoms = [atom for i, atom in enumerate(atoms) if atom not in atoms[:i]]
     return ClauseComplexity(
         clause=clause,
