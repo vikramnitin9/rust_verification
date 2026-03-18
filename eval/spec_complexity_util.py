@@ -74,21 +74,36 @@ def get_complexity(clause: str) -> ClauseComplexityInfo:
 
     match ast:
         case RequiresClause(_, e) | EnsuresClause(_, e) | Assigns(condition=e, targets=_):
-            atoms = get_atoms_in_expression(e)
-            # Direct conversion to a set of atoms is not possible due to the CBMC AST nodes not
-            # being hashable types, so we do a direct comparison here with slices.
-            unique_atoms = [atom for i, atom in enumerate(atoms) if atom not in atoms[:i]]
-            return ClauseComplexity(
-                clause=clause,
-                num_atoms=len(atoms),
-                num_unique_atoms=len(unique_atoms),
-                is_tautology=is_tautology(e),
-            )
+            return _get_complexity_from_expression(clause, e)
         case _:
             return ClauseComplexityError(
                 clause=clause,
                 error=f"Cannot compute complexity for unexpected clause '{clause}'",
             )
+
+
+def _get_complexity_from_expression(clause: str, expr: CBMCAst | None) -> ClauseComplexity:
+    """Return the clause complexity calculated from the expression from the given clause.
+
+    Args:
+        clause (str): The clause from which the expression originates.
+        expr (CBMCAst | None): The expression from the clause.
+
+    Returns:
+        ClauseComplexity: The clause complexity calculated from the given expression.
+    """
+    if not expr:
+        return ClauseComplexity(clause=clause, num_atoms=0, num_unique_atoms=0, is_tautology=False)
+    atoms = get_atoms_in_expression(expr)
+    # Direct conversion to a set of atoms is not possible due to the CBMC AST nodes not
+    # being hashable types, so we do a direct comparison here with slices.
+    unique_atoms = [atom for i, atom in enumerate(atoms) if atom not in atoms[:i]]
+    return ClauseComplexity(
+        clause=clause,
+        num_atoms=len(atoms),
+        num_unique_atoms=len(unique_atoms),
+        is_tautology=is_tautology(expr),
+    )
 
 
 def get_atoms_in_expression(expr: CBMCAst) -> list[CBMCAst]:

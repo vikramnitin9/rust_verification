@@ -16,7 +16,13 @@ from translation.ast.cbmc_ast import (
     QuantifierDecl,
 )
 
-from eval import is_tautology, get_complexity, ClauseComplexity, get_atoms_in_expression
+from eval import (
+    is_tautology,
+    get_complexity,
+    ClauseComplexity,
+    ClauseComplexityError,
+    get_atoms_in_expression,
+)
 
 
 def test_get_complexity_simple() -> None:
@@ -43,6 +49,16 @@ def test_get_complexity_tautology() -> None:
             )
 
 
+def test_get_complexity_syntactically_invalid_spec() -> None:
+    invalid_clause = "__CPROVER_assigns(out[i], out[i+1], out[i+2], ...)"
+    complexity = get_complexity(invalid_clause)
+    match complexity:
+        case ClauseComplexity():
+            pytest.fail(f"{invalid_clause} is invalid, and should not have a complexity reported")
+        case ClauseComplexityError():
+            pass
+
+
 def test_count_atoms_in_expr_singleton() -> None:
     expr = LtOp(Name("a"), Name("b"))
     assert len(get_atoms_in_expression(expr)) == 1, f"The expression '{expr}' comprises one atom."
@@ -58,7 +74,6 @@ def test_count_atoms_in_clause_recursion() -> None:
 
 def test_count_atoms_in_clause_eq() -> None:
     expr = EqOp(LtOp(Name("a"), Name("b")), AddOp(Number(1), Number(2)))
-    print(get_atoms_in_expression(expr))
     assert len(get_atoms_in_expression(expr)) == 1, (
         "The expression 'a < b == 1 + 2' comprises one atom."
     )
