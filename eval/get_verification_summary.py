@@ -7,6 +7,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 from diskcache import Cache  # ty: ignore
 
@@ -62,13 +63,7 @@ def main() -> None:
 
     Avocado caches the result of verification runs (i.e., the result of invoking CBMC the specs
     it generates) in a cache file. This script aids in the automation of the analysis of verifier
-    runs. It reports the following numbers for each function in the provided C file:
-
-        - The number of specs that have successfully verified.
-        - The number of spec that have failed to be successfully verified.
-        - The number of *unique* specs that have successfully verified.
-        - The number of *unique* specs that have failed to be successfully verified.
-
+    runs. It reports the verification summary for each function in the file.
     """
     parser = argparse.ArgumentParser(
         description=("Calculate for functions run through the Avocado verifier in a given C file.")
@@ -95,7 +90,8 @@ def main() -> None:
     verification_summary_for_file["functions"] = []
     for function, lookup_result in function_to_lookup_results.items():
         vsummary = _get_verification_summary(function, lookup_result)
-        verification_summary_for_file["functions"].append(asdict(vsummary))
+        serialized_vsummary = _serialize_vsummary(vsummary)
+        verification_summary_for_file["functions"].append(serialized_vsummary)
 
     with _get_result_json_name(args.file).open(mode="w") as f:
         json.dump(verification_summary_for_file, f, indent=4)
@@ -156,6 +152,20 @@ def _get_verification_summary(
     ]
 
     return VerificationSummary(function.name, verifying_specs, failing_specs, lookup_errors)
+
+
+def _serialize_vsummary(verification_summary: VerificationSummary) -> dict[str, Any]:
+    """Return the JSON-serializable version of a verification summary.
+
+    Args:
+        verification_summary (VerificationSummary): The verification summary.
+
+    Returns:
+        dict[str, Any]: The JSON-serializable version of a verification summary.
+    """
+    vsummary_dict = asdict(verification_summary)
+    vsummary_dict["lookup_errors"] = [str(e) for e in verification_summary.lookup_errors]
+    return vsummary_dict
 
 
 def _get_result_json_name(input_file: str) -> Path:
