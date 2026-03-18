@@ -1,3 +1,4 @@
+import pytest
 from translation.ast.cbmc_ast import (
     AddOp,
     BuiltinType,
@@ -15,7 +16,13 @@ from translation.ast.cbmc_ast import (
     QuantifierDecl,
 )
 
-from eval import is_tautology, get_complexity, ClauseComplexity, get_atoms_in_expression
+from eval import (
+    is_tautology,
+    get_complexity,
+    ClauseComplexity,
+    ClauseComplexityError,
+    get_atoms_in_expression,
+)
 
 
 def test_get_complexity_simple() -> None:
@@ -25,9 +32,10 @@ def test_get_complexity_simple() -> None:
         case ClauseComplexity(num_atoms=3, is_tautology=False):
             pass
         case _:
-            assert False, (
+            pytest.fail(
                 f"'{clause}' should be reported to have 3 atoms and not be a tautology, but got {complexity}"
             )
+
 
 def test_get_complexity_tautology() -> None:
     clause = "__CPROVER_requires((a < b || c && 1 + 2 == d) || !(a < b || c && 1 + 2 == d))"
@@ -36,9 +44,19 @@ def test_get_complexity_tautology() -> None:
         case ClauseComplexity(num_atoms=6, is_tautology=True):
             pass
         case _:
-            assert False, (
+            pytest.fail(
                 f"'{clause}' should be reported to have 6 atoms and be a tautology, but got {complexity}"
             )
+
+
+def test_get_complexity_syntactically_invalid_spec() -> None:
+    invalid_clause = "__CPROVER_assigns(out[i], out[i+1], out[i+2], ...)"
+    complexity = get_complexity(invalid_clause)
+    match complexity:
+        case ClauseComplexity():
+            pytest.fail(f"{invalid_clause} is invalid, and should not have a complexity reported")
+        case ClauseComplexityError():
+            pass
 
 
 def test_count_atoms_in_expr_singleton() -> None:
@@ -56,13 +74,15 @@ def test_count_atoms_in_clause_recursion() -> None:
 
 def test_count_atoms_in_clause_eq() -> None:
     expr = EqOp(LtOp(Name("a"), Name("b")), AddOp(Number(1), Number(2)))
-    print(get_atoms_in_expression(expr))
     assert len(get_atoms_in_expression(expr)) == 1, (
         "The expression 'a < b == 1 + 2' comprises one atom."
     )
 
+
 def test_count_atoms_combined() -> None:
-    expr = OrOp(LtOp(Name("a"), Name("b")), AndOp(Name("c"), EqOp(AddOp(Number(1), Number(2)), Name("d"))))
+    expr = OrOp(
+        LtOp(Name("a"), Name("b")), AndOp(Name("c"), EqOp(AddOp(Number(1), Number(2)), Name("d")))
+    )
     assert len(get_atoms_in_expression(expr)) == 3
 
 
