@@ -53,10 +53,10 @@ def test_get_complexity_syntactically_invalid_spec() -> None:
     invalid_clause = "__CPROVER_assigns(out[i], out[i+1], out[i+2], ...)"
     complexity = get_complexity(invalid_clause)
     match complexity:
-        case ClauseComplexity():
-            pytest.fail(f"{invalid_clause} is invalid, and should not have a complexity reported")
         case ClauseComplexityError():
             pass
+        case ClauseComplexity():
+            pytest.fail(f"{invalid_clause} is invalid, and should not have a complexity reported")
 
 
 def test_count_atoms_in_expr_singleton() -> None:

@@ -1,10 +1,8 @@
 """Class to aid in calculating the complexity of function specifications."""
 
-from dataclasses import dataclass
-
 from lark.exceptions import UnexpectedToken, VisitError
 
-from translation import CBMCAst, Parser
+from translation import CbmcAst, Parser
 from translation.ast.cbmc_ast import (
     AndOp,
     Assigns,
@@ -16,47 +14,14 @@ from translation.ast.cbmc_ast import (
     ToAst,
 )
 
-CBMC_PARSER: Parser[CBMCAst] = Parser(
+from .clause_complexity import ClauseComplexity, ClauseComplexityError, ClauseComplexityResult
+
+CBMC_PARSER: Parser[CbmcAst] = Parser(
     path_to_grammar_defn="translation/grammar/cbmc.txt", start="cbmc_clause", transformer=ToAst()
 )
 
 
-@dataclass(frozen=True)
-class ClauseComplexityInfo:
-    """Base class for clause complexity results."""
-
-    clause: str
-
-
-@dataclass(frozen=True)
-class ClauseComplexity(ClauseComplexityInfo):
-    """Complexity info for a clause that was successfully parsed.
-
-    Attributes:
-        clause (str): The original clause string.
-        num_atoms (int): The number of atoms in a clause.
-        num_unique_atoms (int): The number of unique atoms in a clause.
-        is_tautology (bool): True iff this clause is definitely a tautology.
-    """
-
-    num_atoms: int
-    num_unique_atoms: int
-    is_tautology: bool
-
-
-@dataclass(frozen=True)
-class ClauseComplexityError(ClauseComplexityInfo):
-    """Represents a clause that failed to parse.
-
-    Attributes:
-        clause (str): The original clause string.
-        error (str): The error message from the failed parse.
-    """
-
-    error: str
-
-
-def get_complexity(clause: str) -> ClauseComplexityInfo:
+def get_complexity(clause: str) -> ClauseComplexity:
     """Return the clause complexity info for a given CBMC clause.
 
     Args:
@@ -64,7 +29,7 @@ def get_complexity(clause: str) -> ClauseComplexityInfo:
             information.
 
     Returns:
-        ClauseComplexityInfo: A ClauseComplexity on success, or ClauseComplexityError on failure.
+        ClauseComplexity: A ClauseComplexity on success, or ClauseComplexityError on failure.
     """
     try:
         ast = _parse_to_ast(clause)
@@ -81,22 +46,27 @@ def get_complexity(clause: str) -> ClauseComplexityInfo:
             )
 
 
-def _get_complexity_from_expression(clause: str, expr: CBMCAst | None) -> ClauseComplexity:
+def _get_complexity_from_expression(clause: str, expr: CbmcAst | None) -> ClauseComplexityResult:
     """Return the clause complexity calculated from the expression from the given clause.
 
     Args:
         clause (str): The clause from which the expression originates.
-        expr (CBMCAst | None): The expression from the clause.
+        expr (CbmcAst | None): The expression from the clause.
 
     Returns:
-        ClauseComplexity: The clause complexity calculated from the given expression.
+        ClauseComplexityResult: The clause complexity calculated from the given expression.
     """
     if not expr:
-        return ClauseComplexity(clause=clause, num_atoms=0, num_unique_atoms=0, is_tautology=False)
+        return ClauseComplexityResult(
+            clause=clause, num_atoms=0, num_unique_atoms=0, is_tautology=False
+        )
     atoms = get_atoms_in_expression(expr)
-    # Cannot use `set(atoms)` because the CBMCAst class is not hashable.
-    unique_atoms = [atom for i, atom in enumerate(atoms) if atom not in atoms[:i]]
-    return ClauseComplexity(
+    # Cannot use `set(atoms)` because the CbmcAst class is not hashable.
+    unique_atoms = []
+    for atom in atoms:
+        if atom not in unique_atoms:
+            unique_atoms.append(atom)
+    return ClauseComplexityResult(
         clause=clause,
         num_atoms=len(atoms),
         num_unique_atoms=len(unique_atoms),
@@ -104,35 +74,33 @@ def _get_complexity_from_expression(clause: str, expr: CBMCAst | None) -> Clause
     )
 
 
-def get_atoms_in_expression(expr: CBMCAst) -> list[CBMCAst]:
+def get_atoms_in_expression(expr: CbmcAst) -> list[CbmcAst]:
     """Return the atoms comprising the given expression.
 
     Atoms comprise boolean propositions without top-level logical operators.
 
     Args:
-        expr (CBMCAst): The expression from which to obtain atoms.
+        expr (CbmcAst): The expression from which to obtain atoms.
 
     Returns:
-        list[CBMCAst]: The atoms comprising the given expression.
+        list[CbmcAst]: The atoms comprising the given expression.
     """
-    result: list[CBMCAst] = []
     match expr:
         case AndOp(left=left, right=right) | OrOp(left=left, right=right):
-            result = [*result, *get_atoms_in_expression(left), *get_atoms_in_expression(right)]
+            return [*get_atoms_in_expression(left), *get_atoms_in_expression(right)]
         case NotOp(e):
-            result = [*result, *get_atoms_in_expression(e)]
+            return get_atoms_in_expression(e)
         case Quantifier(expr=body_expr):
-            result = [*result, *get_atoms_in_expression(body_expr)]
+            return get_atoms_in_expression(body_expr)
         case e:
-            result.append(e)
-    return result
+            return [e]
 
 
-def is_tautology(node: CBMCAst) -> bool:
+def is_tautology(node: CbmcAst) -> bool:
     """Return True if the given node is a tautology.
 
     Args:
-        node (CBMCAst): The node to check for a tautology.
+        node (CbmcAst): The node to check for a tautology.
 
     Returns:
         bool: True iff the node is a tautology.
@@ -152,14 +120,14 @@ def is_tautology(node: CBMCAst) -> bool:
             return False
 
 
-def _parse_to_ast(cbmc_str: str) -> CBMCAst:
+def _parse_to_ast(cbmc_str: str) -> CbmcAst:
     """Return a CBMC AST parsed from a string.
 
     Args:
         cbmc_str (str): The string from which to parse an AST.
 
     Returns:
-        CBMCAst: The AST parsed from the given string.
+        CbmcAst: The AST parsed from the given string.
     """
     try:
         return CBMC_PARSER.parse(cbmc_str)

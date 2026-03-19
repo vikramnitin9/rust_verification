@@ -1,15 +1,16 @@
 from .spec_complexity_util import (
     is_tautology,
     get_complexity,
-    ClauseComplexityInfo,
+    ClauseComplexityResult,
     ClauseComplexity,
     ClauseComplexityError,
     get_atoms_in_expression,
 )
+from .clause_complexity import ClauseComplexity, ClauseComplexityResult, ClauseComplexityError
 
 __all__ = [
-    "ClauseComplexityInfo",
     "ClauseComplexity",
+    "ClauseComplexityResult",
     "ClauseComplexityError",
     "get_complexity",
     "is_tautology",

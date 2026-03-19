@@ -17,7 +17,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from dataclasses import asdict, dataclass
 
-from eval import ClauseComplexityInfo, get_complexity
+from eval import ClauseComplexity, get_complexity
 from util import CFunction, FunctionSpecification, ParsecProject
 from verification import VerificationResult
 
@@ -48,17 +48,17 @@ class CacheLookupResult:
 
 @dataclass(frozen=True)
 class SpecWithComplexity:
-    """A specification paired with its clause complexity information.
+    """A specification paired with its clause complexity.
 
     Attributes:
         spec (FunctionSpecification): The specification.
-        precondition_complexity (list[ClauseComplexityInfo]): Complexity info for preconditions.
-        postcondition_complexity (list[ClauseComplexityInfo]): Complexity info for postconditions.
+        precondition_complexity (list[ClauseComplexity]): Clause complexity for preconditions.
+        postcondition_complexity (list[ClauseComplexity]): Clause complexity for postconditions.
     """
 
     spec: FunctionSpecification
-    precondition_complexity: list[ClauseComplexityInfo]
-    postcondition_complexity: list[ClauseComplexityInfo]
+    precondition_complexity: list[ClauseComplexity]
+    postcondition_complexity: list[ClauseComplexity]
 
 
 @dataclass(frozen=True)
@@ -215,16 +215,15 @@ def _get_result_json_name(input_file: str) -> Path:
 
 def _get_complexity_for_clauses(
     spec: FunctionSpecification,
-) -> tuple[list[ClauseComplexityInfo], list[ClauseComplexityInfo]]:
-    """Return the clause complexity info for each clause in the given specification.
+) -> tuple[list[ClauseComplexity], list[ClauseComplexity]]:
+    """Return the clause complexity for each clause in the given specification.
 
     Args:
-        spec (FunctionSpecification): The specification for which to generate clause complexity
-            info.
+        spec (FunctionSpecification): The specification for which to generate clause complexity.
 
     Returns:
-        tuple[list[ClauseComplexityInfo], list[ClauseComplexityInfo]]: The clause complexity info
-            for each clause in the given specification.
+        tuple[list[ClauseComplexity], list[ClauseComplexity]]: The clause complexity for each clause
+            in the given specification.
     """
     return (
         [get_complexity(clause) for clause in spec.preconditions],
