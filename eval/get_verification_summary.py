@@ -87,6 +87,7 @@ class VerificationSummary:
         vsummary_dict["lookup_errors"] = [str(e) for e in self.lookup_errors]
         return vsummary_dict
 
+
 def main() -> None:
     """Report verification runs for functions in a C file run through the Avocado verifier.
 
@@ -183,7 +184,7 @@ def _get_verification_summary(
     # Failing specs
     verifying_set = set(verifying_raw)
     failing_specs = [
-            SpecWithComplexity(spec, *_get_complexity_for_clauses(spec))
+        SpecWithComplexity(spec, *_get_complexity_for_clauses(spec))
         for vresult in vresults
         if (spec := vresult.get_spec()) and spec not in verifying_set
     ]
