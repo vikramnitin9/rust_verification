@@ -3,7 +3,7 @@ from translation.ast.cbmc_ast import (
     AndOp,
     Bool,
     BuiltinType,
-    CBMCAst,
+    CbmcAst,
     DivOp,
     EnsuresClause,
     EqOp,

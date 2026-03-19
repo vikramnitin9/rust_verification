@@ -1,13 +1,13 @@
 import pytest
 
-from translation import CBMCAst, CBMCToKani, Parser, ToAst
+from translation import CbmcAst, CbmcToKani, Parser, ToAst
 
-cbmc_parser: Parser[CBMCAst] = Parser(
+cbmc_parser: Parser[CbmcAst] = Parser(
     path_to_grammar_defn="translation/grammar/cbmc.txt",
     start="cbmc_clause",
     transformer=ToAst(),
 )
-translator = CBMCToKani(parser=cbmc_parser)
+translator = CbmcToKani(parser=cbmc_parser)
 
 
 def test_empty_specs() -> None:
