@@ -8,16 +8,12 @@ from translation.ast.cbmc_ast import (
     LtOp,
     Name,
     OrOp,
-    Bool,
-    NotOp,
-    GeOp,
     Number,
     AndOp,
     QuantifierDecl,
 )
 
 from eval import (
-    is_tautology,
     get_complexity,
     ClauseComplexity,
     ClauseComplexityError,
@@ -29,7 +25,7 @@ def test_get_complexity_simple() -> None:
     clause = "__CPROVER_requires(a < b || c && 1 + 2 == d)"
     complexity = get_complexity(clause)
     match complexity:
-        case ClauseComplexity(num_atoms=3, is_tautology=False):
+        case ClauseComplexity(clause=_, num_atoms=3, num_unique_atoms=3, is_tautology=False):
             pass
         case _:
             pytest.fail(
@@ -41,13 +37,12 @@ def test_get_complexity_tautology() -> None:
     clause = "__CPROVER_requires((a < b || c && 1 + 2 == d) || !(a < b || c && 1 + 2 == d))"
     complexity = get_complexity(clause)
     match complexity:
-        case ClauseComplexity(num_atoms=6, is_tautology=True):
+        case ClauseComplexity(clause=_, num_atoms=6, is_tautology=True):
             pass
         case _:
             pytest.fail(
                 f"'{clause}' should be reported to have 6 atoms and be a tautology, but got {complexity}"
             )
-
 
 def test_get_complexity_syntactically_invalid_spec() -> None:
     invalid_clause = "__CPROVER_assigns(out[i], out[i+1], out[i+2], ...)"
@@ -101,15 +96,3 @@ def test_count_atoms_quantifier_body() -> None:
         "The expression 'i < 10 || z && a > b + 1' comprises 3 atoms."
     )
 
-
-def test_is_tautology_simple() -> None:
-    simple_tautology = OrOp(Bool(True), NotOp(Bool(True)))
-    assert is_tautology(simple_tautology), f"Expected {simple_tautology} to be a tautology"
-
-    tautology = OrOp(NotOp(GeOp(Number(1), Number(-1))), GeOp(Number(1), Number(-1)))
-    assert is_tautology(tautology), f"Expected {tautology} to be a tautology"
-
-
-def test_is_tautology_distributive_law() -> None:
-    node = NotOp(AndOp(NotOp(Bool(True)), Bool(True)))
-    assert is_tautology(node), f"Expected {node} to be a tautology"

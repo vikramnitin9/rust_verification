@@ -1,5 +1,4 @@
 from .spec_complexity_util import (
-    is_tautology,
     get_complexity,
     ClauseComplexityResult,
     ClauseComplexity,
@@ -13,6 +12,5 @@ __all__ = [
     "ClauseComplexityResult",
     "ClauseComplexityError",
     "get_complexity",
-    "is_tautology",
     "get_atoms_in_expression",
 ]
