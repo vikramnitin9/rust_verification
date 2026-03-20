@@ -6,7 +6,7 @@ from translation.ast.cbmc_ast import (
     Assigns,
     AssignsTargetList,
     BuiltinType,
-    CBMCAst,
+    CbmcAst,
     DerefOp,
     EnsuresClause,
     EqOp,
@@ -28,7 +28,7 @@ from translation.ast.cbmc_ast import (
 )
 from translation.parser import Parser
 
-parser: Parser[CBMCAst] = Parser(
+parser: Parser[CbmcAst] = Parser(
     path_to_grammar_defn="translation/grammar/cbmc.txt",
     start="cbmc_clause",
     transformer=ToAst(),

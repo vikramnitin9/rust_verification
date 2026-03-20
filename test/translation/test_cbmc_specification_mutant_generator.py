@@ -3,7 +3,7 @@ from translation.ast.cbmc_ast import (
     AndOp,
     Bool,
     BuiltinType,
-    CBMCAst,
+    CbmcAst,
     DivOp,
     EnsuresClause,
     EqOp,
@@ -137,6 +137,5 @@ def test_get_mutants_forall() -> None:
         ForallExpr(decl=QuantifierDecl(typenode=BuiltinType(name='int'), name=Name(name='i')), range_expr=range_expr, expr=NeqOp(left=Name(name='i'), right=Number(value=0)), kind='forall'),
         ForallExpr(decl=QuantifierDecl(typenode=BuiltinType(name='int'), name=Name(name='i')), range_expr=range_expr, expr=NotOp(operand=EqOp(left=Name(name='i'), right=Number(value=0))), kind='forall'),
     } 
-    print(mutant_generator.get_mutants(forall_expr))
     assert mutant_generator.get_mutants(forall_expr) == expected_mutants
 
