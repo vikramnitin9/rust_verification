@@ -9,7 +9,7 @@ from loguru import logger
 from translation.ast.cbmc_ast import (
     BinOp,
     Bool,
-    CBMCAst,
+    CbmcAst,
     EnsuresClause,
     NotOp,
     Quantifier,
@@ -20,19 +20,19 @@ from translation.ast.cbmc_ast import (
 class CbmcSpecificationMutantGenerator:
     """Class to create mutants of CBMC AST nodes."""
 
-    def get_mutants(self, node: CBMCAst) -> set[CBMCAst]:
+    def get_mutants(self, node: CbmcAst) -> set[CbmcAst]:
         """Return all first-order mutants of the given AST node.
 
         Each mutant in the result has exactly one operator changed, with all other
         nodes left unchanged.
 
         Args:
-            node (CBMCAst): The AST node for which to create mutants.
+            node (CbmcAst): The AST node for which to create mutants.
 
         Returns:
-            set[CBMCAst]: All first-order mutants of the given AST node.
+            set[CbmcAst]: All first-order mutants of the given AST node.
         """
-        mutants: set[CBMCAst] = set()
+        mutants: set[CbmcAst] = set()
         match node:
             case NotOp(operand):
                 # Remove the negation.
@@ -95,7 +95,7 @@ class CbmcSpecificationMutantGenerator:
                 logger.debug(f"No mutant(s) generated for '{node}'")
         return mutants
 
-    def get_higher_order_mutant(self, node: CBMCAst) -> CBMCAst:
+    def get_higher_order_mutant(self, node: CbmcAst) -> CbmcAst:
         """Return a mutant of the given node by recursively applying multiple mutation operations.
 
         Note: I'm not sure how useful this function is, since it applies multiple mutation operators
@@ -103,10 +103,10 @@ class CbmcSpecificationMutantGenerator:
         in case it might be useful later.
 
         Args:
-            node (CBMCAst): The AST node for which to create a mutant.
+            node (CbmcAst): The AST node for which to create a mutant.
 
         Returns:
-            CBMCAst: The mutant of the given AST node.
+            CbmcAst: The mutant of the given AST node.
         """
         match node:
             # Handle special cases first, e.g., clauses, boolean literals, negations.

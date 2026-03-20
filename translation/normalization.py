@@ -34,11 +34,11 @@ class CBMCNormalizer:
         self._scopes: list[dict[str, str]] = []
         self._counter = 0
 
-    def normalize(self, node: cbmc_ast.CBMCAst) -> str:
+    def normalize(self, node: cbmc_ast.CbmcAst) -> str:
         """Return the normalized string representation of a CBMC AST.
 
         Args:
-            node (cbmc_ast.CBMCAst): A CBMC AST node.
+            node (cbmc_ast.CbmcAst): A CBMC AST node.
 
         Returns:
             str: The normalized string representation of the given CBMC AST node.
@@ -47,11 +47,11 @@ class CBMCNormalizer:
         self._counter = 0
         return self.visit(node)
 
-    def visit(self, node: cbmc_ast.CBMCAst) -> str:
+    def visit(self, node: cbmc_ast.CbmcAst) -> str:
         """Return the result of visiting (and applying normalization to) a CBMC AST node.
 
         Args:
-            node (cbmc_ast.CBMCAst): A CBMC AST node.
+            node (cbmc_ast.CbmcAst): A CBMC AST node.
 
         Returns:
             str: The normalized string representation of the given CBMC AST Node.
@@ -63,7 +63,7 @@ class CBMCNormalizer:
         visitor = getattr(self, method_name, self.generic_visit)
         return visitor(node)
 
-    def generic_visit(self, node: cbmc_ast.CBMCAst) -> str:
+    def generic_visit(self, node: cbmc_ast.CbmcAst) -> str:
         msg = f"Unimplemented visitor for {node.__class__.__name__}"
         raise NotImplementedError(msg)
 
@@ -233,7 +233,7 @@ class CBMCNormalizer:
 
 
 grammar_path = Path(__file__).parent / "grammar/cbmc.txt"
-_PARSER: Parser[cbmc_ast.CBMCAst] = Parser(
+_PARSER: Parser[cbmc_ast.CbmcAst] = Parser(
     path_to_grammar_defn=str(grammar_path),
     start="cbmc_clause",
     transformer=ToAst(),

@@ -1,7 +1,7 @@
 #!/opt/miniconda3/bin/python
-# ruff: noqa: E402, PERF203
+# ruff: noqa: E402
 
-"""Script to calculate metrics around functions verified by Avocado in a given C file."""
+"""Script to generate verification summaries for functions verified by Avocado in a given C file."""
 
 import argparse
 import json
@@ -17,16 +17,16 @@ if str(REPO_ROOT) not in sys.path:
 
 from dataclasses import asdict, dataclass
 
-from eval import ClauseComplexityInfo, get_complexity
+from eval import ClauseComplexity, get_complexity
 from util import CFunction, FunctionSpecification, ParsecProject
 from verification import VerificationResult
 
 
-class CacheLookupError(Exception):
-    """Represent a lookup error in the cache.
+class StaleCacheEntryError(Exception):
+    """Represent a stale cache entry in the cache.
 
-    This might happen when a lookup fetches a function that has a dangling pointer to a file that
-    no longer exists.
+    The cache maps CFunctions to their VerificationResults. A stale cache entry is a
+    VerificationResult whose CFunction field refers to a file that is no longer on disk.
     """
 
 
@@ -34,62 +34,95 @@ class CacheLookupError(Exception):
 class CacheLookupResult:
     """Represent the results of a cache lookup.
 
+    A CFunction is the key for a cache lookup result.
+
+    The `results` field comprises a VerificationResult for a function or a StaleCacheEntryError.
+
     Attributes:
-        results (list[VerificationResult | CacheLookupError]): The successfully-fetched
-            verification results, or lookup errors.
+        function (CFunction): The key for this cache lookup result.
+        results (list[VerificationResult | StaleCacheEntryError]): The successfully-fetched
+            verification results, or stale cache entry errors.
     """
 
-    results: list[VerificationResult | CacheLookupError]
+    function: CFunction
+    results: list[VerificationResult | StaleCacheEntryError]
 
 
 @dataclass(frozen=True)
 class SpecWithComplexity:
-    """A specification paired with its clause complexity information.
+    """A specification paired with its clause complexity.
 
     Attributes:
         spec (FunctionSpecification): The specification.
-        precondition_complexity (list[ClauseComplexityInfo]): Complexity info for preconditions.
-        postcondition_complexity (list[ClauseComplexityInfo]): Complexity info for postconditions.
+        precondition_complexity (list[ClauseComplexity]): Clause complexity for preconditions.
+        postcondition_complexity (list[ClauseComplexity]): Clause complexity for postconditions.
     """
 
     spec: FunctionSpecification
-    precondition_complexity: list[ClauseComplexityInfo]
-    postcondition_complexity: list[ClauseComplexityInfo]
+    precondition_complexity: list[ClauseComplexity]
+    postcondition_complexity: list[ClauseComplexity]
 
 
 @dataclass(frozen=True)
 class VerificationSummary:
     """Summary of verification results for a function.
 
+    Unlike a VerificationResult (see verification/verification_result.py), a VerificationSummary
+    contains less information about each individual verifier run (e.g., it does not have a full
+    CFunction field, nor does it have the source code that was verified). It encapsulates
+    information about the entire set of specifications that were generated for a function in the
+    form of SpecWithComplexity objects.
+
     Attributes:
         function_name (str): The name of the function.
         verifying_specs (list[SpecWithComplexity]): The list of verifying specs with complexity.
         failing_specs (list[SpecWithComplexity]): The list of failing specs with complexity.
-        lookup_errors (list[CacheLookupError]): The list of cache lookup errors.
+        stale_cache_entries (list[StaleCacheEntryError]): The list of stale cache entry errors.
     """
 
     function_name: str
     verifying_specs: list[SpecWithComplexity]
     failing_specs: list[SpecWithComplexity]
-    lookup_errors: list[CacheLookupError]
+    stale_cache_entries: list[StaleCacheEntryError]
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return the dictionary representation of this verification summary.
+
+        Returns:
+            dict[str, Any]: The dictionary representation of this verification summary.
+        """
+        vsummary_dict = asdict(self)
+        vsummary_dict["stale_cache_entries"] = [
+            str(stale_entry) for stale_entry in self.stale_cache_entries
+        ]
+        return vsummary_dict
 
 
 def main() -> None:
-    """Script to calculate metrics for functions run through the Avocado verifier.
+    """Generate verification summaries for functions in a C file run through the Avocado verifier.
 
-    This script reports the verification summary for each function in the file.
-    It aids in the automation of the analysis of verifier runs.
+    Run: ./eval/get_verification_summary.py -h for usage information.
 
-    Implementation detail:  Avocado caches the result of verification runs (i.e., the result of
-    invoking CBMC on the specs it generates) in a cache file.
+    This script generates verification summaries for each function in the file as entries in a JSON
+
+    See eval/README.md for a detailed description of result of this script.
+
+    Implementation detail: Avocado caches the result of verification runs (i.e., the result of
+    invoking CBMC on the specs it generates) in a global cache file (see `main.py#VERIFIER_CACHE),
+    the path to which must be provided in invoking this script.
     """
     parser = argparse.ArgumentParser(
         description=(
-            "Calculate metrics for functions run through the Avocado verifier in a given C file."
+            "Generate verification summaries for functions run through the Avocado verifier in a C"
+            " file."
         )
     )
     parser.add_argument(
-        "--file", type=str, required=True, help="Path to the .c file for which to report metrics."
+        "--file",
+        type=str,
+        required=True,
+        help="Path to the C file containing the functions for"
+        " which to generate verification summaries.",
     )
     parser.add_argument(
         "--path-to-cache-dir",
@@ -98,8 +131,13 @@ def main() -> None:
         help="Path to the directory holding the cache file used by Avocado's verifier.",
     )
     args = parser.parse_args()
+    path_to_cache_dir = args.path_to_cache_dir
 
-    verifier_cache = Cache(args.path_to_cache_dir)
+    if not Path(path_to_cache_dir).exists():
+        msg = f"'{path_to_cache_dir}' does not exist"
+        raise ValueError(msg)
+
+    verifier_cache = Cache(path_to_cache_dir)
     parsec_project_for_file = ParsecProject(Path(args.file))
     function_to_lookup_results: dict[CFunction, CacheLookupResult] = {}
     for f in parsec_project_for_file.get_functions_in_topological_order():
@@ -110,8 +148,7 @@ def main() -> None:
     verification_summary_for_file["functions"] = []
     for function, lookup_result in function_to_lookup_results.items():
         vsummary = _get_verification_summary(function, lookup_result)
-        serialized_vsummary = _serialize_vsummary(vsummary)
-        verification_summary_for_file["functions"].append(serialized_vsummary)
+        verification_summary_for_file["functions"].append(vsummary.to_dict())
 
     with _get_result_json_name(args.file).open(mode="w") as f:
         json.dump(verification_summary_for_file, f, indent=4)
@@ -119,6 +156,8 @@ def main() -> None:
 
 def _get_lookup_result(cache: Cache, function: CFunction) -> CacheLookupResult:
     """Return the verification cache lookup result for the given function.
+
+    The function is the key for the lookup result.
 
     Args:
         cache (Cache): The cache from which to look up verification results.
@@ -129,14 +168,30 @@ def _get_lookup_result(cache: Cache, function: CFunction) -> CacheLookupResult:
     """
     results = []
     for vinput in cache.iterkeys():
+        # DiskCache does not offer a function to iterate over cache entries (e.g., .values() or
+        # .items()) because it aims to support concurrent reads/writes, so this explicit item lookup
+        # via keys is necessary.
+        vresult = None
         try:
-            if (vresult := cache[vinput]) and vresult.get_function() == function:
+            vresult = cache[vinput]
+            if vresult and vresult.get_function() == function:
                 results.append(vresult)
-        except Exception as e:
-            results.append(CacheLookupError(e))
+        except Exception as err:
+            vresult_function = None if not vresult else vresult.get_function()
+            # This block is executed when a `vresult`'s `file_name` field refers to a file that
+            # no longer exists on disk. The comparison below does not check for the contents of the
+            # file, but instead uses the file name as a fuzzy check for equality.
+            # Otherwise, a VerificationSummary may contain stale cache entries for unrelated
+            # functions.
+            if (
+                vresult_function
+                and vresult_function.name == function.name
+                and vresult_function.file_name == function.file_name
+            ):
+                results.append(StaleCacheEntryError(err))
             continue
 
-    return CacheLookupResult(results)
+    return CacheLookupResult(function, results)
 
 
 def _get_verification_summary(
@@ -149,68 +204,55 @@ def _get_verification_summary(
         lookup_result (CacheLookupResult): The verifier cache lookup result.
 
     Returns:
-        VerificationSummary: The verification summary.
+        VerificationSummary: The verification summary for the function.
     """
-    # All vresults.
-    vresults = [
-        result for result in lookup_result.results if isinstance(result, VerificationResult)
-    ]
-
-    # Verifying specs
-    verifying_raw = [vresult.get_spec() for vresult in vresults if vresult.succeeded]
-    verifying_specs = [
-        SpecWithComplexity(spec, *_get_complexity_for_clauses(spec)) for spec in verifying_raw
-    ]
-
-    # Failing specs
-    verifying_set = set(verifying_raw)
-    failing_specs = [
-        SpecWithComplexity(spec, *_get_complexity_for_clauses(spec))
-        for vresult in vresults
-        if (spec := vresult.get_spec()) and spec not in verifying_set
-    ]
-
-    # Lookup errors
-    lookup_errors = [
-        result for result in lookup_result.results if isinstance(result, CacheLookupError)
-    ]
-
+    verifying_specs = []
+    failing_specs = []
+    lookup_errors = []
+    for result in lookup_result.results:
+        if isinstance(result, VerificationResult):
+            spec_with_complexity = SpecWithComplexity(
+                result.get_spec(), *_get_complexity_for_clauses(result.get_spec())
+            )
+            if result.succeeded:
+                verifying_specs.append(spec_with_complexity)
+            else:
+                failing_specs.append(spec_with_complexity)
+        else:
+            lookup_errors.append(result)
     return VerificationSummary(function.name, verifying_specs, failing_specs, lookup_errors)
 
 
-def _serialize_vsummary(verification_summary: VerificationSummary) -> dict[str, Any]:
-    """Return the JSON-serializable version of a verification summary.
-
-    Args:
-        verification_summary (VerificationSummary): The verification summary.
-
-    Returns:
-        dict[str, Any]: The JSON-serializable version of a verification summary.
-    """
-    vsummary_dict = asdict(verification_summary)
-    vsummary_dict["lookup_errors"] = [str(e) for e in verification_summary.lookup_errors]
-    return vsummary_dict
-
-
-def _get_result_json_name(input_file: str) -> Path:
-    """Return the path to the output JSON given an input file.
+def _get_result_json_name(c_file: str) -> Path:
+    """Return the path to the output JSON given a C file.
 
     For a file, e.g., 'foo/bar/baz.c', return the path to its JSON result file, i.e.,
     'foo/bar/baz-verification-summary.json'
 
+    See eval/README.md for a detailed description of the schema of the JSON file.
+
     Args:
-        input_file (str): The input file for which to generate a JSON file.
+        c_file (str): The C file for which to generate a JSON file.
 
     Returns:
         Path: The path to the JSON file to be generated.
     """
-    path_to_input = Path(input_file)
+    path_to_input = Path(c_file)
     return path_to_input.parent / f"{path_to_input.stem}-verification-summary.json"
 
 
 def _get_complexity_for_clauses(
     spec: FunctionSpecification,
-) -> tuple[list[ClauseComplexityInfo], list[ClauseComplexityInfo]]:
+) -> tuple[list[ClauseComplexity], list[ClauseComplexity]]:
+    """Return the clause complexity for each clause in the given specification.
+
+    Args:
+        spec (FunctionSpecification): The specification for which to generate clause complexity.
+
+    Returns:
+        tuple[list[ClauseComplexity], list[ClauseComplexity]]: The clause complexity for each clause
+            in the given specification.
+    """
     return (
         [get_complexity(clause) for clause in spec.preconditions],
         [get_complexity(clause) for clause in spec.postconditions],
