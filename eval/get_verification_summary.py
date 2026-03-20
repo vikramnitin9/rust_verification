@@ -131,8 +131,13 @@ def main() -> None:
         help="Path to the directory holding the cache file used by Avocado's verifier.",
     )
     args = parser.parse_args()
+    path_to_cache_dir = args.path_to_cache_dir
 
-    verifier_cache = Cache(args.path_to_cache_dir)
+    if not Path(path_to_cache_dir).exists():
+        msg = f"'{path_to_cache_dir}' does not exist"
+        raise ValueError(msg)
+
+    verifier_cache = Cache(path_to_cache_dir)
     parsec_project_for_file = ParsecProject(Path(args.file))
     function_to_lookup_results: dict[CFunction, CacheLookupResult] = {}
     for f in parsec_project_for_file.get_functions_in_topological_order():
