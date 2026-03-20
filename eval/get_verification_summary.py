@@ -22,11 +22,11 @@ from util import CFunction, FunctionSpecification, ParsecProject
 from verification import VerificationResult
 
 
-class CacheLookupError(Exception):
-    """Represent a lookup error in the cache.
+class StaleCacheEntryError(Exception):
+    """Represent a stale cache entry in the cache.
 
-    This might happen when a lookup fetches a CFunction whose `file_name` field refers to a file
-    that no longer exists.
+    The cache maps CFunctions to their VerificationResults. A stale cache entry is a
+    VerificationResult whose CFunction field refers to a file that is no longer on disk.
     """
 
 
@@ -36,14 +36,16 @@ class CacheLookupResult:
 
     A CFunction is the key for a cache lookup result.
 
+    The `results` field comprises a VerificationResult for a function or a StaleCacheEntryError.
+
     Attributes:
         function (CFunction): The key for this cache lookup result.
-        results (list[VerificationResult | CacheLookupError]): The successfully-fetched
-            verification results, or lookup errors.
+        results (list[VerificationResult | StaleCacheEntryError]): The successfully-fetched
+            verification results, or stale cache entry errors.
     """
 
     function: CFunction
-    results: list[VerificationResult | CacheLookupError]
+    results: list[VerificationResult | StaleCacheEntryError]
 
 
 @dataclass(frozen=True)
@@ -75,13 +77,13 @@ class VerificationSummary:
         function_name (str): The name of the function.
         verifying_specs (list[SpecWithComplexity]): The list of verifying specs with complexity.
         failing_specs (list[SpecWithComplexity]): The list of failing specs with complexity.
-        lookup_errors (list[CacheLookupError]): The list of cache lookup errors.
+        stale_cache_entries (list[StaleCacheEntryError]): The list of stale cache entry errors.
     """
 
     function_name: str
     verifying_specs: list[SpecWithComplexity]
     failing_specs: list[SpecWithComplexity]
-    lookup_errors: list[CacheLookupError]
+    stale_cache_entries: list[StaleCacheEntryError]
 
     def to_dict(self) -> dict[str, Any]:
         """Return the dictionary representation of this verification summary.
@@ -90,7 +92,9 @@ class VerificationSummary:
             dict[str, Any]: The dictionary representation of this verification summary.
         """
         vsummary_dict = asdict(self)
-        vsummary_dict["lookup_errors"] = [str(lookup_err) for lookup_err in self.lookup_errors]
+        vsummary_dict["stale_cache_entries"] = [
+            str(stale_entry) for stale_entry in self.stale_cache_entries
+        ]
         return vsummary_dict
 
 
@@ -104,8 +108,8 @@ def main() -> None:
     See eval/README.md for a detailed description of result of this script.
 
     Implementation detail: Avocado caches the result of verification runs (i.e., the result of
-    invoking CBMC on the specs it generates) in global cache file, the path to which must be
-    provided in invoking this script.
+    invoking CBMC on the specs it generates) in a global cache file (see `main.py#VERIFIER_CACHE),
+    the path to which must be provided in invoking this script.
     """
     parser = argparse.ArgumentParser(
         description=(
@@ -168,7 +172,7 @@ def _get_lookup_result(cache: Cache, function: CFunction) -> CacheLookupResult:
         except Exception as err:
             # A lookup error might occur if a comparison is made for functions in a vresult where
             # the original file is no longer on disk.
-            results.append(CacheLookupError(err))
+            results.append(StaleCacheEntryError(err))
             continue
 
     return CacheLookupResult(function, results)
