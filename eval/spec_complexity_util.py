@@ -1,4 +1,4 @@
-"""Class to aid in calculating the complexity of function specifications."""
+"""Class to aid in calculating the size of function specifications."""
 
 from lark.exceptions import UnexpectedToken, VisitError
 
@@ -22,7 +22,7 @@ CBMC_PARSER: Parser[CbmcAst] = Parser(
 
 
 def get_complexity(clause: str) -> ClauseComplexity:
-    """Return the clause complexity info for a given CBMC clause.
+    """Return the clause complexity for a given CBMC clause.
 
     Args:
         clause (str): A requires, ensures, or assigns clause for which to compute complexity
@@ -33,12 +33,16 @@ def get_complexity(clause: str) -> ClauseComplexity:
     """
     try:
         ast = _parse_to_ast(clause)
-    except ValueError as e:
-        return ClauseComplexityError(clause=clause, error=str(e))
+    except ValueError as ve:
+        return ClauseComplexityError(clause=clause, error=str(ve))
 
     match ast:
-        case RequiresClause(_, e) | EnsuresClause(_, e) | Assigns(condition=e, targets=_):
-            return _get_complexity_from_expression(clause, e)
+        case (
+            RequiresClause(_, expr_ast)
+            | EnsuresClause(_, expr_ast)
+            | Assigns(condition=expr_ast, targets=_)
+        ):
+            return _get_complexity_from_expression(clause, expr_ast)
         case _:
             return ClauseComplexityError(
                 clause=clause,

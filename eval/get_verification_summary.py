@@ -1,7 +1,7 @@
 #!/opt/miniconda3/bin/python
 # ruff: noqa: E402, PERF203
 
-"""Script to calculate metrics around functions verified by Avocado in a given C file."""
+"""Script to generate verification summaries for functions verified by Avocado in a given C file."""
 
 import argparse
 import json
@@ -65,6 +65,12 @@ class SpecWithComplexity:
 class VerificationSummary:
     """Summary of verification results for a function.
 
+    Unlike a VerificationResult (see verification/verification_result.py), a VerificationSummary
+    contains less information about each individual verifier run (e.g., it does not have a full
+    CFunction field, nor does it have the source code that was verified). It encapsulates
+    information about the entire set of specifications that were generated for a function in the
+    form of SpecWithComplexity objects.
+
     Attributes:
         function_name (str): The name of the function.
         verifying_specs (list[SpecWithComplexity]): The list of verifying specs with complexity.
@@ -84,27 +90,35 @@ class VerificationSummary:
             dict[str, Any]: The dictionary representation of this verification summary.
         """
         vsummary_dict = asdict(self)
-        vsummary_dict["lookup_errors"] = [str(e) for e in self.lookup_errors]
+        vsummary_dict["lookup_errors"] = [str(lookup_err) for lookup_err in self.lookup_errors]
         return vsummary_dict
 
 
 def main() -> None:
-    """Report verification runs for functions in a C file run through the Avocado verifier.
+    """Generate verification summaries for functions in a C file run through the Avocado verifier.
 
-    This script reports the verification summary for each function in the file as entries in a JSON
-    It aids in the automation of the analysis of verifier runs.
+    Run: ./eval/get_verification_summary.py -h for usage information.
 
-    See eval/README.md for a description of this script's result.
+    This script generates verification summaries for each function in the file as entries in a JSON
+
+    See eval/README.md for a detailed description of result of this script.
 
     Implementation detail: Avocado caches the result of verification runs (i.e., the result of
     invoking CBMC on the specs it generates) in global cache file, the path to which must be
     provided in invoking this script.
     """
     parser = argparse.ArgumentParser(
-        description=("Calculate for functions run through the Avocado verifier in a given C file.")
+        description=(
+            "Generate verification summaries for functions run through the Avocado verifier in a C"
+            " file."
+        )
     )
     parser.add_argument(
-        "--file", type=str, required=True, help="Path to the .c file for which to report metrics."
+        "--file",
+        type=str,
+        required=True,
+        help="Path to the C file containing the functions for"
+        " which to generate verification summaries.",
     )
     parser.add_argument(
         "--path-to-cache-dir",
@@ -134,6 +148,8 @@ def main() -> None:
 def _get_lookup_result(cache: Cache, function: CFunction) -> CacheLookupResult:
     """Return the verification cache lookup result for the given function.
 
+    The function is the key for the lookup result.
+
     Args:
         cache (Cache): The cache from which to look up verification results.
         function (CFunction): The function for which to look up verification results.
@@ -149,10 +165,10 @@ def _get_lookup_result(cache: Cache, function: CFunction) -> CacheLookupResult:
         try:
             if (vresult := cache[vinput]) and vresult.get_function() == function:
                 results.append(vresult)
-        except Exception as e:
+        except Exception as err:
             # A lookup error might occur if a comparison is made for functions in a vresult where
             # the original file is no longer on disk.
-            results.append(CacheLookupError(e))
+            results.append(CacheLookupError(err))
             continue
 
     return CacheLookupResult(function, results)
@@ -168,48 +184,40 @@ def _get_verification_summary(
         lookup_result (CacheLookupResult): The verifier cache lookup result.
 
     Returns:
-        VerificationSummary: The verification summary.
+        VerificationSummary: The verification summary for the function.
     """
-    # All vresults.
-    vresults = [
-        result for result in lookup_result.results if isinstance(result, VerificationResult)
-    ]
-
-    # Verifying specs
-    verifying_raw = [vresult.get_spec() for vresult in vresults if vresult.succeeded]
-    verifying_specs = [
-        SpecWithComplexity(spec, *_get_complexity_for_clauses(spec)) for spec in verifying_raw
-    ]
-
-    # Failing specs
-    verifying_set = set(verifying_raw)
-    failing_specs = [
-        SpecWithComplexity(spec, *_get_complexity_for_clauses(spec))
-        for vresult in vresults
-        if (spec := vresult.get_spec()) and spec not in verifying_set
-    ]
-
-    # Lookup errors
-    lookup_errors = [
-        result for result in lookup_result.results if isinstance(result, CacheLookupError)
-    ]
-
+    verifying_specs = []
+    failing_specs = []
+    lookup_errors = []
+    for result in lookup_result.results:
+        if isinstance(result, VerificationResult):
+            spec_with_complexity = SpecWithComplexity(
+                result.get_spec(), *_get_complexity_for_clauses(result.get_spec())
+            )
+            if result.succeeded:
+                verifying_specs.append(spec_with_complexity)
+            else:
+                failing_specs.append(spec_with_complexity)
+        else:
+            lookup_errors.append(result)
     return VerificationSummary(function.name, verifying_specs, failing_specs, lookup_errors)
 
 
-def _get_result_json_name(input_file: str) -> Path:
+def _get_result_json_name(c_file: str) -> Path:
     """Return the path to the output JSON given a C file.
 
     For a file, e.g., 'foo/bar/baz.c', return the path to its JSON result file, i.e.,
     'foo/bar/baz-verification-summary.json'
 
+    See eval/README.md for a detailed description of the schema of the JSON file.
+
     Args:
-        input_file (str): The C file for which to generate a JSON file.
+        c_file (str): The C file for which to generate a JSON file.
 
     Returns:
         Path: The path to the JSON file to be generated.
     """
-    path_to_input = Path(input_file)
+    path_to_input = Path(c_file)
     return path_to_input.parent / f"{path_to_input.stem}-verification-summary.json"
 
 
