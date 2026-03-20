@@ -1,7 +1,9 @@
 """Utility for performing mutation testing on C functions."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
+from types import MappingProxyType
 
 import tree_sitter_c as tsc
 from tree_sitter import Language, Node, Parser
@@ -96,29 +98,35 @@ class CMutator:
     """
 
     # Maps each arithmetic operator to its candidate replacements.
-    _AOR_REPLACEMENTS: dict[str, list[str]] = {
-        "+": ["-", "*"],
-        "-": ["+", "*"],
-        "*": ["/", "+"],
-        "/": ["*", "+"],
-        "%": ["+", "*"],
-    }
+    _AOR_REPLACEMENTS: Mapping[str, list[str]] = MappingProxyType(
+        {
+            "+": ["-", "*"],
+            "-": ["+", "*"],
+            "*": ["/", "+"],
+            "/": ["*", "+"],
+            "%": ["+", "*"],
+        }
+    )
 
     # Maps each relational operator to its candidate replacements.
-    _ROR_REPLACEMENTS: dict[str, list[str]] = {
-        "<": ["<=", ">", ">=", "==", "!="],
-        "<=": ["<", ">", ">=", "==", "!="],
-        ">": ["<", "<=", ">=", "==", "!="],
-        ">=": ["<", "<=", ">", "==", "!="],
-        "==": ["!=", "<", ">"],
-        "!=": ["=="],
-    }
+    _ROR_REPLACEMENTS: Mapping[str, list[str]] = MappingProxyType(
+        {
+            "<": ["<=", ">", ">=", "==", "!="],
+            "<=": ["<", ">", ">=", "==", "!="],
+            ">": ["<", "<=", ">=", "==", "!="],
+            ">=": ["<", "<=", ">", "==", "!="],
+            "==": ["!=", "<", ">"],
+            "!=": ["=="],
+        }
+    )
 
     # Maps each logical connector to its candidate replacements.
-    _LCR_REPLACEMENTS: dict[str, list[str]] = {
-        "&&": ["||"],
-        "||": ["&&"],
-    }
+    _LCR_REPLACEMENTS: Mapping[str, list[str]] = MappingProxyType(
+        {
+            "&&": ["||"],
+            "||": ["&&"],
+        }
+    )
 
     def __init__(self, c_function: CFunction) -> None:
         """Create a new ``CMutator``.
@@ -133,11 +141,7 @@ class CMutator:
         self._c_function = c_function
         self._parser: Parser = Parser(_C_LANGUAGE)
 
-        source = (
-            c_function.source_code
-            if c_function.source_code
-            else c_function.get_original_source_code()
-        )
+        source = c_function.source_code or c_function.get_original_source_code()
         self._source_code: str = source
         self._source_bytes: bytes = source.encode("utf-8")
         self._tree = self._parser.parse(self._source_bytes)
@@ -331,7 +335,7 @@ class CMutator:
     def _apply_binary_operator_replacements(
         self,
         operator: MutationOperator,
-        replacement_map: dict[str, list[str]],
+        replacement_map: Mapping[str, list[str]],
     ) -> list[Mutant]:
         """Generate operator-replacement mutants for all matching binary expressions.
 
