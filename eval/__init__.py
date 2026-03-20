@@ -5,7 +5,6 @@ from .spec_complexity_util import (
     ClauseComplexityError,
     get_atoms_in_expression,
 )
-from .clause_complexity import ClauseComplexity, ClauseComplexityResult, ClauseComplexityError
 
 __all__ = [
     "ClauseComplexity",
