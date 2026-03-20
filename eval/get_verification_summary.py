@@ -84,7 +84,9 @@ def main() -> None:
     invoking CBMC on the specs it generates) in a cache file.
     """
     parser = argparse.ArgumentParser(
-        description=("Calculate for functions run through the Avocado verifier in a given C file.")
+        description=(
+            "Calculate metrics for functions run through the Avocado verifier in a given C file."
+        )
     )
     parser.add_argument(
         "--file", type=str, required=True, help="Path to the .c file for which to report metrics."
