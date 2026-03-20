@@ -1,5 +1,5 @@
 #!/opt/miniconda3/bin/python
-# ruff: noqa: E402, PERF203
+# ruff: noqa: E402
 
 """Script to generate verification summaries for functions verified by Avocado in a given C file."""
 
@@ -171,13 +171,24 @@ def _get_lookup_result(cache: Cache, function: CFunction) -> CacheLookupResult:
         # DiskCache does not offer a function to iterate over cache entries (e.g., .values() or
         # .items()) because it aims to support concurrent reads/writes, so this explicit item lookup
         # via keys is necessary.
+        vresult = None
         try:
-            if (vresult := cache[vinput]) and vresult.get_function() == function:
+            vresult = cache[vinput]
+            if vresult and vresult.get_function() == function:
                 results.append(vresult)
         except Exception as err:
-            # A lookup error might occur if a comparison is made for functions in a vresult where
-            # the original file is no longer on disk.
-            results.append(StaleCacheEntryError(err))
+            vresult_function = None if not vresult else vresult.get_function()
+            # This block is executed when a `vresult`'s `file_name` field refers to a file that
+            # no longer exists on disk. The comparison below does not check for the contents of the
+            # file, but instead uses the file name as a fuzzy check for equality.
+            # Otherwise, a VerificationSummary may contain stale cache entries for unrelated
+            # functions.
+            if (
+                vresult_function
+                and vresult_function.name == function.name
+                and vresult_function.file_name == function.file_name
+            ):
+                results.append(StaleCacheEntryError(err))
             continue
 
     return CacheLookupResult(function, results)
