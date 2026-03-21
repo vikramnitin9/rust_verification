@@ -29,6 +29,10 @@ class StaleCacheEntryError(Exception):
     VerificationResult whose CFunction field refers to a file that is no longer on disk.
     """
 
+    def __init__(self, cause: Exception) -> None:
+        """Construct a new StaleCacheEntryError."""
+        super().__init__(f"Stale cache entry: {cause}")
+
 
 @dataclass(frozen=True)
 class CacheLookupResult:
@@ -92,7 +96,9 @@ class VerificationSummary:
             dict[str, Any]: The dictionary representation of this verification summary.
         """
         vsummary_dict = asdict(self)
-        vsummary_dict["stale_cache_entries"] = [
+        # Remove the `stale_cache_entries` field, which is not JSON-serializable.
+        del vsummary_dict["stale_cache_entries"]
+        vsummary_dict["lookup_errors"] = [
             str(stale_entry) for stale_entry in self.stale_cache_entries
         ]
         return vsummary_dict
@@ -177,16 +183,16 @@ def _get_lookup_result(cache: Cache, function: CFunction) -> CacheLookupResult:
             if vresult and vresult.get_function() == function:
                 results.append(vresult)
         except Exception as err:
-            vresult_function = None if not vresult else vresult.get_function()
+            function_from_vinput = vinput.function
             # This block is executed when a `vresult`'s `file_name` field refers to a file that
             # no longer exists on disk. The comparison below does not check for the contents of the
             # file, but instead uses the file name as a fuzzy check for equality.
             # Otherwise, a VerificationSummary may contain stale cache entries for unrelated
             # functions.
             if (
-                vresult_function
-                and vresult_function.name == function.name
-                and vresult_function.file_name == function.file_name
+                function_from_vinput
+                and function_from_vinput.name == function.name
+                and function_from_vinput.file_name == function.file_name
             ):
                 results.append(StaleCacheEntryError(err))
             continue
