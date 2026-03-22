@@ -3,7 +3,7 @@
 from lark.tree import Meta
 
 from translation.ast.cbmc_ast import (
-    CBMCAst,
+    CbmcAst,
     EnsuresClause,
     IndexOp,
     Name,
@@ -65,11 +65,11 @@ class InferNonNullPreconditionsFromEnsures(SpecificationTransformation):
             )
         ]
 
-    def _get_non_null_check_expr(self, ast: CBMCAst) -> NeqOp | None:
+    def _get_non_null_check_expr(self, ast: CbmcAst) -> NeqOp | None:
         """Return a non-null check expression in an ensures clause, if found.
 
         Args:
-            ast (CBMCAst): The AST in which to search for a non-null check expression.
+            ast (CbmcAst): The AST in which to search for a non-null check expression.
 
         Returns:
             NeqOp | None: The non-null check expression, if found.
@@ -84,16 +84,16 @@ class InferNonNullPreconditionsFromEnsures(SpecificationTransformation):
             case _:
                 return None
 
-    def _get_non_null_check_subexpressions(self, expr: CBMCAst) -> list[CBMCAst]:
+    def _get_non_null_check_subexpressions(self, expr: CbmcAst) -> list[CbmcAst]:
         """Return the subexpressions from the left-hand side of a non-null check.
 
         Note: This function assumes the non-null check is of the form `LHS != NULL`.
 
         Args:
-            expr (CBMCAst): The left-hand side of a non-null check.
+            expr (CbmcAst): The left-hand side of a non-null check.
 
         Returns:
-            list[CBMCAst]: The subexpressions from the left-hand side of a non-null check.
+            list[CbmcAst]: The subexpressions from the left-hand side of a non-null check.
         """
         result = []
         match expr:

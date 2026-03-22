@@ -3,7 +3,7 @@
 from translation.ast.cbmc_ast import (
     AndOp,
     Assigns,
-    CBMCAst,
+    CbmcAst,
     EnsuresClause,
     OrOp,
     RequiresClause,
@@ -42,7 +42,7 @@ class MovePreconditionsToAssignsAndEnsures(SpecificationTransformation):
             return [specification]
 
         # Extract the inner expressions from each RequiresClause.
-        precondition_exprs: list[CBMCAst] = [
+        precondition_exprs: list[CbmcAst] = [
             clause.expr for clause in precondition_asts if isinstance(clause, RequiresClause)
         ]
 
@@ -54,7 +54,7 @@ class MovePreconditionsToAssignsAndEnsures(SpecificationTransformation):
         for post_ast in postcondition_asts:
             if isinstance(post_ast, EnsuresClause):
                 # Build disjunction: !pre1 || !pre2 || ... || ensures_expr
-                result: CBMCAst = precondition_exprs[0].negate()
+                result: CbmcAst = precondition_exprs[0].negate()
                 for pre_expr in precondition_exprs[1:]:
                     result = OrOp(left=result, right=pre_expr.negate())
                 result = OrOp(left=result, right=post_ast.expr)
@@ -63,7 +63,7 @@ class MovePreconditionsToAssignsAndEnsures(SpecificationTransformation):
                 )
             elif isinstance(post_ast, Assigns):
                 # Add conjunction of all precondition expressions as a condition.
-                condition: CBMCAst = precondition_exprs[0]
+                condition: CbmcAst = precondition_exprs[0]
                 for pre_expr in precondition_exprs[1:]:
                     condition = AndOp(left=condition, right=pre_expr)
                 # If there's already a condition, AND it with the preconditions.

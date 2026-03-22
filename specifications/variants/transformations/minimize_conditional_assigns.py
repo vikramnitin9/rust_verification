@@ -1,6 +1,6 @@
 """Transformation where the condition in an assigns clause is minimized."""
 
-from translation.ast.cbmc_ast import Assigns, CBMCAst, LogicalBinOp
+from translation.ast.cbmc_ast import Assigns, CbmcAst, LogicalBinOp
 from util import FunctionSpecification
 
 from .specification_transformation import SpecificationTransformation
@@ -75,7 +75,7 @@ class MinimizeConditionalAssigns(SpecificationTransformation):
 
         return transformed_specs
 
-    def _get_operand_prefixes(self, logical_binop: LogicalBinOp) -> list[CBMCAst]:
+    def _get_operand_prefixes(self, logical_binop: LogicalBinOp) -> list[CbmcAst]:
         """Return the strict prefixes of the given logical binary operation.
 
         E.g., Given `a || b || c || d`, return `a`, `a || b`, `a || b || c`.
@@ -84,12 +84,12 @@ class MinimizeConditionalAssigns(SpecificationTransformation):
             logical_binop (LogicalBinOp): The logical binary operation for which to return prefixes.
 
         Returns:
-            list[CBMCAst]: The strict prefixes of the logical binary operation.
+            list[CbmcAst]: The strict prefixes of the logical binary operation.
         """
         operands = logical_binop.get_operand_atoms()
         if len(operands) <= 1:
             return []
-        variants: list[CBMCAst] = []
+        variants: list[CbmcAst] = []
         for i in range(1, len(operands)):
             prefix = operands[:i]
             variants.append(logical_binop.apply(prefix))
