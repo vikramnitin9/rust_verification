@@ -11,7 +11,7 @@ from loguru import logger
 from util import file_util, text_util
 from verification.verification_result import VerificationResult
 
-from .avocado_stub_util import AVOCADO_STUB_DIR
+from .avocado_stub_util import AvocadoIdentifierRenamer, RenameResult
 from .verification_client import VerificationClient
 from .verification_input import VerificationInput
 
@@ -22,9 +22,14 @@ class CbmcVerificationClient(VerificationClient):
     Attributes:
         _cache (Cache | None): A cache of verification results mapped to verification inputs. The
             keys for this cache are `VerificationInput` and the values are `VerificationResult`.
+        _avocado_identifier_renamer (AvocadoIdentifierRenamer): Used to rename ANSI-C library
+            function identifiers in C source code to their Avocado identifiers.
+            See `avocado_stub_util.py` for details.
+
     """
 
     _cache: Cache | None
+    _avocado_identifier_renamer: AvocadoIdentifierRenamer
 
     # These headers should be inserted into each file that is input to the verifier;
     # generated specs often use constants from these headers (e.g., INT_MAX) assuming they already
@@ -40,6 +45,7 @@ class CbmcVerificationClient(VerificationClient):
     ) -> None:
         """Create a new CbmcVerificationClient."""
         self._cache = cache
+        self._avocado_identifier_renamer = AvocadoIdentifierRenamer()
 
     def verify(self, vinput: VerificationInput) -> VerificationResult:
         """Return the result of verifying the given verification input.
@@ -70,16 +76,23 @@ class CbmcVerificationClient(VerificationClient):
         with tempfile.NamedTemporaryFile(
             mode="w+t", prefix=vinput.function.name, suffix=".c"
         ) as tmp_f:
-            tmp_f.write(vinput.contents_of_file_to_verify)
+            rename_result = (
+                self._avocado_identifier_renamer.rename_ansi_identifiers_to_avocado_identifiers(
+                    vinput.contents_of_file_to_verify
+                )
+            )
+            tmp_f.write(rename_result.src_after_renaming)
             tmp_f.flush()
             file = Path(tmp_f.name)
-            default_header_include_lines = [
-                f"#include <{header}>"
-                for header in CbmcVerificationClient.DEFAULT_HEADERS_FOR_VERIFICATION
-            ]
-            file_util.ensure_lines_at_beginning(default_header_include_lines, file)
+            headers_for_verification = rename_result.get_headers_for_renamed_functions().union(
+                CbmcVerificationClient.DEFAULT_HEADERS_FOR_VERIFICATION
+            )
+            include_header_lines = [f"#include <{header}>" for header in headers_for_verification]
+            file_util.ensure_lines_at_beginning(include_header_lines, file)
             try:
-                vcommand = self._get_cbmc_verification_command(vinput, path_to_file_to_verify=file)
+                vcommand = self._get_cbmc_verification_command(
+                    vinput, rename_result, path_to_file_to_verify=file
+                )
                 logger.debug(f"Running command: {vcommand}")
                 result = subprocess.run(vcommand, capture_output=True, text=True, shell=True)
                 # Normalize the temp file path in CBMC output so that LLM cache keys
@@ -104,12 +117,14 @@ class CbmcVerificationClient(VerificationClient):
     def _get_cbmc_verification_command(
         self,
         verification_input: VerificationInput,
+        rename_result: RenameResult,
         path_to_file_to_verify: Path,
     ) -> str:
         """Return the command used to verify a function in a file with CBMC.
 
         Args:
             verification_input (VerificationInput): The verification input.
+            rename_result (RenameResult): The rename result.
             path_to_file_to_verify (Path): The path to the file to verify.
 
         Returns:
@@ -128,14 +143,16 @@ class CbmcVerificationClient(VerificationClient):
                 ]
             )
         )
-        header_names = verification_input.get_headers()
-        avocado_headers = [f"{AVOCADO_STUB_DIR}/{header_name}" for header_name in header_names]
-        header_args = " ".join(avocado_headers)
+        path_to_avocado_stub_files = " ".join(
+            rename_result.get_stub_file_paths(
+                default_headers=list(CbmcVerificationClient.DEFAULT_HEADERS_FOR_VERIFICATION)
+            )
+        )
         return " && ".join(
             [
                 (
                     f"goto-cc -o {function_name}.goto "
-                    f"{header_args} "
+                    f"{path_to_avocado_stub_files} "
                     f"{path_to_file_to_verify} "
                     f"--function {function_name}"
                 ),
@@ -145,7 +162,11 @@ class CbmcVerificationClient(VerificationClient):
                 ),
                 (
                     f"goto-instrument "
-                    f"{replace_call_with_contract_args} "
+                    f"{
+                        ' ' + replace_call_with_contract_args
+                        if replace_call_with_contract_args
+                        else ''
+                    } "
                     f"--enforce-contract {function_name} "
                     f"{function_name}.goto checking-{function_name}-contracts.goto"
                 ),
