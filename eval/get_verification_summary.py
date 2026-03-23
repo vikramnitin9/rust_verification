@@ -15,10 +15,11 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from collections import defaultdict
 from dataclasses import asdict, dataclass
 
 from eval import ClauseComplexity, get_complexity
-from util import CFunction, FunctionSpecification, ParsecProject
+from util import CFunction, FunctionSpecification, get_destination_path
 from verification import VerificationResult
 
 
@@ -144,10 +145,10 @@ def main() -> None:
         raise ValueError(msg)
 
     verifier_cache = Cache(path_to_cache_dir)
-    parsec_project_for_file = ParsecProject(Path(args.file))
-    function_to_lookup_results: dict[CFunction, CacheLookupResult] = {}
-    for f in parsec_project_for_file.get_functions_in_topological_order():
-        function_to_lookup_results[f] = _get_lookup_result(verifier_cache, f)
+    path_to_file_with_specs = get_destination_path(Path(args.file), "/app/specs")
+    function_to_lookup_results: dict[CFunction, CacheLookupResult] = (
+        _get_cached_results_for_functions_in_file(verifier_cache, path_to_file_with_specs)
+    )
 
     verification_summary_for_file = {}
     verification_summary_for_file["file_name"] = args.file
@@ -160,44 +161,29 @@ def main() -> None:
         json.dump(verification_summary_for_file, f, indent=4)
 
 
-def _get_lookup_result(cache: Cache, function: CFunction) -> CacheLookupResult:
-    """Return the verification cache lookup result for the given function.
-
-    The function is the key for the lookup result.
-
-    Args:
-        cache (Cache): The cache from which to look up verification results.
-        function (CFunction): The function for which to look up verification results.
-
-    Returns:
-        CacheLookupResult: The verification cache lookup result for the given function.
-    """
-    results = []
+def _get_cached_results_for_functions_in_file(
+    cache: Cache, path_to_file: Path
+) -> dict[CFunction, CacheLookupResult]:
+    function_to_vresults_or_lookup_errors = defaultdict(list)
     for vinput in cache.iterkeys():
         # DiskCache does not offer a function to iterate over cache entries (e.g., .values() or
         # .items()) because it aims to support concurrent reads/writes, so this explicit item lookup
         # via keys is necessary.
-        vresult = None
-        try:
-            vresult = cache[vinput]
-            if vresult and vresult.get_function() == function:
-                results.append(vresult)
-        except Exception as err:
-            function_from_vinput = vinput.function
-            # This block is executed when a `vresult`'s `file_name` field refers to a file that
-            # no longer exists on disk. The comparison below does not check for the contents of the
-            # file, but instead uses the file name as a fuzzy check for equality.
-            # Otherwise, a VerificationSummary may contain stale cache entries for unrelated
-            # functions.
-            if (
-                function_from_vinput
-                and function_from_vinput.name == function.name
-                and function_from_vinput.file_name == function.file_name
-            ):
-                results.append(StaleCacheEntryError(err))
-            continue
-
-    return CacheLookupResult(function, results)
+        vresult = cache[vinput]
+        if not vresult or not Path(vresult.get_function().file_name).exists():
+            msg = (
+                f"Stale cache entry for '{vinput.function.name}' in file "
+                "'{vresult.get_function().file_name}'"
+            )
+            function_to_vresults_or_lookup_errors[vinput.function].append(
+                StaleCacheEntryError(Exception(msg))
+            )
+        elif Path(vresult.get_function().file_name) == path_to_file:
+            function_to_vresults_or_lookup_errors[vinput.function].append(vresult)
+    return {
+        function: CacheLookupResult(function, results)
+        for function, results in function_to_vresults_or_lookup_errors.items()
+    }
 
 
 def _get_verification_summary(
