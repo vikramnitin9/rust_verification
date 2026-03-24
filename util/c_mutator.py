@@ -28,6 +28,23 @@ class MutationOperator(StrEnum):
     - LCR: Logical Connector Replacement
     - CRP: Constant Replacement (integer literals)
     - RVR: Return Value Replacement
+
+    Supported mutation operators:
+
+    +---------+----------------------------------+---------------------------------------------+
+    | AOR     | Arithmetic Operator Replacement  | replaces ``+``, ``-``, ``*``, ``/``, ``%``  |
+    +---------+----------------------------------+---------------------------------------------+
+    | ROR     | Relational Operator Replacement  | replaces ``<``, ``<=``, ``>``, ``>=``,      |
+    |         |                                  | ``==``, ``!=``                              |
+    +---------+----------------------------------+---------------------------------------------+
+    | LCR     | Logical Connector Replacement    | replaces ``&&`` and ``||``                  |
+    +---------+----------------------------------+---------------------------------------------+
+    | CRP     | Constant Replacement             | replaces integer literals with ``0``,       |
+    |         |                                  | ``literal + 1``, and ``literal - 1``        |
+    +---------+----------------------------------+---------------------------------------------+
+    | RVR     | Return Value Replacement         | replaces ``return`` expressions with ``0``  |
+    +---------+----------------------------------+---------------------------------------------+
+
     """
 
     AOR = "AOR"
@@ -50,7 +67,7 @@ class Mutant:
         description: A human-readable description of the applied mutation.
         line: The 1-indexed line number (within the function source) where the
             mutation was applied.
-        original: The original text that was replaced.
+        original: The text of the expression that was replaced.
         replacement: The text that replaced the original.
     """
 
@@ -68,23 +85,6 @@ class CMutator:
     Uses tree-sitter to parse the C source and systematically applies mutation
     operators to produce mutated versions of the function.  Each mutant differs
     from the original by exactly one syntactic change.
-
-    Supported mutation operators:
-
-    +---------+----------------------------------+---------------------------------------------+
-    | AOR     | Arithmetic Operator Replacement  | replaces ``+``, ``-``, ``*``, ``/``, ``%`` |
-    +---------+----------------------------------+---------------------------------------------+
-    | ROR     | Relational Operator Replacement  | replaces ``<``, ``<=``, ``>``, ``>=``,      |
-    |         |                                  | ``==``, ``!=``                              |
-    +---------+----------------------------------+---------------------------------------------+
-    | LCR     | Logical Connector Replacement    | replaces ``&&`` and ``||``                  |
-    +---------+----------------------------------+---------------------------------------------+
-    | CRP     | Constant Replacement             | replaces integer literals with ``0``,       |
-    |         |                                  | ``literal + 1``, and ``literal - 1``        |
-    +---------+----------------------------------+---------------------------------------------+
-    | RVR     | Return Value Replacement         | replaces the expression in every            |
-    |         |                                  | ``return`` statement with ``0``             |
-    +---------+----------------------------------+---------------------------------------------+
 
     Example::
 
@@ -228,7 +228,7 @@ class CMutator:
     def _apply_lcr(self) -> list[Mutant]:
         """Apply Logical Connector Replacement (LCR) mutations.
 
-        Replaces ``&&`` with ``||`` and vice-versa.
+        Replaces ``&&`` with ``||`` and vice versa.
 
         Returns:
             list[Mutant]: All LCR mutants.
@@ -375,7 +375,7 @@ class CMutator:
     # ------------------------------------------------------------------ #
 
     def _collect_nodes_by_type(self, node: Node, node_type: str) -> list[Node]:
-        """Recursively collect all descendant nodes (including *node*) of a given type.
+        """Recursively collect all descendant nodes (including `node` itself) of a given type.
 
         Args:
             node: The root of the sub-tree to search.
@@ -412,7 +412,7 @@ class CMutator:
         return None
 
     def _node_text(self, node: Node) -> str:
-        """Return the original source text covered by *node*.
+        """Return the original source text covered by `node`.
 
         Args:
             node: The tree-sitter node whose text to retrieve.
@@ -423,7 +423,7 @@ class CMutator:
         return self._source_bytes[node.start_byte : node.end_byte].decode("utf-8")
 
     def _replace_node(self, node: Node, replacement: str) -> str:
-        """Return a new source string with *node*'s text replaced by *replacement*.
+        """Return a new source string with `node`'s text replaced by `replacement`.
 
         Args:
             node: The tree-sitter node to replace.
