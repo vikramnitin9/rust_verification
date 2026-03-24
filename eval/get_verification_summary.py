@@ -24,7 +24,7 @@ from verification import VerificationResult
 
 
 class StaleCacheEntryError(Exception):
-    """Represent a stale cache entry in the cache.
+    """A stale cache entry in the cache.
 
     The verifier cache is a map from VerifierInput(s) to VerificationResult(s). This class
     represents two possible error cases:
@@ -41,16 +41,12 @@ class StaleCacheEntryError(Exception):
 
 @dataclass(frozen=True)
 class CacheLookupResult:
-    """Represent the results of a cache lookup.
-
-    A CFunction is the key for a cache lookup result.
-
-    The `results` field comprises a VerificationResult for a function or a StaleCacheEntryError.
+    """The results of a cache lookup.
 
     Attributes:
         function (CFunction): The key for this cache lookup result.
         results (list[VerificationResult | StaleCacheEntryError]): The successfully-fetched
-            verification results, or stale cache entry errors.
+            verification results and/or stale cache entry errors.
     """
 
     function: CFunction
@@ -63,8 +59,8 @@ class SpecWithComplexity:
 
     Attributes:
         spec (FunctionSpecification): The specification.
-        precondition_complexity (list[ClauseComplexity]): Clause complexity for preconditions.
-        postcondition_complexity (list[ClauseComplexity]): Clause complexity for postconditions.
+        precondition_complexity (list[ClauseComplexity]): Clause complexities for preconditions.
+        postcondition_complexity (list[ClauseComplexity]): Clause complexities for postconditions.
     """
 
     spec: FunctionSpecification
@@ -114,7 +110,7 @@ class VerificationSummary:
             dict[str, Any]: The dictionary representation of this verification summary.
         """
         vsummary_dict = asdict(self)
-        # Remove the `stale_cache_entries` field, which is not JSON-serializable.
+        # Convert the `stale_cache_entries` field, which is not JSON-serializable, into strings.
         del vsummary_dict["stale_cache_entries"]
         vsummary_dict["lookup_errors"] = [
             str(stale_entry) for stale_entry in self.stale_cache_entries
@@ -125,7 +121,7 @@ class VerificationSummary:
 def main() -> None:
     """Generate verification summaries for functions in a C file run through the Avocado verifier.
 
-    Run: ./eval/get_verification_summary.py -h for usage information.
+    For usage information, run: ./eval/get_verification_summary.py -h
 
     This script generates verification summaries for each function in the file as entries in a JSON
 
@@ -133,7 +129,7 @@ def main() -> None:
 
     Implementation detail: Avocado caches the result of verification runs (i.e., the result of
     invoking CBMC on the specs it generates) in a global cache file (see `main.py#VERIFIER_CACHE),
-    the path to which must be provided in invoking this script.
+    the path to which must be provided when invoking this script.
     """
     parser = argparse.ArgumentParser(
         description=(
@@ -262,7 +258,7 @@ def _get_verification_summary(
 
     Args:
         function (CFunction): The function for which to summarize a verifier cache lookup result.
-        lookup_result (CacheLookupResult): The verifier cache lookup result.
+        lookup_result (CacheLookupResult): The verifier cache lookup result for `function`.
 
     Returns:
         VerificationSummary: The verification summary for the function.

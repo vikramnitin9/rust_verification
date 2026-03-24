@@ -82,7 +82,7 @@ def _get_complexity_from_expression(clause: str, expr: CbmcAst | None) -> Clause
 def get_atoms_in_expression(expr: CbmcAst) -> list[CbmcAst]:
     """Return the atoms comprising the given expression.
 
-    Atoms comprise boolean propositions without top-level logical operators.
+    An atom is a boolean proposition without top-level logical operators.
 
     Args:
         expr (CbmcAst): The expression from which to obtain atoms.
@@ -218,14 +218,16 @@ def _simplify_disjunction(or_op: OrOp) -> CbmcAst:
 
 
 def _are_complements(lhs: CbmcAst, rhs: CbmcAst) -> bool:
-    """Return True iff lhs and rhs are boolean complements (lhs == !rhs or !lhs == rhs).
+    """Return True iff lhs and rhs are boolean complements.
+
+    The test is syntactic.  This function returns true if lhs == !rhs or !lhs == rhs.
 
     Arguments:
-        lhs (CbmcAst): The left-hand side of a logical expression.
-        rhs (CbmcAst): The right-hand side of a logical expression.
+        lhs (CbmcAst): A logical expression.
+        rhs (CbmcAst): A logical expression.
 
     Returns:
-        bool: True iff the lhs and rhs are boolean complements.
+        bool: True iff `lhs` and `rhs` are boolean complements.
     """
     return lhs == NotOp(rhs) or NotOp(lhs) == rhs
 

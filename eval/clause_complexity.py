@@ -17,7 +17,7 @@ class ClauseComplexityResult(ClauseComplexity):
     Attributes:
         num_atoms (int): The number of atoms in a clause.
         num_unique_atoms (int): The number of unique atoms in a clause.
-        is_tautology (bool): True iff this clause is definitely a tautology.
+        is_tautology (bool): True if this clause is definitely a tautology.
     """
 
     num_atoms: int
@@ -27,6 +27,6 @@ class ClauseComplexityResult(ClauseComplexity):
 
 @dataclass(frozen=True)
 class ClauseComplexityError(ClauseComplexity):
-    """Represent a clause that failed to parse."""
+    """A clause that failed to parse."""
 
     error: str
