@@ -1,4 +1,4 @@
-#!/opt/miniconda3/bin/python
+#!/usr/bin/env python3
 
 """Main entry point for specification generation and verification."""
 

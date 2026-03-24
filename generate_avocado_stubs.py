@@ -1,4 +1,4 @@
-#!/opt/miniconda3/bin/python
+#!/usr/bin/env python3
 
 """Generate stub files for libraries defined by the ANSI-C standard, modified for use w/Avocado."""
 
