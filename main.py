@@ -282,14 +282,16 @@ def _verify_program(
         logger.error(msg)
         sys.exit(1)
 
-    functions_without_specs = functions
     if skip_verified_cached_functions:
+        functions_without_specs: list[CFunction] = []
         for function in functions:
             if cached_spec := _get_verified_and_cached_specification(function):
                 function.set_specifications(cached_spec)
                 logger.debug(f"Setting verified cached specification for '{function.name}'")
             else:
                 functions_without_specs.append(function)
+    else:
+        functions_without_specs = functions
 
     if not functions_without_specs:
         # There are specs in the cache for all the functions.
