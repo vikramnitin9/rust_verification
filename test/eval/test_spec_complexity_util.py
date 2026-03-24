@@ -44,6 +44,7 @@ def test_get_complexity_tautology() -> None:
                 f"'{clause}' should be reported to have 6 atoms and be a tautology, but got {complexity}"
             )
 
+
 def test_get_complexity_syntactically_invalid_spec() -> None:
     invalid_clause = "__CPROVER_assigns(out[i], out[i+1], out[i+2], ...)"
     complexity = get_complexity(invalid_clause)
@@ -53,14 +54,21 @@ def test_get_complexity_syntactically_invalid_spec() -> None:
         case ClauseComplexity():
             pytest.fail(f"{invalid_clause} is invalid, and should not have a complexity reported")
 
+
 def test_get_complexity_assigns_empty_condition() -> None:
-    invalid_clause = "__CPROVER_assigns(*out)"
-    complexity = get_complexity(invalid_clause)
+    unconditional_assigns_clause = "__CPROVER_assigns(*out)"
+    complexity = get_complexity(unconditional_assigns_clause)
     match complexity:
-        case ClauseComplexity():
+        case ClauseComplexity(
+            clause=unconditional_assigns_clause, num_atoms=0, num_unique_atoms=0, is_tautology=False
+        ):
             pass
         case ClauseComplexityError():
-            pytest.fail(f"{invalid_clause} is invalid, and should not have a complexity reported")
+            pytest.fail(
+                f"An unconditional clause '{unconditional_assigns_clause}' is valid and an "
+                "error should not be reported"
+            )
+
 
 def test_count_atoms_in_expr_singleton() -> None:
     expr = LtOp(Name("a"), Name("b"))
@@ -103,4 +111,3 @@ def test_count_atoms_quantifier_body() -> None:
     assert len(get_atoms_in_expression(forall_expr)) == 3, (
         "The expression 'i < 10 || z && a > b + 1' comprises 3 atoms."
     )
-

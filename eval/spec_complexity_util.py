@@ -63,6 +63,9 @@ def _get_complexity_from_expression(clause: str, expr: CbmcAst | None) -> Clause
         ClauseComplexityResult: The clause complexity calculated from the given expression.
     """
     if not expr:
+        # This can occur for a `__CPROVER_assigns` clause that has no condition.
+        # It doesn't make sense in this case to calculate a clause complexity, so an empty one is
+        # returned.
         return ClauseComplexityResult(
             clause=clause, num_atoms=0, num_unique_atoms=0, is_tautology=False
         )
