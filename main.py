@@ -282,21 +282,21 @@ def _verify_program(
         logger.error(msg)
         sys.exit(1)
 
-    functions_to_verify = []
+    functions_without_specs = functions
     if skip_verified_cached_functions:
         for function in functions:
             if cached_spec := _get_verified_and_cached_specification(function):
                 function.set_specifications(cached_spec)
                 logger.debug(f"Setting verified cached specification for '{function.name}'")
             else:
-                functions_to_verify.append(function)
+                functions_without_specs.append(function)
 
-    if not functions_to_verify:
+    if not functions_without_specs:
         # There are specs in the cache for all the functions.
         # How should we re-construct ProofStates from the cache?
         sys.exit(0)
 
-    initial_proof_state = ProofState.from_functions(functions=functions_to_verify)
+    initial_proof_state = ProofState.from_functions(functions=functions_without_specs)
     GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)
     # This is the global worklist.
     GLOBAL_INCOMPLETE_PROOFSTATES.append(initial_proof_state)
