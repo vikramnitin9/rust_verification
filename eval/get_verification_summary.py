@@ -178,7 +178,7 @@ def main() -> None:
     # through Avocado.
     verification_summary_for_file["functions"] = [
         *verification_summary_for_file["functions"],
-        [
+        *[
             VerificationSummary.empty(name).to_dict()
             for name in _get_names_of_unprocessed_functions(args.file, function_to_lookup_results)
         ],
