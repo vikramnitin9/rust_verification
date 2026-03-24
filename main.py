@@ -31,6 +31,7 @@ from util import (
     function_util,
     run_with_timeout,
 )
+from util.function_specification import FunctionSpecification
 from verification import (
     CbmcVerificationClient,
     ProofState,
@@ -281,15 +282,21 @@ def _verify_program(
         logger.error(msg)
         sys.exit(1)
 
+    functions_to_verify = []
     if skip_verified_cached_functions:
-        functions = [f for f in functions if not _is_verified_and_cached(f)]
+        for function in functions:
+            if cached_spec := _get_verified_and_cached_specification(function):
+                function.set_specifications(cached_spec)
+                logger.debug(f"Setting verified cached specification for '{function.name}'")
+            else:
+                functions_to_verify.append(function)
 
-    if not functions:
+    if not functions_to_verify:
         # There are specs in the cache for all the functions.
         # How should we re-construct ProofStates from the cache?
         sys.exit(0)
 
-    initial_proof_state = ProofState.from_functions(functions=functions)
+    initial_proof_state = ProofState.from_functions(functions=functions_to_verify)
     GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)
     # This is the global worklist.
     GLOBAL_INCOMPLETE_PROOFSTATES.append(initial_proof_state)
@@ -545,15 +552,15 @@ def _get_result_file(function: CFunction) -> Path:
     return result_file_dir / path_to_original_file.name
 
 
-def _is_verified_and_cached(function: CFunction) -> bool:
-    """Return True iff the function has a verified and cached specification.
+def _get_verified_and_cached_specification(function: CFunction) -> FunctionSpecification | None:
+    """Return a verified specification for a function from the verifier cache, if present.
 
     Args:
-        function (CFunction): The function for which to check for a verified and cached
-            specification.
+        function (CFunction): The function whose cached verified specification is requested.
 
     Returns:
-        bool: True iff the function has a verified and cached specification.
+        FunctionSpecification | None: The cached verified specification for function if one exists
+            in the cache, otherwise None.
     """
     if VERIFIER_CACHE is not None:
         for vinput in VERIFIER_CACHE.iterkeys():
@@ -561,8 +568,8 @@ def _is_verified_and_cached(function: CFunction) -> bool:
             # and reading from the cache repeatedly.
             vresult = VERIFIER_CACHE[vinput]
             if vresult.succeeded and vresult.get_function() == function:
-                return True
-    return False
+                return vresult.get_spec()
+    return None
 
 
 if __name__ == "__main__":
