@@ -6,7 +6,7 @@ from typing import Any
 from lark.exceptions import UnexpectedToken, VisitError
 from loguru import logger
 
-from translation import CBMCAst, Parser, cbmc_ast
+from translation import CbmcAst, Parser, cbmc_ast
 
 RUST_KEYWORDS: set[str] = set()
 with pathlib.Path("translation/specifications/rust_keywords.txt").open(encoding="utf-8") as f:
@@ -20,17 +20,17 @@ class TranslationError(Exception):
     """Represents an error in translating CBMC to Kani specifications."""
 
 
-class CBMCToKani:
+class CbmcToKani:
     """Translator from CBMC to Kani specifications.
 
     Attributes:
-        parser (Parser[CBMCAst]): Parser for CBMC specifications.
+        parser (Parser[CbmcAst]): Parser for CBMC specifications.
     """
 
-    parser: Parser[CBMCAst]
+    parser: Parser[CbmcAst]
 
-    def __init__(self, parser: Parser[CBMCAst]):
-        """Create a new CBMCToKani."""
+    def __init__(self, parser: Parser[CbmcAst]):
+        """Create a new CbmcToKani."""
         self.parser = parser
 
     def translate(self, cbmc_specs: list[str]) -> list[str]:
@@ -66,11 +66,11 @@ class CBMCToKani:
 
         return kani_specs
 
-    def _to_kani_str(self, spec: CBMCAst) -> str:
+    def _to_kani_str(self, spec: CbmcAst) -> str:
         """Return a Kani specification (as a string) that maps to the given CBMC specification.
 
         Args:
-            spec (CBMCAst): The CBMC specification to convert to a a Kani specification.
+            spec (CbmcAst): The CBMC specification to convert to a a Kani specification.
 
         Raises:
             TranslationError: Raised when translation from CBMC to Kani fails (or is unsupported).
