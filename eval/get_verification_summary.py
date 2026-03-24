@@ -19,15 +19,19 @@ from collections import defaultdict
 from dataclasses import asdict, dataclass
 
 from eval import ClauseComplexity, get_complexity
-from util import CFunction, FunctionSpecification, get_destination_path
+from util import CFunction, FunctionSpecification, ParsecProject, get_destination_path
 from verification import VerificationResult
 
 
 class StaleCacheEntryError(Exception):
     """Represent a stale cache entry in the cache.
 
-    The cache maps CFunctions to their VerificationResults. A stale cache entry is a
-    VerificationResult whose CFunction field refers to a file that is no longer on disk.
+    The verifier cache is a map from VerifierInput(s) to VerificationResult(s). This class
+    represents two possible error cases:
+
+        1. A cache entry is expired (i.e., an input no longer maps to a result).
+        2. An entry comprises a VerificationResult that has a CFunction whose file_name field refers
+           to a file that is no longer on disk.
     """
 
     def __init__(self, cause: Exception) -> None:
@@ -89,6 +93,19 @@ class VerificationSummary:
     verifying_specs: list[SpecWithComplexity]
     failing_specs: list[SpecWithComplexity]
     stale_cache_entries: list[StaleCacheEntryError]
+
+    @classmethod
+    def empty(cls, function_name: str) -> "VerificationSummary":
+        """Construct an empty verification summary.
+
+        Args:
+            function_name (str): The name of the function for which to construct an empty
+                verification summary.
+
+        Returns:
+            VerificationSummary: An empty verification summary.
+        """
+        return cls(function_name, verifying_specs=[], failing_specs=[], stale_cache_entries=[])
 
     def to_dict(self) -> dict[str, Any]:
         """Return the dictionary representation of this verification summary.
@@ -157,6 +174,16 @@ def main() -> None:
         vsummary = _get_verification_summary(function, lookup_result)
         verification_summary_for_file["functions"].append(vsummary.to_dict())
 
+    # Populate the result with empty verification summaries for functions that have yet to be run
+    # through Avocado.
+    verification_summary_for_file["functions"] = [
+        *verification_summary_for_file["functions"],
+        [
+            VerificationSummary.empty(name).to_dict()
+            for name in _get_names_of_missing_functions(args.file, function_to_lookup_results)
+        ],
+    ]
+
     with _get_result_json_name(args.file).open(mode="w") as f:
         json.dump(verification_summary_for_file, f, indent=4)
 
@@ -164,16 +191,36 @@ def main() -> None:
 def _get_cached_results_for_functions_in_file(
     cache: Cache, path_to_file: Path
 ) -> dict[CFunction, CacheLookupResult]:
+    """Return cache lookup results for functions associated with a specific file.
+
+    This helper groups cache entries by function and keeps only entries whose
+    VerificationResult points to path_to_file. It also records stale/expired cache
+    entries as StaleCacheEntryError objects so callers can surface lookup errors
+    in summaries.
+
+    Args:
+        cache (Cache): Verifier cache that maps verification inputs to results.
+        path_to_file (Path): File path used to filter verification results.
+
+    Returns:
+        dict[CFunction, CacheLookupResult]: Mapping from function to its lookup
+            results (verification results and/or stale cache entry errors).
+    """
     function_to_vresults_or_lookup_errors = defaultdict(list)
     for vinput in cache.iterkeys():
         # DiskCache does not offer a function to iterate over cache entries (e.g., .values() or
         # .items()) because it aims to support concurrent reads/writes, so this explicit item lookup
         # via keys is necessary.
         vresult = cache[vinput]
-        if not vresult or not Path(vresult.get_function().file_name).exists():
+        if not vresult:
+            msg = f"Expired cache entry for '{vinput.function.name}'"
+            function_to_vresults_or_lookup_errors[vinput.function].append(
+                StaleCacheEntryError(Exception(msg))
+            )
+        elif not Path(vresult.get_function().file_name).exists():
             msg = (
-                f"Stale cache entry for '{vinput.function.name}' in file "
-                "'{vresult.get_function().file_name}'"
+                f"Stale cache entry for '{vresult.get_function().name}' in deleted file "
+                f"'{vresult.get_function().file_name}'"
             )
             function_to_vresults_or_lookup_errors[vinput.function].append(
                 StaleCacheEntryError(Exception(msg))
@@ -184,6 +231,28 @@ def _get_cached_results_for_functions_in_file(
         function: CacheLookupResult(function, results)
         for function, results in function_to_vresults_or_lookup_errors.items()
     }
+
+
+def _get_names_of_missing_functions(
+    c_file: str, function_to_lookup_results: dict[CFunction, CacheLookupResult]
+) -> set[str]:
+    """Return the names of functions for which the cache did not contain a verifier result.
+
+    A function does not have a verifier result (which either says a function has been successfully
+    verified, or failed to verify) if it has not yet been run through Avocado.
+
+    Args:
+        c_file (str): The C file from which to get function names.
+        function_to_lookup_results (dict[CFunction, CacheLookupResult]): The cache lookup results.
+
+    Returns:
+        set[str]: _description_
+    """
+    all_functions_in_file = {
+        f.name for f in ParsecProject.get_functions_defined_in_file(Path(c_file))
+    }
+    functions_with_lookup_results = {f.name for f, _ in function_to_lookup_results.items()}
+    return all_functions_in_file.difference(functions_with_lookup_results)
 
 
 def _get_verification_summary(
