@@ -1,4 +1,4 @@
-#!/opt/miniconda3/bin/python
+#!/usr/bin/env python3
 # ruff: noqa: E402
 
 """Script to generate verification summaries for functions verified by Avocado in a given C file."""
@@ -70,7 +70,10 @@ class SpecWithComplexity:
 
 @dataclass(frozen=True)
 class VerificationSummary:
-    """Summary of verification results for a function.
+    """Immutable summary of verification results for a function.
+
+    This class is used as a lightweight representation of verification results (without much of the
+    data that is present in a VerificationResult) that can be used to generate tables and figures.
 
     Unlike a VerificationResult (see verification/verification_result.py), a VerificationSummary
     contains less information about each individual verifier run (e.g., it does not have a full
@@ -92,7 +95,7 @@ class VerificationSummary:
 
     @classmethod
     def empty(cls, function_name: str) -> "VerificationSummary":
-        """Construct an empty verification summary.
+        """Construct an empty immutable verification summary.
 
         Args:
             function_name (str): The name of the function for which to construct an empty
@@ -124,6 +127,7 @@ def main() -> None:
     For usage information, run: ./eval/get_verification_summary.py -h
 
     This script generates verification summaries for each function in the file as entries in a JSON
+    object.
 
     See eval/README.md for a detailed description of result of this script.
 
@@ -176,7 +180,7 @@ def main() -> None:
         *verification_summary_for_file["functions"],
         [
             VerificationSummary.empty(name).to_dict()
-            for name in _get_names_of_missing_functions(args.file, function_to_lookup_results)
+            for name in _get_names_of_unprocessed_functions(args.file, function_to_lookup_results)
         ],
     ]
 
@@ -229,20 +233,20 @@ def _get_cached_results_for_functions_in_file(
     }
 
 
-def _get_names_of_missing_functions(
+def _get_names_of_unprocessed_functions(
     c_file: str, function_to_lookup_results: dict[CFunction, CacheLookupResult]
 ) -> set[str]:
     """Return the names of functions for which the cache did not contain a verifier result.
 
     A function does not have a verifier result (which either says a function has been successfully
-    verified, or failed to verify) if it has not yet been run through Avocado.
+    verified, or failed to verify) if it has not yet been processed via Avocado.
 
     Args:
         c_file (str): The C file from which to get function names.
         function_to_lookup_results (dict[CFunction, CacheLookupResult]): The cache lookup results.
 
     Returns:
-        set[str]: _description_
+        set[str]: The names of unprocessed functions.
     """
     all_functions_in_file = {
         f.name for f in ParsecProject.get_functions_defined_in_file(Path(c_file))

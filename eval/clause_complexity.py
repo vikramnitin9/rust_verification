@@ -5,7 +5,11 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class ClauseComplexity:
-    """Base class for representing clause complexity."""
+    """Base class for representing clause complexity.
+
+    Attributes:
+        clause (str): The clause whose complexity to represent.
+    """
 
     clause: str
 
@@ -27,6 +31,10 @@ class ClauseComplexityResult(ClauseComplexity):
 
 @dataclass(frozen=True)
 class ClauseComplexityError(ClauseComplexity):
-    """A clause that failed to parse."""
+    """A clause that failed to parse.
+
+    Attributes:
+        error (str): The error message.
+    """
 
     error: str
