@@ -73,7 +73,8 @@ class FunctionImplementationGenerator:
             }
 
         Where <BODY> comprises the body of the C function (i.e., everything between the braces,
-        exclusive. See `prompts/generate-implementation-prompt-template.txt` for additional details.
+        exclusive). See `prompts/generate-implementation-prompt-template.txt` for additional
+        details.
 
         Args:
             llm_response (str): A raw LLM response string.
