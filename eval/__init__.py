@@ -1,3 +1,4 @@
+from .impl_regenerator import ImplementationRegenerator
 from .spec_complexity_util import (
     get_complexity,
     ClauseComplexityResult,
@@ -12,4 +13,5 @@ __all__ = [
     "ClauseComplexityError",
     "get_complexity",
     "get_atoms_in_expression",
+    "ImplementationRegenerator",
 ]

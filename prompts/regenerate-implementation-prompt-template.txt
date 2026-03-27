@@ -1,0 +1,14 @@
+Given the following C function signature and its formal specification, write a correct C implementation that satisfies the specification.
+
+The specification is expressed as CBMC preconditions and postconditions:
+  - Each __CPROVER_requires(...) clause is a precondition that the caller guarantees on entry.
+  - Each __CPROVER_ensures(...) clause is a postcondition that the implementation must guarantee on exit.
+
+Function signature:
+<SIGNATURE>
+$signature
+</SIGNATURE>
+
+$specification
+
+Respond with a JSON object containing a single key "implementation" whose value is a string comprising only the body of the function (i.e., everything between the outermost braces, exclusive).  Do not include the function signature, any __CPROVER annotations, markdown delimiters, or any other text outside the JSON object.
