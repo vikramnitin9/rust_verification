@@ -85,6 +85,6 @@ class FunctionImplementationGenerator:
         try:
             data = json_util.parse_object(llm_response.strip())
             implementation = data.get("implementation")
-            return str(implementation).strip() if implementation is not None else None
+            return str(implementation).strip() if isinstance(implementation, str) else None
         except json.JSONDecodeError:
             return None
