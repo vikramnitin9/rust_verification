@@ -1,4 +1,4 @@
-from .impl_regenerator import ImplementationRegenerator
+from .implementation_regenerator import ImplementationRegenerator
 from .spec_complexity_util import (
     get_complexity,
     ClauseComplexityResult,
