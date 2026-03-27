@@ -7,17 +7,9 @@ from string import Template
 from models import LlmClient, SystemMessage, UserMessage
 from util import FunctionSpecification
 
-FUNCTION_IMPLEMENTATION_GENERATION_PROMPT_TEMPLATE = Path(
-    "./prompts/regenerate-implementation-prompt-template.txt"
-).read_text(encoding="utf-8")
-
 
 class ImplementationRegenerator:
     """Regenerates C function implementations from a specification and signature using an LLM.
-
-    Given a :class:`~util.FunctionSpecification` (pre- and postconditions) and a C function
-    signature, this class prompts an LLM to regenerate a matching implementation and returns
-    the raw C source strings it produces.
 
     Attributes:
         _llm_client (LlmClient): The LLM client used to sample implementations.
@@ -26,6 +18,10 @@ class ImplementationRegenerator:
 
     _llm_client: LlmClient
     _system_prompt: str
+
+    FUNCTION_IMPLEMENTATION_GENERATION_PROMPT_TEMPLATE: str = Path(
+        "./prompts/regenerate-implementation-prompt-template.txt"
+    ).read_text(encoding="utf-8")
 
     def __init__(self, llm_client: LlmClient, system_prompt: str) -> None:
         """Create a new ImplementationRegenerator.
@@ -58,7 +54,9 @@ class ImplementationRegenerator:
         Returns:
             list[str]: A list of candidate C function implementations.
         """
-        prompt = Template(FUNCTION_IMPLEMENTATION_GENERATION_PROMPT_TEMPLATE).substitute(
+        prompt = Template(
+            ImplementationRegenerator.FUNCTION_IMPLEMENTATION_GENERATION_PROMPT_TEMPLATE
+        ).substitute(
             signature=signature.strip(),
             specification=specification.get_prompt_str(),
         )
