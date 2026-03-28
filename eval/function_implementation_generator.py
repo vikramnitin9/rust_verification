@@ -2,6 +2,8 @@
 
 import json
 
+from loguru import logger
+
 from models import LlmClient, SystemMessage, UserMessage
 from util import FunctionSpecification, json_util
 from verification import PromptBuilder
@@ -20,7 +22,7 @@ class FunctionImplementationGenerator:
     _prompt_builder: PromptBuilder
 
     def __init__(self, llm_client: LlmClient) -> None:
-        """Create a new FunctionImplementationRegenerator.
+        """Create a new FunctionImplementationGenerator.
 
         Args:
             llm_client (LlmClient): The LLM client used to sample implementations.
@@ -84,7 +86,14 @@ class FunctionImplementationGenerator:
         """
         try:
             data = json_util.parse_object(llm_response.strip())
-            implementation = data.get("implementation")
-            return str(implementation).strip() if isinstance(implementation, str) else None
+            if implementation := data.get("implementation"):
+                if isinstance(implementation, str):
+                    return str(implementation).strip()
+            logger.error(
+                f"Valid JSON, but missing or malformed 'implementation' key-value pair from: "
+                f"{llm_response}"
+            )
+            return None
         except json.JSONDecodeError:
+            logger.error(f"Failed to parse JSON from raw LLM response: {llm_response}")
             return None
