@@ -86,9 +86,8 @@ class FunctionImplementationGenerator:
         """
         try:
             data = json_util.parse_object(llm_response.strip())
-            if implementation := data.get("implementation"):
-                if isinstance(implementation, str):
-                    return str(implementation).strip()
+            if (implementation := data.get("implementation")) and isinstance(implementation, str):
+                return str(implementation).strip()
             logger.error(
                 f"Valid JSON, but missing or malformed 'implementation' key-value pair from: "
                 f"{llm_response}"
