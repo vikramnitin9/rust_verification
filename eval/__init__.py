@@ -1,3 +1,4 @@
+from .function_implementation_generator import FunctionImplementationGenerator
 from .spec_complexity_util import (
     get_complexity,
     ClauseComplexityResult,
@@ -12,4 +13,5 @@ __all__ = [
     "ClauseComplexityError",
     "get_complexity",
     "get_atoms_in_expression",
+    "FunctionImplementationGenerator",
 ]

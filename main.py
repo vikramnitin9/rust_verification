@@ -410,6 +410,12 @@ def _set_next_step(
     Returns:
         SpecConversation: The given SpecConversation with its `next_step` field set.
     """
+    # Check whether the next step has already been set. This may occur when a failing specification
+    # for a recursive function was previously encountered, in which case the spec is assumed and
+    # repair is short-circuited.
+    if spec_conversation.next_step:
+        return spec_conversation
+
     vinput = VerificationInput(
         function=spec_conversation.function,
         spec=spec_conversation.specification,

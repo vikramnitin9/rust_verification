@@ -241,7 +241,10 @@ class LlmSpecificationGenerator:
         proof_state: ProofState,
         parsec_project: ParsecProject,
     ) -> list[SpecConversation]:
-        """If the spec verifies, return it.  If the spec does not verify, try to repair it.
+        """If the spec verifies, return it. Otherwise, attempt to repair the spec or assume it.
+
+        A failing spec should not be repaired if it is for a function that is recursive
+        (i.e., the heuristic here would be to assume the specification and move on.)
 
         Args:
             specc (SpecConversation): The SpecConversation that ends with the spec that
@@ -251,7 +254,8 @@ class LlmSpecificationGenerator:
 
         Returns:
             list[SpecConversation]: A list of specifications that successfully verify (they either
-                verified in the first place, or were repaired), or a list of specifications that
+                verified in the first place, or were repaired), or a list of specs that are assumed
+                (i.e., a spec for a recursive function), or a list of specifications that
                 ultimately failed repair.
         """
         # Check whether the given spec even needs repair.
@@ -264,6 +268,13 @@ class LlmSpecificationGenerator:
         vresult = self._verifier.verify(vinput=vinput)
         if vresult.succeeded:
             specc.next_step = AcceptVerifiedSpec()
+            return [specc]
+
+        # Is the given spec for a recursive function? If so, assume it and move on.
+        # It is unlikely that iteratively repairing a failing spec for a recursive function will
+        # produce a spec that verifies (both due to its complexity and CBMC's limitations).
+        if specc.function.is_self_recursive():
+            specc.next_step = AssumeSpecAsIs()
             return [specc]
 
         # These two variables are the two possible return values of this method.
