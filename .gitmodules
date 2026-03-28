@@ -1,3 +1,6 @@
 [submodule "parsec"]
 	path = parsec
 	url = https://github.com/vikramnitin9/parsec
+[submodule "data/zopfli"]
+	path = data/zopfli
+	url = https://github.com/google/zopfli

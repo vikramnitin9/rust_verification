@@ -1,8 +1,13 @@
 """Class representing an input to a verifier (e.g., CBMC)."""
 
+import re
 from dataclasses import dataclass
 
 from util import CFunction, FunctionSpecification
+
+HEADER_IMPORT_PATTERN = r"\#\s*include\s*\<.*\>|\#\s*include\s*\".*\""
+ANGLE_DELIMITERS = r"\<(.*?)\>"
+QUOTE_DELIMITERS = r"\"(.*?)\""
 
 
 @dataclass(frozen=True)
@@ -99,6 +104,29 @@ class VerificationInput:
                 f"{self.function.name} has the following callees:\n" + "\n".join(callee_summaries)
             )
         return callee_context_for_prompt
+
+    def get_headers(self) -> list[str]:
+        """Return the headers imported in this verification input's file.
+
+        Returns:
+            list[str]: The headers imported in this verification input's file.
+        """
+        headers = []
+        header_imports = re.findall(HEADER_IMPORT_PATTERN, self.contents_of_file_to_verify)
+        if not header_imports:
+            return headers
+        for header_import in header_imports:
+            if angle_delimited_header_match := re.search(ANGLE_DELIMITERS, header_import):
+                headers.append(angle_delimited_header_match.group(1))
+            elif quote_delimited_header_match := re.search(QUOTE_DELIMITERS, header_import):
+                headers.append(quote_delimited_header_match.group(1))
+            else:
+                msg = (
+                    "A file under verification should import at least the default headers (see "
+                    "`CbmcVerificationClient#DEFAULT_HEADERS_FOR_VERIFICATION`)"
+                )
+                raise ValueError(msg)
+        return headers
 
     def __eq__(self, other: object) -> bool:
         """Return True iff this input is equal to another.

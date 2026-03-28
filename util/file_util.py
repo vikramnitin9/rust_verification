@@ -1,6 +1,7 @@
 """Utilities for working with and manipulating files."""
 
 import shutil
+from collections.abc import Sequence
 from pathlib import Path
 
 
@@ -14,21 +15,52 @@ def copy_file_to_folder(input_file_path: Path, destination_folder_name: str) -> 
     Returns:
         Path: The file that is copied from the input file to the destination folder.
     """
-    output_folder = Path(destination_folder_name)
-    output_folder.mkdir(parents=True, exist_ok=True)
-    output_file_path = output_folder / input_file_path.name
+    output_file_path = get_destination_path(input_file_path, destination_folder_name)
+    output_file_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy(input_file_path, output_file_path)
     return output_file_path
 
 
-def ensure_lines_at_beginning(lines_to_insert: list[str], file_path: Path) -> None:
+def copy_folder_to_folder(input_folder_path: Path, destination_folder_name: str) -> Path:
+    """Copy a folder to a destination folder, and return the path of the copy.
+
+    If the target folder already exists, the contents of the input folder will be merged
+    into the target folder, and existing files with the same name will be overwritten.
+
+    Args:
+        input_folder_path (Path): The input folder path.
+        destination_folder_name (str): The destination folder under which to copy the folder.
+
+    Returns:
+        Path: The path of the copy of the input folder.
+    """
+    output_folder = get_destination_path(input_folder_path, destination_folder_name)
+    output_folder.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(input_folder_path, output_folder, dirs_exist_ok=True)
+    return output_folder
+
+
+def get_destination_path(input_path: Path, destination_folder_name: str) -> Path:
+    """Return the destination path under a destination folder for an input path.
+
+    Args:
+        input_path (Path): The input file or folder path.
+        destination_folder_name (str): The destination folder under which to copy input_path.
+
+    Returns:
+        Path: The destination path for input_path under destination_folder_name.
+    """
+    return Path(destination_folder_name) / input_path.name
+
+
+def ensure_lines_at_beginning(lines_to_insert: Sequence[str], file_path: Path) -> None:
     """Ensure the given lines appear in the given file.
 
     Each line is only inserted if it is not already present in the file (anywhere, not necessarily
     at the beginning).
 
     Args:
-        lines_to_insert (list[str]): The lines to insert.
+        lines_to_insert (Sequence[str]): The lines to insert.
         file_path (Path): The file to modify.
 
     """

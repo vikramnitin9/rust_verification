@@ -1,4 +1,4 @@
-#!/opt/miniconda3/bin/python
+#!/usr/bin/env python3
 
 """Script to translate CBMC specifications for C functions into equivalents in Kani."""
 
@@ -11,7 +11,7 @@ from typing import cast
 
 from loguru import logger
 
-from translation import CBMCAst, CBMCToKani, KaniProofHarness, Parser, ToAst, TranslationError
+from translation import CbmcAst, CbmcToKani, KaniProofHarness, Parser, ToAst, TranslationError
 from util import CFunction, FunctionSpecification
 from util.rust import RustFunction, RustParser, TsRustParser
 from verification import KaniVerificationContext
@@ -54,13 +54,13 @@ def main() -> None:
     )
     logger.debug(f"Starting specification translation for functions in: '{path_to_functions}'")
 
-    cbmc_parser: Parser[CBMCAst] = Parser(
+    cbmc_parser: Parser[CbmcAst] = Parser(
         path_to_grammar_defn="translation/grammar/cbmc.txt",
         start="cbmc_clause",
         transformer=ToAst(),
     )
     functions_to_verification_contexts: dict[str, KaniVerificationContext] = {}
-    translator = CBMCToKani(parser=cbmc_parser)
+    translator = CbmcToKani(parser=cbmc_parser)
 
     for c_function in c_functions:
         specs = _translate_specifications(translator, c_function)
@@ -76,11 +76,11 @@ def main() -> None:
     )
 
 
-def _translate_specifications(translator: CBMCToKani, function: CFunction) -> FunctionSpecification:
+def _translate_specifications(translator: CbmcToKani, function: CFunction) -> FunctionSpecification:
     """Return the translated specifications originating from the given function.
 
     Args:
-        translator (CBMCToKani): The translator to use for specification translation.
+        translator (CbmcToKani): The translator to use for specification translation.
         function (CFunction): The function to obtain the specifications to translate.
 
     Returns:

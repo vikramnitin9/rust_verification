@@ -2,13 +2,16 @@
 
 import subprocess
 import tempfile
+from collections.abc import Sequence
 from pathlib import Path
 
 from diskcache import Cache  # ty: ignore
 from loguru import logger
 
+from util import file_util, text_util
 from verification.verification_result import VerificationResult
 
+from .avocado_stub_util import AVOCADO_STUB_DIR
 from .verification_client import VerificationClient
 from .verification_input import VerificationInput
 
@@ -17,15 +20,23 @@ class CbmcVerificationClient(VerificationClient):
     """Verifies source code using CBMC. The entry point is `verify()`.
 
     Attributes:
-        _cache (Cache): A cache of verification results mapped to verification inputs. The keys for
-            this cache are `VerificationInput` and the values are `VerificationResult`.
+        _cache (Cache | None): A cache of verification results mapped to verification inputs. The
+            keys for this cache are `VerificationInput` and the values are `VerificationResult`.
     """
 
-    _cache: Cache
+    _cache: Cache | None
+
+    # These headers should be inserted into each file that is input to the verifier;
+    # generated specs often use constants from these headers (e.g., INT_MAX) assuming they already
+    # exist in the file.
+    DEFAULT_HEADERS_FOR_VERIFICATION: Sequence[str] = (
+        "stdlib.h",
+        "limits.h",
+    )
 
     def __init__(
         self,
-        cache: Cache,
+        cache: Cache | None,
     ) -> None:
         """Create a new CbmcVerificationClient."""
         self._cache = cache
@@ -39,36 +50,56 @@ class CbmcVerificationClient(VerificationClient):
         Returns:
             VerificationResult: The result of verifying the given verification input.
         """
-        function = vinput.function
-        with tempfile.NamedTemporaryFile(mode="w+t", prefix=function.name, suffix=".c") as tmp_f:
-            tmp_f.write(vinput.contents_of_file_to_verify)
-            tmp_f.seek(0)
-            path_to_file = Path(tmp_f.name)
-            if vinput not in self._cache:
-                logger.debug(f"vresult cache miss for: {vinput.function}")
-                vcommand = self._get_cbmc_verification_command(
-                    vinput, path_to_file_to_verify=path_to_file
-                )
-                try:
-                    logger.debug(f"Running command: {vcommand}")
-                    result = subprocess.run(vcommand, shell=True, capture_output=True, text=True)
-                    self._cache[vinput] = VerificationResult(
-                        vinput,
-                        vcommand,
-                        succeeded=result.returncode == 0,
-                        stdout=result.stdout,
-                        stderr=result.stderr,
-                    )
-                    logger.debug(f"Caching vresult for: {vinput.function}")
-                except Exception as e:
-                    msg = f"Error running command for function {function.name}: {e}"
-                    raise RuntimeError(msg) from e
+        if self._cache is None:
+            vresult = self._run_verifier(vinput)
+        elif vinput in self._cache:
             vresult = self._cache[vinput]
-            if vresult.succeeded:
-                logger.success(f"Verification succeeded for function '{function.name}'")
-            else:
-                logger.error(f"Verification failed for function '{function.name}'")
-            return vresult
+        else:
+            logger.debug(f"vresult cache miss for: {vinput.function}")
+            vresult = self._run_verifier(vinput)
+            logger.debug(f"Caching vresult for: {vinput.function}")
+            self._cache[vinput] = vresult
+
+        if vresult.succeeded:
+            logger.success(f"Verification succeeded for function '{vinput.function.name}'")
+        else:
+            logger.error(f"Verification failed for function '{vinput.function.name}'")
+        return vresult
+
+    def _run_verifier(self, vinput: VerificationInput) -> VerificationResult:
+        with tempfile.NamedTemporaryFile(
+            mode="w+t", prefix=vinput.function.name, suffix=".c"
+        ) as tmp_f:
+            tmp_f.write(vinput.contents_of_file_to_verify)
+            tmp_f.flush()
+            file = Path(tmp_f.name)
+            default_header_include_lines = [
+                f"#include <{header}>"
+                for header in CbmcVerificationClient.DEFAULT_HEADERS_FOR_VERIFICATION
+            ]
+            file_util.ensure_lines_at_beginning(default_header_include_lines, file)
+            try:
+                vcommand = self._get_cbmc_verification_command(vinput, path_to_file_to_verify=file)
+                logger.debug(f"Running command: {vcommand}")
+                result = subprocess.run(vcommand, capture_output=True, text=True, shell=True)
+                # Normalize the temp file path in CBMC output so that LLM cache keys
+                # are deterministic across runs (temp file names are random).
+                normalized_stdout = text_util.normalize_cbmc_output_paths(
+                    result.stdout, vinput.function.name, temp_file_path=str(file)
+                )
+                normalized_stderr = text_util.normalize_cbmc_output_paths(
+                    result.stderr, vinput.function.name, temp_file_path=str(file)
+                )
+                return VerificationResult(
+                    vinput,
+                    vcommand,
+                    succeeded=result.returncode == 0,
+                    stdout=normalized_stdout,
+                    stderr=normalized_stderr,
+                )
+            except Exception as e:
+                msg = f"Error running command for function {vinput.function.name}: {e}"
+                raise RuntimeError(msg) from e
 
     def _get_cbmc_verification_command(
         self,
@@ -86,13 +117,26 @@ class CbmcVerificationClient(VerificationClient):
         """
         function_name = verification_input.function.name
         callee_names = [callee.name for callee in verification_input.get_callees_to_specs()]
-        replace_call_with_contract_args = " ".join(
-            [f"--replace-call-with-contract {callee_name}" for callee_name in callee_names]
+        replace_call_with_contract_args = (
+            ""
+            if not callee_names
+            else " ".join(
+                [
+                    arg
+                    for callee_name in callee_names
+                    for arg in ("--replace-call-with-contract", callee_name)
+                ]
+            )
         )
+        header_names = verification_input.get_headers()
+        avocado_headers = [f"{AVOCADO_STUB_DIR}/{header_name}" for header_name in header_names]
+        header_args = " ".join(avocado_headers)
         return " && ".join(
             [
                 (
-                    f"goto-cc -o {function_name}.goto {path_to_file_to_verify} "
+                    f"goto-cc -o {function_name}.goto "
+                    f"{header_args} "
+                    f"{path_to_file_to_verify} "
                     f"--function {function_name}"
                 ),
                 (
@@ -100,7 +144,8 @@ class CbmcVerificationClient(VerificationClient):
                     f"{function_name}.goto {function_name}.goto"
                 ),
                 (
-                    f"goto-instrument {replace_call_with_contract_args} "
+                    f"goto-instrument "
+                    f"{replace_call_with_contract_args} "
                     f"--enforce-contract {function_name} "
                     f"{function_name}.goto checking-{function_name}-contracts.goto"
                 ),

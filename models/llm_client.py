@@ -3,40 +3,50 @@
 from diskcache import Cache  # ty: ignore
 
 from .conversation_message import ConversationMessage
-from .llm_gen import LLMGen
-
-DEFAULT_CACHE_DIR = "data/caching/"
+from .llm_backend import LlmBackend
 
 
 class LlmClient:
     """Class providing cache-backed LLM-calling functions.
 
     Attributes:
-        _llm (LLMGen): The internal LLM interface (see https://docs.litellm.ai/docs/).
+        _llm (LlmBackend): The LLM backend to use.
         _top_k (int): The number of samples to obtain from the LLM.
         _temperature (float): The temperature (cannot be 0 if top_k > 1).
+        _path_to_llm_response_cache_dir (str): Path to the LLM response cache to use.
         _llm_cache (Cache | None): A cache of LLM responses.
     """
 
-    _llm: LLMGen
+    _llm: LlmBackend
     _top_k: int
     _temperature: float
+    _path_to_llm_response_cache_dir: str
     _llm_cache: Cache | None
 
     def __init__(
-        self, model_name: str, top_k: int, temperature: float, disable_llm_cache: bool = False
-    ):
-        """Create a new LlmClient."""
+        self,
+        llm: LlmBackend,
+        top_k: int,
+        temperature: float,
+        path_to_llm_response_cache_dir: str,
+        *,
+        disable_llm_cache: bool = False,
+    ) -> None:
+        """Create a new LLmClient."""
         if top_k > 1 and temperature == 0:
             msg = (
                 f"Model temperature must be non-zero for a `top_k` value greater than 1 "
                 f"(temperature = {temperature}, top_k = {top_k})"
             )
             raise ValueError(msg)
-        self._llm = LLMGen.get_llm_generation_with_model(model_name=model_name)
+
+        self._llm = llm
         self._top_k = top_k
         self._temperature = temperature
-        self._llm_cache = None if disable_llm_cache else Cache(directory=DEFAULT_CACHE_DIR)
+        self._path_to_llm_response_cache_dir = path_to_llm_response_cache_dir
+        self._llm_cache = (
+            None if disable_llm_cache else Cache(directory=self._path_to_llm_response_cache_dir)
+        )
 
     def get(
         self,
@@ -74,7 +84,7 @@ class LlmClient:
             if cached_response := self._llm_cache.get(cache_key):
                 return cached_response
 
-        result = self._llm.gen(
+        result = self._llm.send_messages(
             messages=conversation,
             temperature=temperature or self._temperature,
             top_k=top_k or self._top_k,

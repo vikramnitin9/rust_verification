@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 from string import Template
 
-from util import CFunction, ParsecFile, SpecGenGranularity, text_util
+from util import CFunction, FunctionSpecification, ParsecProject, SpecGenGranularity, text_util
 
 from .verification_result import VerificationResult
 
@@ -31,10 +31,19 @@ class PromptBuilder:
     NEXT_STEP_PROMPT_TEMPLATE = Template(
         Path("./prompts/next-step-prompt-template.txt").read_text()
     )
+
+    # Implementation generation prompt template.
+    GENERATE_IMPLEMENTATION_PROMPT_TEMPLATE = Template(
+        Path("./prompts/generate-implementation-prompt-template.txt").read_text(encoding="utf-8")
+    )
+
     CBMC_OUTPUT_FAILURE_MARKER = "FAILURE"
 
     def specification_generation_prompt(
-        self, function: CFunction, specgen_granularity: SpecGenGranularity, parsec_file: ParsecFile
+        self,
+        function: CFunction,
+        parsec_project: ParsecProject,
+        specgen_granularity: SpecGenGranularity,
     ) -> str:
         """Return the prompt used for specification generation.
 
@@ -43,10 +52,9 @@ class PromptBuilder:
 
         Args:
             function (CFunction): The function for which to generate specifications.
+            parsec_project (ParsecProject): The ParseC project that contains `function`.
             specgen_granularity (SpecGenGranularity): The granularity at which specification
                 generation occurs.
-            parsec_file (ParsecFile): The file that contains `function`.
-
 
         Returns:
             str: The initial prompt used for specification generation.
@@ -54,7 +62,7 @@ class PromptBuilder:
         """
         source_code = function.get_original_source_code(include_documentation_comments=True)
         callee_context = ""
-        if callees := parsec_file.get_callees(function):
+        if callees := parsec_project.get_callees(function):
             if callees_with_specs := [callee for callee in callees if callee.has_specification()]:
                 callee_context = self._get_callee_specs(function.name, callees_with_specs)
 
@@ -78,8 +86,8 @@ class PromptBuilder:
             )
             tmp_f.write(source_code_cbmc_commented_out)
             tmp_f.flush()
-            parsec_file = ParsecFile(Path(tmp_f.name))
-            function = parsec_file.get_function_or_none(
+            parsec_project = ParsecProject(Path(tmp_f.name))
+            function = parsec_project.get_function_or_none(
                 function_name=verification_result.get_function().name
             )
             if not function:
@@ -100,7 +108,10 @@ class PromptBuilder:
             function_name=function.name,
             source_code=function_lines,
             callee_context=verification_result.verification_input.get_callee_context_for_prompt(),
-            failure_information=verification_result.stdout + "\n" + verification_result.stderr,
+            failure_information=text_util.normalize_cbmc_output_paths(
+                verification_result.stdout + "\n" + verification_result.stderr,
+                verification_result.get_function().name,
+            ),
         )
 
     def repair_prompt(
@@ -125,8 +136,8 @@ class PromptBuilder:
             )
             tmp_f.write(source_code_cbmc_commented_out)
             tmp_f.flush()
-            parsec_file = ParsecFile(Path(tmp_f.name))
-            function = parsec_file.get_function_or_none(
+            parsec_project = ParsecProject(Path(tmp_f.name))
+            function = parsec_project.get_function_or_none(
                 function_name=verification_result.get_function().name
             )
             if not function:
@@ -150,6 +161,27 @@ class PromptBuilder:
                     f"{line}: {content}" for line, content in source_code_with_line_numbers
                 ),
             )
+
+    def generate_implementation_prompt(
+        self,
+        signature: str,
+        specification: FunctionSpecification,
+    ) -> str:
+        """Return the prompt used to generate a C function implementation.
+
+        Args:
+            signature (str): The signature for the C function to implement
+                (e.g., int add(int a, int b))
+            specification (FunctionSpecification): The CBMC pre- and postconditions the
+                implementation must satisfy.
+
+        Returns:
+            str: The prompt asking the LLM to produce a matching implementation.
+        """
+        return PromptBuilder.GENERATE_IMPLEMENTATION_PROMPT_TEMPLATE.substitute(
+            signature=signature.strip(),
+            specification=specification.get_prompt_str(),
+        )
 
     def _get_callee_specs(self, caller: str, callees_with_specs: list[CFunction]) -> str:
         """Return the specifications of all the callees of `caller`.

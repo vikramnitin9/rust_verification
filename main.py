@@ -1,13 +1,15 @@
-#!/opt/miniconda3/bin/python
+#!/usr/bin/env python3
 
 """Main entry point for specification generation and verification."""
 
 import argparse
 import os
+import pickle as pkl
 import shutil
 import sys
 import tempfile
 from collections import deque
+from collections.abc import Sequence
 from pathlib import Path
 
 from diskcache import Cache  # ty: ignore
@@ -20,14 +22,16 @@ from util import (
     AssumeSpecAsIs,
     BacktrackToCallee,
     CFunction,
-    ParsecFile,
+    ParsecProject,
     SpecConversation,
     SpecGenGranularity,
     copy_file_to_folder,
+    copy_folder_to_folder,
     ensure_lines_at_beginning,
     function_util,
     run_with_timeout,
 )
+from util.function_specification import FunctionSpecification
 from verification import (
     CbmcVerificationClient,
     ProofState,
@@ -37,7 +41,10 @@ from verification import (
 )
 
 MODEL = "gpt-4o"
-DEFAULT_HEADERS_IN_OUTPUT = ["#include <stdlib.h>", "#include <limits.h>"]
+DEFAULT_HEADERS_FOR_VERIFICATION: Sequence[str] = (
+    "#include <stdlib.h>",
+    "#include <limits.h>",
+)
 DEFAULT_NUM_SPECIFICATION_CANDIDATES = 10
 DEFAULT_NUM_REPAIR_CANDIDATES = 10
 DEFAULT_MODEL_TEMPERATURE = 0.8
@@ -46,6 +53,10 @@ DEFAULT_NUM_SPECIFICATION_REPAIR_ITERATIONS = 2
 DEFAULT_SPECIFICATION_GENERATION_TIMEOUT_SEC = 300
 DEFAULT_SYSTEM_PROMPT = Path("prompts/system-prompt.txt").read_text(encoding="utf-8")
 DEFAULT_RESULT_DIR = "specs"
+
+# Directory to store the `cache.db` file containing the text responses from LLM.
+DEFAULT_LLM_CACHE_DIR = "data/caching/llm"
+# Directory to store the `cache.db` file for verification results.
 DEFAULT_VERIFIER_RESULT_CACHE_DIR = "data/caching/verifier"
 
 GLOBAL_OBSERVED_PROOFSTATES: set[ProofState] = set()
@@ -54,22 +65,22 @@ GLOBAL_INCOMPLETE_PROOFSTATES: deque[ProofState] = deque()
 # Every ProofState in this queue is complete (i.e., their worklists are empty.)
 GLOBAL_COMPLETE_PROOFSTATES: list[ProofState] = []
 # The keys for VERIFIER_CACHE are `VerificationInput` and the values are `VerificationResult`.
-VERIFIER_CACHE: Cache = Cache(directory=DEFAULT_VERIFIER_RESULT_CACHE_DIR)
+VERIFIER_CACHE: Cache | None = Cache(directory=DEFAULT_VERIFIER_RESULT_CACHE_DIR)
 
 tempfile.tempdir = DEFAULT_RESULT_DIR
 
 
 def main() -> None:
-    """Generate specifications for a given C file using an LLM and verify them with CBMC.
-
-    The current implementation operates over all the C functions in one file.
-    """
+    """Generate specifications for a given C project using an LLM and verify them with CBMC."""
     parser = argparse.ArgumentParser(
-        prog="main.py", description="Generate and verify CBMC specifications for a C file."
+        prog="main.py",
+        description="Generate and verify CBMC specifications for a C project.",
     )
     parser.add_argument(
-        "file",
-        help="The C file for which to generate and verify specifications.",
+        "--input-path",
+        required=True,
+        help="The path to the C file, or the root directory of the C project for which to generate \
+            specifications. If a directory is provided, it must contain compile_commands.json.",
     )
     parser.add_argument(
         "--num-specification-candidates",
@@ -118,6 +129,13 @@ def main() -> None:
         help=("Always call the LLM, do not use cached answers (defaults to False)."),
     )
     parser.add_argument(
+        "--disable-verifier-cache",
+        action="store_true",
+        help=(
+            "Always re-run the verifier, do not use cached verifier results (defaults to False)."
+        ),
+    )
+    parser.add_argument(
         "--fix-illegal-syntax",
         action="store_true",
         help=(
@@ -148,16 +166,55 @@ def main() -> None:
             "workstack of functions. (defaults to False)"
         ),
     )
+    parser.add_argument(
+        "--path-to-llm-response-cache-dir",
+        type=str,
+        required=False,
+        default=DEFAULT_LLM_CACHE_DIR,
+        help=("Path to the directory that holds the cache.db file used for storing LLM responses."),
+    )
+    parser.add_argument(
+        "--path-to-save-proofstates",
+        type=str,
+        required=False,
+        help=("Path to the directory at which to save complete ProofStates."),
+    )
+    parser.add_argument(
+        "--stub-out-llm",
+        action="store_true",
+        help=(
+            "Stub out the LLM client (e.g., for integration tests). Otherwise, the constructor "
+            "looks for an environment variable (LLM_API_KEY) that is not available on a CI runner."
+        ),
+    )
     args = parser.parse_args()
 
-    input_file_path = Path(args.file)
-    parsec_file = ParsecFile(input_file_path)
+    input_path = Path(args.input_path).resolve()
+    # Verify that it exists
+    if not input_path.exists():
+        msg = f"Input path '{input_path}' does not exist."
+        raise FileNotFoundError(msg)
+
+    if input_path.is_file():
+        # This path is overwritten only when _write_spec_to_disk is called for a function in
+        # the file, and that only happens when a spec for the function is verified or assumed.
+        output_file_path = copy_file_to_folder(input_path, DEFAULT_RESULT_DIR)
+        ensure_lines_at_beginning(DEFAULT_HEADERS_FOR_VERIFICATION, output_file_path)
+        parsec_project = ParsecProject(output_file_path)
+    elif input_path.is_dir():  # input_path is a directory
+        output_directory = copy_folder_to_folder(input_path, DEFAULT_RESULT_DIR)
+        for c_file in output_directory.rglob("*.c"):
+            ensure_lines_at_beginning(DEFAULT_HEADERS_FOR_VERIFICATION, c_file)
+        parsec_project = ParsecProject(output_directory)
+    else:
+        msg = f"Input path '{input_path}' is neither a file nor a directory."
+        raise ValueError(msg)
+
     specgen_granularity = SpecGenGranularity(args.specgen_granularity)
 
-    # MDE: Will this path be repeatedly overwritten during the verification process?  If so, that is
-    # a serious problem for concurrency.
-    output_file_path = copy_file_to_folder(input_file_path, DEFAULT_RESULT_DIR)
-    ensure_lines_at_beginning(DEFAULT_HEADERS_IN_OUTPUT, output_file_path)
+    global VERIFIER_CACHE
+    if args.disable_verifier_cache:
+        VERIFIER_CACHE = None
 
     verifier: VerificationClient = CbmcVerificationClient(cache=VERIFIER_CACHE)
     specification_generator = LlmSpecificationGenerator(
@@ -170,6 +227,8 @@ def main() -> None:
         num_specification_repair_iterations=args.num_specification_repair_iterations,
         fix_illegal_syntax=args.fix_illegal_syntax,
         normalize_specs=args.normalize_specs,
+        path_to_llm_response_cache_dir=args.path_to_llm_response_cache_dir,
+        is_running_as_stub=args.stub_out_llm,
         disable_llm_cache=args.disable_llm_cache,
         specgen_granularity=specgen_granularity,
     )
@@ -177,22 +236,25 @@ def main() -> None:
     try:
         run_with_timeout(
             _verify_program,
-            parsec_file,
+            parsec_project,
             specification_generator,
             args.skip_verified_cached_functions,
+            args.path_to_save_proofstates,
             timeout_sec=args.specification_generation_timeout_sec,
         )
     except TimeoutError as te:
         logger.error(
-            f"'_verify_program' timed out after {args.specification_generation_timeout_sec}", te
+            f"'_verify_program' timed out after {args.specification_generation_timeout_sec}",
+            te,
         )
         sys.exit(0)
 
 
 def _verify_program(
-    parsec_file: ParsecFile,
+    parsec_project: ParsecProject,
     specification_generator: LlmSpecificationGenerator,
     skip_verified_cached_functions: bool,
+    path_to_save_proofstates: str | None,
 ) -> tuple[ProofState, ...]:
     """Return a set of ProofStates, each of which has a specification for each function.
 
@@ -200,11 +262,12 @@ def _verify_program(
     exceeds the user-specified or defaulted specification generation timeout.
 
     Args:
-        parsec_file (ParsecFile): The file to verify.
+        parsec_project (ParsecProject): The project to verify.
         specification_generator (LlmSpecificationGenerator): The LLM specification generator.
         skip_verified_cached_functions (bool): True iff functions that have verified and cached
             specifications should not be added to the workstack of functions for which to generate
             specs.
+        path_to_save_proofstates (str | None): Path to where complete ProofStates should be written.
 
     Returns:
         tuple[ProofState, ...]: A set of ProofStates, each of which has specifications for each
@@ -213,17 +276,29 @@ def _verify_program(
     """
     # Since the initial list of functions is in reverse topological order,
     # the first element processed will be a leaf.
-    functions = parsec_file.get_functions_in_topological_order()
+    functions = parsec_project.get_functions_in_topological_order()
+    if not functions:
+        msg = f"'{parsec_project.input_path}' did not have any functions to specify"
+        logger.error(msg)
+        sys.exit(1)
 
     if skip_verified_cached_functions:
-        functions = [f for f in functions if not _is_verified_and_cached(f)]
+        functions_without_specs: list[CFunction] = []
+        for function in functions:
+            if cached_spec := _get_verified_and_cached_specification(function):
+                function.set_specifications(cached_spec)
+                logger.debug(f"Setting verified cached specification for '{function.name}'")
+            else:
+                functions_without_specs.append(function)
+    else:
+        functions_without_specs = functions
 
-    if not functions:
+    if not functions_without_specs:
         # There are specs in the cache for all the functions.
         # How should we re-construct ProofStates from the cache?
         sys.exit(0)
 
-    initial_proof_state = ProofState.from_functions(functions=functions)
+    initial_proof_state = ProofState.from_functions(functions=functions_without_specs)
     GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)
     # This is the global worklist.
     GLOBAL_INCOMPLETE_PROOFSTATES.append(initial_proof_state)
@@ -234,7 +309,7 @@ def _verify_program(
         next_proofstates = _step(
             proof_state=proof_state,
             specification_generator=specification_generator,
-            parsec_file=parsec_file,
+            parsec_project=parsec_project,
         )
 
         for next_proofstate in next_proofstates:
@@ -249,13 +324,20 @@ def _verify_program(
             else:
                 GLOBAL_INCOMPLETE_PROOFSTATES.append(next_proofstate)
 
+    if proofstate_file_path := path_to_save_proofstates:
+        output_path = Path(proofstate_file_path)
+        if not output_path.exists():
+            output_path.mkdir(parents=True, exist_ok=True)
+        with Path(f"{proofstate_file_path}/proofstates.pkl").open("wb") as f:
+            pkl.dump(GLOBAL_COMPLETE_PROOFSTATES, f, protocol=pkl.HIGHEST_PROTOCOL)
+
     return tuple(GLOBAL_COMPLETE_PROOFSTATES)
 
 
 def _step(
     proof_state: ProofState,
     specification_generator: LlmSpecificationGenerator,
-    parsec_file: ParsecFile,
+    parsec_project: ParsecProject,
 ) -> list[ProofState]:
     """Given a ProofState, returns of list of ProofStates, each of which makes a "step" of progress.
 
@@ -273,7 +355,7 @@ def _step(
     Args:
         proof_state (ProofState): The proof state from which to generate new proof states.
         specification_generator (LlmSpecificationGenerator): The specification generator.
-        parsec_file (ParsecFile): The file being verified.
+        parsec_project (ParsecProject): The project being verified.
 
     Returns:
         list[ProofState]: The list of new proof states to explore.
@@ -285,7 +367,7 @@ def _step(
     # that the algorithm may revisit this function later due to backtracking.
     speccs_for_function: list[SpecConversation] = specification_generator.generate_and_repair_spec(
         function=work_item.function,
-        parsec_file=parsec_file,
+        parsec_project=parsec_project,
         hint=work_item.hint,
         proof_state=proof_state,
     )
@@ -303,6 +385,7 @@ def _step(
         _get_next_proof_state(
             prev_proof_state=proof_state,
             spec_conversation=specc,
+            parsec_project=parsec_project,
         )
         for specc in speccs_with_next_steps
     ]
@@ -327,13 +410,26 @@ def _set_next_step(
     Returns:
         SpecConversation: The given SpecConversation with its `next_step` field set.
     """
+    # Check whether the next step has already been set. This may occur when a failing specification
+    # for a recursive function was previously encountered, in which case the spec is assumed and
+    # repair is short-circuited.
+    if spec_conversation.next_step:
+        return spec_conversation
+
     vinput = VerificationInput(
         function=spec_conversation.function,
         spec=spec_conversation.specification,
         context=proof_state.get_current_context(function=spec_conversation.function),
         contents_of_file_to_verify=spec_conversation.contents_of_file_to_verify,
     )
-    if vresult := VERIFIER_CACHE.get(vinput):
+    if VERIFIER_CACHE is not None:
+        # Use the cache directly (not via verify()) to avoid extra log messages:
+        # verify() logs on every call (including cache hits), but _set_next_step is called
+        # after generate_and_repair_spec which already verified and cached these results.
+        vresult = VERIFIER_CACHE.get(vinput)
+    else:
+        vresult = specification_generator.get_verification_client().verify(vinput)
+    if vresult is not None:
         if vresult.succeeded:
             spec_conversation.next_step = AcceptVerifiedSpec()
             return spec_conversation
@@ -347,7 +443,7 @@ def _set_next_step(
 
 
 def _get_next_proof_state(
-    prev_proof_state: ProofState, spec_conversation: SpecConversation
+    prev_proof_state: ProofState, spec_conversation: SpecConversation, parsec_project: ParsecProject
 ) -> ProofState:
     """Return the next proof state after `prev_proof_state` based on `spec_conversation`.
 
@@ -363,6 +459,7 @@ def _get_next_proof_state(
         prev_proof_state (ProofState): The previous proof state.
         spec_conversation (SpecConversation): The spec conversation in which an LLM generated a
             specification for the function on the top of the workstack of `prev_proof_state`.
+        parsec_project (ParsecProject): The project being verified.
 
     Returns:
         ProofState: The next proof state for the program, given the conversation.
@@ -381,14 +478,11 @@ def _get_next_proof_state(
             _write_spec_to_disk(spec_conversation=spec_conversation)
             workstack_for_next_proof_state = prev_proof_state.get_workstack().pop()
             return ProofState(
-                specs=specs_for_next_proof_state, workstack=workstack_for_next_proof_state
+                specs=specs_for_next_proof_state,
+                workstack=workstack_for_next_proof_state,
             )
         case BacktrackToCallee(callee, hint):
-            # TODO: Fetching the callee from the same file in which the function under spec. gen.
-            # is defined is a brittle assumption that should be fixed with multi-file ParseC
-            # support.
-            result_file = _get_result_file(function=spec_conversation.function)
-            if callee := ParsecFile(result_file).get_function_or_none(function_name=callee):
+            if callee := parsec_project.get_function_or_none(function_name=callee):
                 work_item_for_callee = WorkItem(function=callee, hint=hint)
                 workstack_for_next_proof_state = prev_proof_state.get_workstack().push(
                     work_item_for_callee
@@ -397,7 +491,7 @@ def _get_next_proof_state(
                     specs=specs_for_next_proof_state,
                     workstack=workstack_for_next_proof_state,
                 )
-            msg = f"'{result_file}' lacks a definition for callee '{callee}'"
+            msg = f"Project lacks a definition for callee '{callee}'"
             raise ValueError(msg)
 
         case _:
@@ -429,18 +523,18 @@ def _write_spec_to_disk(spec_conversation: SpecConversation) -> None:
         result_file.parent.mkdir(exist_ok=True, parents=True)
         shutil.copy(path_to_original_file, result_file)
 
-    parsec_file = ParsecFile(result_file)
+    parsec_project = ParsecProject(result_file)
     function_with_verified_spec = function_util.get_source_code_with_inserted_spec(
         function_name=function.name,
         specification=spec_conversation.specification,
-        parsec_file=parsec_file,
+        parsec_project=parsec_project,
         comment_out_spec=True,
     )
 
-    function_util.update_function_declaration(
+    function_util.update_function_definition(
         function_name=function.name,
         updated_function_content=function_with_verified_spec,
-        parsec_file=parsec_file,
+        parsec_project=parsec_project,
         file=result_file,
     )
 
@@ -466,23 +560,24 @@ def _get_result_file(function: CFunction) -> Path:
     return result_file_dir / path_to_original_file.name
 
 
-def _is_verified_and_cached(function: CFunction) -> bool:
-    """Return True iff the function has a verified and cached specification.
+def _get_verified_and_cached_specification(function: CFunction) -> FunctionSpecification | None:
+    """Return a verified specification for a function from the verifier cache, if present.
 
     Args:
-        function (CFunction): The function for which to check for a verified and cached
-            specification.
+        function (CFunction): The function whose cached verified specification is requested.
 
     Returns:
-        bool: True iff the function has a verified and cached specification.
+        FunctionSpecification | None: The cached verified specification for function if one exists
+            in the cache, otherwise None.
     """
-    for vinput in VERIFIER_CACHE.iterkeys():
-        # This is very inefficient, but still faster than adding all the functions to workstacks
-        # and reading from the cache repeatedly.
-        vresult = VERIFIER_CACHE[vinput]
-        if vresult.succeeded and vresult.get_function() == function:
-            return True
-    return False
+    if VERIFIER_CACHE is not None:
+        for vinput in VERIFIER_CACHE.iterkeys():
+            # This is very inefficient, but still faster than adding all the functions to workstacks
+            # and reading from the cache repeatedly.
+            vresult = VERIFIER_CACHE[vinput]
+            if vresult.succeeded and vresult.get_function() == function:
+                return vresult.get_spec()
+    return None
 
 
 if __name__ == "__main__":

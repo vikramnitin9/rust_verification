@@ -5,7 +5,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Self
 
-from util import CFunction, FunctionSpecification, ParsecFile
+from util import CFunction, FunctionSpecification, ParsecProject
 
 from .verification_input import VerificationContext
 
@@ -84,7 +84,7 @@ class ProofState:
     every function in the program has a proven or assumed specification.
 
     Attributes:
-        _specs (MappingProxyType[CFunction, FunctionSpecification]): The current specifications for
+        _specs (dict[CFunction, FunctionSpecification]): The current specifications for
             each function. These specifications may or may not be verified.
             # TODO: How are identically-named functions in different files distinguished?
         _workstack (WorkStack): A stack of functions that must be (re)processed.
@@ -92,12 +92,12 @@ class ProofState:
 
     """
 
-    _specs: MappingProxyType[CFunction, FunctionSpecification]
+    _specs: dict[CFunction, FunctionSpecification]
     _workstack: WorkStack
 
     def __init__(self, specs: dict[CFunction, FunctionSpecification], workstack: WorkStack) -> None:
         """Create a new ProofState."""
-        self._specs = MappingProxyType(specs)
+        self._specs = specs
         self._workstack = workstack
 
     @classmethod
@@ -192,8 +192,8 @@ class ProofState:
         Returns:
             VerificationContext: The current verification context for the function.
         """
-        parsec_file = ParsecFile(file_path=Path(function.file_name))
-        callees_for_function = parsec_file.get_callees(function=function)
+        parsec_project = ParsecProject(input_path=Path(function.file_name))
+        callees_for_function = parsec_project.get_callees(function=function)
         callee_specs = {
             callee: callee_spec
             for callee in callees_for_function

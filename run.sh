@@ -37,10 +37,12 @@ if docker info -f "{{println .SecurityOptions}}" | grep -q rootless; then
     -v "$(pwd)/util:/app/util" \
     -v "$(pwd)/verification:/app/verification" \
     -v "$(pwd)/specs:/app/specs" \
+    -v "$(pwd)/eval:/app/eval" \
     -v "$(pwd)/logs:/app/logs" \
     -v "$(pwd)/prompts:/app/prompts" \
     -v "$(pwd)/main.py:/app/main.py" \
     -v "$(pwd)/read_cache.py:/app/read_cache.py" \
+    -v "$(pwd)/generate_avocado_stubs.py:/app/generate_avocado_stubs.py" \
     -v "$(pwd)/translate_specs.py:/app/translate_specs.py" \
     cbmc:latest "${CMD[@]}"
 else
@@ -54,10 +56,12 @@ else
     -v "$(pwd)/util:/app/util" \
     -v "$(pwd)/verification:/app/verification" \
     -v "$(pwd)/specs:/app/specs" \
+    -v "$(pwd)/eval:/app/eval" \
     -v "$(pwd)/logs:/app/logs" \
     -v "$(pwd)/prompts:/app/prompts" \
     -v "$(pwd)/main.py:/app/main.py" \
     -v "$(pwd)/read_cache.py:/app/read_cache.py" \
+    -v "$(pwd)/generate_avocado_stubs.py:/app/generate_avocado_stubs.py" \
     -v "$(pwd)/translate_specs.py:/app/translate_specs.py" \
     cbmc:latest "${CMD[@]}"
 fi

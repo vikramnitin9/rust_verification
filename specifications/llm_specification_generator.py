@@ -8,9 +8,11 @@ from loguru import logger
 
 from models import (
     ConversationMessage,
+    DefaultLlmBackend,
     LlmClient,
     LlmMessage,
     ModelError,
+    StubLlmBackend,
     SystemMessage,
     UserMessage,
 )
@@ -22,7 +24,7 @@ from util import (
     BacktrackToCallee,
     CFunction,
     FunctionSpecification,
-    ParsecFile,
+    ParsecProject,
     SpecConversation,
     SpecGenGranularity,
     SpecificationGenerationNextStep,
@@ -79,6 +81,9 @@ class LlmSpecificationGenerator:
         fix_illegal_syntax: bool,
         normalize_specs: bool,
         specgen_granularity: SpecGenGranularity,
+        path_to_llm_response_cache_dir: str,
+        *,
+        is_running_as_stub: bool,
         disable_llm_cache: bool = False,
     ) -> None:
         """Create a new LlmSpecificationGenerator."""
@@ -91,17 +96,21 @@ class LlmSpecificationGenerator:
         self._fix_illegal_syntax = fix_illegal_syntax
         self._normalize_specs = normalize_specs
         self._specgen_granularity = specgen_granularity
+        llm_backend = (
+            StubLlmBackend(model) if is_running_as_stub else DefaultLlmBackend.get_instance(model)
+        )
         self._llm_client = LlmClient(
-            model_name=model,
+            llm=llm_backend,
             top_k=num_specification_candidates,
             temperature=temperature,
+            path_to_llm_response_cache_dir=path_to_llm_response_cache_dir,
             disable_llm_cache=disable_llm_cache,
         )
 
     def generate_and_repair_spec(
         self,
         function: CFunction,
-        parsec_file: ParsecFile,
+        parsec_project: ParsecProject,
         hint: str,
         proof_state: ProofState,
     ) -> list[SpecConversation]:
@@ -109,7 +118,7 @@ class LlmSpecificationGenerator:
 
         Args:
             function (CFunction): The function for which to generate potential specs.
-            parsec_file (ParsecFile): The file that contains `function`.
+            parsec_project (ParsecProject): The ParseC project that contains `function`.
             hint (str): Hints to help guide specification regeneration (i.e., when a
                 specification is not accepted or assumed as-is, and is either being repaired or when
                 a callee specification is re-generated).
@@ -120,7 +129,7 @@ class LlmSpecificationGenerator:
                 Each may or may not verify.
         """
         candidate_speccs = self._generate_unrepaired_speccs(
-            function=function, parsec_file=parsec_file, hint=hint, proof_state=proof_state
+            function=function, parsec_project=parsec_project, hint=hint, proof_state=proof_state
         )
 
         # Right now, the "pruning" strategy is just to partition the candidate specs into a set
@@ -138,15 +147,25 @@ class LlmSpecificationGenerator:
             repaired_speccs.extend(
                 # `_repair_spec()` is called whether or not the spec verifies.
                 self._repair_spec(
-                    specc=non_verifying_specc, proof_state=proof_state, parsec_file=parsec_file
+                    specc=non_verifying_specc,
+                    proof_state=proof_state,
+                    parsec_project=parsec_project,
                 )
             )
         return [*verifying_speccs, *repaired_speccs]
 
+    def get_verification_client(self) -> VerificationClient:
+        """Return this specification generator's verification client.
+
+        Returns:
+            VerificationClient: This specification generator's verification client.
+        """
+        return self._verifier
+
     def _generate_unrepaired_speccs(
         self,
         function: CFunction,
-        parsec_file: ParsecFile,
+        parsec_project: ParsecProject,
         hint: str,
         proof_state: ProofState,
     ) -> list[SpecConversation]:
@@ -156,7 +175,7 @@ class LlmSpecificationGenerator:
 
         Args:
             function (CFunction): The function for which to generate specifications.
-            parsec_file (ParsecFile): The file that contains `function`.
+            parsec_project (ParsecProject): The ParseC project that contains `function`.
             hint (str): Hints to guide specification generation. Only non-empty when
                 generating specs during backtracking (i.e., a callee specification is being
                 re-generated).
@@ -167,7 +186,7 @@ class LlmSpecificationGenerator:
         """
         conversation: list[ConversationMessage] = [SystemMessage(content=self._system_prompt)]
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
-            function, self._specgen_granularity, parsec_file
+            function, parsec_project, self._specgen_granularity
         )
         if hint:
             specification_generation_prompt += "\n\n" + hint
@@ -194,7 +213,7 @@ class LlmSpecificationGenerator:
                     function_code_with_specs = function_util.get_source_code_with_inserted_spec(
                         function_name=function.name,
                         specification=candidate_spec,
-                        parsec_file=parsec_file,
+                        parsec_project=parsec_project,
                     )
                     function.set_specifications(specifications=candidate_spec)
                     function.set_source_code(function_code_with_specs)
@@ -203,7 +222,7 @@ class LlmSpecificationGenerator:
                             function=function,
                             specification=candidate_spec,
                             conversation=(*conversation, LlmMessage(content=llm_response)),
-                            parsec_file=parsec_file,
+                            parsec_project=parsec_project,
                             existing_specs=proof_state.get_specifications(),
                         )
                     )
@@ -220,19 +239,23 @@ class LlmSpecificationGenerator:
         self,
         specc: SpecConversation,
         proof_state: ProofState,
-        parsec_file: ParsecFile,
+        parsec_project: ParsecProject,
     ) -> list[SpecConversation]:
-        """If the spec verifies, return it.  If the spec does not verify, try to repair it.
+        """If the spec verifies, return it. Otherwise, attempt to repair the spec or assume it.
+
+        A failing spec should not be repaired if it is for a function that is recursive
+        (i.e., the heuristic here would be to assume the specification and move on.)
 
         Args:
             specc (SpecConversation): The SpecConversation that ends with the spec that
                 may fail to verify.
             proof_state (ProofState): The proof state for the specification.
-            parsec_file (ParsecFile): The file being verified.
+            parsec_project (ParsecProject): The ParseC project that contains `function`.
 
         Returns:
             list[SpecConversation]: A list of specifications that successfully verify (they either
-                verified in the first place, or were repaired), or a list of specifications that
+                verified in the first place, or were repaired), or a list of specs that are assumed
+                (i.e., a spec for a recursive function), or a list of specifications that
                 ultimately failed repair.
         """
         # Check whether the given spec even needs repair.
@@ -245,6 +268,13 @@ class LlmSpecificationGenerator:
         vresult = self._verifier.verify(vinput=vinput)
         if vresult.succeeded:
             specc.next_step = AcceptVerifiedSpec()
+            return [specc]
+
+        # Is the given spec for a recursive function? If so, assume it and move on.
+        # It is unlikely that iteratively repairing a failing spec for a recursive function will
+        # produce a spec that verifies (both due to its complexity and CBMC's limitations).
+        if specc.function.is_self_recursive():
+            specc.next_step = AssumeSpecAsIs()
             return [specc]
 
         # These two variables are the two possible return values of this method.
@@ -317,7 +347,7 @@ class LlmSpecificationGenerator:
                         *conversation_updated_with_repair_prompt,
                         LlmMessage(content=response),
                     ),
-                    parsec_file=parsec_file,
+                    parsec_project=parsec_project,
                     existing_specs=proof_state.get_specifications(),
                 )
                 speccs_to_repair.append((next_specc, num_repair_attempts + 1))
