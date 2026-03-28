@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 from string import Template
 
-from util import CFunction, ParsecProject, SpecGenGranularity, text_util
+from util import CFunction, FunctionSpecification, ParsecProject, SpecGenGranularity, text_util
 
 from .verification_result import VerificationResult
 
@@ -31,6 +31,12 @@ class PromptBuilder:
     NEXT_STEP_PROMPT_TEMPLATE = Template(
         Path("./prompts/next-step-prompt-template.txt").read_text()
     )
+
+    # Implementation generation prompt template.
+    GENERATE_IMPLEMENTATION_PROMPT_TEMPLATE = Template(
+        Path("./prompts/generate-implementation-prompt-template.txt").read_text(encoding="utf-8")
+    )
+
     CBMC_OUTPUT_FAILURE_MARKER = "FAILURE"
 
     def specification_generation_prompt(
@@ -155,6 +161,27 @@ class PromptBuilder:
                     f"{line}: {content}" for line, content in source_code_with_line_numbers
                 ),
             )
+
+    def generate_implementation_prompt(
+        self,
+        signature: str,
+        specification: FunctionSpecification,
+    ) -> str:
+        """Return the prompt used to generate a C function implementation.
+
+        Args:
+            signature (str): The signature for the C function to implement
+                (e.g., int add(int a, int b))
+            specification (FunctionSpecification): The CBMC pre- and postconditions the
+                implementation must satisfy.
+
+        Returns:
+            str: The prompt asking the LLM to produce a matching implementation.
+        """
+        return PromptBuilder.GENERATE_IMPLEMENTATION_PROMPT_TEMPLATE.substitute(
+            signature=signature.strip(),
+            specification=specification.get_prompt_str(),
+        )
 
     def _get_callee_specs(self, caller: str, callees_with_specs: list[CFunction]) -> str:
         """Return the specifications of all the callees of `caller`.
