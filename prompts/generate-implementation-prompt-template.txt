@@ -1,0 +1,41 @@
+Given the following C function signature and its formal specification, write a correct C
+implementation that satisfies the specification.
+
+The specification is expressed as CBMC preconditions and postconditions:
+  - Each __CPROVER_requires(...) clause is a precondition that the caller guarantees on entry.
+  - Each __CPROVER_ensures(...) clause is a postcondition that the implementation must guarantee on exit.
+  - Each __CPROVER_assigns(...) clause denotes locations in memory that the implementation writes to.
+
+For example, given the function signature:
+
+int get_max(int a, int b)
+
+And the specification:
+
+__CPROVER_requires(a < INT_MAX)
+__CPROVER_requires(b < INT_MAX)
+__CPROVER_ensures((__CPROVER_return_value == a) ==> a >= b)
+__CPROVER_ensures((__CPROVER_return_value == b) ==> b > a)
+
+A response is:
+
+{
+  "implementation": "if (a >= b)\n{\n    return a;\n}\nreturn b;"
+}
+
+Here is the function signature:
+
+<SIGNATURE>
+$signature
+</SIGNATURE>
+
+And specification:
+<SPECIFICATION>
+$specification
+</SPECIFICATION>
+
+Your response is a JSON object with a single key "implementation" whose value is a string comprising
+only the body of the function (i.e., everything between the outermost braces, exclusive).
+
+Do not include the function signature, any __CPROVER annotations, markdown delimiters, or any other
+text outside the JSON object.
