@@ -1,7 +1,5 @@
 """Module for generating C function implementations from signatures and specifications."""
 
-import json
-
 from loguru import logger
 
 from models import LlmClient, SystemMessage, UserMessage
@@ -93,6 +91,8 @@ class FunctionImplementationGenerator:
                 f"{llm_response}"
             )
             return None
-        except json.JSONDecodeError:
-            logger.error(f"Failed to parse JSON from raw LLM response: {llm_response}")
+        except RuntimeError as re:
+            logger.error(
+                f"Failed to parse JSON from raw LLM response: {llm_response}, with error: {re}"
+            )
             return None
