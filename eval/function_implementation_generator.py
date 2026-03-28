@@ -10,12 +10,11 @@ from verification import PromptBuilder
 
 
 class FunctionImplementationGenerator:
-    """Regenerates C function implementations from a specification and signature using an LLM.
+    """Generates a C function implementation from a specification and signature using an LLM.
 
     Attributes:
         _llm_client (LlmClient): The LLM client used to generate function implementations.
-        _prompt_builder (PromptBuilder): The prompt builder to use to construct prompts for
-            LLM API requests.
+        _prompt_builder (PromptBuilder): Constructs LLM prompts.
     """
 
     _llm_client: LlmClient
@@ -25,7 +24,7 @@ class FunctionImplementationGenerator:
         """Create a new FunctionImplementationGenerator.
 
         Args:
-            llm_client (LlmClient): The LLM client used to sample implementations.
+            llm_client (LlmClient): The LLM client used to generate function implementations.
         """
         self._llm_client = llm_client
         self._prompt_builder = PromptBuilder()
@@ -43,8 +42,8 @@ class FunctionImplementationGenerator:
 
         Args:
             system_prompt (str): The system prompt for the implementation generation conversation.
-            signature (str): The signature for the C function to implement
-                (e.g., int add(int a, int b))
+            signature (str): The signature for the C function to implement,
+                such as "int add(int a, int b)".
             specification (FunctionSpecification): The CBMC pre- and postconditions the
                 implementation must satisfy.
 
@@ -59,6 +58,7 @@ class FunctionImplementationGenerator:
             SystemMessage(content=system_prompt),
             UserMessage(content=prompt),
         )
+        # Each element of `raw_responses` is a JSON object with an "implementation" key.
         raw_responses = self._llm_client.get(conversation=conversation)
         implementations = [
             impl for impl in (self._extract_code(r) for r in raw_responses) if impl is not None
