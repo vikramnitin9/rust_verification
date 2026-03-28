@@ -37,6 +37,7 @@ if docker info -f "{{println .SecurityOptions}}" | grep -q rootless; then
     -v "$(pwd)/util:/app/util" \
     -v "$(pwd)/verification:/app/verification" \
     -v "$(pwd)/specs:/app/specs" \
+    -v "$(pwd)/eval:/app/eval" \
     -v "$(pwd)/logs:/app/logs" \
     -v "$(pwd)/prompts:/app/prompts" \
     -v "$(pwd)/main.py:/app/main.py" \
@@ -54,6 +55,7 @@ else
     -v "$(pwd)/util:/app/util" \
     -v "$(pwd)/verification:/app/verification" \
     -v "$(pwd)/specs:/app/specs" \
+    -v "$(pwd)/eval:/app/eval" \
     -v "$(pwd)/logs:/app/logs" \
     -v "$(pwd)/prompts:/app/prompts" \
     -v "$(pwd)/main.py:/app/main.py" \

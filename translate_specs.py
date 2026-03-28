@@ -1,4 +1,4 @@
-#!/opt/miniconda3/bin/python
+#!/usr/bin/env python3
 
 """Script to translate CBMC specifications for C functions into equivalents in Kani."""
 

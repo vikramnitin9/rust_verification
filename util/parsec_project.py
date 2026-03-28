@@ -87,6 +87,22 @@ class ParsecProject:
                     self.call_graph.add_edge(func, callee)
 
     @staticmethod
+    def get_functions_defined_in_file(file_path: Path) -> list[CFunction]:
+        """Return the functions defined in the given file.
+
+        Args:
+            file_path (Path): The path to the file from which to extract functions.
+
+        Returns:
+            list[CFunction]: The CFunctions parsed from the given file.
+        """
+        if file_path.is_dir():
+            msg = f"Expected a file at {file_path}, but got a directory"
+            raise ValueError(msg)
+        parsed_file = ParsecProject(file_path)
+        return list(parsed_file.functions.values())
+
+    @staticmethod
     def parse_source_with_cbmc_annotations(
         file_with_cbmc_annotations: Path,
     ) -> ParsecProject:
