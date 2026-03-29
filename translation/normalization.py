@@ -176,6 +176,9 @@ class CBMCNormalizer:
     def visit_TypedTarget(self, node: cbmc_ast.TypedTarget) -> str:
         return f"__CPROVER_typed_target({self.visit(node.expr)})"
 
+    def visit_Freeable(self, node: cbmc_ast.Freeable) -> str:
+        return f"__CPROVER_freeable({self.visit(node.expr)})"
+
     def visit_ArgList(self, node: cbmc_ast.ArgList) -> str:
         return ", ".join(self.visit(item) for item in node.items)
 
@@ -238,6 +241,16 @@ class CBMCNormalizer:
         return f"__CPROVER_assigns({targets})"
 
     def visit_AssignsTargetList(self, node: cbmc_ast.AssignsTargetList) -> str:
+        return self.visit(node.items)
+
+    def visit_Frees(self, node: cbmc_ast.Frees) -> str:
+        targets = self.visit(node.targets)
+        if node.condition:
+            cond = self.visit(node.condition)
+            return f"__CPROVER_frees({cond} : {targets})"
+        return f"__CPROVER_frees({targets})"
+
+    def visit_FreesTargetList(self, node: cbmc_ast.FreesTargetList) -> str:
         return self.visit(node.items)
 
     def visit_ExprList(self, node: cbmc_ast.ExprList) -> str:
