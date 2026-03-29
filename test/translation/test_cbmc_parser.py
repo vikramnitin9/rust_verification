@@ -20,6 +20,7 @@ from translation.ast.cbmc_ast import (
     Name,
     NeqOp,
     Number,
+    ObjectWhole,
     OrOp,
     PtrMemberOp,
     QuantifierDecl,
@@ -252,4 +253,41 @@ def test_conditional_assigns() -> None:
             pytest.fail(
                 f"Expected {conditional_assigns_spec} to parse to an 'Assigns' node with a "
                 f"condition and targets, but got: {parsed_spec}"
+            )
+
+
+def test_assigns_object_whole() -> None:
+    assigns_cbmc_spec = "__CPROVER_assigns(__CPROVER_object_whole(p))"
+    parsed_spec = parser.parse(assigns_cbmc_spec)
+
+    match parsed_spec:
+        case Assigns(
+            condition=None,
+            targets=AssignsTargetList(items=ExprList(items=[ObjectWhole(expr=Name("p"))])),
+        ):
+            pass
+        case _:
+            pytest.fail(
+                f"Expected __CPROVER_assigns(__CPROVER_object_whole(p)) to parse to an 'Assigns' "
+                f"node with an ObjectWhole target, but got: {parsed_spec}"
+            )
+
+
+def test_assigns_object_whole_multiple() -> None:
+    assigns_cbmc_spec = "__CPROVER_assigns(__CPROVER_object_whole(p), __CPROVER_object_whole(q))"
+    parsed_spec = parser.parse(assigns_cbmc_spec)
+
+    match parsed_spec:
+        case Assigns(
+            condition=None,
+            targets=AssignsTargetList(
+                items=ExprList(
+                    items=[ObjectWhole(expr=Name("p")), ObjectWhole(expr=Name("q"))]
+                )
+            ),
+        ):
+            pass
+        case _:
+            pytest.fail(
+                f"Expected two ObjectWhole targets, but got: {parsed_spec}"
             )

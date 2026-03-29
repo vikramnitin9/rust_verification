@@ -55,11 +55,14 @@ assigns_clause : "__CPROVER_assigns" "(" assigns_content ")"
 
 // ---------- Primary values ----------
 ?primary: quantifier_expr
+        | object_whole_expr
         | NAME
         | NUMBER
         | BOOL
         | STRING
         | "(" expr ")"
+
+object_whole_expr: "__CPROVER_object_whole" "(" expr ")"
 
 // --------- Assigns Contents -------------------------
 

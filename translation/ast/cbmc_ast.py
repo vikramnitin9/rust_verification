@@ -67,6 +67,13 @@ class Assigns(CbmcAst):
 
 
 @dataclass(frozen=True)
+class ObjectWhole(CbmcAst):
+    """Represents a __CPROVER_object_whole(expr) assigns target designator."""
+
+    expr: Any
+
+
+@dataclass(frozen=True)
 class Name(CbmcAst):
     name: str
 
@@ -475,6 +482,9 @@ class _ToAst(Transformer):
         """
         if isinstance(expr, CallOp):
             raise ValueError(f"Function calls not allowed in assigns targets: {expr}")
+        if isinstance(expr, ObjectWhole):
+            # ObjectWhole is a side-effect-free designator — allow it
+            return
         if isinstance(expr, ExprList):
             for e in expr.items:
                 self._validate_side_effect_free(e)
@@ -489,6 +499,11 @@ class _ToAst(Transformer):
             self._validate_side_effect_free(expr.right)
         if hasattr(expr, "operand"):
             self._validate_side_effect_free(expr.operand)
+
+    @v_args(inline=True)
+    def object_whole_expr(self, expr):  # type: ignore[no-untyped-def]
+        """Parse tree transformer for object_whole_expr grammar rule."""
+        return ObjectWhole(expr=expr)
 
     @v_args(inline=True)
     def assigns_target_list(self, *targets):  # type: ignore[no-untyped-def]

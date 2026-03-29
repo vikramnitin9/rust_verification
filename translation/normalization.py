@@ -164,6 +164,9 @@ class CBMCNormalizer:
     def visit_CallOp(self, node: cbmc_ast.CallOp) -> str:
         return f"{self.visit(node.func)}({self.visit(node.args)})"
 
+    def visit_ObjectWhole(self, node: cbmc_ast.ObjectWhole) -> str:
+        return f"__CPROVER_object_whole({self.visit(node.expr)})"
+
     def visit_ArgList(self, node: cbmc_ast.ArgList) -> str:
         return ", ".join(self.visit(item) for item in node.items)
 
