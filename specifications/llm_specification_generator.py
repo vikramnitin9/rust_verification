@@ -372,13 +372,14 @@ class LlmSpecificationGenerator:
             conversation (tuple[ConversationMessage]): The conversation for specification repair,
                 which ends with a user message telling the LLM to fix a failing spec.
 
+        Returns:
+            tuple[tuple[FunctionSpecification, str], ...]: A tuple of function specifications paired
+                with the raw LLM response from which they were extracted.
+
         Raises:
             RuntimeError: Raised when a failure occurs (e.g., API timeout) during a call to an LLM
                 for specification repair.
 
-        Returns:
-            tuple[tuple[FunctionSpecification, str], ...]: A tuple of function specifications paired
-                with the raw LLM response from which they were extracted.
 
         """
         try:

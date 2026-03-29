@@ -30,3 +30,5 @@
     prompt templates (`prompt_builder.py`).
 - `prompts/`: Plaintext prompt templates.
 - `models/`: Code related to LLM calls.
+- `translation/`: Code related to translating between CBMC and Kani,
+    includes CBCM grammar (`cbmc.txt`).
