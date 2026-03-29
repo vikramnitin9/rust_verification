@@ -57,6 +57,8 @@ assigns_clause : "__CPROVER_assigns" "(" assigns_content ")"
 ?primary: quantifier_expr
         | object_whole_expr
         | object_from_expr
+        | object_upto_expr
+        | typed_target_expr
         | NAME
         | NUMBER
         | BOOL
@@ -65,6 +67,8 @@ assigns_clause : "__CPROVER_assigns" "(" assigns_content ")"
 
 object_whole_expr: "__CPROVER_object_whole" "(" expr ")"
 object_from_expr: "__CPROVER_object_from" "(" expr ")"
+object_upto_expr: "__CPROVER_object_upto" "(" expr "," expr ")"
+typed_target_expr: "__CPROVER_typed_target" "(" expr ")"
 
 // --------- Assigns Contents -------------------------
 

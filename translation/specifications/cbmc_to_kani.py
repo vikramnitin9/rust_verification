@@ -122,6 +122,14 @@ class CbmcToKani:
                 # pointed to by p.1
                 # kani::modifies already operates on the whole pointed-to object, so pass p through.
                 return self._to_kani_str(expr)
+            case cbmc_ast.TypedTarget(expr):
+                # __CPROVER_typed_target(lvalue) restricts assignability to writes of lvalue's type;
+                # kani::modifies has no typed restriction, so pass the lvalue through.
+                return self._to_kani_str(expr)
+            case cbmc_ast.ObjectUpto():
+                # __CPROVER_object_upto(ptr, size) designates a byte range with no Kani equivalent.
+                msg = f"__CPROVER_object_upto in '{spec}' is not supported in Kani"
+                raise TranslationError(msg)
             case cbmc_ast.DerefOp(operand):
                 rust_operand = self._to_kani_str(operand)
                 return f"*{rust_operand}"

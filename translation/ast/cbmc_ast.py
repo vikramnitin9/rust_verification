@@ -81,6 +81,29 @@ class ObjectFrom(CbmcAst):
 
 
 @dataclass(frozen=True)
+class ObjectUpto(CbmcAst):
+    """Represents a __CPROVER_object_upto(ptr, size) assigns target designator.
+
+    Designates the range of bytes starting at *ptr up to (but not including)
+    byte at offset size.
+    """
+
+    ptr: Any
+    size: Any
+
+
+@dataclass(frozen=True)
+class TypedTarget(CbmcAst):
+    """Represents a __CPROVER_typed_target(lvalue) assigns target designator.
+
+    Designates the same memory location as lvalue but restricts assignability
+    to writes of the same type as lvalue.
+    """
+
+    expr: Any
+
+
+@dataclass(frozen=True)
 class Name(CbmcAst):
     name: str
 
@@ -490,7 +513,9 @@ class _ToAst(Transformer):
         if isinstance(expr, CallOp):
             raise ValueError(f"Function calls not allowed in assigns targets: {expr}")
         if isinstance(expr, ObjectWhole) or isinstance(expr, ObjectFrom):
-            # ObjectWhole and ObjectFrom is a side-effect-free designator; allow it
+            # ObjectWhole, ObjectFrom, ObjectUpto, and TypedTarget are side-effect-free designators; allow them
+            return
+        if isinstance(expr, ObjectUpto) or isinstance(expr, TypedTarget):
             return
         if isinstance(expr, ExprList):
             for e in expr.items:
@@ -514,6 +539,14 @@ class _ToAst(Transformer):
     @v_args(inline=True)
     def object_from_expr(self, expr):  # type: ignore[no-untyped-def]
         return ObjectFrom(expr=expr)
+
+    @v_args(inline=True)
+    def object_upto_expr(self, ptr, size):  # type: ignore[no-untyped-def]
+        return ObjectUpto(ptr=ptr, size=size)
+
+    @v_args(inline=True)
+    def typed_target_expr(self, expr):  # type: ignore[no-untyped-def]
+        return TypedTarget(expr=expr)
 
     @v_args(inline=True)
     def assigns_target_list(self, *targets):  # type: ignore[no-untyped-def]

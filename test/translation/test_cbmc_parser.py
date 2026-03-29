@@ -20,13 +20,15 @@ from translation.ast.cbmc_ast import (
     Name,
     NeqOp,
     Number,
-    ObjectWhole,
     ObjectFrom,
+    ObjectUpto,
+    ObjectWhole,
     OrOp,
     PtrMemberOp,
     QuantifierDecl,
     RequiresClause,
     ToAst,
+    TypedTarget,
 )
 from translation.parser import Parser
 
@@ -327,4 +329,42 @@ def test_assigns_object_from_multiple() -> None:
         case _:
             pytest.fail(
                 f"Expected two ObjectFrom targets, but got: {parsed_spec}"
+            )
+
+
+def test_assigns_object_upto() -> None:
+    assigns_cbmc_spec = "__CPROVER_assigns(__CPROVER_object_upto(p, n))"
+    parsed_spec = parser.parse(assigns_cbmc_spec)
+
+    match parsed_spec:
+        case Assigns(
+            condition=None,
+            targets=AssignsTargetList(
+                items=ExprList(items=[ObjectUpto(ptr=Name("p"), size=Name("n"))])
+            ),
+        ):
+            pass
+        case _:
+            pytest.fail(
+                f"Expected __CPROVER_assigns(__CPROVER_object_upto(p, n)) to parse to an 'Assigns' "
+                f"node with an ObjectUpto target, but got: {parsed_spec}"
+            )
+
+
+def test_assigns_typed_target() -> None:
+    assigns_cbmc_spec = "__CPROVER_assigns(__CPROVER_typed_target(*p))"
+    parsed_spec = parser.parse(assigns_cbmc_spec)
+
+    match parsed_spec:
+        case Assigns(
+            condition=None,
+            targets=AssignsTargetList(
+                items=ExprList(items=[TypedTarget(expr=DerefOp(operand=Name("p")))])
+            ),
+        ):
+            pass
+        case _:
+            pytest.fail(
+                f"Expected __CPROVER_assigns(__CPROVER_typed_target(*p)) to parse to an 'Assigns' "
+                f"node with a TypedTarget, but got: {parsed_spec}"
             )

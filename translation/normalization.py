@@ -170,6 +170,12 @@ class CBMCNormalizer:
     def visit_ObjectFrom(self, node: cbmc_ast.ObjectFrom) -> str:
         return f"__CPROVER_object_from({self.visit(node.expr)})"
 
+    def visit_ObjectUpto(self, node: cbmc_ast.ObjectUpto) -> str:
+        return f"__CPROVER_object_upto({self.visit(node.ptr)}, {self.visit(node.size)})"
+
+    def visit_TypedTarget(self, node: cbmc_ast.TypedTarget) -> str:
+        return f"__CPROVER_typed_target({self.visit(node.expr)})"
+
     def visit_ArgList(self, node: cbmc_ast.ArgList) -> str:
         return ", ".join(self.visit(item) for item in node.items)
 
