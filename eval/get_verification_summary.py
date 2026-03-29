@@ -9,7 +9,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from diskcache import Cache  # ty: ignore
+from diskcache import Cache
+from loguru import logger
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
@@ -184,6 +185,13 @@ def main() -> None:
         ],
     ]
 
+    num_verified_functions = _get_num_verified_functions(verification_summary_for_file)
+
+    logger.info(
+        f"{num_verified_functions}/{len(verification_summary_for_file['functions'])} "
+        f"function(s) verified in {args.file}"
+    )
+
     with _get_result_json_name(args.file).open(mode="w") as f:
         json.dump(verification_summary_for_file, f, indent=4)
 
@@ -251,7 +259,7 @@ def _get_names_of_unprocessed_functions(
     all_functions_in_file = {
         f.name for f in ParsecProject.get_functions_defined_in_file(Path(c_file))
     }
-    functions_with_lookup_results = {f.name for f, _ in function_to_lookup_results.items()}
+    functions_with_lookup_results = {f.name for f in function_to_lookup_results}
     return all_functions_in_file.difference(functions_with_lookup_results)
 
 
@@ -318,6 +326,23 @@ def _get_complexity_for_clauses(
         [get_complexity(clause) for clause in spec.preconditions],
         [get_complexity(clause) for clause in spec.postconditions],
     )
+
+
+def _get_num_verified_functions(file_summary: dict[str, Any]) -> int:
+    """Return the number of functions with at least one verifying specification.
+
+    Args:
+        file_summary (dict[str, Any]): A verification summary for a file.
+
+    Returns:
+        int: The count of functions that have at least one verifying specification.
+    """
+    verified_functions = [
+        function_summary
+        for function_summary in file_summary["functions"]
+        if len(function_summary["verifying_specs"]) > 0
+    ]
+    return len(verified_functions)
 
 
 if __name__ == "__main__":

@@ -105,13 +105,14 @@ class SpecConversation:
     def get_latest_llm_response(self) -> str:
         """Return the latest LLM response in this specification's associated conversation.
 
+        Returns:
+            str: The latest LLM response in this specification's associated conversation.
+
         Raises:
             ValueError: Raised when the latest message in this specification's associated
                 conversation does not originate from an LLM response, or if the conversation is
                 empty.
 
-        Returns:
-            str: The latest LLM response in this specification's associated conversation.
         """
         if not self.conversation:
             raise ValueError("SpecConversation had an empty conversation")

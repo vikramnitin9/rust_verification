@@ -244,7 +244,7 @@ class ParsecProject:
             raise FileNotFoundError(msg)
 
         cmd = ["parsec", "--rename-main=false", "--add-instr=false", *file_list]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
         path_to_result = Path.cwd() / Path("analysis.json")
 
         if result.returncode != 0:

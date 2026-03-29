@@ -72,11 +72,14 @@ class CbmcToKani:
         Args:
             spec (CbmcAst): The CBMC specification to convert to a a Kani specification.
 
+        Returns:
+            str: The Kani specification.
+
         Raises:
             TranslationError: Raised when translation from CBMC to Kani fails (or is unsupported).
 
-        Returns:
-            str: The Kani specification.
+
+
         """
         match spec:
             case cbmc_ast.RequiresClause(_, expr):
@@ -117,6 +120,19 @@ class CbmcToKani:
                 rust_func = self._to_kani_str(func)
                 rust_args = self._to_kani_str(args) if args else ""
                 return f"{rust_func}({rust_args})"
+            case cbmc_ast.ObjectWhole(expr) | cbmc_ast.ObjectFrom(expr):
+                # __CPROVER_object_whole(p) and __CPROVER_object_from(p) designates the object
+                # pointed to by p.
+                # kani::modifies already operates on the whole pointed-to object, so pass p through.
+                return self._to_kani_str(expr)
+            case cbmc_ast.TypedTarget(expr):
+                # __CPROVER_typed_target(lvalue) restricts assignability to writes of lvalue's type;
+                # kani::modifies has no typed restriction, so pass the lvalue through.
+                return self._to_kani_str(expr)
+            case cbmc_ast.ObjectUpto():
+                # __CPROVER_object_upto(ptr, size) designates a byte range with no Kani equivalent.
+                msg = f"__CPROVER_object_upto in '{spec}' is not supported in Kani"
+                raise TranslationError(msg)
             case cbmc_ast.DerefOp(operand):
                 rust_operand = self._to_kani_str(operand)
                 return f"*{rust_operand}"
@@ -149,11 +165,12 @@ class CbmcToKani:
         Args:
             cbmc_range_expr (Any): A CBMC range expression.
 
-        Raises:
-            TranslationError: Raised when an invalid CBMC range is encountered.
 
         Returns:
             str: A string representation of the equivalent Kani range.
+
+        Raises:
+            TranslationError: Raised when an invalid CBMC range is encountered.
         """
         match cbmc_range_expr:
             # Case 1: lower_bound <= i && i < upper_bound (most common)

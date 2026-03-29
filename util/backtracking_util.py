@@ -26,12 +26,13 @@ def parse_backtracking_info(llm_response: str) -> BacktrackingInformation:
     Args:
         llm_response (str): The raw LLM response comprising backtracking information.
 
+    Returns:
+        BacktrackingInformation: Backtracking information parsed from the LLM response.
+
     Raises:
         RuntimeError: Raised when the LLM response does not contain the 'callee' and
             'postcondition_strengthening_description' keys.
 
-    Returns:
-        BacktrackingInformation: Backtracking information parsed from the LLM response.
     """
     llm_response_dict = parse_object(llm_response)
     callee_name = llm_response_dict.get("callee")
