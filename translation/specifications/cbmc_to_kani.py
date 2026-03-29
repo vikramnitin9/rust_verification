@@ -119,7 +119,7 @@ class CbmcToKani:
                 return f"{rust_func}({rust_args})"
             case cbmc_ast.ObjectWhole(expr) | cbmc_ast.ObjectFrom(expr):
                 # __CPROVER_object_whole(p) and __CPROVER_object_from(p) designates the object
-                # pointed to by p.1
+                # pointed to by p.
                 # kani::modifies already operates on the whole pointed-to object, so pass p through.
                 return self._to_kani_str(expr)
             case cbmc_ast.TypedTarget(expr):
