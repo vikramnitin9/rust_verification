@@ -510,12 +510,17 @@ class _ToAst(Transformer):
         Raises:
             ValueError: Raised when a function call appears in the expression.
         """
-        side_effect_free_designators = [ObjectWhole, ObjectFrom, ObjectUpto, TypedTarget]
         if isinstance(expr, CallOp):
             raise ValueError(f"Function calls not allowed in assigns targets: {expr}")
-        if any(isinstance(expr, designator) for designator in side_effect_free_designators):
-            # ObjectWhole, ObjectFrom, ObjectUpto, and TypedTarget are side-effect-free designators; allow them
-            return
+        if (
+            isinstance(expr, ObjectWhole)
+            or isinstance(expr, ObjectFrom)
+            or isinstance(expr, TypedTarget)
+        ):
+            self._validate_side_effect_free(expr.expr)
+        if isinstance(expr, ObjectUpto):
+            self._validate_side_effect_free(expr.ptr)
+            self._validate_side_effect_free(expr.size)
         if isinstance(expr, ExprList):
             for e in expr.items:
                 self._validate_side_effect_free(e)
