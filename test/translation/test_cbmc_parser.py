@@ -20,11 +20,15 @@ from translation.ast.cbmc_ast import (
     Name,
     NeqOp,
     Number,
+    ObjectFrom,
+    ObjectUpto,
+    ObjectWhole,
     OrOp,
     PtrMemberOp,
     QuantifierDecl,
     RequiresClause,
     ToAst,
+    TypedTarget,
 )
 from translation.parser import Parser
 
@@ -252,4 +256,115 @@ def test_conditional_assigns() -> None:
             pytest.fail(
                 f"Expected {conditional_assigns_spec} to parse to an 'Assigns' node with a "
                 f"condition and targets, but got: {parsed_spec}"
+            )
+
+
+def test_assigns_object_whole() -> None:
+    assigns_cbmc_spec = "__CPROVER_assigns(__CPROVER_object_whole(p))"
+    parsed_spec = parser.parse(assigns_cbmc_spec)
+
+    match parsed_spec:
+        case Assigns(
+            condition=None,
+            targets=AssignsTargetList(items=ExprList(items=[ObjectWhole(expr=Name("p"))])),
+        ):
+            pass
+        case _:
+            pytest.fail(
+                f"Expected __CPROVER_assigns(__CPROVER_object_whole(p)) to parse to an 'Assigns' "
+                f"node with an ObjectWhole target, but got: {parsed_spec}"
+            )
+
+
+def test_assigns_object_whole_multiple() -> None:
+    assigns_cbmc_spec = "__CPROVER_assigns(__CPROVER_object_whole(p), __CPROVER_object_whole(q))"
+    parsed_spec = parser.parse(assigns_cbmc_spec)
+
+    match parsed_spec:
+        case Assigns(
+            condition=None,
+            targets=AssignsTargetList(
+                items=ExprList(
+                    items=[ObjectWhole(expr=Name("p")), ObjectWhole(expr=Name("q"))]
+                )
+            ),
+        ):
+            pass
+        case _:
+            pytest.fail(
+                f"Expected two ObjectWhole targets, but got: {parsed_spec}"
+            )
+
+def test_assigns_object_from() -> None:
+    assigns_cbmc_spec = "__CPROVER_assigns(__CPROVER_object_from(p))"
+    parsed_spec = parser.parse(assigns_cbmc_spec)
+
+    match parsed_spec:
+        case Assigns(
+            condition=None,
+            targets=AssignsTargetList(items=ExprList(items=[ObjectFrom(expr=Name("p"))])),
+        ):
+            pass
+        case _:
+            pytest.fail(
+                f"Expected __CPROVER_assigns(__CPROVER_object_from(p)) to parse to an 'Assigns' "
+                f"node with an ObjectFrom target, but got: {parsed_spec}"
+            )
+
+
+def test_assigns_object_from_multiple() -> None:
+    assigns_cbmc_spec = "__CPROVER_assigns(__CPROVER_object_from(p), __CPROVER_object_from(q))"
+    parsed_spec = parser.parse(assigns_cbmc_spec)
+
+    match parsed_spec:
+        case Assigns(
+            condition=None,
+            targets=AssignsTargetList(
+                items=ExprList(
+                    items=[ObjectFrom(expr=Name("p")), ObjectFrom(expr=Name("q"))]
+                )
+            ),
+        ):
+            pass
+        case _:
+            pytest.fail(
+                f"Expected two ObjectFrom targets, but got: {parsed_spec}"
+            )
+
+
+def test_assigns_object_upto() -> None:
+    assigns_cbmc_spec = "__CPROVER_assigns(__CPROVER_object_upto(p, n))"
+    parsed_spec = parser.parse(assigns_cbmc_spec)
+
+    match parsed_spec:
+        case Assigns(
+            condition=None,
+            targets=AssignsTargetList(
+                items=ExprList(items=[ObjectUpto(ptr=Name("p"), size=Name("n"))])
+            ),
+        ):
+            pass
+        case _:
+            pytest.fail(
+                f"Expected __CPROVER_assigns(__CPROVER_object_upto(p, n)) to parse to an 'Assigns' "
+                f"node with an ObjectUpto target, but got: {parsed_spec}"
+            )
+
+
+def test_assigns_typed_target() -> None:
+    assigns_cbmc_spec = "__CPROVER_assigns(__CPROVER_typed_target(*p))"
+    parsed_spec = parser.parse(assigns_cbmc_spec)
+
+    match parsed_spec:
+        case Assigns(
+            condition=None,
+            targets=AssignsTargetList(
+                items=ExprList(items=[TypedTarget(expr=DerefOp(operand=Name("p")))])
+            ),
+        ):
+            pass
+        case _:
+            pytest.fail(
+                f"Expected __CPROVER_assigns(__CPROVER_typed_target(*p)) to parse to an 'Assigns' "
+                f"node with a TypedTarget, but got: {parsed_spec}"
             )
