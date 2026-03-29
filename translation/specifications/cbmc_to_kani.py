@@ -72,11 +72,14 @@ class CbmcToKani:
         Args:
             spec (CbmcAst): The CBMC specification to convert to a a Kani specification.
 
+        Returns:
+            str: The Kani specification.
+
         Raises:
             TranslationError: Raised when translation from CBMC to Kani fails (or is unsupported).
 
-        Returns:
-            str: The Kani specification.
+
+
         """
         match spec:
             case cbmc_ast.RequiresClause(_, expr):
@@ -149,11 +152,12 @@ class CbmcToKani:
         Args:
             cbmc_range_expr (Any): A CBMC range expression.
 
-        Raises:
-            TranslationError: Raised when an invalid CBMC range is encountered.
 
         Returns:
             str: A string representation of the equivalent Kani range.
+
+        Raises:
+            TranslationError: Raised when an invalid CBMC range is encountered.
         """
         match cbmc_range_expr:
             # Case 1: lower_bound <= i && i < upper_bound (most common)

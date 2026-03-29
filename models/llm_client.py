@@ -1,6 +1,6 @@
 """Class providing cached-backed LLM-calling functions."""
 
-from diskcache import Cache  # ty: ignore
+from diskcache import Cache
 
 from .conversation_message import ConversationMessage
 from .llm_backend import LlmBackend
@@ -63,12 +63,13 @@ class LlmClient:
             temperature (float | None): The temperature for generation.
             top_k (int | None): The number of samples to obtain.
 
-        Raises:
-            ValueError: Raised when an empty conversation is passed in.
-
         Returns:
             list[str]: The list of samples (of length `self._top_k` or `top_k` if not None)
                 from the LLM.
+
+        Raises:
+            ValueError: Raised when an empty conversation is passed in.
+
         """
         if not conversation:
             msg = "Cannot prompt an LLM with an empty conversation"

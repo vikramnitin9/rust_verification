@@ -188,6 +188,9 @@ def _rename_function_calls(
     ):
         start = identifier_node_from_call_expression_node.start_byte
         end = identifier_node_from_call_expression_node.end_byte
+        assert identifier_node_from_call_expression_node.text, (
+            "An identifier node from a call expression must have a 'text' attribute"
+        )
         function_name = identifier_node_from_call_expression_node.text.decode()
 
         renamed_function_name = _get_avocado_function_identifier(function_name)

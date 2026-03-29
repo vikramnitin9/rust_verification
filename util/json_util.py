@@ -13,11 +13,12 @@ def parse_object(text: str) -> dict[str, Any]:
     Args:
         text (str): A string representation of a JSON object.
 
+    Returns:
+        dict[str, Any]: A Python dictionary parsed from a string representation of a JSON object.
+
     Raises:
         RuntimeError: Raised when a JSON object fails to be parsed from the given text.
 
-    Returns:
-        dict[str, Any]: A Python dictionary parsed from a string representation of a JSON object.
     """
     text = text.strip()
     if text.startswith("```json") or text.endswith("```"):

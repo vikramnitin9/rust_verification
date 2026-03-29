@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from diskcache import Cache  # ty: ignore
+from diskcache import Cache
 from loguru import logger
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -259,7 +259,7 @@ def _get_names_of_unprocessed_functions(
     all_functions_in_file = {
         f.name for f in ParsecProject.get_functions_defined_in_file(Path(c_file))
     }
-    functions_with_lookup_results = {f.name for f, _ in function_to_lookup_results.items()}
+    functions_with_lookup_results = {f.name for f in function_to_lookup_results}
     return all_functions_in_file.difference(functions_with_lookup_results)
 
 
