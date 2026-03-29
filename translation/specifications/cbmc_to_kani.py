@@ -102,6 +102,18 @@ class CbmcToKani:
                 return f"kani::modifies({kani_writeable_set})"
             case cbmc_ast.AssignsTargetList(targets):
                 return self._to_kani_str(targets)
+            case cbmc_ast.Frees(condition=cond, targets=target_list):
+                if cond:
+                    msg = f"Conditional frees in: {spec} are not supported in Kani"
+                    raise TranslationError(msg)
+                kani_frees_set = self._to_kani_str(target_list)
+                return f"kani::frees({kani_frees_set})"
+            case cbmc_ast.FreesTargetList(targets):
+                return self._to_kani_str(targets)
+            case cbmc_ast.Freeable():
+                # __CPROVER_freeable(ptr) has no direct Kani equivalent.
+                msg = f"__CPROVER_freeable in '{spec}' is not supported in Kani"
+                raise TranslationError(msg)
             case cbmc_ast.ExprList(items):
                 return ", ".join(self._to_kani_str(item) for item in items)
             case cbmc_ast.IndexOp(value, index):
@@ -120,6 +132,8 @@ class CbmcToKani:
                 rust_func = self._to_kani_str(func)
                 rust_args = self._to_kani_str(args) if args else ""
                 return f"{rust_func}({rust_args})"
+            case cbmc_ast.ArgList(items):
+                return ", ".join(self._to_kani_str(item) for item in items)
             case cbmc_ast.ObjectWhole(expr) | cbmc_ast.ObjectFrom(expr):
                 # __CPROVER_object_whole(p) and __CPROVER_object_from(p) designates the object
                 # pointed to by p.

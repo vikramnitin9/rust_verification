@@ -1,8 +1,9 @@
-?cbmc_clause : requires_clause | ensures_clause | assigns_clause
+?cbmc_clause : requires_clause | ensures_clause | assigns_clause | frees_clause
 
 requires_clause : "__CPROVER_requires" "(" bool_expr ")"
 ensures_clause : "__CPROVER_ensures" "(" bool_expr ")"
 assigns_clause : "__CPROVER_assigns" "(" assigns_content ")"
+frees_clause   : "__CPROVER_frees"   "(" frees_content ")"
 
 ?bool_expr : expr
 
@@ -59,6 +60,7 @@ assigns_clause : "__CPROVER_assigns" "(" assigns_content ")"
         | object_from_expr
         | object_upto_expr
         | typed_target_expr
+        | freeable_expr
         | NAME
         | NUMBER
         | BOOL
@@ -69,12 +71,19 @@ object_whole_expr: "__CPROVER_object_whole" "(" expr ")"
 object_from_expr: "__CPROVER_object_from" "(" expr ")"
 object_upto_expr: "__CPROVER_object_upto" "(" expr "," expr ")"
 typed_target_expr: "__CPROVER_typed_target" "(" expr ")"
+freeable_expr: "__CPROVER_freeable" "(" expr ")"
 
 // --------- Assigns Contents -------------------------
 
 ?assigns_content:                             -> assigns_empty
                 | expr_list                   -> assigns_unconditional
                 | bool_expr ":" expr_list     -> assigns_conditional
+
+// --------- Frees Contents ---------------------------
+
+?frees_content:                               -> frees_empty
+              | expr_list                     -> frees_unconditional
+              | bool_expr ":" expr_list       -> frees_conditional
 
 expr_list: expr ("," expr)*
 

@@ -126,3 +126,33 @@ def test_assigns_object_whole_mixed() -> None:
         "kani::modifies(*out, buf)",
     ]
     assert translator.translate(cbmc_specs) == kani_specs
+
+
+def test_frees_single() -> None:
+    cbmc_specs = ["__CPROVER_frees(p)"]
+    kani_specs = ["kani::frees(p)"]
+    assert translator.translate(cbmc_specs) == kani_specs
+
+
+def test_frees_multiple() -> None:
+    cbmc_specs = ["__CPROVER_frees(arr1, arr2)"]
+    kani_specs = ["kani::frees(arr1, arr2)"]
+    assert translator.translate(cbmc_specs) == kani_specs
+
+
+def test_frees_empty() -> None:
+    cbmc_specs = ["__CPROVER_frees()"]
+    kani_specs = ["kani::frees()"]
+    assert translator.translate(cbmc_specs) == kani_specs
+
+
+def test_frees_conditional_unsupported() -> None:
+    cbmc_specs = ["__CPROVER_frees(size > 0 && arr1: arr1)"]
+    # Conditional frees raise TranslationError; translate() logs and drops them.
+    assert translator.translate(cbmc_specs) == []
+
+
+def test_frees_freeable_unsupported() -> None:
+    cbmc_specs = ["__CPROVER_frees(__CPROVER_freeable(p))"]
+    # __CPROVER_freeable has no Kani equivalent; translate() logs and drops it.
+    assert translator.translate(cbmc_specs) == []

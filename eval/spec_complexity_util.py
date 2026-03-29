@@ -9,6 +9,7 @@ from translation.ast.cbmc_ast import (
     Assigns,
     Bool,
     EnsuresClause,
+    Frees,
     NotOp,
     OrOp,
     Quantifier,
@@ -27,7 +28,7 @@ def get_complexity(clause: str) -> ClauseComplexity:
     """Return the clause complexity for a given CBMC clause.
 
     Args:
-        clause (str): A requires, ensures, or assigns clause for which to compute complexity
+        clause (str): A requires, ensures, assigns, or frees clause for which to compute complexity
             information.
 
     Returns:
@@ -43,6 +44,7 @@ def get_complexity(clause: str) -> ClauseComplexity:
             RequiresClause(_, expr_ast)
             | EnsuresClause(_, expr_ast)
             | Assigns(condition=expr_ast, targets=_)
+            | Frees(condition=expr_ast, targets=_)
         ):
             return _get_complexity_from_expression(clause, expr_ast)
         case _:
