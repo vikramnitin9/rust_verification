@@ -102,6 +102,18 @@ class CbmcToKani:
                 return f"kani::modifies({kani_writeable_set})"
             case cbmc_ast.AssignsTargetList(targets):
                 return self._to_kani_str(targets)
+            case cbmc_ast.Frees(condition=cond, targets=target_list):
+                if cond:
+                    msg = f"Conditional frees in: {spec} are not supported in Kani"
+                    raise TranslationError(msg)
+                kani_frees_set = self._to_kani_str(target_list)
+                return f"kani::frees({kani_frees_set})"
+            case cbmc_ast.FreesTargetList(targets):
+                return self._to_kani_str(targets)
+            case cbmc_ast.Freeable():
+                # __CPROVER_freeable(ptr) has no direct Kani equivalent.
+                msg = f"__CPROVER_freeable in '{spec}' is not supported in Kani"
+                raise TranslationError(msg)
             case cbmc_ast.ExprList(items):
                 return ", ".join(self._to_kani_str(item) for item in items)
             case cbmc_ast.IndexOp(value, index):

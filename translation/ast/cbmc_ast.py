@@ -67,6 +67,19 @@ class Assigns(CbmcAst):
 
 
 @dataclass(frozen=True)
+class FreesTargetList(CbmcAst):
+    items: ExprList
+
+
+@dataclass(frozen=True)
+class Frees(CbmcAst):
+    """Definition for a top-level __CPROVER_frees clause."""
+
+    condition: Any | None
+    targets: FreesTargetList
+
+
+@dataclass(frozen=True)
 class ObjectWhole(CbmcAst):
     """Represents a __CPROVER_object_whole(expr) assigns target designator."""
 
@@ -98,6 +111,16 @@ class TypedTarget(CbmcAst):
 
     Designates the same memory location as lvalue but restricts assignability
     to writes of the same type as lvalue.
+    """
+
+    expr: Any
+
+
+@dataclass(frozen=True)
+class Freeable(CbmcAst):
+    """Represents a __CPROVER_freeable(ptr) frees target designator.
+
+    Specifies that ptr is freeable in the context of the enclosing frees clause.
     """
 
     expr: Any
@@ -525,6 +548,9 @@ class _ToAst(Transformer):
             for e in expr.items:
                 self._validate_side_effect_free(e)
         # Check subexpressions
+        if hasattr(expr, "items"):
+            for e in expr.items:
+                self._validate_side_effect_free(e)
         if hasattr(expr, "value"):
             self._validate_side_effect_free(expr.value)
         if hasattr(expr, "index"):
@@ -535,6 +561,33 @@ class _ToAst(Transformer):
             self._validate_side_effect_free(expr.right)
         if hasattr(expr, "operand"):
             self._validate_side_effect_free(expr.operand)
+
+    def _validate_frees_target(self, expr: Any) -> None:
+        """Raise ValueError if a frees target expression contains nested side effects.
+
+        Unlike assigns targets, frees targets may be top-level calls to user-defined void
+        functions that are themselves side effect free and deterministic (per the CBMC docs).
+        A top-level CallOp is therefore permitted, but its arguments must be side-effect free.
+        All other targets (lvalue expressions, __CPROVER_freeable) follow the same rules as
+        assigns targets.
+
+        Args:
+            expr (Any): A single frees target expression.
+
+        Raises:
+            ValueError: Raised when a nested side effect (function call) is found.
+        """
+        if isinstance(expr, ExprList):
+            for e in expr.items:
+                self._validate_frees_target(e)
+        elif isinstance(expr, CallOp):
+            # The top-level call itself is allowed; validate its arguments.
+            if expr.args is not None:
+                self._validate_side_effect_free(expr.args)
+        elif isinstance(expr, Freeable):
+            self._validate_side_effect_free(expr.expr)
+        else:
+            self._validate_side_effect_free(expr)
 
     @v_args(inline=True)
     def object_whole_expr(self, expr):  # type: ignore[no-untyped-def]
@@ -551,6 +604,34 @@ class _ToAst(Transformer):
     @v_args(inline=True)
     def typed_target_expr(self, expr):  # type: ignore[no-untyped-def]
         return TypedTarget(expr=expr)
+
+    @v_args(inline=True)
+    def freeable_expr(self, expr):  # type: ignore[no-untyped-def]
+        return Freeable(expr=expr)
+
+    @v_args(inline=True)
+    def frees_clause(self, content):  # type: ignore[no-untyped-def]
+        # The content is already a Frees from frees_empty/frees_unconditional/frees_conditional
+        return content
+
+    @v_args(inline=True)
+    def frees_empty(self):  # type: ignore[no-untyped-def]
+        empty_tuple: tuple[CbmcAst, ...] = ()
+        return Frees(condition=None, targets=FreesTargetList(items=ExprList(empty_tuple)))
+
+    @v_args(inline=True)
+    def frees_unconditional(self, expr_list):  # type: ignore[no-untyped-def]
+        # Top-level function calls are valid frees targets (user-defined parametric freeable sets),
+        # but their arguments must still be side-effect free.
+        self._validate_frees_target(expr_list)
+        return Frees(condition=None, targets=FreesTargetList(items=expr_list))
+
+    @v_args(inline=True)
+    def frees_conditional(self, condition, expr_list):  # type: ignore[no-untyped-def]
+        # Top-level function calls are valid frees targets (user-defined parametric freeable sets),
+        # but their arguments must still be side-effect free.
+        self._validate_frees_target(expr_list)
+        return Frees(condition=condition, targets=FreesTargetList(items=expr_list))
 
     @v_args(inline=True)
     def assigns_target_list(self, *targets):  # type: ignore[no-untyped-def]
