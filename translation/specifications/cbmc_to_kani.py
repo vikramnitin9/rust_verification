@@ -132,6 +132,8 @@ class CbmcToKani:
                 rust_func = self._to_kani_str(func)
                 rust_args = self._to_kani_str(args) if args else ""
                 return f"{rust_func}({rust_args})"
+            case cbmc_ast.ArgList(items):
+                return ", ".join(self._to_kani_str(item) for item in items)
             case cbmc_ast.ObjectWhole(expr) | cbmc_ast.ObjectFrom(expr):
                 # __CPROVER_object_whole(p) and __CPROVER_object_from(p) designates the object
                 # pointed to by p.

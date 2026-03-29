@@ -35,6 +35,7 @@ from translation.ast.cbmc_ast import (
     TypedTarget,
 )
 from translation.parser import Parser
+from lark.exceptions import VisitError
 
 parser: Parser[CbmcAst] = Parser(
     path_to_grammar_defn="translation/grammar/cbmc.txt",
@@ -446,7 +447,6 @@ def test_frees_freeable() -> None:
 
 
 def test_frees_function_call_target() -> None:
-    """User-defined void functions are valid frees targets (parametric freeable sets)."""
     parsed_spec = parser.parse("__CPROVER_frees(my_freeable_set(arr, size))")
 
     match parsed_spec:
@@ -462,7 +462,5 @@ def test_frees_function_call_target() -> None:
 
 
 def test_frees_function_call_with_side_effectful_arg_rejected() -> None:
-    """A frees target whose call argument is itself a function call must be rejected."""
-    # Lark wraps ValueError in VisitError when raised inside a transformer; both are Exceptions.
-    with pytest.raises(Exception):  # noqa: B017
+    with pytest.raises((ValueError, VisitError)):  # noqa: B017
         parser.parse("__CPROVER_frees(my_freeable_set(side_effect(), size))")
