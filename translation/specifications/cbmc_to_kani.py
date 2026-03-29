@@ -117,8 +117,9 @@ class CbmcToKani:
                 rust_func = self._to_kani_str(func)
                 rust_args = self._to_kani_str(args) if args else ""
                 return f"{rust_func}({rust_args})"
-            case cbmc_ast.ObjectWhole(expr):
-                # __CPROVER_object_whole(p) designates the whole object pointed to by p.
+            case cbmc_ast.ObjectWhole(expr) | cbmc_ast.ObjectFrom(expr):
+                # __CPROVER_object_whole(p) and __CPROVER_object_from(p) designates the object
+                # pointed to by p.1
                 # kani::modifies already operates on the whole pointed-to object, so pass p through.
                 return self._to_kani_str(expr)
             case cbmc_ast.DerefOp(operand):
