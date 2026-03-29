@@ -582,6 +582,8 @@ class _ToAst(Transformer):
                 self._validate_frees_target(e)
         elif isinstance(expr, CallOp):
             # The top-level call itself is allowed; validate its arguments.
+            # This is a best-effort check; it is difficult to know at compile-time whether a
+            # function is side-effect free.
             if expr.args is not None:
                 self._validate_side_effect_free(expr.args)
         elif isinstance(expr, Freeable):
