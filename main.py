@@ -12,7 +12,7 @@ from collections import deque
 from collections.abc import Sequence
 from pathlib import Path
 
-from diskcache import Cache  # ty: ignore
+from diskcache import Cache
 from loguru import logger
 
 from models import OPENAI_MODEL_TEMPERATURE_RANGE
@@ -403,9 +403,6 @@ def _set_next_step(
         spec_conversation (SpecConversation): The SpecConversation whose next `step_field` to set.
         proof_state (ProofState): The ProofState.
         specification_generator (LlmSpecificationGenerator): The specification generator.
-
-    Raises:
-        RuntimeError: Raised when a previously-verified spec is missing from the verifier cache.
 
     Returns:
         SpecConversation: The given SpecConversation with its `next_step` field set.
