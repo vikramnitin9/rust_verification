@@ -5,7 +5,7 @@ import tempfile
 from collections.abc import Sequence
 from pathlib import Path
 
-from diskcache import Cache  # ty: ignore
+from diskcache import Cache
 from loguru import logger
 
 from util import file_util, text_util
@@ -81,7 +81,9 @@ class CbmcVerificationClient(VerificationClient):
             try:
                 vcommand = self._get_cbmc_verification_command(vinput, path_to_file_to_verify=file)
                 logger.debug(f"Running command: {vcommand}")
-                result = subprocess.run(vcommand, capture_output=True, text=True, shell=True)
+                result = subprocess.run(
+                    vcommand, capture_output=True, text=True, shell=True, check=False
+                )
                 # Normalize the temp file path in CBMC output so that LLM cache keys
                 # are deterministic across runs (temp file names are random).
                 normalized_stdout = text_util.normalize_cbmc_output_paths(
