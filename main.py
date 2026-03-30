@@ -3,9 +3,7 @@
 """Main entry point for specification generation and verification."""
 
 import argparse
-import os
 import pickle as pkl
-import shutil
 import sys
 import tempfile
 from collections import deque
@@ -19,8 +17,6 @@ from models import OPENAI_MODEL_TEMPERATURE_RANGE
 from specifications import LlmSpecificationGenerator
 from util import (
     AcceptVerifiedSpec,
-    AssumeSpecAsIs,
-    BacktrackToCallee,
     CFunction,
     ParsecProject,
     SpecConversation,
@@ -28,16 +24,15 @@ from util import (
     copy_file_to_folder,
     copy_folder_to_folder,
     ensure_lines_at_beginning,
-    function_util,
     run_with_timeout,
 )
 from util.function_specification import FunctionSpecification
 from verification import (
     CbmcVerificationClient,
     ProofState,
+    ProofStateStepper,
     VerificationClient,
     VerificationInput,
-    WorkItem,
 )
 
 MODEL = "gpt-4o"
@@ -303,6 +298,8 @@ def _verify_program(
     # This is the global worklist.
     GLOBAL_INCOMPLETE_PROOFSTATES.append(initial_proof_state)
 
+    proof_state_stepper = ProofStateStepper(result_dir=Path(DEFAULT_RESULT_DIR))
+
     while GLOBAL_INCOMPLETE_PROOFSTATES:
         # Use BFS to avoid getting stuck in an unproductive search over a proof state.
         proof_state = GLOBAL_INCOMPLETE_PROOFSTATES.popleft()
@@ -310,6 +307,7 @@ def _verify_program(
             proof_state=proof_state,
             specification_generator=specification_generator,
             parsec_project=parsec_project,
+            proof_state_stepper=proof_state_stepper,
         )
 
         for next_proofstate in next_proofstates:
@@ -338,6 +336,7 @@ def _step(
     proof_state: ProofState,
     specification_generator: LlmSpecificationGenerator,
     parsec_project: ParsecProject,
+    proof_state_stepper: ProofStateStepper,
 ) -> list[ProofState]:
     """Given a ProofState, returns of list of ProofStates, each of which makes a "step" of progress.
 
@@ -356,6 +355,8 @@ def _step(
         proof_state (ProofState): The proof state from which to generate new proof states.
         specification_generator (LlmSpecificationGenerator): The specification generator.
         parsec_project (ParsecProject): The project being verified.
+        proof_state_stepper (ProofStateStepper): Computes the successor ProofState for each
+            SpecConversation and writes accepted/assumed specs to disk.
 
     Returns:
         list[ProofState]: The list of new proof states to explore.
@@ -382,7 +383,7 @@ def _step(
     ]
 
     result: list[ProofState] = [
-        _get_next_proof_state(
+        proof_state_stepper.get_next_proof_state(
             prev_proof_state=proof_state,
             spec_conversation=specc,
             parsec_project=parsec_project,
@@ -437,132 +438,6 @@ def _set_next_step(
         return next_steps[0]
     msg = f"Previously-verified spec '{spec_conversation}' was missing from the verifier cache"
     raise RuntimeError(msg)
-
-
-def _get_next_proof_state(
-    prev_proof_state: ProofState, spec_conversation: SpecConversation, parsec_project: ParsecProject
-) -> ProofState:
-    """Return the next proof state after `prev_proof_state` based on `spec_conversation`.
-
-        The new proof state is a copy of the given proof state with two differences:
-
-            1. The new proof state's map of functions to specifications is updated with the given
-               function and its specification from the SpecConversation.
-            2. The new proof state's work stack is either smaller (if the function's spec verified
-               successfully or is assumed) or larger (if the function failed to verify and the
-               proof process will backtrack).
-
-    Args:
-        prev_proof_state (ProofState): The previous proof state.
-        spec_conversation (SpecConversation): The spec conversation in which an LLM generated a
-            specification for the function on the top of the workstack of `prev_proof_state`.
-        parsec_project (ParsecProject): The project being verified.
-
-    Returns:
-        ProofState: The next proof state for the program, given the conversation.
-    """
-    specs_for_next_proof_state = prev_proof_state.get_specifications() | {
-        spec_conversation.function: spec_conversation.specification
-    }
-    match spec_conversation.next_step:
-        case None:
-            msg = f"{spec_conversation} `next_step` field is not set"
-            raise ValueError(msg)
-        case AcceptVerifiedSpec() | AssumeSpecAsIs():
-            # There could be more than one valid specification generated (i.e., when we sample more
-            # than once from the LLM). For now, we take the last (valid) specification and write it
-            # to disk (see below).
-            _write_spec_to_disk(spec_conversation=spec_conversation)
-            workstack_for_next_proof_state = prev_proof_state.get_workstack().pop()
-            return ProofState(
-                specs=specs_for_next_proof_state,
-                workstack=workstack_for_next_proof_state,
-            )
-        case BacktrackToCallee(callee_name, hint):
-            if callee := parsec_project.get_function_or_none(function_name=callee_name):
-                work_item_for_callee = WorkItem(function=callee, hint=hint)
-                workstack_for_next_proof_state = prev_proof_state.get_workstack().push(
-                    work_item_for_callee
-                )
-                return ProofState(
-                    specs=specs_for_next_proof_state,
-                    workstack=workstack_for_next_proof_state,
-                )
-            logger.warning(
-                f"Project lacks a definition for callee '{callee_name}'; "
-                "it may be a library function."
-            )
-            _write_spec_to_disk(spec_conversation=spec_conversation)
-            workstack_for_next_proof_state = prev_proof_state.get_workstack().pop()
-            return ProofState(
-                specs=specs_for_next_proof_state,
-                workstack=workstack_for_next_proof_state,
-            )
-
-        case _:
-            msg = f"Unexpected next step strategy: '{SpecConversation.next_step}'"
-            raise ValueError(msg)
-
-
-def _write_spec_to_disk(spec_conversation: SpecConversation) -> None:
-    """Write a single function specification's to a file on disk.
-
-    The resulting file is identical to the corresponding file in the unverified (input) program, but
-    some functions may be specified (i.e., have CBMC annotations).
-
-    Specifications are written to a file under the `DEFAULT_RESULT_DIR` directory that has the same
-    name (and path) as the original (non-specified) file under a directory that is specific to
-    each process (i.e., the directory's name is the pid of the process where specification
-    generation is running).
-
-    Args:
-        spec_conversation (SpecConversation): The SpecConversation comprising the function
-            specification to be written to the result file.
-    """
-    function = spec_conversation.function
-    path_to_original_file = Path(function.file_name)
-    result_file = _get_result_file(function=function)
-
-    if not result_file.exists():
-        # Create the result file by copying over the original file.
-        result_file.parent.mkdir(exist_ok=True, parents=True)
-        shutil.copy(path_to_original_file, result_file)
-
-    parsec_project = ParsecProject(result_file)
-    function_with_verified_spec = function_util.get_source_code_with_inserted_spec(
-        function_name=function.name,
-        specification=spec_conversation.specification,
-        parsec_project=parsec_project,
-        comment_out_spec=True,
-    )
-
-    function_util.update_function_definition(
-        function_name=function.name,
-        updated_function_content=function_with_verified_spec,
-        parsec_project=parsec_project,
-        file=result_file,
-    )
-
-
-def _get_result_file(function: CFunction) -> Path:
-    """Return the name of the result file for a function.
-
-    The "result file" is where the verified or assumed specification for a function is written.
-
-    Args:
-        function (CFunction): The function for which to obtain the result file.
-
-    Returns:
-        Path: The result file.
-    """
-    # Examples of original and result file names:
-    # * "my_research/myfile.c" => "specs/<PID>/my_research/myfile.c"
-    # * "/home/jquser/my_research/myfile.c" => "specs/<PID>/home/jquser/my_research/myfile.c"
-    path_to_original_file = Path(function.file_name)
-    original_file_dir = str(path_to_original_file.parent).lstrip("/")
-    pid_dir = Path(str(os.getpid()))
-    result_file_dir = Path(DEFAULT_RESULT_DIR) / pid_dir / Path(original_file_dir)
-    return result_file_dir / path_to_original_file.name
 
 
 def _get_verified_and_cached_specification(function: CFunction) -> FunctionSpecification | None:
