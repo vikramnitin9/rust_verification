@@ -478,8 +478,8 @@ def _get_next_proof_state(
                 specs=specs_for_next_proof_state,
                 workstack=workstack_for_next_proof_state,
             )
-        case BacktrackToCallee(callee, hint):
-            if callee := parsec_project.get_function_or_none(function_name=callee):
+        case BacktrackToCallee(callee_name, hint):
+            if callee := parsec_project.get_function_or_none(function_name=callee_name):
                 work_item_for_callee = WorkItem(function=callee, hint=hint)
                 workstack_for_next_proof_state = prev_proof_state.get_workstack().push(
                     work_item_for_callee
@@ -489,7 +489,8 @@ def _get_next_proof_state(
                     workstack=workstack_for_next_proof_state,
                 )
             logger.warning(
-                f"Project lacks a definition for callee '{callee}'; it may be a library function."
+                f"Project lacks a definition for callee '{callee_name}'; "
+                "it may be a library function."
             )
             _write_spec_to_disk(spec_conversation=spec_conversation)
             workstack_for_next_proof_state = prev_proof_state.get_workstack().pop()
