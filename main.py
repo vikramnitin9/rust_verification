@@ -488,8 +488,15 @@ def _get_next_proof_state(
                     specs=specs_for_next_proof_state,
                     workstack=workstack_for_next_proof_state,
                 )
-            msg = f"Project lacks a definition for callee '{callee}'"
-            raise ValueError(msg)
+            logger.warning(
+                f"Project lacks a definition for callee '{callee}'; it may be a library function."
+            )
+            _write_spec_to_disk(spec_conversation=spec_conversation)
+            workstack_for_next_proof_state = prev_proof_state.get_workstack().pop()
+            return ProofState(
+                specs=specs_for_next_proof_state,
+                workstack=workstack_for_next_proof_state,
+            )
 
         case _:
             msg = f"Unexpected next step strategy: '{SpecConversation.next_step}'"
