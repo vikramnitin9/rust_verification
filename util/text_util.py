@@ -6,7 +6,9 @@ from pathlib import PurePosixPath
 CBMC_COMMENT_PREFIX = "// CBMC_ANNOTATION: "
 
 
-def prepend_line_numbers(lines: list[str], start: int, end: int) -> list[tuple[str, str]]:
+def prepend_line_numbers(
+    lines: list[str], start: int, end: int
+) -> list[tuple[str, str]]:
     """Return a list of tuples of line numbers with lines.
 
     Args:
@@ -32,7 +34,10 @@ def prepend_line_numbers(lines: list[str], start: int, end: int) -> list[tuple[s
             f"range of lines (start = {start}, end = {end})"
         )
     line_number_width = len(str(end))
-    return [(f"{str(n).ljust(line_number_width)}", lines[n - start]) for n in range(start, end)]
+    return [
+        (f"{str(n).ljust(line_number_width)}", lines[n - start])
+        for n in range(start, end)
+    ]
 
 
 def comment_out_cbmc_annotations(lines: list[str]) -> list[str]:
@@ -95,17 +100,22 @@ def normalize_cbmc_output_paths(
     *,
     temp_file_path: str | None = None,
 ) -> str:
-    """Return CBMC output with temp file paths replaced by a stable name.
+    """Return CBMC output with non-deterministic content replaced by stable values.
 
-    CBMC error output includes the path to the temporary file that was compiled
-    (e.g., '/app/specs/get_min_maxABC123.c'). These random paths make LLM cache
-    keys non-deterministic. This function replaces any such path with a stable
-    name (e.g., 'get_min_max.c') so that prompts are reproducible across runs.
+    CBMC output includes several pieces of non-deterministic content that make
+    LLM cache keys vary across machines and architectures:
+
+    1. Temp file paths (e.g., '/app/specs/get_min_maxABC123.c') — replaced with
+       a stable name (e.g., 'get_min_max.c').
+    2. Architecture strings in CBMC's version banner and library lines
+       (e.g., 'CBMC version 6.7.1 (cbmc-6.7.1) 64-bit arm64 linux' or
+       'Adding CPROVER library (arm64)') — the architecture token is replaced
+       with the stable placeholder '<arch>' so that cache keys are identical on
+       ARM64 and x86-64 hosts.
 
     When *temp_file_path* is provided the function first performs exact literal
     replacements for the full path and its basename, which is faster and more
-    precise.  A regex pass is always applied afterwards to catch any remaining
-    occurrences (e.g., paths that differ slightly from the one supplied).
+    precise.  Regex passes are always applied afterwards.
 
     Args:
         output: The raw CBMC stdout or stderr output.
@@ -115,7 +125,7 @@ def normalize_cbmc_output_paths(
             string substitution before the regex fallback.
 
     Returns:
-        The CBMC output with temp file paths replaced by '{function_name}.c'.
+        The CBMC output with non-deterministic content replaced by stable values.
     """
     stable_name = f"{function_name}.c"
 
@@ -126,8 +136,27 @@ def normalize_cbmc_output_paths(
         output = output.replace(basename, stable_name)
 
     # Regex fallback: catches any remaining temp-file references.
-    return re.sub(
+    output = re.sub(
         r"\S*" + re.escape(function_name) + r"[a-zA-Z0-9_-]+\.c",
         stable_name,
         output,
     )
+
+    # Normalize architecture-specific strings in CBMC's version banner,
+    # e.g. 'CBMC version 6.7.1 (cbmc-6.7.1) 64-bit arm64 linux'
+    #   -> 'CBMC version 6.7.1 (cbmc-6.7.1) 64-bit <arch> linux'
+    output = re.sub(
+        r"(CBMC version \S+ \(\S+\) \d+-bit )\w+( linux)",
+        r"\1<arch>\2",
+        output,
+    )
+
+    # Normalize architecture in CPROVER library lines,
+    # e.g. 'Adding CPROVER library (arm64)' -> 'Adding CPROVER library (<arch>)'
+    output = re.sub(
+        r"(Adding CPROVER library \()\w+(\))",
+        r"\1<arch>\2",
+        output,
+    )
+
+    return output
