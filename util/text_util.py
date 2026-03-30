@@ -14,13 +14,14 @@ def prepend_line_numbers(lines: list[str], start: int, end: int) -> list[tuple[s
         start (int): The start of the line number range (inclusive).
         end (int): The end of the line number range (exclusive).
 
+    Returns:
+        list[tuple[str, str]]: A list of tuples of line numbers with lines.
+
     Raises:
         RuntimeError: Raised when the number of lines is not equal to the number of
             elements in the range, or when the end of the line number range is less
             than the start.
 
-    Returns:
-        list[tuple[str, str]]: A list of tuples of line numbers with lines.
     """
     if end < start:
         msg = f"Invalid line number range (start = {start}, end = {end})"

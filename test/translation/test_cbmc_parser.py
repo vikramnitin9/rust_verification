@@ -6,6 +6,7 @@ from translation.ast.cbmc_ast import (
     Assigns,
     AssignsTargetList,
     BuiltinType,
+    CallOp,
     CbmcAst,
     DerefOp,
     EnsuresClause,
@@ -13,6 +14,9 @@ from translation.ast.cbmc_ast import (
     ExistsExpr,
     ExprList,
     ForallExpr,
+    Freeable,
+    Frees,
+    FreesTargetList,
     GtOp,
     IndexOp,
     LeOp,
@@ -20,13 +24,18 @@ from translation.ast.cbmc_ast import (
     Name,
     NeqOp,
     Number,
+    ObjectFrom,
+    ObjectUpto,
+    ObjectWhole,
     OrOp,
     PtrMemberOp,
     QuantifierDecl,
     RequiresClause,
     ToAst,
+    TypedTarget,
 )
 from translation.parser import Parser
+from lark.exceptions import VisitError
 
 parser: Parser[CbmcAst] = Parser(
     path_to_grammar_defn="translation/grammar/cbmc.txt",
@@ -253,3 +262,205 @@ def test_conditional_assigns() -> None:
                 f"Expected {conditional_assigns_spec} to parse to an 'Assigns' node with a "
                 f"condition and targets, but got: {parsed_spec}"
             )
+
+
+def test_assigns_object_whole() -> None:
+    assigns_cbmc_spec = "__CPROVER_assigns(__CPROVER_object_whole(p))"
+    parsed_spec = parser.parse(assigns_cbmc_spec)
+
+    match parsed_spec:
+        case Assigns(
+            condition=None,
+            targets=AssignsTargetList(items=ExprList(items=[ObjectWhole(expr=Name("p"))])),
+        ):
+            pass
+        case _:
+            pytest.fail(
+                f"Expected __CPROVER_assigns(__CPROVER_object_whole(p)) to parse to an 'Assigns' "
+                f"node with an ObjectWhole target, but got: {parsed_spec}"
+            )
+
+
+def test_assigns_object_whole_multiple() -> None:
+    assigns_cbmc_spec = "__CPROVER_assigns(__CPROVER_object_whole(p), __CPROVER_object_whole(q))"
+    parsed_spec = parser.parse(assigns_cbmc_spec)
+
+    match parsed_spec:
+        case Assigns(
+            condition=None,
+            targets=AssignsTargetList(
+                items=ExprList(
+                    items=[ObjectWhole(expr=Name("p")), ObjectWhole(expr=Name("q"))]
+                )
+            ),
+        ):
+            pass
+        case _:
+            pytest.fail(
+                f"Expected two ObjectWhole targets, but got: {parsed_spec}"
+            )
+
+
+def test_assigns_object_from() -> None:
+    assigns_cbmc_spec = "__CPROVER_assigns(__CPROVER_object_from(p))"
+    parsed_spec = parser.parse(assigns_cbmc_spec)
+
+    match parsed_spec:
+        case Assigns(
+            condition=None,
+            targets=AssignsTargetList(items=ExprList(items=[ObjectFrom(expr=Name("p"))])),
+        ):
+            pass
+        case _:
+            pytest.fail(
+                f"Expected __CPROVER_assigns(__CPROVER_object_from(p)) to parse to an 'Assigns' "
+                f"node with an ObjectFrom target, but got: {parsed_spec}"
+            )
+
+
+def test_assigns_object_from_multiple() -> None:
+    assigns_cbmc_spec = "__CPROVER_assigns(__CPROVER_object_from(p), __CPROVER_object_from(q))"
+    parsed_spec = parser.parse(assigns_cbmc_spec)
+
+    match parsed_spec:
+        case Assigns(
+            condition=None,
+            targets=AssignsTargetList(
+                items=ExprList(
+                    items=[ObjectFrom(expr=Name("p")), ObjectFrom(expr=Name("q"))]
+                )
+            ),
+        ):
+            pass
+        case _:
+            pytest.fail(
+                f"Expected two ObjectFrom targets, but got: {parsed_spec}"
+            )
+
+
+def test_assigns_object_upto() -> None:
+    assigns_cbmc_spec = "__CPROVER_assigns(__CPROVER_object_upto(p, n))"
+    parsed_spec = parser.parse(assigns_cbmc_spec)
+
+    match parsed_spec:
+        case Assigns(
+            condition=None,
+            targets=AssignsTargetList(
+                items=ExprList(items=[ObjectUpto(ptr=Name("p"), size=Name("n"))])
+            ),
+        ):
+            pass
+        case _:
+            pytest.fail(
+                f"Expected __CPROVER_assigns(__CPROVER_object_upto(p, n)) to parse to an 'Assigns' "
+                f"node with an ObjectUpto target, but got: {parsed_spec}"
+            )
+
+
+def test_assigns_typed_target() -> None:
+    assigns_cbmc_spec = "__CPROVER_assigns(__CPROVER_typed_target(*p))"
+    parsed_spec = parser.parse(assigns_cbmc_spec)
+
+    match parsed_spec:
+        case Assigns(
+            condition=None,
+            targets=AssignsTargetList(
+                items=ExprList(items=[TypedTarget(expr=DerefOp(operand=Name("p")))])
+            ),
+        ):
+            pass
+        case _:
+            pytest.fail(
+                f"Expected __CPROVER_assigns(__CPROVER_typed_target(*p)) to parse to an 'Assigns' "
+                f"node with a TypedTarget, but got: {parsed_spec}"
+            )
+
+
+def test_frees_empty() -> None:
+    parsed_spec = parser.parse("__CPROVER_frees()")
+
+    match parsed_spec:
+        case Frees(condition=None, targets=FreesTargetList(items=ExprList(items=[]))):
+            pass
+        case _:
+            pytest.fail(f"Expected Frees with empty targets, but got: {parsed_spec}")
+
+
+def test_frees_single() -> None:
+    parsed_spec = parser.parse("__CPROVER_frees(p)")
+
+    match parsed_spec:
+        case Frees(
+            condition=None,
+            targets=FreesTargetList(items=ExprList(items=[Name("p")])),
+        ):
+            pass
+        case _:
+            pytest.fail(f"Expected Frees with single target Name('p'), but got: {parsed_spec}")
+
+
+def test_frees_multiple() -> None:
+    parsed_spec = parser.parse("__CPROVER_frees(arr1, arr2)")
+
+    match parsed_spec:
+        case Frees(
+            condition=None,
+            targets=FreesTargetList(
+                items=ExprList(items=[Name("arr1"), Name("arr2")])
+            ),
+        ):
+            pass
+        case _:
+            pytest.fail(f"Expected Frees with two targets, but got: {parsed_spec}")
+
+
+def test_frees_conditional() -> None:
+    parsed_spec = parser.parse("__CPROVER_frees(size > 0 && arr1: arr1)")
+
+    match parsed_spec:
+        case Frees(
+            condition=AndOp(left=GtOp(left=Name("size"), right=Number(0)), right=Name("arr1")),
+            targets=FreesTargetList(items=ExprList(items=[Name("arr1")])),
+        ):
+            pass
+        case _:
+            pytest.fail(
+                f"Expected conditional Frees with condition and target, but got: {parsed_spec}"
+            )
+
+
+def test_frees_freeable() -> None:
+    parsed_spec = parser.parse("__CPROVER_frees(__CPROVER_freeable(p))")
+
+    match parsed_spec:
+        case Frees(
+            condition=None,
+            targets=FreesTargetList(
+                items=ExprList(items=[Freeable(expr=Name("p"))])
+            ),
+        ):
+            pass
+        case _:
+            pytest.fail(
+                f"Expected Frees with Freeable target, but got: {parsed_spec}"
+            )
+
+
+def test_frees_function_call_target() -> None:
+    parsed_spec = parser.parse("__CPROVER_frees(my_freeable_set(arr, size))")
+
+    match parsed_spec:
+        case Frees(
+            condition=None,
+            targets=FreesTargetList(items=ExprList(items=[CallOp()])),
+        ):
+            pass
+        case _:
+            pytest.fail(
+                f"Expected Frees with CallOp target, but got: {parsed_spec}"
+            )
+
+
+def test_frees_function_call_with_side_effectful_arg_rejected() -> None:
+    with pytest.raises((ValueError, VisitError)):  # noqa: B017
+        parser.parse("__CPROVER_frees(my_freeable_set(side_effect(), size))")

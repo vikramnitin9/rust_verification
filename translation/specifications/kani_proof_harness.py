@@ -86,11 +86,12 @@ class KaniProofHarness:
         Args:
             precondition (str): The Kani precondition.
 
+        Returns:
+            str: The expression in the Kani precondition annotation.
+
         Raises:
             RuntimeError: Raised when matching the expression in the precondition fails.
 
-        Returns:
-            str: The expression in the Kani precondition annotation.
         """
         precondition_prefix = "kani::requires"
         if precondition_prefix not in precondition:

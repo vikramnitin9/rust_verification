@@ -96,3 +96,63 @@ def test_assigns_to_side_effectful_operation() -> None:
     ]
     with pytest.raises(ValueError):
         translator.translate(cbmc_specs)
+
+
+def test_assigns_object_whole() -> None:
+    cbmc_specs = [
+        "__CPROVER_assigns(__CPROVER_object_whole(p))",
+    ]
+    kani_specs = [
+        "kani::modifies(p)",
+    ]
+    assert translator.translate(cbmc_specs) == kani_specs
+
+
+def test_assigns_object_whole_multiple() -> None:
+    cbmc_specs = [
+        "__CPROVER_assigns(__CPROVER_object_whole(p), __CPROVER_object_whole(q))",
+    ]
+    kani_specs = [
+        "kani::modifies(p, q)",
+    ]
+    assert translator.translate(cbmc_specs) == kani_specs
+
+
+def test_assigns_object_whole_mixed() -> None:
+    cbmc_specs = [
+        "__CPROVER_assigns(*out, __CPROVER_object_whole(buf))",
+    ]
+    kani_specs = [
+        "kani::modifies(*out, buf)",
+    ]
+    assert translator.translate(cbmc_specs) == kani_specs
+
+
+def test_frees_single() -> None:
+    cbmc_specs = ["__CPROVER_frees(p)"]
+    kani_specs = ["kani::frees(p)"]
+    assert translator.translate(cbmc_specs) == kani_specs
+
+
+def test_frees_multiple() -> None:
+    cbmc_specs = ["__CPROVER_frees(arr1, arr2)"]
+    kani_specs = ["kani::frees(arr1, arr2)"]
+    assert translator.translate(cbmc_specs) == kani_specs
+
+
+def test_frees_empty() -> None:
+    cbmc_specs = ["__CPROVER_frees()"]
+    kani_specs = ["kani::frees()"]
+    assert translator.translate(cbmc_specs) == kani_specs
+
+
+def test_frees_conditional_unsupported() -> None:
+    cbmc_specs = ["__CPROVER_frees(size > 0 && arr1: arr1)"]
+    # Conditional frees raise TranslationError; translate() logs and drops them.
+    assert translator.translate(cbmc_specs) == []
+
+
+def test_frees_freeable_unsupported() -> None:
+    cbmc_specs = ["__CPROVER_frees(__CPROVER_freeable(p))"]
+    # __CPROVER_freeable has no Kani equivalent; translate() logs and drops it.
+    assert translator.translate(cbmc_specs) == []
