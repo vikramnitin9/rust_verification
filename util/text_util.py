@@ -6,9 +6,7 @@ from pathlib import PurePosixPath
 CBMC_COMMENT_PREFIX = "// CBMC_ANNOTATION: "
 
 
-def prepend_line_numbers(
-    lines: list[str], start: int, end: int
-) -> list[tuple[str, str]]:
+def prepend_line_numbers(lines: list[str], start: int, end: int) -> list[tuple[str, str]]:
     """Return a list of tuples of line numbers with lines.
 
     Args:
@@ -34,10 +32,7 @@ def prepend_line_numbers(
             f"range of lines (start = {start}, end = {end})"
         )
     line_number_width = len(str(end))
-    return [
-        (f"{str(n).ljust(line_number_width)}", lines[n - start])
-        for n in range(start, end)
-    ]
+    return [(f"{str(n).ljust(line_number_width)}", lines[n - start]) for n in range(start, end)]
 
 
 def comment_out_cbmc_annotations(lines: list[str]) -> list[str]:
