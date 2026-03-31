@@ -66,6 +66,9 @@ class PromptBuilder:
             if callees_with_specs := [callee for callee in callees if callee.has_specification()]:
                 callee_context = self._get_callee_specs(function.name, callees_with_specs)
 
+        # TOOD: Check if function.callee_names includes names from the C standard library.
+        # Update the callee_context with their specs if they exist.
+
         template = self._get_generation_prompt_template(specgen_granularity)
         return template.substitute(source=source_code, callee_context=callee_context)
 
