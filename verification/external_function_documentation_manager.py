@@ -107,7 +107,7 @@ class ExternalFunctionDocumentationManager:
         Returns:
             bool: True iff the parsed documentation JSON has all fields in ParsedDocumentation.
         """
-        parsed_documentation_fields = [field for field, _ in ParsedDocumentation.__annotations__]
         return all(
-            doc_field in parsed_documentation_json for doc_field in parsed_documentation_fields
+            doc_field in parsed_documentation_json
+            for doc_field in ParsedDocumentation.__annotations__
         )
