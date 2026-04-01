@@ -6,6 +6,7 @@ from string import Template
 
 from util import CFunction, FunctionSpecification, ParsecProject, SpecGenGranularity, text_util
 
+from .external_function_documentation_manager import ExternalFunctionDocumentationManager
 from .verification_result import VerificationResult
 
 
@@ -39,6 +40,12 @@ class PromptBuilder:
 
     CBMC_OUTPUT_FAILURE_MARKER = "FAILURE"
 
+    def __init__(
+        self, external_function_documentation_manager: ExternalFunctionDocumentationManager
+    ) -> None:
+        """Create a new PromptBuilder."""
+        self._external_function_documentation_manager = external_function_documentation_manager
+
     def specification_generation_prompt(
         self,
         function: CFunction,
@@ -71,6 +78,10 @@ class PromptBuilder:
 
         template = self._get_generation_prompt_template(specgen_granularity)
         return template.substitute(source=source_code, callee_context=callee_context)
+
+    def _get_callee_context(self, parsec_project: ParsecProject, function: CFunction) -> str:
+        """TODO: Document me."""
+        raise NotImplementedError("Implement me")
 
     def next_step_prompt(self, verification_result: VerificationResult) -> str:
         """Return prompt text asking the LLM to decide on next steps for a failing specification.
