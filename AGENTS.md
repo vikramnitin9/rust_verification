@@ -13,7 +13,8 @@
 - All code *must* should pass linting:
   - `make checks` should yield 0 errors or warnings.
   - Consult the user if there is ever a need to suppress a warning.
-- All code should be documented, even helper code.
+- All business logic should be documented, even helper code. Test code (i.e., any code under
+  `test/`) need not be documented.
 
 ## Basic Organization
 
@@ -31,4 +32,4 @@
 - `prompts/`: Plaintext prompt templates.
 - `models/`: Code related to LLM calls.
 - `translation/`: Code related to translating between CBMC and Kani,
-    includes CBCM grammar (`cbmc.txt`).
+    includes CBMC grammar (`cbmc.txt`).
