@@ -1,3 +1,4 @@
+from .external_function_documentation_manager import ExternalFunctionDocumentationManager, ParsedDocumentation, FunctionParameter, EntityType
 from .kani_verification_context import KaniVerificationContext
 from .prompt_builder import PromptBuilder
 from .verification_client import VerificationClient
@@ -11,6 +12,10 @@ from .avocado_stub_util import RenameData, AvocadoIdentifierRenamer, AVOCADO_STU
 
 __all__ = [
     "CbmcVerificationClient",
+    "EntityType",
+    "ExternalFunctionDocumentationManager",
+    "ParsedDocumentation",
+    "FunctionParameter",
     "KaniVerificationContext",
     "PromptBuilder",
     "VerificationContext",
