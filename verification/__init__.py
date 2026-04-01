@@ -12,6 +12,7 @@ from .avocado_stub_util import RenameData, get_stub_mappings, AVOCADO_STUB_DIR
 
 __all__ = [
     "CbmcVerificationClient",
+    "EntityType",
     "ExternalFunctionDocumentationManager",
     "ParsedDocumentation",
     "FunctionParameter",

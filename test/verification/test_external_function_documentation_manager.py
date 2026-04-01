@@ -12,7 +12,7 @@ doc_manager = ExternalFunctionDocumentationManager(
 
 def test_get_documentation_returns_none() -> None:
     assert doc_manager.get_documentation("fake_function") is None, (
-        f"Expected no documnetation for 'fake_function'"
+        "Expected no documentation for 'fake_function'"
     )
 
 
