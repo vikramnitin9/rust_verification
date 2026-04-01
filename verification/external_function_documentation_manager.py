@@ -63,9 +63,9 @@ class ParsedDocumentation:
         """
         lines = [f" Description: {self.description}"]
         for param in self.parameters:
-            lines.extend(str(param))
+            lines = [*lines, str(param)]
         if self.return_value_description:
-            lines.extend(f" @return: {self.return_value_description}")
+            lines = [*lines, f" @return: {self.return_value_description}"]
         return "\n".join(lines)
 
 

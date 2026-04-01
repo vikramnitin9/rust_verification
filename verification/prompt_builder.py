@@ -103,6 +103,7 @@ class PromptBuilder:
             if (doc := self._external_function_documentation_manager.get_documentation(callee_name))
         }
         if external_callee_documentation:
+            callee_context += f"\n\n{function.name} has the following external callees:\n\n"
             for external_callee, doc in external_callee_documentation.items():
                 callee_context += f"External callee: {external_callee}\n{doc!s}\n\n"
 
