@@ -68,20 +68,45 @@ class PromptBuilder:
 
         """
         source_code = function.get_original_source_code(include_documentation_comments=True)
-        callee_context = ""
-        if callees := parsec_project.get_callees(function):
-            if callees_with_specs := [callee for callee in callees if callee.has_specification()]:
-                callee_context = self._get_callee_specs(function.name, callees_with_specs)
-
-        # TOOD: Check if function.callee_names includes names from the C standard library.
-        # Update the callee_context with their specs if they exist.
+        callee_context = self._get_callee_context(parsec_project, function)
 
         template = self._get_generation_prompt_template(specgen_granularity)
         return template.substitute(source=source_code, callee_context=callee_context)
 
     def _get_callee_context(self, parsec_project: ParsecProject, function: CFunction) -> str:
-        """TODO: Document me."""
-        raise NotImplementedError("Implement me")
+        """Return the callee context for the given function.
+
+        Arguments:
+            parsec_project (ParsecProject): The project from which the function originates.
+            function (CFunction): The function for which to obtain the callee context.
+
+        Returns:
+            str: The callee context for the given function.
+        """
+        callee_context = ""
+        callees_from_project = parsec_project.get_callees(function)
+        names_of_callees_in_project = [callee.name for callee in callees_from_project]
+        external_callee_names = [
+            callee_name
+            for callee_name in function.callee_names
+            if callee_name not in names_of_callees_in_project
+        ]
+
+        if callees_with_specs := [
+            callee for callee in callees_from_project if callee.has_specification()
+        ]:
+            callee_context = self._get_callee_specs(function.name, callees_with_specs)
+
+        external_callee_documentation = {
+            callee_name: doc
+            for callee_name in external_callee_names
+            if (doc := self._external_function_documentation_manager.get_documentation(callee_name))
+        }
+        if external_callee_documentation:
+            for external_callee, doc in external_callee_documentation.items():
+                callee_context += f"External callee: {external_callee}\n{doc!s}\n\n"
+
+        return callee_context
 
     def next_step_prompt(self, verification_result: VerificationResult) -> str:
         """Return prompt text asking the LLM to decide on next steps for a failing specification.

@@ -27,6 +27,16 @@ class FunctionParameter:
     name: str
     description: str
 
+    def __str__(self) -> str:
+        """Return the string representation of a function parameter.
+
+        Returns:
+            str: The string representation of a function parameter.
+        """
+        if self.description:
+            return f" Parameter @{self.name}: {self.description}"
+        return f" @{self.name}"
+
 
 @dataclass(frozen=True)
 class ParsedDocumentation:
@@ -44,6 +54,19 @@ class ParsedDocumentation:
     description: str
     parameters: list[FunctionParameter]
     return_value_description: str
+
+    def __str__(self) -> str:
+        """Return the string representation of a parsed documentation entity.
+
+        Returns:
+            str: The string representation of a parsed documentation entity.
+        """
+        lines = [f" Description: {self.description}"]
+        for param in self.parameters:
+            lines.extend(str(param))
+        if self.return_value_description:
+            lines.extend(f" @return: {self.return_value_description}")
+        return "\n".join(lines)
 
 
 class ExternalFunctionDocumentationManager:
