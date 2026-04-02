@@ -1,6 +1,5 @@
 """Represents the ParseC representation for a C function."""
 
-import filecmp
 import pathlib
 from dataclasses import dataclass, field
 from typing import Any
@@ -333,16 +332,17 @@ class CFunction:
         return function_name_and_signature
 
     def __hash__(self) -> int:
-        """Return a hash based on this function's name, location, and file content.
+        """Return a hash based on this function's name and signature.
 
         Returns:
-            int: The hash based on this function's name, location, and file content.
+            int: The hash based on this function's name and signature.
         """
-        self_file_content = pathlib.Path(self.file_name).read_text()
-        return hash((self.name, self_file_content, self.start_line, self.end_line))
+        return hash((self.name, self.signature))
 
     def __eq__(self, other: object) -> bool:
         """Return True iff this function is equivalent to another.
+
+        Equality is based on whether two functions have the same name and the same signature.
 
         Returns:
             bool: True iff this function is equivalent to another.
@@ -351,7 +351,5 @@ class CFunction:
             return False
         return (
             self.name == other.name  # Do the two functions have the same name?
-            and filecmp.cmp(self.file_name, other.file_name)
-            and self.start_line == other.start_line
-            and self.end_line == other.end_line
+            and self.signature == other.signature  # Do the two functions have the same signature?
         )

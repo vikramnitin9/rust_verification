@@ -458,10 +458,7 @@ def _get_verified_and_cached_specification(function: CFunction) -> FunctionSpeci
             # This is very inefficient, but still faster than adding all the functions to workstacks
             # and reading from the cache repeatedly.
             vresult = VERIFIER_CACHE[vinput]
-            cached_fn = vresult.get_function()
-            same_name = cached_fn.name == function.name
-            same_file = Path(cached_fn.file_name).name == Path(function.file_name).name
-            if vresult.succeeded and same_name and same_file:
+            if vresult.succeeded and function == vresult.get_function():
                 return vresult.get_spec()
     return None
 
