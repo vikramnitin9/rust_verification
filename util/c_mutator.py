@@ -6,7 +6,7 @@ from enum import StrEnum
 from types import MappingProxyType
 
 import tree_sitter_c as tsc
-from tree_sitter import Language, Node, Parser
+from tree_sitter import Language, Node, Parser, Tree
 
 from .c_function import CFunction
 
@@ -56,19 +56,19 @@ class MutationOperator(StrEnum):
 
 @dataclass(frozen=True)
 class Mutant:
-    """A mutated version of a C function's source code.
+    """A mutated version of a C function implementation.
 
-    Each ``Mutant`` represents exactly one syntactic change from the original
-    source (i.e., it is a *first-order* mutant).
+    Each mutant represents exactly one syntactic change from the original implementation (i.e., a
+    first-order mutant).
 
     Attributes:
-        source_code: The complete, mutated function source code.
-        operator: The mutation operator that produced this mutant.
-        description: A human-readable description of the applied mutation.
-        line: The 1-indexed line number (within the function source) where the
+        source_code (str): The complete, mutated function implementation.
+        operator (MutationOperator): The mutation operator that produced this mutant.
+        description (str): A description of the applied mutation.
+        line (int): The 1-indexed line number (within the function implementation) where the
             mutation was applied.
-        original: The text of the expression that was replaced.
-        replacement: The text that replaced the original.
+        original (str): The text of the expression that was replaced.
+        replacement (str): The text that replaced the original.
     """
 
     source_code: str
@@ -82,23 +82,24 @@ class Mutant:
 class CMutator:
     """Generates first-order mutants of a C function for mutation testing.
 
-    Uses tree-sitter to parse the C source and systematically applies mutation
-    operators to produce mutated versions of the function.  Each mutant differs
-    from the original by exactly one syntactic change.
+    Uses tree-sitter to parse C source and applies mutation operators to produce first-order
+    mutants.
 
-    Example::
-
-        from util import CFunction
-        from util.c_mutator import CMutator
-
-        mutator = CMutator(c_function)
-        for mutant in mutator.get_mutants():
-            print(mutant.description)
-            print(mutant.source_code)
+    Attributes:
+        _ARITHMETIC_OPERATOR_REPLACEMENTS (Mapping[str, list[str]]): A map of arithmetic operators
+            to candidate mutant operators.
+        _RELATIONAL_OPERATOR_REPLACEMENTS (Mapping[str, list[str]]): A map of relational operators
+            to candidate mutant operators.
+        _LOGICAL_CONNECTOR_REPLACEMENTS (Mapping[str, list[str]]): A map of relational operators to
+            candidate mutant operators.
+        _c_function (CFunction): The C function to mutate.
+        _parser (Parser): The tree-sitter parser to parse the C function.
+        _source_code (str): The source code of the C function as a string.
+        _source_bytes (bytes): The source code of the C function as bytes.
+        _tree (Tree): The tree-sitter Tree parsed from the C function source code.
     """
 
-    # Maps each arithmetic operator to its candidate replacements.
-    _AOR_REPLACEMENTS: Mapping[str, list[str]] = MappingProxyType(
+    _ARITHMETIC_OPERATOR_REPLACEMENTS: Mapping[str, list[str]] = MappingProxyType(
         {
             "+": ["-", "*"],
             "-": ["+", "*"],
@@ -108,8 +109,7 @@ class CMutator:
         }
     )
 
-    # Maps each relational operator to its candidate replacements.
-    _ROR_REPLACEMENTS: Mapping[str, list[str]] = MappingProxyType(
+    _RELATIONAL_OPERATOR_REPLACEMENTS: Mapping[str, list[str]] = MappingProxyType(
         {
             "<": ["<=", ">", ">=", "==", "!="],
             "<=": ["<", ">", ">=", "==", "!="],
@@ -120,18 +120,22 @@ class CMutator:
         }
     )
 
-    # Maps each logical connector to its candidate replacements.
-    _LCR_REPLACEMENTS: Mapping[str, list[str]] = MappingProxyType(
+    _LOGICAL_CONNECTOR_REPLACEMENTS: Mapping[str, list[str]] = MappingProxyType(
         {
             "&&": ["||"],
             "||": ["&&"],
         }
     )
+    _c_function: CFunction
+    _parser: Parser
+    _source_code: str
+    _source_bytes: bytes
+    _tree: Tree
 
     def __init__(self, c_function: CFunction) -> None:
-        """Create a new ``CMutator``.
+        """Create a new CMutator.
 
-        The function's source code is taken from ``c_function.source_code`` when
+        This function's source code is taken from ``c_function.source_code`` when
         it has been set (via ``CFunction.set_source_code``); otherwise it is read
         from the original file via ``CFunction.get_original_source_code()``.
 
@@ -142,21 +146,12 @@ class CMutator:
         self._parser: Parser = Parser(_C_LANGUAGE)
 
         source = c_function.source_code or c_function.get_original_source_code()
-        self._source_code: str = source
-        self._source_bytes: bytes = source.encode("utf-8")
+        self._source_code = source
+        self._source_bytes = source.encode("utf-8")
         self._tree = self._parser.parse(self._source_bytes)
 
-    # ------------------------------------------------------------------ #
-    # Public interface                                                     #
-    # ------------------------------------------------------------------ #
-
     @property
-    def c_function(self) -> CFunction:
-        """Return the C function being mutated."""
-        return self._c_function
-
-    @property
-    def source_code(self) -> str:
+    def get_source_code(self) -> str:
         """Return the (possibly pre-processed) source code being mutated."""
         return self._source_code
 
@@ -209,7 +204,7 @@ class CMutator:
             list[Mutant]: All AOR mutants.
         """
         return self._apply_binary_operator_replacements(
-            MutationOperator.AOR, self._AOR_REPLACEMENTS
+            MutationOperator.AOR, self._ARITHMETIC_OPERATOR_REPLACEMENTS
         )
 
     def _apply_ror(self) -> list[Mutant]:
@@ -222,7 +217,7 @@ class CMutator:
             list[Mutant]: All ROR mutants.
         """
         return self._apply_binary_operator_replacements(
-            MutationOperator.ROR, self._ROR_REPLACEMENTS
+            MutationOperator.ROR, self._RELATIONAL_OPERATOR_REPLACEMENTS
         )
 
     def _apply_lcr(self) -> list[Mutant]:
@@ -234,7 +229,7 @@ class CMutator:
             list[Mutant]: All LCR mutants.
         """
         return self._apply_binary_operator_replacements(
-            MutationOperator.LCR, self._LCR_REPLACEMENTS
+            MutationOperator.LCR, self._LOGICAL_CONNECTOR_REPLACEMENTS
         )
 
     def _apply_crp(self) -> list[Mutant]:

@@ -6,29 +6,20 @@ from textwrap import dedent
 from util import CMutator, Mutant, MutationOperator
 from util.parsec_project import ParsecProject
 
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
 def _mutant_replacements(mutants: list[Mutant]) -> set[tuple[str, str]]:
     """Return the (original, replacement) pairs from a list of mutants."""
     return {(m.original, m.replacement) for m in mutants}
 
 
 def _get_function(file: str, name: str):
-    """Load a CFunction from a data file via ParsecProject."""
     project = ParsecProject(Path(file))
     fn = project.get_function_or_none(name)
-    assert fn is not None, f"Function '{name}' not found in '{file}'"
+    assert fn, f"Function '{name}' not found in '{file}'"
     return fn
 
 
-# ---------------------------------------------------------------------------
-# AOR – Arithmetic Operator Replacement
-# ---------------------------------------------------------------------------
+class TestArithmeticOperatorReplacement:
 
-class TestAOR:
     def test_aor_finds_multiplication_in_factorial(self):
         """partition has + and - binary operators — expect AOR mutants."""
         fn = _get_function("data/qsort.c", "partition")
@@ -41,7 +32,7 @@ class TestAOR:
         fn = _get_function("data/qsort.c", "partition")
         mutator = CMutator(fn)
         for mutant in mutator.get_mutants_by_operator()[MutationOperator.AOR]:
-            assert mutant.source_code != mutator.source_code
+            assert mutant.source_code != mutator.get_source_code
 
     def test_aor_replaces_plus_with_minus(self):
         fn = _get_function("data/qsort.c", "partition")
@@ -61,7 +52,8 @@ class TestAOR:
 # ROR – Relational Operator Replacement
 # ---------------------------------------------------------------------------
 
-class TestROR:
+class TestRelationalOperatorReplacement:
+
     def test_ror_finds_less_than_or_equal_in_factorial(self):
         fn = _get_function("data/factorial_iterative.c", "factorial_iter")
         mutator = CMutator(fn)
@@ -95,7 +87,7 @@ class TestROR:
 # LCR – Logical Connector Replacement
 # ---------------------------------------------------------------------------
 
-class TestLCR:
+class TestLogicalConnectorReplacement:
     def test_lcr_swaps_and_to_or_in_quicksort(self):
         fn = _get_function("data/qsort.c", "quickSort")
         mutator = CMutator(fn)
@@ -266,13 +258,3 @@ class TestGetMutants:
         mutator = CMutator(fn)
         sources = [m.source_code for m in mutator.get_mutants()]
         assert len(sources) == len(set(sources)), "Mutants should be unique"
-
-    def test_c_function_property(self):
-        fn = _get_function("data/factorial_iterative.c", "factorial_iter")
-        mutator = CMutator(fn)
-        assert mutator.c_function is fn
-
-    def test_source_code_property(self):
-        fn = _get_function("data/factorial_iterative.c", "factorial_iter")
-        mutator = CMutator(fn)
-        assert "factorial_iter" in mutator.source_code
