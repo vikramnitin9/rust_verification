@@ -90,6 +90,8 @@ class ProofStateStepper:
                     f"Backtracking is not possible for callee '{callee_name}', as the project does "
                     "not provide an implementation; it may be a library function"
                 )
+                # Since backtracking is not possible, assume the (failing) specs here, and move to
+                # the next function to verify.
                 self._write_spec_to_disk(spec_conversation=spec_conversation)
                 workstack_for_next_proof_state = prev_proof_state.get_workstack().pop()
                 return ProofState(
@@ -98,7 +100,7 @@ class ProofStateStepper:
                 )
 
             case _:
-                msg = f"Unexpected next step strategy: '{SpecConversation.next_step}'"
+                msg = f"Unexpected next step strategy: '{spec_conversation.next_step}'"
                 raise ValueError(msg)
 
     def _write_spec_to_disk(self, spec_conversation: SpecConversation) -> None:
