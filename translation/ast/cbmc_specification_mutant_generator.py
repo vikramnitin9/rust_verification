@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import cast
+from collections.abc import Callable
+from typing import TypeAlias, cast
 
 from loguru import logger
 
@@ -15,6 +16,8 @@ from translation.ast.cbmc_ast import (
     Quantifier,
     RequiresClause,
 )
+
+BinOpFactory: TypeAlias = Callable[[CbmcAst, CbmcAst], BinOp]
 
 
 class CbmcSpecificationMutantGenerator:
@@ -51,11 +54,8 @@ class CbmcSpecificationMutantGenerator:
             case EnsuresClause(meta, expr):
                 mutants.update({EnsuresClause(meta, m) for m in self.get_mutants(expr)})
             case BinOp(left, right):
-                replacement_operators: list[type[BinOp]] = cast(
-                    "list[type[BinOp]]", node.get_mutation_candidates()
-                )
-                # Mutate just the operator, keeping children unchanged.
-                mutants.update({mutation(left, right) for mutation in replacement_operators})
+                replacement_operators = cast("list[BinOpFactory]", node.get_mutation_candidates())
+                mutants.update({make_binop(left, right) for make_binop in replacement_operators})
 
                 # Mutate just the left-hand side, keeping operator and right child.
                 mutants.update(
@@ -122,9 +122,7 @@ class CbmcSpecificationMutantGenerator:
                 return EnsuresClause(meta=meta, expr=self.get_higher_order_mutant(expr))
             case BinOp(left, right):
                 # There is only one mutation candidate, for now.
-                replacement_operators: list[type[BinOp]] = cast(
-                    "list[type[BinOp]]", node.get_mutation_candidates()
-                )
+                replacement_operators = cast("list[BinOpFactory]", node.get_mutation_candidates())
                 assert len(replacement_operators) >= 1, (
                     f"Expected at least one mutation candidate for a binary operation: {node}"
                 )
