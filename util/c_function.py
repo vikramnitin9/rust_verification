@@ -1,8 +1,9 @@
 """Represents the ParseC representation for a C function."""
 
-import filecmp
 import pathlib
+import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from .function_specification import FunctionSpecification
@@ -333,25 +334,54 @@ class CFunction:
         return function_name_and_signature
 
     def __hash__(self) -> int:
-        """Return a hash based on this function's name, location, and file content.
+        """Return a hash based on this function's name and signature.
 
         Returns:
-            int: The hash based on this function's name, location, and file content.
+            int: The hash based on this function's name and signature.
         """
-        self_file_content = pathlib.Path(self.file_name).read_text()
-        return hash((self.name, self_file_content, self.start_line, self.end_line))
+        return hash(
+            (self.name, CFunction.normalize_signature(self.signature), Path(self.file_name).name)
+        )
 
     def __eq__(self, other: object) -> bool:
         """Return True iff this function is equivalent to another.
+
+        Equality is based on whether two functions have the same name, signature, and file name
+        attributes.
 
         Returns:
             bool: True iff this function is equivalent to another.
         """
         if not isinstance(other, CFunction):
             return False
+        normalized_signature = CFunction.normalize_signature(self.signature)
+        other_normalized_signature = CFunction.normalize_signature(other.signature)
         return (
-            self.name == other.name  # Do the two functions have the same name?
-            and filecmp.cmp(self.file_name, other.file_name)
-            and self.start_line == other.start_line
-            and self.end_line == other.end_line
+            self.name == other.name
+            and normalized_signature == other_normalized_signature
+            and Path(self.file_name).name == Path(other.file_name).name
         )
+
+    @staticmethod
+    def normalize_signature(signature: str) -> str:
+        r"""Return a signature with canonical spacing for stable comparisons.
+
+          This normalization runs in two regex passes:
+
+          1. re.sub(r"\s+", " ", signature).strip() collapses runs of whitespace
+              (spaces, tabs, newlines) into a single space and trims leading/trailing spaces.
+          2. re.sub(r"\s*([(),])\s*", r"\1", normalized) removes surrounding
+              whitespace around ``(``, ``)``, and ``,`` while preserving the punctuation via the
+              capture group ``([(),])`` and replacement backreference ``\1``.
+
+          Together these steps make equivalent signatures compare equal even when ParseC or source
+          formatting differs only by whitespace.
+
+        Args:
+            signature (str): The signature string to normalize.
+
+        Returns:
+            str: The signature with normalized spacing around common punctuation.
+        """
+        normalized = re.sub(r"\s+", " ", signature).strip()
+        return re.sub(r"\s*([(),])\s*", r"\1", normalized)
