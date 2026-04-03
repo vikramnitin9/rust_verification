@@ -233,6 +233,44 @@ def test_get_source_code_with_inserted_specs_comments_out_multi_line_specs() -> 
     )
 
 
+def test_get_source_code_with_inserted_specs_comments_out_multiline_ensures() -> None:
+    path_to_swap_no_specs = Path("test/data/function_util/no_specs.c")
+    swap_specs = FunctionSpecification(
+        preconditions=[],
+        postconditions=[
+            "__CPROVER_ensures((E.syntax == NULL) ==> \n"
+            "  (__CPROVER_forall { int j; (0 <= j && j < row->rsize) ==> row->hl[j] == HL_NORMAL }))",
+            "__CPROVER_ensures((E.syntax != NULL) ==> \n"
+            "  (__CPROVER_forall { int j; (0 <= j && j < row->rsize) ==> \n"
+            "    (row->hl[j] == HL_NORMAL || row->hl[j] == HL_COMMENT || row->hl[j] == HL_MLCOMMENT || \n"
+            "     row->hl[j] == HL_STRING || row->hl[j] == HL_NONPRINT || row->hl[j] == HL_NUMBER || \n"
+            "     row->hl[j] == HL_KEYWORD1 || row->hl[j] == HL_KEYWORD2) }))",
+        ],
+    )
+    swap_with_specs = function_util.get_source_code_with_inserted_spec(
+        "swap",
+        swap_specs,
+        ParsecProject(input_path=path_to_swap_no_specs),
+        comment_out_spec=True,
+    )
+    assert (
+        swap_with_specs
+        == """void swap(int* a, int* b)
+// __CPROVER_ensures((E.syntax == NULL) ==> 
+//   (__CPROVER_forall { int j; (0 <= j && j < row->rsize) ==> row->hl[j] == HL_NORMAL }))
+// __CPROVER_ensures((E.syntax != NULL) ==> 
+//   (__CPROVER_forall { int j; (0 <= j && j < row->rsize) ==> 
+//     (row->hl[j] == HL_NORMAL || row->hl[j] == HL_COMMENT || row->hl[j] == HL_MLCOMMENT || 
+//      row->hl[j] == HL_STRING || row->hl[j] == HL_NONPRINT || row->hl[j] == HL_NUMBER || 
+//      row->hl[j] == HL_KEYWORD1 || row->hl[j] == HL_KEYWORD2) }))
+{
+    int t = *a;
+    *a = *b;
+    *b = t;
+}"""
+    )
+
+
 def test_update_function_definition_at_middle(copy_file, remove_file) -> None:
     file_containing_function = copy_file(
         "test/data/function_util/update_function_definition/swap_middle.c"
