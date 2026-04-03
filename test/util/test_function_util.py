@@ -496,4 +496,7 @@ def test_normalize_function_specification_for_partition() -> None:
                 msg = f"Same clauses, but different order.\n{msg}"
                 warnings.warn(msg)
                 continue
-            assert False
+            pytest.fail(
+                f"Normalized spec '{normalized_spec}' was not eq setwise to expected spec "
+                f"'{expected_spec}'"
+            )
