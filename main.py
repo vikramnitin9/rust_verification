@@ -443,8 +443,9 @@ def _set_next_step(
 def _get_verified_and_cached_specification(function: CFunction) -> FunctionSpecification | None:
     """Return a verified specification for a function from the verifier cache, if present.
 
-    The lookup matches on function name and source filename only, so that a cached spec remains
-    valid even if the file contents have changed (e.g., because other specs were written into it).
+    The lookup matches on function name, signature, and source filename only, so that a cached spec
+    remains valid even if the file contents have changed (e.g., because other specs were written
+    into it).
 
     Args:
         function (CFunction): The function whose cached verified specification is requested.
