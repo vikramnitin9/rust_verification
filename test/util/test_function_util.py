@@ -202,6 +202,37 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     )
 
 
+def test_get_source_code_with_inserted_specs_comments_out_multi_line_specs() -> None:
+    path_to_swap_no_specs = Path("test/data/function_util/no_specs.c")
+    swap_specs = FunctionSpecification(
+        preconditions=[
+            "__CPROVER_requires(\n"
+            "  __CPROVER_is_fresh(a, sizeof(int)) &&\n"
+            "  __CPROVER_is_fresh(b, sizeof(int)))"
+        ],
+        postconditions=["__CPROVER_ensures(*a == __CPROVER_old(*b))"],
+    )
+    swap_with_specs = function_util.get_source_code_with_inserted_spec(
+        "swap",
+        swap_specs,
+        ParsecProject(input_path=path_to_swap_no_specs),
+        comment_out_spec=True,
+    )
+    assert (
+        swap_with_specs
+        == """void swap(int* a, int* b)
+// __CPROVER_requires(
+//   __CPROVER_is_fresh(a, sizeof(int)) &&
+//   __CPROVER_is_fresh(b, sizeof(int)))
+// __CPROVER_ensures(*a == __CPROVER_old(*b))
+{
+    int t = *a;
+    *a = *b;
+    *b = t;
+}"""
+    )
+
+
 def test_update_function_definition_at_middle(copy_file, remove_file) -> None:
     file_containing_function = copy_file(
         "test/data/function_util/update_function_definition/swap_middle.c"
