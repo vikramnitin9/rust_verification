@@ -2,6 +2,7 @@ from pathlib import Path
 from textwrap import dedent
 
 from util.parsec_project import ParsecProject
+from util import CFunction
 
 
 def test_get_source_code() -> None:
@@ -150,3 +151,13 @@ def test_is_self_recursive_is_false() -> None:
     expected_function = parsec_project.get_function_or_none("a")
     assert expected_function, "Function 'a' should be declared in test/data/callgraph/simple.c"
     assert not expected_function.is_self_recursive()
+
+def test_normalize_signature_whitespace() -> None:
+    s1 = "int   foo(int a,int b)"
+    s2 = "int foo(int a,  int b  )"
+    assert CFunction.normalize_signature(s1) == CFunction.normalize_signature(s2)
+
+def test_normalize_signature_newlines() -> None:
+    s1 = "int   foo(int a,int b)\n\n"
+    s2 = "int foo(int a,  int b  )"
+    assert CFunction.normalize_signature(s1) == CFunction.normalize_signature(s2)
