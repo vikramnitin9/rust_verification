@@ -45,6 +45,7 @@ class ParsedDocumentation:
 
     Attributes:
         entity_type (EntityType): The type of the entity parsed from the HTML.
+        header_name (str): The name of the header in which this entity is declared.
         description (str): The description parsed from the HTML.
         parameters (list[FunctionParameter]): The documentation for the function parameters,
             empty for all entities except for functions.
@@ -52,6 +53,7 @@ class ParsedDocumentation:
     """
 
     entity_type: EntityType
+    header_name: str
     description: str
     parameters: list[FunctionParameter]
     return_value_description: str
@@ -92,6 +94,7 @@ class ExternalFunctionDocumentationManager:
             parameters = [FunctionParameter(**p) for p in docs_for_function["parameters"]]
             return ParsedDocumentation(
                 docs_for_function["entity_type"],
+                docs_for_function["header_name"],
                 description=docs_for_function["description"],
                 parameters=parameters,
                 return_value_description=docs_for_function["return_value_description"],

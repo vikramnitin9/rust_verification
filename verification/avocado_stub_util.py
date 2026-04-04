@@ -6,12 +6,16 @@ import pickle as pkl
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
-if TYPE_CHECKING:
-    from util.tree_sitter_util import IdentifierNodeParentType
+import tree_sitter_c as tsc
+from tree_sitter import Language, Parser
+
+from util.tree_sitter_util import IdentifierNodeParentType, get_function_identifiers
 
 AVOCADO_FUNCTION_PREFIX = "_avocado_"
+_TREE_SITTER_LANG = Language(tsc.language())
+_PARSER = Parser(_TREE_SITTER_LANG)
 AVOCADO_STUB_DIR = "verification/cbmc_stubs"
 C_KEYWORD_FILE_PATH = f"{AVOCADO_STUB_DIR}/c_keywords.txt"
 
@@ -111,3 +115,46 @@ def get_renamed_identifier(original_identifier: str, rename_data: list[RenameDat
         )
         raise ValueError(msg)
     return next(iter(renamed_identifiers))
+
+
+def get_stub_implementation(original_identifier: str, header_name: str) -> str | None:
+    r"""Return the implementation of the Avocado stub for the given function, or None if not found.
+
+    Looks up the function whose identifier in the stub file is
+    ``_avocado_<original_identifier>`` and returns the full function definition as a string with
+    the `_avocado_` prefix removed.
+
+
+    Args:
+        original_identifier (str): The original C function identifier (without the Avocado prefix).
+        header_name (str): The name of the header file (e.g. "string.h") whose corresponding
+            stub file should be searched.
+
+    Returns:
+        str | None: The full function definition text, or `None` if the stub file does not exist
+            or the function is not found in the stub file.
+    """
+    expected_path_to_stub_file = Path(f"{AVOCADO_STUB_DIR}/{header_name.replace('.h', '.c')}")
+    if not expected_path_to_stub_file.exists():
+        return None
+
+    file_content = expected_path_to_stub_file.read_text(encoding="utf-8")
+    tree = _PARSER.parse(bytes(file_content, encoding="utf-8"))
+
+    target_identifier = AVOCADO_FUNCTION_PREFIX + original_identifier
+    definition = None
+    for identifier_node, parent_type in get_function_identifiers(tree.root_node):
+        if (
+            parent_type == IdentifierNodeParentType.FUNCTION_DEFINITION
+            and identifier_node.text is not None
+            and identifier_node.text.decode() == target_identifier
+        ):
+            # Walk up to the function_definition node to get the full definition text.
+            definition_node = identifier_node.parent
+            while definition_node is not None and definition_node.type != "function_definition":
+                definition_node = definition_node.parent
+            if definition_node is not None:
+                definition = file_content[definition_node.start_byte : definition_node.end_byte]
+    if definition:
+        return definition.replace(AVOCADO_FUNCTION_PREFIX, "")
+    return None
