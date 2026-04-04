@@ -33,3 +33,15 @@ def test_get_documentation_returns_docs() -> None:
         ],
         return_value_description="On success, returns the pointer to the beginning of newly allocated memory. To avoid a memory leak, the returned pointer must be deallocated with free or realloc. On failure, returns a null pointer.",
     )
+
+
+def test_get_header_declaring_function_valid() -> None:
+    assert doc_manager.get_header_declaring_function("strchr") == "string.h", (
+        "Expected function 'strchr' to be declared in 'string.h'"
+    )
+
+
+def test_get_header_declaring_function_invalid() -> None:
+    assert doc_manager.get_header_declaring_function("nonexistent_function") is None, (
+        "Expected no header file to declare 'nonexistent_function'"
+    )

@@ -101,6 +101,22 @@ class ExternalFunctionDocumentationManager:
             )
         return None
 
+    def get_header_declaring_function(self, function_name: str) -> str | None:
+        """Return the name of the header in which the function with the given name is declared.
+
+        Args:
+            function_name (str): The function for which to look up the header.
+
+        Returns:
+            str | None: The name of the header that declares the function, if found. Otherwise None.
+        """
+        if (
+            doc_for_function := self.docs.get(function_name)
+        ) and self._is_valid_parsed_documentation(doc_for_function):
+            header = doc_for_function["header_name"]
+            return header if header != "" else None
+        return None
+
     def _is_valid_parsed_documentation(self, parsed_documentation_json: dict[str, Any]) -> bool:
         """Return True iff the parsed documentation JSON has all fields in ParsedDocumentation.
 
