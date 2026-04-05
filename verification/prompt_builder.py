@@ -105,13 +105,30 @@ class PromptBuilder:
         if external_callee_context := self._get_external_callee_context(
             function.name, external_callee_names
         ):
-            callee_context += f"\n\n{external_callee_context}"
+            callee_context = (
+                f"{callee_context}\n\n{external_callee_context}"
+                if callee_context
+                else external_callee_context
+            )
 
         return callee_context
 
     def _get_external_callee_context(
         self, caller_name: str, external_callee_names: list[str]
     ) -> str | None:
+        """Return prompt context describing external callees and their stub implementations.
+
+        If a header has no stub file or a specific callee has no matching stub implementation,
+        a warning is logged and that callee is skipped.
+
+        Args:
+            caller_name (str): Name of the function whose external callees are being summarized.
+            external_callee_names (list[str]): External callee names.
+
+        Returns:
+            str | None: Formatted context text for the prompt when at least one external callee
+                stub implementation is found; otherwise None.
+        """
         header_basename_to_external_callees: dict[str, list[str]] = defaultdict(list)
         for callee_name in external_callee_names:
             if (
@@ -148,7 +165,7 @@ class PromptBuilder:
 
         external_callee_context = None
         if external_callees_to_stubs:
-            external_callee_context = f"\n\n{caller_name} has the following external callees:\n\n"
+            external_callee_context = f"{caller_name} has the following external callees:\n\n"
             for external_callee, stub_impl in external_callees_to_stubs.items():
                 external_callee_context += (
                     f"External callee: {external_callee}\n\n{stub_impl}\n\n\n"

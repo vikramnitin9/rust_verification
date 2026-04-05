@@ -216,8 +216,8 @@ def get_stub_implementation(original_identifier: str, header_file_basename: str)
     if not expected_path_to_stub_file.exists():
         return None
 
-    file_content = expected_path_to_stub_file.read_text(encoding="utf-8")
-    tree = _PARSER.parse(bytes(file_content, encoding="utf-8"))
+    file_content = expected_path_to_stub_file.read_bytes()
+    tree = _PARSER.parse(file_content)
 
     avocado_identifier = AVOCADO_FUNCTION_PREFIX + original_identifier
     definition = None
@@ -237,7 +237,9 @@ def get_stub_implementation(original_identifier: str, header_file_basename: str)
                     "but was missing a definition"
                 )
                 raise ValueError(msg)
-            definition = file_content[definition_node.start_byte : definition_node.end_byte]
+            definition = file_content[definition_node.start_byte : definition_node.end_byte].decode(
+                encoding="utf-8"
+            )
             break
     if not definition:
         msg = f"No definition found for '{original_identifier}' in '{header_file_basename}'"
