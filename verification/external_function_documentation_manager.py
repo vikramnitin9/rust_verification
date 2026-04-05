@@ -45,7 +45,8 @@ class ParsedDocumentation:
 
     Attributes:
         entity_type (EntityType): The type of the entity parsed from the HTML.
-        header_name (str): The name of the header file in which this entity is declared.
+        header_file_basename (str): The base name of the header file in which this entity is
+            declared.
         description (str): The description parsed from the HTML.
         parameters (list[FunctionParameter]): The documentation for the function parameters,
             empty for all entities except for functions.
@@ -53,7 +54,7 @@ class ParsedDocumentation:
     """
 
     entity_type: EntityType
-    header_name: str
+    header_file_basename: str
     description: str
     parameters: list[FunctionParameter]
     return_value_description: str
@@ -102,13 +103,13 @@ class ExternalFunctionDocumentationManager:
         return None
 
     def get_header_declaring_function(self, function_name: str) -> str | None:
-        """Return the name of the header file in which the function with the given name is declared.
+        """Return the base name of the header file in which the function with the name is declared.
 
         Args:
             function_name (str): The function for which to look up the header.
 
         Returns:
-            str | None: The name of the header file that declares the function, if found.
+            str | None: The base name of the header file that declares the function, if found.
                 Otherwise None.
         """
         if (

@@ -19,7 +19,7 @@ def test_get_documentation_returns_none() -> None:
 def test_get_documentation_returns_docs() -> None:
     assert doc_manager.get_documentation("aligned_alloc") == ParsedDocumentation(
         entity_type=EntityType.FUNCTION,
-        header_name="stdlib.h",
+        header_file_basename="stdlib.h",
         description="Allocate size bytes of uninitialized storage whose alignment is specified by alignment. The size parameter must be an integral multiple of alignment. aligned_alloc is thread-safe: it behaves as though only accessing the memory locations visible through its argument, and not any static storage. A previous call to free or realloc that deallocates a region of memory synchronizes-with a call to aligned_alloc that allocates the same or a part of the same region of memory. This synchronization occurs after any access to the memory by the deallocating function and before any access to the memory by aligned_alloc. There is a single total order of all allocation and deallocation functions operating on each particular region of memory.",
         parameters=[
             FunctionParameter(
