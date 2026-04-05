@@ -141,13 +141,13 @@ def get_stub_implementation(original_identifier: str, header_name: str) -> str |
     file_content = expected_path_to_stub_file.read_text(encoding="utf-8")
     tree = _PARSER.parse(bytes(file_content, encoding="utf-8"))
 
-    target_identifier = AVOCADO_FUNCTION_PREFIX + original_identifier
+    avocado_identifier = AVOCADO_FUNCTION_PREFIX + original_identifier
     definition = None
     for identifier_node, parent_type in get_function_identifiers(tree.root_node):
         if (
             parent_type == IdentifierNodeParentType.FUNCTION_DEFINITION
             and identifier_node.text is not None
-            and identifier_node.text.decode() == target_identifier
+            and identifier_node.text.decode() == avocado_identifier
         ):
             # Walk up to the function_definition node to get the full definition text.
             definition_node = identifier_node.parent
