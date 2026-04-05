@@ -144,8 +144,9 @@ def load_stub_file(header_file_basename: str) -> ParsedSource | None:
             corresponding stub file should be loaded.
 
     Returns:
-        tuple[str, Tree] | None: A ``(file_content, tree)`` pair, or ``None`` if no stub file
-            exists for the given header.
+        ParsedSource | None: A parsed source instance for this stub file, if the header file exists.
+            None otherwise.
+
     """
     expected_path_to_stub_file = Path(
         f"{AVOCADO_STUB_DIR}/{header_file_basename.replace('.h', '.c')}"
