@@ -117,7 +117,7 @@ def get_renamed_identifier(original_identifier: str, rename_data: list[RenameDat
     return next(iter(renamed_identifiers))
 
 
-def get_stub_implementation(original_identifier: str, header_name: str) -> str | None:
+def get_stub_implementation(original_identifier: str, header_file_basename: str) -> str | None:
     r"""Return the implementation of the Avocado stub for the given function, or None if not found.
 
     Looks up the function whose identifier in the stub file is
@@ -127,14 +127,16 @@ def get_stub_implementation(original_identifier: str, header_name: str) -> str |
 
     Args:
         original_identifier (str): The original C function identifier (without the Avocado prefix).
-        header_name (str): The name of the header file (e.g. "string.h") whose corresponding
-            stub file should be searched.
+        header_file_basename (str): The name of the header file (e.g. "string.h") whose
+            corresponding stub file should be searched.
 
     Returns:
         str | None: The full function definition text, or `None` if the stub file does not exist
             or the function is not found in the stub file.
     """
-    expected_path_to_stub_file = Path(f"{AVOCADO_STUB_DIR}/{header_name.replace('.h', '.c')}")
+    expected_path_to_stub_file = Path(
+        f"{AVOCADO_STUB_DIR}/{header_file_basename.replace('.h', '.c')}"
+    )
     if not expected_path_to_stub_file.exists():
         return None
 
@@ -153,8 +155,16 @@ def get_stub_implementation(original_identifier: str, header_name: str) -> str |
             definition_node = identifier_node.parent
             while definition_node is not None and definition_node.type != "function_definition":
                 definition_node = definition_node.parent
-            if definition_node is not None:
-                definition = file_content[definition_node.start_byte : definition_node.end_byte]
-    if definition:
-        return definition.replace(AVOCADO_FUNCTION_PREFIX, "")
-    return None
+            if not definition_node:
+                msg = (
+                    f"Identifier '{original_identifier}' was found in {header_file_basename}, "
+                    "but was missing a definition"
+                )
+                raise ValueError(msg)
+            definition = file_content[definition_node.start_byte : definition_node.end_byte]
+            break
+    if not definition:
+        msg = f"No definition found for '{original_identifier}' in '{header_file_basename}'"
+        raise ValueError(msg)
+
+    return definition.replace(AVOCADO_FUNCTION_PREFIX, "")
