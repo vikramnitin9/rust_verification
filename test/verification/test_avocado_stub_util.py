@@ -1,3 +1,5 @@
+import pytest
+
 from verification import avocado_stub_util
 
 from pathlib import Path
@@ -48,15 +50,15 @@ def test_apply_stub_renaming_existing_avocado_name() -> None:
 
 
 def test_get_stub_with_nonexistent_file() -> None:
-    assert not avocado_stub_util.get_stub_implementation("strchr", "nonsense.h"), (
-        f"'nonsense.h' should not exist"
+    assert avocado_stub_util.get_stub_implementation("strchr", "nonsense.h") is None, (
+        f"'nonsense.h' is not a valid C header file."
     )
 
 
 def test_get_stub_with_nonexistent_function() -> None:
-    assert not avocado_stub_util.get_stub_implementation("nonsense_function", "string.h"), (
-        f"'nonsense_function' should not exist in 'string.h'"
-    )
+    with pytest.raises(ValueError):
+        avocado_stub_util.get_stub_implementation("nonsense_function", "string.h")
+
 
 def test_get_stub() -> None:
     stub_implementation = """char *strchr(const char *src, int c)
@@ -79,4 +81,3 @@ def test_get_stub() -> None:
   #endif
 }"""
     assert avocado_stub_util.get_stub_implementation("strchr", "string.h") == stub_implementation
-

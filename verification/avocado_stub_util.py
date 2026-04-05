@@ -131,8 +131,7 @@ def get_stub_implementation(original_identifier: str, header_file_basename: str)
             corresponding stub file should be searched.
 
     Returns:
-        str | None: The full function definition text, or `None` if the stub file does not exist
-            or the function is not found in the stub file.
+        str | None: The full function definition text, or `None` if the stub file does not exist.
     """
     expected_path_to_stub_file = Path(
         f"{AVOCADO_STUB_DIR}/{header_file_basename.replace('.h', '.c')}"
