@@ -4,8 +4,11 @@ import tempfile
 from pathlib import Path
 from string import Template
 
+from loguru import logger
+
 from util import CFunction, FunctionSpecification, ParsecProject, SpecGenGranularity, text_util
 
+from .avocado_stub_util import get_stub_implementation
 from .external_function_documentation_manager import ExternalFunctionDocumentationManager
 from .verification_result import VerificationResult
 
@@ -97,15 +100,31 @@ class PromptBuilder:
         ]:
             callee_context = self._get_callee_specs(function.name, callees_with_specs)
 
-        external_callee_documentation = {
-            callee_name: doc
+        external_callees_to_headers = {
+            callee_name: header
             for callee_name in external_callee_names
-            if (doc := self._external_function_documentation_manager.get_documentation(callee_name))
+            if (
+                header
+                := self._external_function_documentation_manager.get_header_declaring_function(
+                    callee_name
+                )
+            )
         }
-        if external_callee_documentation:
+
+        external_callees_to_stubs: dict[str, str] = {}
+        for external_callee_name, header in external_callees_to_headers.items():
+            if callee_stub_impl := get_stub_implementation(external_callee_name, header):
+                external_callees_to_stubs[external_callee_name] = callee_stub_impl
+            else:
+                logger.warning(
+                    f"Failed to find a stub implementation for external callee "
+                    f"'{external_callee_name}' in header '{header}'"
+                )
+
+        if external_callees_to_stubs:
             callee_context += f"\n\n{function.name} has the following external callees:\n\n"
-            for external_callee, doc in external_callee_documentation.items():
-                callee_context += f"External callee: {external_callee}\n{doc!s}\n\n"
+            for external_callee, stub_impl in external_callees_to_stubs.items():
+                callee_context += f"External callee: {external_callee}\n{stub_impl}\n\n"
 
         return callee_context
 
