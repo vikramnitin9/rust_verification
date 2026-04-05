@@ -1,6 +1,7 @@
 """Module to construct prompts for LLM calls."""
 
 import tempfile
+from collections import defaultdict
 from pathlib import Path
 from string import Template
 
@@ -8,7 +9,7 @@ from loguru import logger
 
 from util import CFunction, FunctionSpecification, ParsecProject, SpecGenGranularity, text_util
 
-from .avocado_stub_util import get_stub_implementation
+from .avocado_stub_util import get_stub_implementation_from_tree, load_stub_file
 from .external_function_documentation_manager import ExternalFunctionDocumentationManager
 from .verification_result import VerificationResult
 
@@ -88,6 +89,12 @@ class PromptBuilder:
         """
         callee_context = ""
         callees_from_project = parsec_project.get_callees(function)
+
+        if callees_with_specs := [
+            callee for callee in callees_from_project if callee.has_specification()
+        ]:
+            callee_context = self._get_callee_specs(function.name, callees_with_specs)
+
         names_of_callees_in_project = [callee.name for callee in callees_from_project]
         external_callee_names = [
             callee_name
@@ -95,40 +102,59 @@ class PromptBuilder:
             if callee_name not in names_of_callees_in_project
         ]
 
-        if callees_with_specs := [
-            callee for callee in callees_from_project if callee.has_specification()
-        ]:
-            callee_context = self._get_callee_specs(function.name, callees_with_specs)
+        if external_callee_context := self._get_external_callee_context(
+            function.name, external_callee_names
+        ):
+            callee_context += f"\n\n{external_callee_context}"
 
-        external_callees_to_headers = {
-            callee_name: header_file_basename
-            for callee_name in external_callee_names
+        return callee_context
+
+    def _get_external_callee_context(
+        self, caller_name: str, external_callee_names: list[str]
+    ) -> str | None:
+        header_basename_to_external_callees: dict[str, list[str]] = defaultdict(list)
+        for callee_name in external_callee_names:
             if (
                 header_file_basename
                 := self._external_function_documentation_manager.get_header_declaring_function(
                     callee_name
                 )
-            )
-        }
+            ):
+                header_basename_to_external_callees[header_file_basename].append(callee_name)
 
         external_callees_to_stubs: dict[str, str] = {}
-        for external_callee_name, header_file_basename in external_callees_to_headers.items():
-            if callee_stub_impl := get_stub_implementation(
-                external_callee_name, header_file_basename
-            ):
-                external_callees_to_stubs[external_callee_name] = callee_stub_impl
-            else:
-                logger.warning(
-                    f"Failed to find a stub implementation for external callee "
-                    f"'{external_callee_name}' in header '{header_file_basename}'"
+        for (
+            header_file_basename,
+            callee_names_for_header,
+        ) in header_basename_to_external_callees.items():
+            parsed_source = load_stub_file(header_file_basename)
+            if parsed_source is None:
+                for callee_name in callee_names_for_header:
+                    logger.warning(
+                        f"Failed to find stub file for external callee "
+                        f"'{callee_name}' in header '{header_file_basename}'"
+                    )
+                continue
+            for callee_name in callee_names_for_header:
+                if callee_stub_impl := get_stub_implementation_from_tree(
+                    callee_name, parsed_source.content, parsed_source.ast
+                ):
+                    external_callees_to_stubs[callee_name] = callee_stub_impl
+                else:
+                    logger.warning(
+                        f"Failed to find a stub implementation for external callee "
+                        f"'{callee_name}' in header '{header_file_basename}'"
+                    )
+
+        external_callee_context = None
+        if external_callees_to_stubs:
+            external_callee_context = f"\n\n{caller_name} has the following external callees:\n\n"
+            for external_callee, stub_impl in external_callees_to_stubs.items():
+                external_callee_context += (
+                    f"External callee: {external_callee}\n\n{stub_impl}\n\n\n"
                 )
 
-        if external_callees_to_stubs:
-            callee_context += f"\n\n{function.name} has the following external callees:\n\n"
-            for external_callee, stub_impl in external_callees_to_stubs.items():
-                callee_context += f"External callee: {external_callee}\n{stub_impl}\n\n"
-
-        return callee_context
+        return external_callee_context
 
     def next_step_prompt(self, verification_result: VerificationResult) -> str:
         """Return prompt text asking the LLM to decide on next steps for a failing specification.

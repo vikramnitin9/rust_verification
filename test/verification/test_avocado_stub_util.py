@@ -56,7 +56,7 @@ def test_get_stub_with_nonexistent_file() -> None:
 
 
 def test_get_stub_with_nonexistent_function() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="No definition found for 'nonsense_function"):
         avocado_stub_util.get_stub_implementation("nonsense_function", "string.h")
 
 
