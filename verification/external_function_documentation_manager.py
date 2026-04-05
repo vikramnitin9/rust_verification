@@ -95,7 +95,7 @@ class ExternalFunctionDocumentationManager:
             parameters = [FunctionParameter(**p) for p in docs_for_function["parameters"]]
             return ParsedDocumentation(
                 docs_for_function["entity_type"],
-                docs_for_function["header_name"],
+                docs_for_function["header_file_basename"],
                 description=docs_for_function["description"],
                 parameters=parameters,
                 return_value_description=docs_for_function["return_value_description"],
@@ -115,7 +115,7 @@ class ExternalFunctionDocumentationManager:
         if (
             doc_for_function := self.docs.get(function_name)
         ) and self._is_valid_parsed_documentation(doc_for_function):
-            header = doc_for_function["header_name"]
+            header = doc_for_function["header_file_basename"]
             return header if header != "" else None
         return None
 

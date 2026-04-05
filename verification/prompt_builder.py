@@ -101,10 +101,10 @@ class PromptBuilder:
             callee_context = self._get_callee_specs(function.name, callees_with_specs)
 
         external_callees_to_headers = {
-            callee_name: header
+            callee_name: header_file_basename
             for callee_name in external_callee_names
             if (
-                header
+                header_file_basename
                 := self._external_function_documentation_manager.get_header_declaring_function(
                     callee_name
                 )
@@ -112,13 +112,15 @@ class PromptBuilder:
         }
 
         external_callees_to_stubs: dict[str, str] = {}
-        for external_callee_name, header in external_callees_to_headers.items():
-            if callee_stub_impl := get_stub_implementation(external_callee_name, header):
+        for external_callee_name, header_file_basename in external_callees_to_headers.items():
+            if callee_stub_impl := get_stub_implementation(
+                external_callee_name, header_file_basename
+            ):
                 external_callees_to_stubs[external_callee_name] = callee_stub_impl
             else:
                 logger.warning(
                     f"Failed to find a stub implementation for external callee "
-                    f"'{external_callee_name}' in header '{header}'"
+                    f"'{external_callee_name}' in header '{header_file_basename}'"
                 )
 
         if external_callees_to_stubs:
