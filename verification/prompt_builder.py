@@ -9,7 +9,7 @@ from loguru import logger
 
 from util import CFunction, FunctionSpecification, ParsecProject, SpecGenGranularity, text_util
 
-from .avocado_stub_util import get_stub_implementation_from_tree, load_stub_file
+from .avocado_stub_util import get_stub_implementation_from_parsed_source, load_stub_file
 from .external_function_documentation_manager import ExternalFunctionDocumentationManager
 from .verification_result import VerificationResult
 
@@ -153,8 +153,8 @@ class PromptBuilder:
                     )
                 continue
             for callee_name in callee_names_for_header:
-                if callee_stub_impl := get_stub_implementation_from_tree(
-                    callee_name, parsed_source.content, parsed_source.ast
+                if callee_stub_impl := get_stub_implementation_from_parsed_source(
+                    callee_name, parsed_source
                 ):
                     external_callees_to_stubs[callee_name] = callee_stub_impl
                 else:

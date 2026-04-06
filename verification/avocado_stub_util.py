@@ -25,18 +25,18 @@ DEFAULT_STUB_MAPPINGS = f"{AVOCADO_STUB_DIR}/c_stub_rename_map.pkl"
 
 @dataclass(frozen=True)
 class ParsedSource:
-    """Represent a tree_sitter AST and the string content from which it was parsed.
+    """Represent a tree_sitter AST and the bytes content from which it was parsed.
 
     This is required because a tree_sitter AST does not include the full copy of the string from
     which it is parsed, apparently to save memory.
 
     Attributes:
         ast (Tree): A tree_sitter AST.
-        content (str): The string content corresponding to the AST.
+        content (bytes): The bytes content corresponding to the AST.
     """
 
     ast: Tree
-    content: str
+    content: bytes
 
 
 @dataclass(frozen=True)
@@ -154,30 +154,28 @@ def load_stub_file(header_file_basename: str) -> ParsedSource | None:
     if not expected_path_to_stub_file.exists():
         return None
 
-    file_content = expected_path_to_stub_file.read_text(encoding="utf-8")
-    tree = _PARSER.parse(bytes(file_content, encoding="utf-8"))
+    file_content = expected_path_to_stub_file.read_bytes()
+    tree = _PARSER.parse(file_content)
     return ParsedSource(tree, file_content)
 
 
-def get_stub_implementation_from_tree(
-    original_identifier: str, file_content: str, stub_tree: Tree
+def get_stub_implementation_from_parsed_source(
+    original_identifier: str, parsed_source: ParsedSource
 ) -> str | None:
     r"""Return the implementation of the Avocado stub for the given function, or None.
 
-    Like :func:`get_stub_implementation`, but accepts an already-parsed tree so the stub file
-    is not re-parsed on every call.
+    Like `get_stub_implementation`, but avoids re-parsing via the `parsed_source` parameter.
 
     Args:
         original_identifier (str): The original C function identifier (without the Avocado prefix).
-        file_content (str): The raw text of the stub file.
-        stub_tree (Tree): The pre-parsed tree-sitter AST for ``file_content``.
+        parsed_source (ParsedSource): The parsed source for the stub file.
 
     Returns:
         str | None: The full function definition text with the ``_avocado_`` prefix removed,
             or ``None`` if no matching definition is found.
     """
     avocado_identifier = AVOCADO_FUNCTION_PREFIX + original_identifier
-    for identifier_node, parent_type in get_function_identifiers(stub_tree.root_node):
+    for identifier_node, parent_type in get_function_identifiers(parsed_source.ast.root_node):
         if (
             parent_type == IdentifierNodeParentType.FUNCTION_DEFINITION
             and identifier_node.text is not None
@@ -188,7 +186,9 @@ def get_stub_implementation_from_tree(
                 definition_node = definition_node.parent
             if not definition_node:
                 return None
-            definition = file_content[definition_node.start_byte : definition_node.end_byte]
+            definition = parsed_source.content[
+                definition_node.start_byte : definition_node.end_byte
+            ].decode(encoding="utf-8")
             return definition.replace(AVOCADO_FUNCTION_PREFIX, "")
     return None
 
