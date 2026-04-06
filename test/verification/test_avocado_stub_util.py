@@ -1,6 +1,9 @@
+import pytest
+
 from verification import avocado_stub_util
 
 from pathlib import Path
+
 
 def _read_file_content(path: str) -> str:
     return Path(path).read_text(encoding="utf-8")
@@ -44,3 +47,37 @@ def test_apply_stub_renaming_existing_avocado_name() -> None:
         "test/data/avocado_stub/test_renaming_existing_avocado_names.c"
     )
     assert avocado_stub_util.apply_stub_renaming(content_pre_renaming) == content_pre_renaming
+
+
+def test_get_stub_with_nonexistent_file() -> None:
+    assert avocado_stub_util.get_stub_implementation("strchr", "nonsense.h") is None, (
+        f"'nonsense.h' is not a valid C header file."
+    )
+
+
+def test_get_stub_with_nonexistent_function() -> None:
+    with pytest.raises(ValueError, match="No definition found for 'nonsense_function"):
+        avocado_stub_util.get_stub_implementation("nonsense_function", "string.h")
+
+
+def test_get_stub() -> None:
+    stub_implementation = """char *strchr(const char *src, int c)
+{
+  __CPROVER_HIDE:;
+  #ifdef __CPROVER_STRING_ABSTRACTION
+  __CPROVER_precondition(__CPROVER_is_zero_string(src),
+                         "strchr zero-termination of string argument");
+  __CPROVER_bool found;
+  __CPROVER_size_t i;
+  return found?src+i:0;
+  #else
+  for(__CPROVER_size_t i=0; ; i++)
+  {
+    if(src[i]==(char)c)
+      return ((char *)src)+i; // cast away const-ness
+    if(src[i]==0) break;
+  }
+  return 0;
+  #endif
+}"""
+    assert avocado_stub_util.get_stub_implementation("strchr", "string.h") == stub_implementation
