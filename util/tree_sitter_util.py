@@ -22,7 +22,7 @@ def get_function_identifiers(tree_root: Node) -> list[tuple[Node, IdentifierNode
     """Return all identifier nodes from definition and declaration nodes in the given tree.
 
     Args:
-        tree_root: The root node of the tree to search.
+        tree_root (Node): The root node of the tree to search.
 
     Returns:
         list[tuple[Node, IdentifierNodeParentType]]: All identifier nodes and the type of their
@@ -64,7 +64,7 @@ def get_identifier_nodes_from_call_expressions(
     """Get identifier nodes from function call expressions.
 
     Args:
-        tree_root: The root node of the tree to search.
+        tree_root (Node): The root node of the tree to search.
 
     Returns:
         list[tuple[Node, IdentifierNodeParentType]]: All identifier nodes and the type of their
@@ -104,7 +104,7 @@ def _is_function_declarator(declarator: Node | None) -> bool:
         int prototype();
 
     Args:
-        declarator: The declarator node to check.
+        declarator (Node | None): The declarator node to check.
 
     Returns:
         True if the declarator is or contains a function_declarator, False otherwise.
@@ -131,10 +131,10 @@ def _find_identifier_in_declarator_or_definition(
     Handles nested declarators (e.g., pointer_declarator -> function_declarator -> identifier).
 
     Args:
-        declarator_or_definition: The declarator or definition node to search.
+        declarator_or_definition (Node | None): The declarator or definition node to search.
 
     Returns:
-        The identifier node if found, None otherwise.
+        Node | None: The identifier node if found, None otherwise.
     """
     if declarator_or_definition is None:
         return None
