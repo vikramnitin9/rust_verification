@@ -12,13 +12,11 @@ LLM_CACHE_DIR_FOR_INTEGRATION_TESTS = str(REPO_ROOT / "test/data/caching/llm/int
 PATH_TO_INTEGRATION_TEST_DIR = str(REPO_ROOT / "test/integration")
 
 VERIFIED_FUNCTION_SRC_CODE = """struct Pair get_min_max(int arr[], int n)
-__CPROVER_requires(arr != NULL)
 __CPROVER_requires(n > 0)
 __CPROVER_requires(__CPROVER_is_fresh(arr, n * sizeof(int)))
-__CPROVER_ensures(__CPROVER_return_value.min <= __CPROVER_return_value.max)
-__CPROVER_ensures(__CPROVER_forall { int i; (0 <= i && i < n) ==> (arr[i] >= __CPROVER_return_value.min && arr[i] <= __CPROVER_return_value.max) })
-__CPROVER_ensures(__CPROVER_exists { int i; (0 <= i && i < n) && (arr[i] == __CPROVER_return_value.min) })
-__CPROVER_ensures(__CPROVER_exists { int i; (0 <= i && i < n) && (arr[i] == __CPROVER_return_value.max) })
+__CPROVER_ensures(__CPROVER_forall { int i; (0 <= i && i < n) ==> (__CPROVER_return_value.min <= arr[i] && __CPROVER_return_value.max >= arr[i]) })
+__CPROVER_ensures(__CPROVER_exists { int i; (0 <= i && i < n) && (__CPROVER_return_value.min == arr[i]) })
+__CPROVER_ensures(__CPROVER_exists { int i; (0 <= i && i < n) && (__CPROVER_return_value.max == arr[i]) })
 {
     struct Pair min_max;
 
@@ -65,7 +63,7 @@ def test_generate_specs_max_min() -> None:
         )
 
     assert result.returncode == 0, f"Process failed.\nstderr:\n{result.stderr}"
-    assert result.stderr.count("Verification succeeded for function 'get_min_max") == 1
+    assert result.stderr.count("Verification succeeded for function 'get_min_max") == 2
 
     pkl_path = Path(PATH_TO_INTEGRATION_TEST_DIR) / "proofstates.pkl"
     assert pkl_path.exists(), f"File not found at {pkl_path}.\nstderr:\n{result.stderr}"
