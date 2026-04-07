@@ -148,9 +148,7 @@ def load_stub_file(header_file_basename: str) -> ParsedSource | None:
             None otherwise.
 
     """
-    expected_path_to_stub_file = Path(
-        f"{AVOCADO_STUB_DIR}/{header_file_basename.replace('.h', '.c')}"
-    )
+    expected_path_to_stub_file = _get_stub_file_path(header_file_basename)
     if not expected_path_to_stub_file.exists():
         return None
 
@@ -211,9 +209,7 @@ def get_stub_implementation(original_identifier: str, header_file_basename: str)
     Returns:
         str | None: The full function definition text, or `None` if the stub file does not exist.
     """
-    expected_path_to_stub_file = Path(
-        f"{AVOCADO_STUB_DIR}/{header_file_basename.replace('.h', '.c')}"
-    )
+    expected_path_to_stub_file = _get_stub_file_path(header_file_basename)
     if not expected_path_to_stub_file.exists():
         return None
 
@@ -247,3 +243,15 @@ def get_stub_implementation(original_identifier: str, header_file_basename: str)
         raise ValueError(msg)
 
     return definition.replace(AVOCADO_FUNCTION_PREFIX, "")
+
+
+def _get_stub_file_path(original_header_basename: str) -> Path:
+    """Return the expected path to the stub file that corresponds to the given header basename.
+
+    Args:
+        original_header_basename (str): The header basename.
+
+    Returns:
+        Path: The expected path to the stub file that corresponds to the given header basename.
+    """
+    return Path(f"{AVOCADO_STUB_DIR}/{original_header_basename.removesuffix('.h')}.c")
