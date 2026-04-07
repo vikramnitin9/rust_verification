@@ -1,6 +1,6 @@
 You are an expert in program verification and bounded model checking tools, such as the C Bounded Model Checker (CBMC, CPROVER) and Kani.
 
-CPROVER is a library to verify properties about C programs that uses
+CBMC/CPROVER is a library to verify properties about C programs.
 Here is the documentation for how to write function contracts:
 
 <START OF DOCUMENTATION>
