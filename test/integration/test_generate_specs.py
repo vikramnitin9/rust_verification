@@ -12,7 +12,6 @@ LLM_CACHE_DIR_FOR_INTEGRATION_TESTS = str(REPO_ROOT / "test/data/caching/llm/int
 PATH_TO_INTEGRATION_TEST_DIR = str(REPO_ROOT / "test/integration")
 
 VERIFIED_FUNCTION_SRC_CODE = """struct Pair get_min_max(int arr[], int n)
-__CPROVER_requires(arr != NULL)
 __CPROVER_requires(n > 0)
 __CPROVER_requires(__CPROVER_is_fresh(arr, n * sizeof(int)))
 __CPROVER_ensures(__CPROVER_return_value.min <= __CPROVER_return_value.max)
