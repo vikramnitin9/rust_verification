@@ -9,12 +9,27 @@ import tree_sitter_c as tsc
 from tree_sitter import Language, Node, Parser, Tree
 
 from .c_function import CFunction
+from .tree_sitter_util import collect_nodes_by_type, get_operator_node, node_text, replace_node
 
 _C_LANGUAGE = Language(tsc.language())
 
 # All operators recognised by the operator-replacement mutations.
 _ALL_OPERATOR_REPLACEMENTS: frozenset[str] = frozenset(
-    {"+", "-", "*", "/", "%", "<", "<=", ">", ">=", "==", "!=", "&&", "||"}
+    {
+        "+",
+        "-",
+        "*",
+        "/",
+        "%",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "==",
+        "!=",
+        "&&",
+        "||",
+    }
 )
 
 
@@ -247,8 +262,8 @@ class CMutator:
             list[Mutant]: All CRP mutants.
         """
         mutants: list[Mutant] = []
-        for node in self._collect_nodes_by_type(self._tree.root_node, "number_literal"):
-            original_text = self._node_text(node)
+        for node in collect_nodes_by_type(self._tree.root_node, "number_literal"):
+            original_text = node_text(self._source_bytes, node)
             try:
                 # base=0 handles hex (0x…), octal (0…), and binary (0b…) literals.
                 original_value = int(original_text, 0)
@@ -266,7 +281,7 @@ class CMutator:
 
             for replacement_value in replacements:
                 replacement_text = str(replacement_value)
-                mutated_src = self._replace_node(node, replacement_text)
+                mutated_src = replace_node(self._source_bytes, node, replacement_text)
                 line = node.start_point[0] + 1
                 mutants.append(
                     Mutant(
@@ -297,17 +312,17 @@ class CMutator:
         if self._c_function.return_type == "void":
             return mutants
 
-        for node in self._collect_nodes_by_type(self._tree.root_node, "return_statement"):
+        for node in collect_nodes_by_type(self._tree.root_node, "return_statement"):
             # A return_statement's named children exclude the "return" keyword and ";".
             expr_node: Node | None = next(iter(node.named_children), None)
             if expr_node is None:
                 continue  # bare `return;` — nothing to replace
 
-            original_text = self._node_text(expr_node)
+            original_text = node_text(self._source_bytes, expr_node)
             if original_text == "0":
                 continue  # already returns 0; no interesting mutation
 
-            mutated_src = self._replace_node(expr_node, "0")
+            mutated_src = replace_node(self._source_bytes, expr_node, "0")
             line = expr_node.start_point[0] + 1
             mutants.append(
                 Mutant(
@@ -343,13 +358,13 @@ class CMutator:
             list[Mutant]: All mutants produced by the given replacement map.
         """
         mutants: list[Mutant] = []
-        for node in self._collect_nodes_by_type(self._tree.root_node, "binary_expression"):
-            op_node = self._get_operator_node(node)
+        for node in collect_nodes_by_type(self._tree.root_node, "binary_expression"):
+            op_node = get_operator_node(node, self._source_bytes, _ALL_OPERATOR_REPLACEMENTS)
             if op_node is None:
                 continue
-            op_text = self._node_text(op_node)
+            op_text = node_text(self._source_bytes, op_node)
             for replacement in replacement_map.get(op_text, []):
-                mutated_src = self._replace_node(op_node, replacement)
+                mutated_src = replace_node(self._source_bytes, op_node, replacement)
                 line = op_node.start_point[0] + 1
                 mutants.append(
                     Mutant(
@@ -364,71 +379,3 @@ class CMutator:
                     )
                 )
         return mutants
-
-    # ------------------------------------------------------------------ #
-    # Tree-sitter helpers                                                  #
-    # ------------------------------------------------------------------ #
-
-    def _collect_nodes_by_type(self, node: Node, node_type: str) -> list[Node]:
-        """Recursively collect all descendant nodes (including `node` itself) of a given type.
-
-        Args:
-            node: The root of the sub-tree to search.
-            node_type: The tree-sitter node type string to match (e.g.
-                ``"binary_expression"`` or ``"number_literal"``).
-
-        Returns:
-            list[Node]: All matching nodes in pre-order.
-        """
-        result: list[Node] = []
-        if node.type == node_type:
-            result.append(node)
-        for child in node.children:
-            result.extend(self._collect_nodes_by_type(child, node_type))
-        return result
-
-    def _get_operator_node(self, binary_expr: Node) -> Node | None:
-        """Return the anonymous operator child of a ``binary_expression`` node.
-
-        In the tree-sitter C grammar, the operator within a ``binary_expression``
-        is an *anonymous* (unnamed) child node whose text is the operator symbol.
-
-        Args:
-            binary_expr: A ``binary_expression`` node.
-
-        Returns:
-            Node | None: The operator node, or ``None`` if none is found.
-        """
-        for child in binary_expr.children:
-            if not child.is_named:
-                text = self._node_text(child)
-                if text in _ALL_OPERATOR_REPLACEMENTS:
-                    return child
-        return None
-
-    def _node_text(self, node: Node) -> str:
-        """Return the original source text covered by `node`.
-
-        Args:
-            node: The tree-sitter node whose text to retrieve.
-
-        Returns:
-            str: The source text for the node.
-        """
-        return self._source_bytes[node.start_byte : node.end_byte].decode("utf-8")
-
-    def _replace_node(self, node: Node, replacement: str) -> str:
-        """Return a new source string with `node`'s text replaced by `replacement`.
-
-        Args:
-            node: The tree-sitter node to replace.
-            replacement: The replacement text.
-
-        Returns:
-            str: The full source string with the substitution applied.
-        """
-        return (
-            self._source_bytes[: node.start_byte]
-            + replacement.encode("utf-8")
-            + self._source_bytes[node.end_byte :]
-        ).decode("utf-8")

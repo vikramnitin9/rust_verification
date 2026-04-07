@@ -1,5 +1,6 @@
 """Utilities for working with tree-sitter ASTs."""
 
+from collections.abc import Set as AbstractSet
 from enum import StrEnum
 
 from tree_sitter import Node
@@ -89,6 +90,80 @@ def get_identifier_nodes_from_call_expressions(
 
     traverse(tree_root)
     return result
+
+
+def collect_nodes_by_type(node: Node, node_type: str) -> list[Node]:
+    """Recursively collect all descendant nodes (including `node` itself) of a given type.
+
+    Args:
+        node (Node): The root of the sub-tree to search.
+        node_type (str): The tree-sitter node type string to match (e.g.
+            ``"binary_expression"`` or ``"number_literal"``).
+
+    Returns:
+        list[Node]: All matching nodes in pre-order.
+    """
+    result: list[Node] = []
+    if node.type == node_type:
+        result.append(node)
+    for child in node.children:
+        result.extend(collect_nodes_by_type(child, node_type))
+    return result
+
+
+def get_operator_node(
+    binary_expr: Node, source_bytes: bytes, valid_operators: AbstractSet[str]
+) -> Node | None:
+    """Return the anonymous operator child of a ``binary_expression`` node.
+
+    In the tree-sitter C grammar, the operator within a ``binary_expression``
+    is an *anonymous* (unnamed) child node whose text is the operator symbol.
+
+    Args:
+        binary_expr (Node): A ``binary_expression`` node.
+        source_bytes (bytes): The source bytes used to decode node text.
+        valid_operators (AbstractSet[str]): The set of operator symbols to match against.
+
+    Returns:
+        Node | None: The operator node, or ``None`` if none is found.
+    """
+    for child in binary_expr.children:
+        if not child.is_named:
+            text = node_text(source_bytes, child)
+            if text in valid_operators:
+                return child
+    return None
+
+
+def node_text(source_bytes: bytes, node: Node) -> str:
+    """Return the original source text covered by `node`.
+
+    Args:
+        source_bytes (bytes): The source bytes to slice.
+        node (Node): The tree-sitter node whose text to retrieve.
+
+    Returns:
+        str: The source text for the node.
+    """
+    return source_bytes[node.start_byte : node.end_byte].decode("utf-8")
+
+
+def replace_node(source_bytes: bytes, node: Node, replacement: str) -> str:
+    """Return a new source string with `node`'s text replaced by `replacement`.
+
+    Args:
+        source_bytes (bytes): The source bytes to modify.
+        node (Node): The tree-sitter node to replace.
+        replacement (str): The replacement text.
+
+    Returns:
+        str: The full source string with the substitution applied.
+    """
+    return (
+        source_bytes[: node.start_byte]
+        + replacement.encode("utf-8")
+        + source_bytes[node.end_byte :]
+    ).decode("utf-8")
 
 
 def _is_function_declarator(declarator: Node | None) -> bool:
