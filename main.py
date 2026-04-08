@@ -296,6 +296,12 @@ def _verify_program(
     # Construct the initial proof state from client code only; generate specs for external functions
     # lazily.
     client_functions = [f for f in functions_without_specs if not f.is_external_function]
+    if not client_functions:
+        # This is extremely unlikely.
+        logger.info(
+            f"No client functions for which to generate specs in {function_graph.input_path}"
+        )
+        sys.exit(0)
 
     initial_proof_state = ProofState.from_functions(functions=client_functions)
     GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)
