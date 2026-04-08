@@ -35,6 +35,7 @@ class CFunction:
         default_factory=list
     )  # Cannot call this `globals` as it is a Python keyword.
     structs: list[Any] = field(default_factory=list)
+    is_external_function: bool = False
 
     def __init__(
         self,
@@ -46,6 +47,8 @@ class CFunction:
         end_line: int,
         end_col: int,
         callee_names: list[str],
+        *,
+        is_external_function: bool = False,
     ) -> None:
         """Create a new CFunction."""
         self.name = name
@@ -56,6 +59,7 @@ class CFunction:
         self.end_line = end_line
         self.end_col = end_col
         self.callee_names = callee_names
+        self.is_external_function = is_external_function
         self.num_args = 0
         self.return_type = ""
         self.preconditions = []

@@ -97,6 +97,31 @@ class CFunctionGraph:
             raise ValueError(msg)
         return parse_c_file(file_path)
 
+    def load_external_functions(self, paths: list[Path]) -> None:
+        """Parse functions from external files and add them to the graph.
+
+        Functions found in the project always take precedence over external functions — if a name
+        collision occurs the project function is kept. Edges between project functions and external
+        functions (and between external functions) are wired into the call graph after all external
+        functions have been loaded.
+
+        Args:
+            paths (list[Path]): Paths to external C source files (e.g. library stubs).
+        """
+        for path in paths:
+            for fn in parse_c_file(path):
+                if fn.name not in self.functions:
+                    fn.is_external_function = True
+                    self.functions[fn.name] = fn
+                    self.call_graph.add_node(fn)
+
+        # Re-wire edges now that the full function set is known.
+        for func in self.functions.values():
+            for callee_name in func.callee_names:
+                if callee := self.functions.get(callee_name):
+                    if not self.call_graph.has_edge(func, callee):
+                        self.call_graph.add_edge(func, callee)
+
     def get_function_or_none(self, function_name: str) -> CFunction | None:
         """Return the CFunction representation for the function with the given name, or None.
 
