@@ -6,6 +6,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING
 
 import tree_sitter_c as tsc
+from loguru import logger
 from tree_sitter import Language, Node, Parser
 
 from .c_function import CFunction
@@ -184,11 +185,10 @@ def parse_c_file(path: Path) -> list[CFunction]:
         list[CFunction]: One CFunction per function definition found in the file.
     """
     source = path.read_bytes()
-    tree = _PARSER.parse(source)
     functions: list[CFunction] = []
 
     def collect(node: Node) -> None:
-        """Collect all function definition nodes found under the given node, including itself.
+        """Collect all function nodes found under the given node, including itself.
 
         Args:
             node (Node): The node under which to collect function definition nodes.
@@ -202,27 +202,22 @@ def parse_c_file(path: Path) -> list[CFunction]:
         for child in node.children:
             collect(child)
 
+    tree = _PARSER.parse(source)
+    if not tree:
+        msg = f"Tree sitter failed to parse a tree from '{path}'"
+        raise ValueError(msg)
+    if tree.root_node.has_error:
+        # tree-sitter has fault-tolerant parsing; the presence of an error node doesn't mean we
+        # should immediately give up. Files with CBMC specifications inserted into them
+        # (which aren't legal C) will still be parsed.
+        msg = (
+            f"File '{path}' parsed into a tree with errors; "
+            "this may be due to the presence of CBMC specifications"
+        )
+        logger.warning(msg)
     collect(tree.root_node)
+
     return functions
-
-
-def _byte_col_to_char_col(source: bytes, row: int, byte_col: int) -> int:
-    """Convert a tree-sitter byte-offset column to a Unicode character (codepoint) index.
-
-    tree-sitter reports column positions as byte offsets into the line. Python string
-    indexing operates on Unicode codepoints, so the two diverge whenever a line contains
-    multi-byte UTF-8 characters (e.g. non-ASCII in comments or string literals).
-
-    Args:
-        source (bytes): The raw UTF-8 bytes of the source file.
-        row (int): The 0-indexed row (line number) within the file.
-        byte_col (int): The byte offset within that line as returned by tree-sitter.
-
-    Returns:
-        int: The corresponding Unicode character index.
-    """
-    line_bytes = source.split(b"\n")[row]
-    return len(line_bytes[:byte_col].decode("utf-8"))
 
 
 def _extract_c_function(node: Node, source: bytes, file_name: str) -> CFunction | None:
@@ -251,15 +246,14 @@ def _extract_c_function(node: Node, source: bytes, file_name: str) -> CFunction 
     # including) the opening brace of the body, with surrounding whitespace stripped.
     signature = source[node.start_byte : body.start_byte].decode("utf-8").strip()
 
-    # tree-sitter uses 0-indexed rows and columns (columns are byte offsets).
+    # tree-sitter uses 0-indexed rows and columns.
     # CFunction uses 1-indexed lines (start_line, end_line) and 1-indexed start_col.
-    # end_col is the 0-indexed exclusive character index within the last line.
-    # Downstream consumers (get_original_source_code, _replace_function_definitions) index
-    # into decoded Python strings, so byte offsets must be converted to character indices.
+    # end_col is the 0-indexed exclusive byte offset within the last line, matching the
+    # convention used by get_original_source_code and _replace_function_definitions.
     start_line = node.start_point.row + 1
-    start_col = _byte_col_to_char_col(source, node.start_point.row, node.start_point.column) + 1
+    start_col = node.start_point.column + 1
     end_line = node.end_point.row + 1
-    end_col = _byte_col_to_char_col(source, node.end_point.row, node.end_point.column)
+    end_col = node.end_point.column
 
     callee_names = _collect_callee_names(body)
 
@@ -287,19 +281,26 @@ def _collect_callee_names(body: Node) -> list[str]:
     Returns:
         list[str]: Deduplicated list of callee names in order of first appearance.
     """
-    seen: set[str] = set()
-    callee_names: list[str] = []
+    callee_names: set[str] = set()
 
     def traverse(node: Node) -> None:
+        """Traverse the given node and collect names of function call expressions.
+
+        Closes over `callee_names`.
+
+        Args:
+            node (Node): The node under which to collect names of function call expressions.
+        """
         if node.type == "call_expression":
-            func_node = node.child_by_field_name("function")
-            if func_node is not None and func_node.type == "identifier" and func_node.text:
+            if (
+                (func_node := node.child_by_field_name("function"))
+                and func_node.type == "identifier"
+                and func_node.text
+            ):
                 name = func_node.text.decode("utf-8")
-                if name not in seen:
-                    seen.add(name)
-                    callee_names.append(name)
+                callee_names.add(name)
         for child in node.children:
             traverse(child)
 
     traverse(body)
-    return callee_names
+    return list(callee_names)
