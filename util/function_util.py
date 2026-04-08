@@ -7,8 +7,8 @@ import tree_sitter_c as tsc
 from tree_sitter import Language, Parser, Query, QueryCursor
 
 from .c_function import CFunction
+from .c_function_graph import CFunctionGraph
 from .function_specification import FunctionSpecification
-from .parsec_project import ParsecProject
 
 PRECONDITION_PREFIX = "__CPROVER_requires"
 POSTCONDITION_PREFIXES = ["__CPROVER_ensures", "__CPROVER_assigns"]
@@ -106,24 +106,24 @@ def get_signature_and_body(source_code: str, lang: str) -> tuple[str, str]:
 def get_source_code_with_inserted_spec(
     function_name: str,
     specification: FunctionSpecification,
-    parsec_project: ParsecProject,
+    function_graph: CFunctionGraph,
     *,
     comment_out_spec: bool = False,
 ) -> str:
     """Return the source code of a function with the specification inserted.
 
-    Note: This does *not* update the ParsecProject with the specified function definition.
+    Note: This does *not* update the CFunctionGraph with the specified function definition.
 
     Args:
         function_name (str): The name of the function for which to return the updated source code.
         specification (FunctionSpecification): The specification for the function.
-        parsec_project (ParsecProject): The ParsecProject.
+        function_graph (CFunctionGraph): The CFunctionGraph.
         comment_out_spec (bool): Whether to comment out CBMC specs.
 
     Returns:
         str: The source code of a function with the specification inserted.
     """
-    function = parsec_project.get_function(function_name=function_name)
+    function = function_graph.get_function(function_name=function_name)
     (signature, body) = get_signature_and_body(function.get_original_source_code(), lang="c")
     all_specs = specification.preconditions + specification.postconditions
     if comment_out_spec:
@@ -137,13 +137,14 @@ def get_source_code_with_inserted_spec(
 
 def get_source_content_with_specifications(
     specified_functions: dict[CFunction, FunctionSpecification],
-    parsec_project: ParsecProject,
+    function_graph: CFunctionGraph,
 ) -> str:
     """Return the source code of the files containing the functions, with specifications inserted.
 
     Args:
         specified_functions (dict[CFunction, FunctionSpecification]): The map of functions to specs.
-        parsec_project (ParsecProject): The ParsecProject parse from the original source code file.
+        function_graph (CFunctionGraph): The CFunctionGraph parsed from the original source code
+            file.
 
     Returns:
         str: The combined source code of the files in which the specified functions are contained,
@@ -171,7 +172,7 @@ def get_source_content_with_specifications(
                 function_with_specs = get_source_code_with_inserted_spec(
                     function_name=function.name,
                     specification=specification,
-                    parsec_project=parsec_project,
+                    function_graph=function_graph,
                 )
                 func_to_specfunc[function] = function_with_specs
             # Update the temporary file with the new function specifications.
@@ -189,17 +190,17 @@ def get_source_content_with_specifications(
     return combined_content
 
 
-def update_parsec_project(
-    function_name: str, updated_function_content: str, parsec_project: ParsecProject
+def update_function_graph(
+    function_name: str, updated_function_content: str, function_graph: CFunctionGraph
 ) -> None:
-    """Update the entry for a function in the ParsecProject with its updated version.
+    """Update the entry for a function in the CFunctionGraph with its updated version.
 
     Args:
-        function_name (str): The function to update in the ParsecProject.
+        function_name (str): The function to update in the CFunctionGraph.
         updated_function_content (str): The updated function content.
-        parsec_project (ParsecProject): The parsec project to update.
+        function_graph (CFunctionGraph): The function graph to update.
     """
-    original_function = parsec_project.get_function(function_name)
+    original_function = function_graph.get_function(function_name)
     prev_start_line = original_function.start_line
     prev_start_col = original_function.start_col
     prev_end_line = original_function.end_line
@@ -221,7 +222,7 @@ def update_parsec_project(
 
     # Update line/col info for other functions.
     line_offset = function_len - (prev_end_line - prev_start_line + 1)
-    for other_func in parsec_project.functions.values():
+    for other_func in function_graph.functions.values():
         if other_func.name == original_function.name:
             # We've already updated the original function.
             continue
@@ -238,20 +239,20 @@ def update_parsec_project(
 
 
 def update_function_definition(
-    function_name: str, updated_function_content: str, parsec_project: ParsecProject, file: Path
+    function_name: str, updated_function_content: str, function_graph: CFunctionGraph, file: Path
 ) -> str:
     """Return the contents of the file after updating the function definition.
 
     Args:
         function_name (str): The name of the function to update.
         updated_function_content (str): The new contents of the function.
-        parsec_project (ParsecProject): The ParseC project containing function definitions.
+        function_graph (CFunctionGraph): The function graph.
         file (Path): The file that contains the function (and possibly other functions).
 
     Returns:
         str: The contents of the file after updating the function definition.
     """
-    function = parsec_project.get_function(function_name)
+    function = function_graph.get_function(function_name)
 
     # Update the actual source code.
     new_contents = _replace_function_definitions(
@@ -265,7 +266,7 @@ def update_function_definition(
     end_line = function.end_line
     end_col = function.end_col
 
-    # Update the line/col info for this function in the ParseC project.
+    # Update the line/col info for this function in the function graph.
     function_lines = updated_function_content.splitlines()
     num_lines = len(function_lines)
     new_end_line = start_line + num_lines - 1
@@ -280,7 +281,7 @@ def update_function_definition(
 
     # Update line/col info for other functions.
     line_offset = num_lines - (end_line - start_line + 1)
-    for other_func in parsec_project.functions.values():
+    for other_func in function_graph.functions.values():
         if other_func.name == function.name:
             continue
         if other_func.start_line > end_line:

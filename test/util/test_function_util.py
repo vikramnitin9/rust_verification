@@ -4,7 +4,7 @@ import shutil
 import filecmp
 
 from pathlib import Path
-from util import FunctionSpecification, ParsecProject, function_util
+from util import FunctionSpecification, CFunctionGraph, function_util
 from translation import normalize_function_specification
 
 import pytest
@@ -136,9 +136,9 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     *b = t;
 }"""
 
-    parsec_project = ParsecProject(file_containing_function)
+    function_graph = CFunctionGraph(file_containing_function)
     function_util.update_function_definition(
-        "swap", updated_function, parsec_project, file_containing_function
+        "swap", updated_function, function_graph, file_containing_function
     )
 
     assert filecmp.cmp(
@@ -185,7 +185,7 @@ def test_get_source_code_with_inserted_specs() -> None:
         ],
     )
     swap_with_specs = function_util.get_source_code_with_inserted_spec(
-        "swap", swap_specs, ParsecProject(input_path=path_to_swap_no_specs)
+        "swap", swap_specs, CFunctionGraph(input_path=path_to_swap_no_specs)
     )
     assert (
         swap_with_specs
@@ -215,7 +215,7 @@ def test_get_source_code_with_inserted_specs_comments_out_multi_line_specs() -> 
     swap_with_specs = function_util.get_source_code_with_inserted_spec(
         "swap",
         swap_specs,
-        ParsecProject(input_path=path_to_swap_no_specs),
+        CFunctionGraph(input_path=path_to_swap_no_specs),
         comment_out_spec=True,
     )
     assert (
@@ -250,7 +250,7 @@ def test_get_source_code_with_inserted_specs_comments_out_multiline_ensures() ->
     swap_with_specs = function_util.get_source_code_with_inserted_spec(
         "swap",
         swap_specs,
-        ParsecProject(input_path=path_to_swap_no_specs),
+        CFunctionGraph(input_path=path_to_swap_no_specs),
         comment_out_spec=True,
     )
     assert (
@@ -289,9 +289,9 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     *b = t;
 }"""
 
-    parsec_project = ParsecProject(file_containing_function)
+    function_graph = CFunctionGraph(file_containing_function)
     function_util.update_function_definition(
-        "swap", updated_function, parsec_project, file_containing_function
+        "swap", updated_function, function_graph, file_containing_function
     )
 
     assert filecmp.cmp(f1=path_to_expected_updated_file, f2=file_containing_function), (
@@ -319,9 +319,9 @@ __CPROVER_ensures(*b == __CPROVER_old(*a))
     *b = t;
 }"""
 
-    parsec_project = ParsecProject(file_containing_function)
+    function_graph = CFunctionGraph(file_containing_function)
     function_util.update_function_definition(
-        "swap", updated_function, parsec_project, file_containing_function
+        "swap", updated_function, function_graph, file_containing_function
     )
 
     assert filecmp.cmp(f1=path_to_expected_updated_file, f2=file_containing_function), (

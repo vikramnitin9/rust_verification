@@ -23,8 +23,8 @@ from util import (
     AssumeSpecAsIs,
     BacktrackToCallee,
     CFunction,
+    CFunctionGraph,
     FunctionSpecification,
-    ParsecProject,
     SpecConversation,
     SpecGenGranularity,
     SpecificationGenerationNextStep,
@@ -120,7 +120,7 @@ class LlmSpecificationGenerator:
     def generate_and_repair_spec(
         self,
         function: CFunction,
-        parsec_project: ParsecProject,
+        function_graph: CFunctionGraph,
         hint: str,
         proof_state: ProofState,
     ) -> list[SpecConversation]:
@@ -128,7 +128,7 @@ class LlmSpecificationGenerator:
 
         Args:
             function (CFunction): The function for which to generate potential specs.
-            parsec_project (ParsecProject): The ParseC project that contains `function`.
+            function_graph (CFunctionGraph): The function graph that contains `function`.
             hint (str): Hints to help guide specification regeneration (i.e., when a
                 specification is not accepted or assumed as-is, and is either being repaired or when
                 a callee specification is re-generated).
@@ -139,7 +139,7 @@ class LlmSpecificationGenerator:
                 Each may or may not verify.
         """
         candidate_speccs = self._generate_unrepaired_speccs(
-            function=function, parsec_project=parsec_project, hint=hint, proof_state=proof_state
+            function=function, function_graph=function_graph, hint=hint, proof_state=proof_state
         )
 
         # Right now, the "pruning" strategy is just to partition the candidate specs into a set
@@ -159,7 +159,7 @@ class LlmSpecificationGenerator:
                 self._repair_spec(
                     specc=non_verifying_specc,
                     proof_state=proof_state,
-                    parsec_project=parsec_project,
+                    function_graph=function_graph,
                 )
             )
         return [*verifying_speccs, *repaired_speccs]
@@ -175,7 +175,7 @@ class LlmSpecificationGenerator:
     def _generate_unrepaired_speccs(
         self,
         function: CFunction,
-        parsec_project: ParsecProject,
+        function_graph: CFunctionGraph,
         hint: str,
         proof_state: ProofState,
     ) -> list[SpecConversation]:
@@ -185,7 +185,7 @@ class LlmSpecificationGenerator:
 
         Args:
             function (CFunction): The function for which to generate specifications.
-            parsec_project (ParsecProject): The ParseC project that contains `function`.
+            function_graph (CFunctionGraph): The function graph that contains `function`.
             hint (str): Hints to guide specification generation. Only non-empty when
                 generating specs during backtracking (i.e., a callee specification is being
                 re-generated).
@@ -196,7 +196,7 @@ class LlmSpecificationGenerator:
         """
         conversation: list[ConversationMessage] = [SystemMessage(content=self._system_prompt)]
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
-            function, parsec_project, self._specgen_granularity
+            function, function_graph, self._specgen_granularity
         )
         if hint:
             specification_generation_prompt += "\n\n" + hint
@@ -223,7 +223,7 @@ class LlmSpecificationGenerator:
                     function_code_with_specs = function_util.get_source_code_with_inserted_spec(
                         function_name=function.name,
                         specification=candidate_spec,
-                        parsec_project=parsec_project,
+                        function_graph=function_graph,
                     )
                     function.set_specifications(specifications=candidate_spec)
                     function.set_source_code(function_code_with_specs)
@@ -232,7 +232,7 @@ class LlmSpecificationGenerator:
                             function=function,
                             specification=candidate_spec,
                             conversation=(*conversation, LlmMessage(content=llm_response)),
-                            parsec_project=parsec_project,
+                            function_graph=function_graph,
                             existing_specs=proof_state.get_specifications(),
                         )
                     )
@@ -249,7 +249,7 @@ class LlmSpecificationGenerator:
         self,
         specc: SpecConversation,
         proof_state: ProofState,
-        parsec_project: ParsecProject,
+        function_graph: CFunctionGraph,
     ) -> list[SpecConversation]:
         """If the spec verifies, return it. Otherwise, attempt to repair the spec or assume it.
 
@@ -260,7 +260,7 @@ class LlmSpecificationGenerator:
             specc (SpecConversation): The SpecConversation that ends with the spec that
                 may fail to verify.
             proof_state (ProofState): The proof state for the specification.
-            parsec_project (ParsecProject): The ParseC project that contains `function`.
+            function_graph (CFunctionGraph): The function graph that contains `function`.
 
         Returns:
             list[SpecConversation]: A list of specifications that successfully verify (they either
@@ -357,7 +357,7 @@ class LlmSpecificationGenerator:
                         *conversation_updated_with_repair_prompt,
                         LlmMessage(content=response),
                     ),
-                    parsec_project=parsec_project,
+                    function_graph=function_graph,
                     existing_specs=proof_state.get_specifications(),
                 )
                 speccs_to_repair.append((next_specc, num_repair_attempts + 1))
