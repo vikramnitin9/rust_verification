@@ -2,7 +2,6 @@ from .specification_generation_next_step import SpecificationGenerationNextStep,
 from .code_extraction_util import extract_function_source_code, parse_clauses_for_spec, parse_expressions_for_spec
 from .file_util import copy_file_to_folder, copy_folder_to_folder, ensure_lines_at_beginning, get_destination_path
 from .function_util import extract_specification, get_source_content_with_specifications
-from .parsec_error import ParsecError
 from .c_function import CFunction
 from .parsec_project import ParsecProject
 from .function_specification import FunctionSpecification
@@ -22,7 +21,6 @@ __all__ = [
     "CFunction",
     "FunctionSpecification",
     "SpecConversation",
-    "ParsecError",
     "ParsecProject",
     "copy_file_to_folder",
     "copy_folder_to_folder",

@@ -1,8 +1,20 @@
 """Utilities for working with tree-sitter ASTs."""
 
-from enum import StrEnum
+from __future__ import annotations
 
-from tree_sitter import Node
+from enum import StrEnum
+from typing import TYPE_CHECKING
+
+import tree_sitter_c as tsc
+from tree_sitter import Language, Node, Parser
+
+from .c_function import CFunction
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+_TREE_SITTER_LANG = Language(tsc.language())
+_PARSER = Parser(_TREE_SITTER_LANG)
 
 
 class IdentifierNodeParentType(StrEnum):
@@ -156,3 +168,113 @@ def _find_identifier_in_declarator_or_definition(
         if identifier is not None:
             return identifier
     return None
+
+
+def parse_c_file(path: Path) -> list[CFunction]:
+    """Parse a C source file and return a list of CFunctions defined in it.
+
+    Uses tree-sitter to extract function definitions, their source locations, signatures,
+    and direct callee names. Only ``function_definition`` nodes are included; forward
+    declarations (without a body) are skipped.
+
+    Args:
+        path (Path): Path to the C source file to parse.
+
+    Returns:
+        list[CFunction]: One CFunction per function definition found in the file.
+    """
+    source = path.read_bytes()
+    tree = _PARSER.parse(source)
+    functions: list[CFunction] = []
+
+    def collect(node: Node) -> None:
+        if node.type == "function_definition":
+            fn = _extract_c_function(node, source, str(path.resolve()))
+            if fn is not None:
+                functions.append(fn)
+            # C does not allow nested function definitions, so no need to recurse into the body.
+            return
+        for child in node.children:
+            collect(child)
+
+    collect(tree.root_node)
+    return functions
+
+
+def _extract_c_function(node: Node, source: bytes, file_name: str) -> CFunction | None:
+    """Build a CFunction from a tree-sitter ``function_definition`` node.
+
+    Args:
+        node (Node): A ``function_definition`` node.
+        source (bytes): The raw bytes of the source file.
+        file_name (str): Absolute path to the source file.
+
+    Returns:
+        CFunction | None: The extracted CFunction, or None if the node lacks a
+            recognisable identifier or body.
+    """
+    declarator = node.child_by_field_name("declarator")
+    identifier = _find_identifier_in_declarator_or_definition(declarator)
+    if identifier is None or not identifier.text:
+        return None
+
+    body = node.child_by_field_name("body")
+    if body is None:
+        return None
+
+    name = identifier.text.decode("utf-8")
+    # The signature is everything from the start of the function_definition node up to (but not
+    # including) the opening brace of the body, with surrounding whitespace stripped.
+    signature = source[node.start_byte : body.start_byte].decode("utf-8").strip()
+
+    # tree-sitter uses 0-indexed rows and columns.
+    # CFunction uses 1-indexed lines (start_line, end_line) and 1-indexed start_col.
+    # end_col is the 0-indexed exclusive byte offset within the last line, matching the
+    # convention used by get_original_source_code and _replace_function_definitions.
+    start_line = node.start_point.row + 1
+    start_col = node.start_point.column + 1
+    end_line = node.end_point.row + 1
+    end_col = node.end_point.column
+
+    callee_names = _collect_callee_names(body)
+
+    return CFunction(
+        name=name,
+        signature=signature,
+        file_name=file_name,
+        start_line=start_line,
+        start_col=start_col,
+        end_line=end_line,
+        end_col=end_col,
+        callee_names=callee_names,
+    )
+
+
+def _collect_callee_names(body: Node) -> list[str]:
+    """Return the names of all directly called functions within a function body.
+
+    Only direct calls (``identifier`` as the function node of a ``call_expression``) are
+    collected. Indirect calls via function pointers are not included.
+
+    Args:
+        body (Node): The ``compound_statement`` body node of a function definition.
+
+    Returns:
+        list[str]: Deduplicated list of callee names in order of first appearance.
+    """
+    seen: set[str] = set()
+    callee_names: list[str] = []
+
+    def traverse(node: Node) -> None:
+        if node.type == "call_expression":
+            func_node = node.child_by_field_name("function")
+            if func_node is not None and func_node.type == "identifier" and func_node.text:
+                name = func_node.text.decode("utf-8")
+                if name not in seen:
+                    seen.add(name)
+                    callee_names.append(name)
+        for child in node.children:
+            traverse(child)
+
+    traverse(body)
+    return callee_names
