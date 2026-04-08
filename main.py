@@ -29,11 +29,11 @@ from util import (
 from util.function_specification import FunctionSpecification
 from verification import (
     CbmcVerificationClient,
+    ExternalFunctionDocumentationManager,
     ProofState,
     ProofStateStepper,
     VerificationClient,
     VerificationInput,
-    ExternalFunctionDocumentationManager,
 )
 
 MODEL = "gpt-4o"
