@@ -10,13 +10,15 @@ from typing import TYPE_CHECKING, Any
 import networkx as nx
 from loguru import logger
 
-from util.tree_sitter_util import parse_c_file
+from util.tree_sitter_util import get_functions_from_file
 
 if TYPE_CHECKING:
     from util.c_function import CFunction
-    from verification.external_function_documentation_manager import (
-        ExternalFunctionDocumentationManager,
-    )
+
+DEFAULT_EXTERNAL_FUNCTION_DIR: Path = Path("/app/verification/cbmc_stubs/")
+_DEFAULT_EXTERNAL_DOCUMENTATION_JSON: str = (
+    "/app/verification/docs/ansi_c_library_documentation.json"
+)
 
 
 @dataclass
@@ -41,10 +43,7 @@ class CFunctionGraph:
     global_vars: list[dict[str, Any]] = field(default_factory=list)
 
     def __init__(
-        self,
-        input_path: Path,
-        external_function_dir: Path | None = None,
-        documentation_manager: ExternalFunctionDocumentationManager | None = None,
+        self, input_path: Path, external_function_dir: Path = DEFAULT_EXTERNAL_FUNCTION_DIR
     ) -> None:
         """Create a CFunctionGraph from the given C file or directory that contains C files.
 
@@ -53,17 +52,16 @@ class CFunctionGraph:
         If the path is a directory, all `*.c` files found recursively under the
         directory are parsed.
 
-        If both `external_function_dir` and `documentation_manager` are provided, any callee
-        that is not found in the project is looked up in the documentation manager to determine
-        which header declares it. The corresponding `.c` file (same base name, `.c` extension)
-        is resolved under `external_function_dir` and, if present, parsed and added to the graph.
+        Any callee that is not found in the project is looked up in the documentation manager to
+        determine which header declares it.
+
+        The corresponding `.c` file (same base name, `.c` extension) is resolved under
+        `external_function_dir` and, if present, parsed and added to the graph.
 
         Args:
             input_path (Path): The path to a file or directory to be analyzed.
-            external_function_dir (Path | None): Directory containing `.c` files for external
-                functions.
-            documentation_manager (ExternalFunctionDocumentationManager | None): Manager used to
-                map unknown callee names to their declaring header files.
+            external_function_dir (Path): The directory containing `.c` files for
+                external functions.
         """
         self.input_path = input_path
 
@@ -81,7 +79,7 @@ class CFunctionGraph:
 
         function_analyses: list[CFunction] = []
         for c_file in c_files:
-            function_analyses.extend(parse_c_file(c_file))
+            function_analyses.extend(get_functions_from_file(c_file))
 
         self.files = [str(f) for f in c_files]
         self.functions = {analysis.name: analysis for analysis in function_analyses}
@@ -98,8 +96,7 @@ class CFunctionGraph:
                 if callee := self.functions.get(callee_name):
                     self.call_graph.add_edge(func, callee)
 
-        if external_function_dir is not None and documentation_manager is not None:
-            self._load_external_callees(external_function_dir, documentation_manager)
+        self._load_external_callees(Path(external_function_dir))
 
     @staticmethod
     def get_functions_defined_in_file(file_path: Path) -> list[CFunction]:
@@ -114,12 +111,11 @@ class CFunctionGraph:
         if file_path.is_dir():
             msg = f"Expected a file at {file_path}, but got a directory"
             raise ValueError(msg)
-        return parse_c_file(file_path)
+        return get_functions_from_file(file_path)
 
     def _load_external_callees(
         self,
         external_function_dir: Path,
-        documentation_manager: ExternalFunctionDocumentationManager,
     ) -> None:
         """Parse and load files for callee functions not found in the project.
 
@@ -130,9 +126,16 @@ class CFunctionGraph:
 
         Args:
             external_function_dir (Path): Directory containing `.c` files for external functions.
-            documentation_manager (ExternalFunctionDocumentationManager): Manager used to map
-                function names to their declaring header files.
         """
+        # Lazy import to avoid a circular dependency: util → verification → util.
+        from verification.external_function_documentation_manager import (  # noqa: PLC0415
+            ExternalFunctionDocumentationManager,
+        )
+
+        documentation_manager = ExternalFunctionDocumentationManager(
+            _DEFAULT_EXTERNAL_DOCUMENTATION_JSON
+        )
+
         unknown_callees = {
             callee_name
             for func in self.functions.values()
@@ -164,7 +167,7 @@ class CFunctionGraph:
             paths (list[Path]): Paths to external C source files (e.g. library stubs).
         """
         for path in paths:
-            for fn in parse_c_file(path):
+            for fn in get_functions_from_file(path):
                 if fn.name not in self.functions:
                     fn.is_external_function = True
                     self.functions[fn.name] = fn

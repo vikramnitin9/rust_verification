@@ -126,7 +126,9 @@ class PromptBuilder:
             )
             tmp_f.write(source_code_cbmc_commented_out)
             tmp_f.flush()
-            function_graph = CFunctionGraph(Path(tmp_f.name))
+            function_graph = CFunctionGraph(
+                Path(tmp_f.name),
+            )
             function = function_graph.get_function_or_none(
                 function_name=verification_result.get_function().name
             )
@@ -176,7 +178,9 @@ class PromptBuilder:
             )
             tmp_f.write(source_code_cbmc_commented_out)
             tmp_f.flush()
-            function_graph = CFunctionGraph(Path(tmp_f.name))
+            function_graph = CFunctionGraph(
+                Path(tmp_f.name),
+            )
             function = function_graph.get_function_or_none(
                 function_name=verification_result.get_function().name
             )
