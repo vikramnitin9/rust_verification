@@ -20,7 +20,7 @@ from collections import defaultdict
 from dataclasses import asdict, dataclass
 
 from eval import ClauseComplexity, get_complexity
-from util import CFunction, FunctionSpecification, ParsecProject, get_destination_path
+from util import CFunction, CFunctionGraph, FunctionSpecification, get_destination_path
 from verification import VerificationResult
 
 
@@ -257,7 +257,7 @@ def _get_names_of_unprocessed_functions(
         set[str]: The names of unprocessed functions.
     """
     all_functions_in_file = {
-        f.name for f in ParsecProject.get_functions_defined_in_file(Path(c_file))
+        f.name for f in CFunctionGraph.get_functions_defined_in_file(Path(c_file))
     }
     functions_with_lookup_results = {f.name for f in function_to_lookup_results}
     return all_functions_in_file.difference(functions_with_lookup_results)

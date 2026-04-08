@@ -4,7 +4,7 @@ from pathlib import Path
 from textwrap import dedent
 
 from util import CMutator, Mutant, MutationOperator
-from util.parsec_project import ParsecProject
+from util.c_function_graph import CFunctionGraph
 
 def _mutant_replacements(mutants: list[Mutant]) -> set[tuple[str, str]]:
     """Return the (original, replacement) pairs from a list of mutants."""
@@ -12,7 +12,7 @@ def _mutant_replacements(mutants: list[Mutant]) -> set[tuple[str, str]]:
 
 
 def _get_function(file: str, name: str):
-    project = ParsecProject(Path(file))
+    project = CFunctionGraph(Path(file))
     fn = project.get_function_or_none(name)
     assert fn, f"Function '{name}' not found in '{file}'"
     return fn

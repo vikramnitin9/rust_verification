@@ -18,7 +18,7 @@ from specifications import LlmSpecificationGenerator
 from util import (
     AcceptVerifiedSpec,
     CFunction,
-    ParsecProject,
+    CFunctionGraph,
     SpecConversation,
     SpecGenGranularity,
     copy_file_to_folder,
@@ -195,12 +195,12 @@ def main() -> None:
         # the file, and that only happens when a spec for the function is verified or assumed.
         output_file_path = copy_file_to_folder(input_path, DEFAULT_RESULT_DIR)
         ensure_lines_at_beginning(DEFAULT_HEADERS_FOR_VERIFICATION, output_file_path)
-        parsec_project = ParsecProject(output_file_path)
+        function_graph = CFunctionGraph(output_file_path)
     elif input_path.is_dir():  # input_path is a directory
         output_directory = copy_folder_to_folder(input_path, DEFAULT_RESULT_DIR)
         for c_file in output_directory.rglob("*.c"):
             ensure_lines_at_beginning(DEFAULT_HEADERS_FOR_VERIFICATION, c_file)
-        parsec_project = ParsecProject(output_directory)
+        function_graph = CFunctionGraph(output_directory)
     else:
         msg = f"Input path '{input_path}' is neither a file nor a directory."
         raise ValueError(msg)
@@ -231,7 +231,7 @@ def main() -> None:
     try:
         run_with_timeout(
             _verify_program,
-            parsec_project,
+            function_graph,
             specification_generator,
             args.skip_verified_cached_functions,
             args.path_to_save_proofstates,
@@ -246,7 +246,7 @@ def main() -> None:
 
 
 def _verify_program(
-    parsec_project: ParsecProject,
+    function_graph: CFunctionGraph,
     specification_generator: LlmSpecificationGenerator,
     skip_verified_cached_functions: bool,
     path_to_save_proofstates: str | None,
@@ -257,7 +257,7 @@ def _verify_program(
     exceeds the user-specified or defaulted specification generation timeout.
 
     Args:
-        parsec_project (ParsecProject): The project to verify.
+        function_graph (CFunctionGraph): The graph representing the program to verify.
         specification_generator (LlmSpecificationGenerator): The LLM specification generator.
         skip_verified_cached_functions (bool): True iff functions that have verified and cached
             specifications should not be added to the workstack of functions for which to generate
@@ -271,9 +271,9 @@ def _verify_program(
     """
     # Since the initial list of functions is in reverse topological order,
     # the first element processed will be a leaf.
-    functions = parsec_project.get_functions_in_topological_order()
+    functions = function_graph.get_functions_in_topological_order()
     if not functions:
-        msg = f"'{parsec_project.input_path}' did not have any functions to specify"
+        msg = f"'{function_graph.input_path}' did not have any functions to specify"
         logger.error(msg)
         sys.exit(1)
 
@@ -306,7 +306,7 @@ def _verify_program(
         next_proofstates = _step(
             proof_state=proof_state,
             specification_generator=specification_generator,
-            parsec_project=parsec_project,
+            function_graph=function_graph,
             proof_state_stepper=proof_state_stepper,
         )
 
@@ -335,7 +335,7 @@ def _verify_program(
 def _step(
     proof_state: ProofState,
     specification_generator: LlmSpecificationGenerator,
-    parsec_project: ParsecProject,
+    function_graph: CFunctionGraph,
     proof_state_stepper: ProofStateStepper,
 ) -> list[ProofState]:
     """Given a ProofState, returns of list of ProofStates, each of which makes a "step" of progress.
@@ -354,7 +354,7 @@ def _step(
     Args:
         proof_state (ProofState): The proof state from which to generate new proof states.
         specification_generator (LlmSpecificationGenerator): The specification generator.
-        parsec_project (ParsecProject): The project being verified.
+        function_graph (CFunctionGraph): The graph representing the program being verified.
         proof_state_stepper (ProofStateStepper): Computes the successor ProofState for each
             SpecConversation and writes accepted/assumed specs to disk.
 
@@ -368,7 +368,7 @@ def _step(
     # that the algorithm may revisit this function later due to backtracking.
     speccs_for_function: list[SpecConversation] = specification_generator.generate_and_repair_spec(
         function=work_item.function,
-        parsec_project=parsec_project,
+        function_graph=function_graph,
         hint=work_item.hint,
         proof_state=proof_state,
     )
@@ -386,7 +386,7 @@ def _step(
         proof_state_stepper.get_next_proof_state(
             prev_proof_state=proof_state,
             spec_conversation=specc,
-            parsec_project=parsec_project,
+            function_graph=function_graph,
         )
         for specc in speccs_with_next_steps
     ]
