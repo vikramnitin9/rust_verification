@@ -21,8 +21,7 @@ if TYPE_CHECKING:
 class CFunctionGraph:
     """Represents the result of parsing a "project": one or more C source files.
 
-    Functions are extracted using tree-sitter, which avoids the need for a separate
-    Parsec binary or a Clang/LLVM toolchain.
+    Functions are extracted using tree-sitter.
     """
 
     # "ignore[type-arg]" because nx.DiGraph does not expose subscriptable types.
