@@ -188,6 +188,11 @@ def parse_c_file(path: Path) -> list[CFunction]:
     functions: list[CFunction] = []
 
     def collect(node: Node) -> None:
+        """Collect all function definition nodes found under the given node, including itself.
+
+        Args:
+            node (Node): The node under which to collect function definition nodes.
+        """
         if node.type == "function_definition":
             fn = _extract_c_function(node, source, str(path.resolve()))
             if fn is not None:

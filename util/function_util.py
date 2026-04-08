@@ -198,7 +198,7 @@ def update_function_graph(
     Args:
         function_name (str): The function to update in the CFunctionGraph.
         updated_function_content (str): The updated function content.
-        function_graph (CFunctionGraph): The parsec project to update.
+        function_graph (CFunctionGraph): The function graph to update.
     """
     original_function = function_graph.get_function(function_name)
     prev_start_line = original_function.start_line
@@ -266,7 +266,7 @@ def update_function_definition(
     end_line = function.end_line
     end_col = function.end_col
 
-    # Update the line/col info for this function in the ParseC project.
+    # Update the line/col info for this function in the function graph.
     function_lines = updated_function_content.splitlines()
     num_lines = len(function_lines)
     new_end_line = start_line + num_lines - 1
