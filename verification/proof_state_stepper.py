@@ -11,7 +11,7 @@ from util import (
     AssumeSpecAsIs,
     BacktrackToCallee,
     CFunction,
-    ParsecProject,
+    CFunctionGraph,
     SpecConversation,
     function_util,
 )
@@ -36,7 +36,7 @@ class ProofStateStepper:
         self,
         prev_proof_state: ProofState,
         spec_conversation: SpecConversation,
-        parsec_project: ParsecProject,
+        function_graph: CFunctionGraph,
     ) -> ProofState:
         """Return the next ProofState after prev_proof_state, based on spec_conversation.
 
@@ -54,7 +54,7 @@ class ProofStateStepper:
             prev_proof_state (ProofState): The previous proof state.
             spec_conversation (SpecConversation): The spec conversation in which an LLM generated a
                 specification for the function on the top of the workstack of prev_proof_state.
-            parsec_project (ParsecProject): The project being verified.
+            function_graph (CFunctionGraph): The project being verified.
 
         Returns:
             ProofState: The next proof state for the program, given the conversation.
@@ -77,7 +77,7 @@ class ProofStateStepper:
                     workstack=workstack_for_next_proof_state,
                 )
             case BacktrackToCallee(callee_name, hint):
-                if callee := parsec_project.get_function_or_none(function_name=callee_name):
+                if callee := function_graph.get_function_or_none(function_name=callee_name):
                     work_item_for_callee = WorkItem(function=callee, hint=hint)
                     workstack_for_next_proof_state = prev_proof_state.get_workstack().push(
                         work_item_for_callee
@@ -127,18 +127,18 @@ class ProofStateStepper:
             result_file.parent.mkdir(exist_ok=True, parents=True)
             shutil.copy(path_to_original_file, result_file)
 
-        parsec_project = ParsecProject(result_file)
+        function_graph = CFunctionGraph(result_file)
         function_with_verified_spec = function_util.get_source_code_with_inserted_spec(
             function_name=function.name,
             specification=spec_conversation.specification,
-            parsec_project=parsec_project,
+            function_graph=function_graph,
             comment_out_spec=True,
         )
 
         function_util.update_function_definition(
             function_name=function.name,
             updated_function_content=function_with_verified_spec,
-            parsec_project=parsec_project,
+            function_graph=function_graph,
             file=result_file,
         )
 

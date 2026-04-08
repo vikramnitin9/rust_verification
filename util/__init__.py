@@ -2,9 +2,8 @@ from .specification_generation_next_step import SpecificationGenerationNextStep,
 from .code_extraction_util import extract_function_source_code, parse_clauses_for_spec, parse_expressions_for_spec
 from .file_util import copy_file_to_folder, copy_folder_to_folder, ensure_lines_at_beginning, get_destination_path
 from .function_util import extract_specification, get_source_content_with_specifications
-from .parsec_error import ParsecError
 from .c_function import CFunction
-from .parsec_project import ParsecProject
+from .c_function_graph import CFunctionGraph
 from .function_specification import FunctionSpecification
 from .specification.specgen_granularity import SpecGenGranularity
 from .spec_conversation import SpecConversation
@@ -12,7 +11,7 @@ from .spec_syntax_fixer import fix_syntax
 from .json_util import parse_object
 from .backtracking_util import parse_backtracking_info
 from .execution.execution_util import run_with_timeout
-from .tree_sitter_util import get_identifier_nodes_from_call_expressions, get_function_identifiers, parse_tree
+from .tree_sitter_util import get_identifier_nodes_from_call_expressions, get_function_identifiers
 
 __all__ = [
     "SpecificationGenerationNextStep",
@@ -22,8 +21,7 @@ __all__ = [
     "CFunction",
     "FunctionSpecification",
     "SpecConversation",
-    "ParsecError",
-    "ParsecProject",
+    "CFunctionGraph",
     "copy_file_to_folder",
     "copy_folder_to_folder",
     "extract_function_source_code",
@@ -39,5 +37,4 @@ __all__ = [
     "run_with_timeout",
     "get_identifier_nodes_from_call_expressions",
     "get_function_identifiers",
-    "parse_tree"
 ]
