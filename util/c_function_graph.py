@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import networkx as nx
@@ -12,9 +13,10 @@ from loguru import logger
 from util.tree_sitter_util import parse_c_file
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from util.c_function import CFunction
+    from verification.external_function_documentation_manager import (
+        ExternalFunctionDocumentationManager,
+    )
 
 
 @dataclass
@@ -38,16 +40,30 @@ class CFunctionGraph:
     structs: list[dict[str, Any]] = field(default_factory=list)
     global_vars: list[dict[str, Any]] = field(default_factory=list)
 
-    def __init__(self, input_path: Path) -> None:
+    def __init__(
+        self,
+        input_path: Path,
+        external_function_dir: Path | None = None,
+        documentation_manager: ExternalFunctionDocumentationManager | None = None,
+    ) -> None:
         """Create a CFunctionGraph from the given C file or directory that contains C files.
 
         If the path is a single file, that file is parsed.
 
-        If the path is a directory, all ``*.c`` files found recursively under the
+        If the path is a directory, all `*.c` files found recursively under the
         directory are parsed.
+
+        If both `external_function_dir` and `documentation_manager` are provided, any callee
+        that is not found in the project is looked up in the documentation manager to determine
+        which header declares it. The corresponding `.c` file (same base name, `.c` extension)
+        is resolved under `external_function_dir` and, if present, parsed and added to the graph.
 
         Args:
             input_path (Path): The path to a file or directory to be analyzed.
+            external_function_dir (Path | None): Directory containing `.c` files for external
+                functions.
+            documentation_manager (ExternalFunctionDocumentationManager | None): Manager used to
+                map unknown callee names to their declaring header files.
         """
         self.input_path = input_path
 
@@ -82,6 +98,9 @@ class CFunctionGraph:
                 if callee := self.functions.get(callee_name):
                     self.call_graph.add_edge(func, callee)
 
+        if external_function_dir is not None and documentation_manager is not None:
+            self._load_external_callees(external_function_dir, documentation_manager)
+
     @staticmethod
     def get_functions_defined_in_file(file_path: Path) -> list[CFunction]:
         """Return the functions defined in the given file.
@@ -96,6 +115,42 @@ class CFunctionGraph:
             msg = f"Expected a file at {file_path}, but got a directory"
             raise ValueError(msg)
         return parse_c_file(file_path)
+
+    def _load_external_callees(
+        self,
+        external_function_dir: Path,
+        documentation_manager: ExternalFunctionDocumentationManager,
+    ) -> None:
+        """Parse and load files for callee functions not found in the project.
+
+        For each callee name absent from `self.functions`, the documentation manager is queried
+        for the header that declares it. The corresponding `.c` file (header basename with
+        `.c` extension) is resolved under `external_function_dir` and, if it exists, parsed via
+        `load_external_functions`.
+
+        Args:
+            external_function_dir (Path): Directory containing `.c` files for external functions.
+            documentation_manager (ExternalFunctionDocumentationManager): Manager used to map
+                function names to their declaring header files.
+        """
+        unknown_callees = {
+            callee_name
+            for func in self.functions.values()
+            for callee_name in func.callee_names
+            if callee_name not in self.functions
+        }
+
+        stub_paths: set[Path] = set()
+        for callee_name in unknown_callees:
+            header = documentation_manager.get_header_declaring_function(callee_name)
+            if header is None:
+                continue
+            stub_path = external_function_dir / Path(header).with_suffix(".c").name
+            if stub_path.exists():
+                stub_paths.add(stub_path)
+
+        if stub_paths:
+            self.load_external_functions(list(stub_paths))
 
     def load_external_functions(self, paths: list[Path]) -> None:
         """Parse functions from external files and add them to the graph.
