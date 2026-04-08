@@ -40,11 +40,9 @@ class PromptBuilder:
 
     CBMC_OUTPUT_FAILURE_MARKER = "FAILURE"
 
-    def __init__(
-        self, external_function_documentation_manager: ExternalFunctionDocumentationManager
-    ) -> None:
-        """Create a new PromptBuilder."""
-        self._external_function_documentation_manager = external_function_documentation_manager
+    DOCUMENTATION_MANAGER = ExternalFunctionDocumentationManager(
+        "/app/verification/docs/ansi_c_library_documentation.json"
+    )
 
     def specification_generation_prompt(
         self,
@@ -100,7 +98,7 @@ class PromptBuilder:
         external_callee_documentation = {
             callee_name: doc
             for callee_name in external_callee_names
-            if (doc := self._external_function_documentation_manager.get_documentation(callee_name))
+            if (doc := self.DOCUMENTATION_MANAGER.get_documentation(callee_name))
         }
         if external_callee_documentation:
             callee_context += f"\n\n{function.name} has the following external callees:\n\n"

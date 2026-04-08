@@ -29,7 +29,6 @@ from util import (
 from util.function_specification import FunctionSpecification
 from verification import (
     CbmcVerificationClient,
-    ExternalFunctionDocumentationManager,
     ProofState,
     ProofStateStepper,
     VerificationClient,
@@ -62,10 +61,6 @@ GLOBAL_INCOMPLETE_PROOFSTATES: deque[ProofState] = deque()
 GLOBAL_COMPLETE_PROOFSTATES: list[ProofState] = []
 # The keys for VERIFIER_CACHE are `VerificationInput` and the values are `VerificationResult`.
 VERIFIER_CACHE: Cache | None = Cache(directory=DEFAULT_VERIFIER_RESULT_CACHE_DIR)
-
-DOCUMENTATION_MANAGER: ExternalFunctionDocumentationManager = ExternalFunctionDocumentationManager(
-    path_to_documentation="verification/docs/ansi_c_library_documentation.json"
-)
 
 tempfile.tempdir = DEFAULT_RESULT_DIR
 
@@ -222,7 +217,6 @@ def main() -> None:
         temperature=args.model_temperature,
         system_prompt=DEFAULT_SYSTEM_PROMPT,
         verifier=verifier,
-        documentation_manager=DOCUMENTATION_MANAGER,
         num_specification_candidates=args.num_specification_candidates,
         num_specification_repair_candidates=args.num_repair_candidates,
         num_specification_repair_iterations=args.num_specification_repair_iterations,
@@ -299,7 +293,11 @@ def _verify_program(
         # How should we re-construct ProofStates from the cache?
         sys.exit(0)
 
-    initial_proof_state = ProofState.from_functions(functions=functions_without_specs)
+    # Construct the initial proof state from client code only; generate specs for external functions
+    # lazily.
+    client_functions = [f for f in functions_without_specs if not f.is_external_function]
+
+    initial_proof_state = ProofState.from_functions(functions=client_functions)
     GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)
     # This is the global worklist.
     GLOBAL_INCOMPLETE_PROOFSTATES.append(initial_proof_state)

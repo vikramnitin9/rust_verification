@@ -32,7 +32,6 @@ from util import (
     function_util,
 )
 from verification import (
-    ExternalFunctionDocumentationManager,
     PromptBuilder,
     ProofState,
     VerificationClient,
@@ -49,8 +48,6 @@ class LlmSpecificationGenerator:
     Attributes:
         _prompt_builder (PromptBuilder): Used in creating specification generation/repair prompts.
         _verifier (VerificationClient): The client for specification verification.
-        _documentation_manager (ExternalFunctionDocumentationManager): The manager for external
-            function documentation.
         _num_specification_candidates (int): The number of specifications the LLM should generate.
         _num_specification_repair_iterations (int): The number of repair iterations (i.e., how many
             times an LLM is able to repair a spec).
@@ -67,7 +64,6 @@ class LlmSpecificationGenerator:
 
     _prompt_builder: PromptBuilder
     _verifier: VerificationClient
-    _documentation_manager: ExternalFunctionDocumentationManager
     _num_specification_candidates: int
     _num_specification_repair_iterations: int
     _num_specification_repair_candidates: int
@@ -84,7 +80,6 @@ class LlmSpecificationGenerator:
         temperature: float,
         system_prompt: str,
         verifier: VerificationClient,
-        documentation_manager: ExternalFunctionDocumentationManager,
         num_specification_candidates: int,
         num_specification_repair_candidates: int,
         num_specification_repair_iterations: int,
@@ -99,8 +94,7 @@ class LlmSpecificationGenerator:
         """Create a new LlmSpecificationGenerator."""
         self._system_prompt = system_prompt
         self._verifier = verifier
-        self._documentation_manager = documentation_manager
-        self._prompt_builder = PromptBuilder(documentation_manager)
+        self._prompt_builder = PromptBuilder()
         self._num_specification_candidates = num_specification_candidates
         self._num_specification_repair_candidates = num_specification_repair_candidates
         self._num_specification_repair_iterations = num_specification_repair_iterations
