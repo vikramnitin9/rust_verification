@@ -4,16 +4,16 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import networkx as nx
 from loguru import logger
 
-from util import text_util
 from util.tree_sitter_util import parse_c_file
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from util.c_function import CFunction
 
 
@@ -97,35 +97,6 @@ class CFunctionGraph:
             msg = f"Expected a file at {file_path}, but got a directory"
             raise ValueError(msg)
         return parse_c_file(file_path)
-
-    @staticmethod
-    def parse_source_with_cbmc_annotations(
-        file_with_cbmc_annotations: Path,
-    ) -> CFunctionGraph:
-        """Create a CFunctionGraph by parsing a .c file that may have CBMC annotations.
-
-        Any CBMC annotations are ignored and do not appear in the result.
-
-        Args:
-            file_with_cbmc_annotations (Path): The file that may have CBMC annotations.
-
-        Returns:
-            CFunctionGraph: The CFunctionGraph.
-        """
-        lines_of_file_with_cbmc_annotations = file_with_cbmc_annotations.read_text(
-            encoding="utf-8"
-        ).splitlines()
-        lines_of_file_with_commented_out_annotations = "\n".join(
-            text_util.comment_out_cbmc_annotations(lines_of_file_with_cbmc_annotations)
-        )
-        tmp_file_with_commented_out_cbmc_annotations = Path(
-            f"{file_with_cbmc_annotations.with_suffix('')}-cbmc-commented-out{file_with_cbmc_annotations.suffix}"
-        )
-        tmp_file_with_commented_out_cbmc_annotations.write_text(
-            lines_of_file_with_commented_out_annotations,
-            encoding="utf-8",
-        )
-        return CFunctionGraph(tmp_file_with_commented_out_cbmc_annotations)
 
     def get_function_or_none(self, function_name: str) -> CFunction | None:
         """Return the CFunction representation for the function with the given name, or None.
