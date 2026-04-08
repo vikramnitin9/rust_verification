@@ -65,3 +65,6 @@ data/caching/
 # Files created by running tests
 test/data/function_util/update_function_definition/*-copy.c
 test/data/caching/
+
+# Local files for agents and LLMs
+.claude/settings.local*
