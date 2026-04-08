@@ -3,7 +3,7 @@ from .code_extraction_util import extract_function_source_code, parse_clauses_fo
 from .file_util import copy_file_to_folder, copy_folder_to_folder, ensure_lines_at_beginning, get_destination_path
 from .function_util import extract_specification, get_source_content_with_specifications
 from .c_function import CFunction
-from .parsec_project import ParsecProject
+from .c_function_graph import CFunctionGraph
 from .function_specification import FunctionSpecification
 from .specification.specgen_granularity import SpecGenGranularity
 from .spec_conversation import SpecConversation
@@ -21,7 +21,7 @@ __all__ = [
     "CFunction",
     "FunctionSpecification",
     "SpecConversation",
-    "ParsecProject",
+    "CFunctionGraph",
     "copy_file_to_folder",
     "copy_folder_to_folder",
     "extract_function_source_code",

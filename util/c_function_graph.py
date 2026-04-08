@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class ParsecProject:
+class CFunctionGraph:
     """Represents the result of parsing a "project": one or more C source files.
 
     Functions are extracted using tree-sitter, which avoids the need for a separate
@@ -40,7 +40,7 @@ class ParsecProject:
     global_vars: list[dict[str, Any]] = field(default_factory=list)
 
     def __init__(self, input_path: Path) -> None:
-        """Create a ParsecProject from the given C file or directory that contains C files.
+        """Create a CFunctionGraph from the given C file or directory that contains C files.
 
         If the path is a single file, that file is parsed.
 
@@ -101,8 +101,8 @@ class ParsecProject:
     @staticmethod
     def parse_source_with_cbmc_annotations(
         file_with_cbmc_annotations: Path,
-    ) -> ParsecProject:
-        """Create a ParsecProject by parsing a .c file that may have CBMC annotations.
+    ) -> CFunctionGraph:
+        """Create a CFunctionGraph by parsing a .c file that may have CBMC annotations.
 
         Any CBMC annotations are ignored and do not appear in the result.
 
@@ -110,7 +110,7 @@ class ParsecProject:
             file_with_cbmc_annotations (Path): The file that may have CBMC annotations.
 
         Returns:
-            ParsecProject: The ParsecProject.
+            CFunctionGraph: The CFunctionGraph.
         """
         lines_of_file_with_cbmc_annotations = file_with_cbmc_annotations.read_text(
             encoding="utf-8"
@@ -125,7 +125,7 @@ class ParsecProject:
             lines_of_file_with_commented_out_annotations,
             encoding="utf-8",
         )
-        return ParsecProject(tmp_file_with_commented_out_cbmc_annotations)
+        return CFunctionGraph(tmp_file_with_commented_out_cbmc_annotations)
 
     def get_function_or_none(self, function_name: str) -> CFunction | None:
         """Return the CFunction representation for the function with the given name, or None.
@@ -177,7 +177,7 @@ class ParsecProject:
         return callees
 
     def get_functions_in_topological_order(self, *, reverse_order: bool = False) -> list[CFunction]:
-        """Return the CFunctions in this ParsecProject's call graph in topological order.
+        """Return the CFunctions in this CFunctionGraph's call graph in topological order.
 
         Note: If a topological ordering is impossible, this function will topologically sort
         the condensation graph of SCCs, then choose a postorder DFS within each SCC.
@@ -187,7 +187,8 @@ class ParsecProject:
                 Defaults to False.
 
         Returns:
-            list[CFunction]: The CFunctions in this ParsecProject's call graph in topological order.
+            list[CFunction]: The CFunctions in this CFunctionGraph's call graph in topological
+                order.
         """
         if not self.call_graph.nodes():
             return []
