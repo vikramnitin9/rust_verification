@@ -206,6 +206,25 @@ def parse_c_file(path: Path) -> list[CFunction]:
     return functions
 
 
+def _byte_col_to_char_col(source: bytes, row: int, byte_col: int) -> int:
+    """Convert a tree-sitter byte-offset column to a Unicode character (codepoint) index.
+
+    tree-sitter reports column positions as byte offsets into the line. Python string
+    indexing operates on Unicode codepoints, so the two diverge whenever a line contains
+    multi-byte UTF-8 characters (e.g. non-ASCII in comments or string literals).
+
+    Args:
+        source (bytes): The raw UTF-8 bytes of the source file.
+        row (int): The 0-indexed row (line number) within the file.
+        byte_col (int): The byte offset within that line as returned by tree-sitter.
+
+    Returns:
+        int: The corresponding Unicode character index.
+    """
+    line_bytes = source.split(b"\n")[row]
+    return len(line_bytes[:byte_col].decode("utf-8"))
+
+
 def _extract_c_function(node: Node, source: bytes, file_name: str) -> CFunction | None:
     """Build a CFunction from a tree-sitter ``function_definition`` node.
 
@@ -232,14 +251,15 @@ def _extract_c_function(node: Node, source: bytes, file_name: str) -> CFunction 
     # including) the opening brace of the body, with surrounding whitespace stripped.
     signature = source[node.start_byte : body.start_byte].decode("utf-8").strip()
 
-    # tree-sitter uses 0-indexed rows and columns.
+    # tree-sitter uses 0-indexed rows and columns (columns are byte offsets).
     # CFunction uses 1-indexed lines (start_line, end_line) and 1-indexed start_col.
-    # end_col is the 0-indexed exclusive byte offset within the last line, matching the
-    # convention used by get_original_source_code and _replace_function_definitions.
+    # end_col is the 0-indexed exclusive character index within the last line.
+    # Downstream consumers (get_original_source_code, _replace_function_definitions) index
+    # into decoded Python strings, so byte offsets must be converted to character indices.
     start_line = node.start_point.row + 1
-    start_col = node.start_point.column + 1
+    start_col = _byte_col_to_char_col(source, node.start_point.row, node.start_point.column) + 1
     end_line = node.end_point.row + 1
-    end_col = node.end_point.column
+    end_col = _byte_col_to_char_col(source, node.end_point.row, node.end_point.column)
 
     callee_names = _collect_callee_names(body)
 
