@@ -219,6 +219,7 @@ def update_function_graph(
     spec = extract_specification(updated_function_content.splitlines())
     if spec:
         original_function.set_specifications(specifications=spec)
+    original_function.invalidate_cached_source_code_with_specs()
 
     # Update line/col info for other functions.
     line_offset = function_len - (prev_end_line - prev_start_line + 1)
@@ -278,6 +279,7 @@ def update_function_definition(
     spec = extract_specification(function_lines)
     if spec:
         function.set_specifications(spec)
+    function.invalidate_cached_source_code_with_specs()
 
     # Update line/col info for other functions.
     line_offset = num_lines - (end_line - start_line + 1)

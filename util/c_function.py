@@ -151,6 +151,10 @@ class CFunction:
         """
         self.source_code_with_specs = source_code
 
+    def invalidate_cached_source_code_with_specs(self) -> None:
+        """Clear this function's `source_code_with_specs` field."""
+        self.source_code_with_specs = ""
+
     def get_source_code_with_specs(self) -> str:
         """Return the source code of this function with CBMC specs inserted.
 
