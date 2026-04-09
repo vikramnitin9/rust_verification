@@ -7,7 +7,7 @@ from string import Template
 
 from loguru import logger
 
-from util import CFunction, FunctionSpecification, ParsecProject, SpecGenGranularity, text_util
+from util import CFunction, CFunctionGraph, FunctionSpecification, SpecGenGranularity, text_util
 
 from .avocado_stub_util import get_stub_implementation_from_parsed_source, load_stub_file
 from .external_function_documentation_manager import ExternalFunctionDocumentationManager
@@ -53,7 +53,7 @@ class PromptBuilder:
     def specification_generation_prompt(
         self,
         function: CFunction,
-        parsec_project: ParsecProject,
+        function_graph: CFunctionGraph,
         specgen_granularity: SpecGenGranularity,
     ) -> str:
         """Return the prompt used for specification generation.
@@ -63,7 +63,7 @@ class PromptBuilder:
 
         Args:
             function (CFunction): The function for which to generate specifications.
-            parsec_project (ParsecProject): The ParseC project that contains `function`.
+            function_graph (CFunctionGraph): The function graph that contains `function`.
             specgen_granularity (SpecGenGranularity): The granularity at which specification
                 generation occurs.
 
@@ -72,29 +72,23 @@ class PromptBuilder:
 
         """
         source_code = function.get_original_source_code(include_documentation_comments=True)
-        callee_context = self._get_callee_context(parsec_project, function)
+        callee_context = self._get_callee_context(function_graph, function)
 
         template = self._get_generation_prompt_template(specgen_granularity)
         return template.substitute(source=source_code, callee_context=callee_context)
 
-    def _get_callee_context(self, parsec_project: ParsecProject, function: CFunction) -> str:
+    def _get_callee_context(self, function_graph: CFunctionGraph, function: CFunction) -> str:
         """Return the callee context for the given function.
 
         Arguments:
-            parsec_project (ParsecProject): The project from which the function originates.
+            function_graph (CFunctionGraph): The function graph from which the function originates.
             function (CFunction): The function for which to obtain the callee context.
 
         Returns:
             str: The callee context for the given function.
         """
         callee_context = ""
-        callees_from_project = parsec_project.get_callees(function)
-
-        if callees_with_specs := [
-            callee for callee in callees_from_project if callee.has_specification()
-        ]:
-            callee_context = self._get_callee_specs(function.name, callees_with_specs)
-
+        callees_from_project = function_graph.get_callees(function)
         names_of_callees_in_project = [callee.name for callee in callees_from_project]
         external_callee_names = [
             callee_name
@@ -184,8 +178,8 @@ class PromptBuilder:
             )
             tmp_f.write(source_code_cbmc_commented_out)
             tmp_f.flush()
-            parsec_project = ParsecProject(Path(tmp_f.name))
-            function = parsec_project.get_function_or_none(
+            function_graph = CFunctionGraph(Path(tmp_f.name))
+            function = function_graph.get_function_or_none(
                 function_name=verification_result.get_function().name
             )
             if not function:
@@ -234,8 +228,8 @@ class PromptBuilder:
             )
             tmp_f.write(source_code_cbmc_commented_out)
             tmp_f.flush()
-            parsec_project = ParsecProject(Path(tmp_f.name))
-            function = parsec_project.get_function_or_none(
+            function_graph = CFunctionGraph(Path(tmp_f.name))
+            function = function_graph.get_function_or_none(
                 function_name=verification_result.get_function().name
             )
             if not function:

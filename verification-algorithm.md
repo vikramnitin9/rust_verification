@@ -117,7 +117,7 @@ Possible fields for ProofState:
 
 immutable class WorkItem:
 
-* `function`: ParsecFunction
+* `function`: CFunction
 * `hint`: str
   Each hint is text provided to the LLM to guide it in the backtracking process; its value is
   populated by the `hint` field in the `BacktrackToCallee` class.

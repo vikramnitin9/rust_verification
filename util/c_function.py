@@ -1,4 +1,4 @@
-"""Represents the ParseC representation for a C function."""
+"""Represents a C function parsed from source code."""
 
 import pathlib
 import re
@@ -7,27 +7,12 @@ from pathlib import Path
 from typing import Any
 
 from .function_specification import FunctionSpecification
-from .parsec_error import ParsecError
 from .text_util import prepend_line_numbers, uncomment_cbmc_annotations
 
 
 @dataclass(eq=False)
 class CFunction:
-    """Represents a C function as parsed by Parsec.
-
-    Note: This corresponds to the version of the function before specifications
-    are added. CFunctions in a `ParsecProject` do not have specifications.
-    This is due to the fact that LLVM cannot parse CBMC specs, which are not
-    instances of valid C grammar.
-
-    If the C code *may* have CBMC specifications, the source
-    code is first pre-processed to comment-out any specifications, see
-    `parsec_project#parse_source_with_cbmc_annotations`.
-
-
-    For more details on these fields, see the ParseC documentation:
-    https://github.com/vikramnitin9/parsec/blob/main/README.md
-    """
+    """Represents a C function parsed from a C source file."""
 
     name: str
     num_args: int
@@ -42,9 +27,6 @@ class CFunction:
     postconditions: list[str]
     source_code: str
 
-    # Do not include parsec_file because it may interfere with caching.
-    # parsec_file: "util.ParsecFile"
-
     arg_names: list[str] = field(default_factory=list)
     arg_types: list[str] = field(default_factory=list)
     enums: list[Any] = field(default_factory=list)
@@ -54,35 +36,36 @@ class CFunction:
     )  # Cannot call this `globals` as it is a Python keyword.
     structs: list[Any] = field(default_factory=list)
 
-    def __init__(self, raw_analysis: dict[str, Any]) -> None:
+    def __init__(
+        self,
+        name: str,
+        signature: str,
+        file_name: str,
+        start_line: int,
+        start_col: int,
+        end_line: int,
+        end_col: int,
+        callee_names: list[str],
+    ) -> None:
         """Create a new CFunction."""
-        self.name = raw_analysis["name"]
-        self.num_args = raw_analysis["num_args"]
-        self.return_type = raw_analysis["returnType"]
-        self.signature = raw_analysis["signature"]
-        self.file_name = raw_analysis["filename"]
-        self.start_line = raw_analysis["startLine"]
-        self.start_col = raw_analysis["startCol"]
-        self.end_line = raw_analysis["endLine"]
-        self.end_col = raw_analysis["endCol"]
+        self.name = name
+        self.signature = signature
+        self.file_name = file_name
+        self.start_line = start_line
+        self.start_col = start_col
+        self.end_line = end_line
+        self.end_col = end_col
+        self.callee_names = callee_names
+        self.num_args = 0
+        self.return_type = ""
         self.preconditions = []
         self.postconditions = []
         self.source_code = ""
-        self.callee_names = []
-        self.arg_names = raw_analysis.get("argNames", [])
-        self.arg_types = raw_analysis.get("argTypes", [])
-        self.enums = raw_analysis.get("enums", [])
-        if "callees" not in raw_analysis:
-            msg = f"ParseC analysis: {raw_analysis} was missing a 'callees' key"
-            raise ParsecError(msg)
-        callees_in_parsec_analysis = raw_analysis["callees"]
-        for func in callees_in_parsec_analysis:
-            if "name" not in func:
-                msg = f"CFunction: {func} did not have a 'name' key"
-                raise ParsecError(msg)
-            self.callee_names.append(func["name"])
-        self.global_vars = raw_analysis.get("globals", [])
-        self.structs = raw_analysis.get("structs", [])
+        self.arg_names = []
+        self.arg_types = []
+        self.enums = []
+        self.global_vars = []
+        self.structs = []
 
     def get_original_source_code(
         self,
