@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import tree_sitter_c as tsc
 from loguru import logger
-from tree_sitter import Language, Node, Parser
+from tree_sitter import Language, Node, Parser, Tree
 
 from .c_function import CFunction
 
@@ -30,6 +31,27 @@ class IdentifierNodeParentType(StrEnum):
     FUNCTION_DEFINITION = "function_definition"
     DECLARATION = "declaration"
     CALL_EXPRESSION = "call_expression"
+
+
+def parse_content(content: str, language_extension: str = ".c") -> Tree:
+    """Return a tree_sitter AST parsed from the given source code string.
+
+    This only supports parsing C ASTs, for now.
+
+    Arguments:
+        content (str): The source code to parse.
+        language_extension (str): The language extension of the language to parse an AST for.
+            Defaults to C (.c).
+
+    Returns:
+        Tree: A tree_sitter AST.
+    """
+    match language_extension:
+        case ".c":
+            return _PARSER.parse(bytes(content, encoding="utf-8"))
+        case _:
+            msg = f"Unsupported language for tree_sitter utils: {language_extension}"
+            raise ValueError(msg)
 
 
 def get_function_identifiers(tree_root: Node) -> list[tuple[Node, IdentifierNodeParentType]]:
