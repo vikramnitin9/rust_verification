@@ -1,6 +1,6 @@
 """Class to aid in calculating the size of function specifications."""
 
-from lark.exceptions import UnexpectedInput
+from lark.exceptions import UnexpectedInput, VisitError
 
 from specifications import simplify
 from translation import CbmcAst, Parser
@@ -118,6 +118,6 @@ def _parse_to_ast(cbmc_str: str) -> CbmcAst:
     """
     try:
         return CBMC_PARSER.parse(cbmc_str)
-    except UnexpectedInput as uie:
+    except (UnexpectedInput, VisitError) as e:
         msg = f"Failed to parse a CBMC AST from '{cbmc_str}'"
-        raise ValueError(msg) from uie
+        raise ValueError(msg) from e
