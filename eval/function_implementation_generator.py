@@ -4,7 +4,7 @@ from loguru import logger
 
 from models import LlmClient, SystemMessage, UserMessage
 from util import FunctionSpecification, json_util
-from verification import PromptBuilder
+from verification import ExternalFunctionDocumentationManager, PromptBuilder
 
 EXTERNAL_FUNCTION_DOCUMENTATION_JSON = "./verification/docs/ansi_c_library_documentation.json"
 
@@ -27,7 +27,9 @@ class FunctionImplementationGenerator:
             llm_client (LlmClient): The LLM client used to generate function implementations.
         """
         self._llm_client = llm_client
-        self._prompt_builder = PromptBuilder()
+        self._prompt_builder = PromptBuilder(
+            ExternalFunctionDocumentationManager(EXTERNAL_FUNCTION_DOCUMENTATION_JSON)
+        )
 
     def generate_implementation(
         self,

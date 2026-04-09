@@ -45,8 +45,8 @@ class ParsedDocumentation:
 
     Attributes:
         entity_type (EntityType): The type of the entity parsed from the HTML.
-        header_file_basename (str): The base name of the header file in which this entity is
-            declared.
+        header_file_basename (str): The base name (i.e., without the parent directory part)
+            of the header file in which this entity is declared.
         description (str): The description parsed from the HTML.
         parameters (list[FunctionParameter]): The documentation for the function parameters,
             empty for all entities except for functions.
@@ -77,7 +77,12 @@ class ExternalFunctionDocumentationManager:
     """Class for managing and exposing documentation for external functions and constructs."""
 
     def __init__(self, path_to_documentation: str) -> None:
-        """Create a new ExternalFunctionDocumentationManager."""
+        """Create a new ExternalFunctionDocumentationManager.
+
+        This constructor reads the documentation JSON
+        './verification/docs/ansi_c_library_documentation.json' once, and loads it into memory for
+        querying.
+        """
         self.docs = json.loads(Path(path_to_documentation).read_text(encoding="utf-8"))
 
     def get_documentation(self, function_name: str) -> ParsedDocumentation | None:
@@ -109,8 +114,8 @@ class ExternalFunctionDocumentationManager:
             function_name (str): The function for which to look up the header.
 
         Returns:
-            str | None: The base name of the header file that declares the function, if found.
-                Otherwise None.
+            str | None: The base name (i.e., without the parent directory part) of the header file
+                that declares the function, if found. Otherwise None.
         """
         if (
             doc_for_function := self.docs.get(function_name)
