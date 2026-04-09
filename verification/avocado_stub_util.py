@@ -140,7 +140,7 @@ def load_stub_file(header_file_basename: str) -> ParsedSource | None:
     calls to `get_stub_implementation_from_parsed_source`.
 
     Args:
-        header_file_basename (str): The name of the header file (e.g. ``"string.h"``) whose
+        header_file_basename (str): The name of the header file (e.g. "string.h") whose
             corresponding stub file should be loaded.
 
     Returns:

@@ -133,7 +133,7 @@ def collect_nodes_by_type(node: Node, node_type: str) -> list[Node]:
     Args:
         node (Node): The root of the sub-tree to search.
         node_type (str): The tree-sitter node type string to match (e.g.
-            ``"binary_expression"`` or ``"number_literal"``).
+            `"binary_expression"` or `"number_literal"`).
 
     Returns:
         list[Node]: All matching nodes in pre-order.
@@ -149,18 +149,18 @@ def collect_nodes_by_type(node: Node, node_type: str) -> list[Node]:
 def get_operator_node(
     binary_expr: Node, source_bytes: bytes, valid_operators: AbstractSet[str]
 ) -> Node | None:
-    """Return the anonymous operator child of a ``binary_expression`` node.
+    """Return the anonymous operator child of a `binary_expression` node.
 
-    In the tree-sitter C grammar, the operator within a ``binary_expression``
+    In the tree-sitter C grammar, the operator within a `binary_expression`
     is an *anonymous* (unnamed) child node whose text is the operator symbol.
 
     Args:
-        binary_expr (Node): A ``binary_expression`` node.
+        binary_expr (Node): A `binary_expression` node.
         source_bytes (bytes): The source bytes used to decode node text.
         valid_operators (AbstractSet[str]): The set of operator symbols to match against.
 
     Returns:
-        Node | None: The operator node, or ``None`` if none is found.
+        Node | None: The operator node, or `None` if none is found.
     """
     for child in binary_expr.children:
         if not child.is_named:
@@ -272,7 +272,7 @@ def parse_c_file(path: Path) -> list[CFunction]:
     """Parse a C source file and return a list of CFunctions defined in it.
 
     Uses tree-sitter to extract function definitions, their source locations, signatures,
-    and direct callee names. Only ``function_definition`` nodes are included; forward
+    and direct callee names. Only `function_definition` nodes are included; forward
     declarations (without a body) are skipped.
 
     Args:
@@ -318,10 +318,10 @@ def parse_c_file(path: Path) -> list[CFunction]:
 
 
 def _extract_c_function(node: Node, source: bytes, file_name: str) -> CFunction | None:
-    """Build a CFunction from a tree-sitter ``function_definition`` node.
+    """Build a CFunction from a tree-sitter `function_definition` node.
 
     Args:
-        node (Node): A ``function_definition`` node.
+        node (Node): A `function_definition` node.
         source (bytes): The raw bytes of the source file.
         file_name (str): Absolute path to the source file.
 
@@ -369,11 +369,11 @@ def _extract_c_function(node: Node, source: bytes, file_name: str) -> CFunction 
 def _collect_callee_names(body: Node) -> list[str]:
     """Return the names of all directly called functions within a function body.
 
-    Only direct calls (``identifier`` as the function node of a ``call_expression``) are
+    Only direct calls (`identifier` as the function node of a `call_expression`) are
     collected. Indirect calls via function pointers are not included.
 
     Args:
-        body (Node): The ``compound_statement`` body node of a function definition.
+        body (Node): The `compound_statement` body node of a function definition.
 
     Returns:
         list[str]: Deduplicated list of callee names in order of first appearance.

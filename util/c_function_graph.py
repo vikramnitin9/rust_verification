@@ -43,7 +43,7 @@ class CFunctionGraph:
 
         If the path is a single file, that file is parsed.
 
-        If the path is a directory, all ``*.c`` files found recursively under the
+        If the path is a directory, all `*.c` files found recursively under the
         directory are parsed.
 
         Args:

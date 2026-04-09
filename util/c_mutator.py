@@ -47,17 +47,17 @@ class MutationOperator(StrEnum):
     Supported mutation operators:
 
     +---------+----------------------------------+---------------------------------------------+
-    | AOR     | Arithmetic Operator Replacement  | replaces ``+``, ``-``, ``*``, ``/``, ``%``  |
+    | AOR     | Arithmetic Operator Replacement  | replaces `+`, `-`, `*`, `/`, `%`  |
     +---------+----------------------------------+---------------------------------------------+
-    | ROR     | Relational Operator Replacement  | replaces ``<``, ``<=``, ``>``, ``>=``,      |
-    |         |                                  | ``==``, ``!=``                              |
+    | ROR     | Relational Operator Replacement  | replaces `<`, `<=`, `>`, `>=`,      |
+    |         |                                  | `==`, `!=`                              |
     +---------+----------------------------------+---------------------------------------------+
-    | LCR     | Logical Connector Replacement    | replaces ``&&`` and ``||``                  |
+    | LCR     | Logical Connector Replacement    | replaces `&&` and `||`                  |
     +---------+----------------------------------+---------------------------------------------+
-    | CRP     | Constant Replacement             | replaces integer literals with ``0``,       |
-    |         |                                  | ``literal + 1``, and ``literal - 1``        |
+    | CRP     | Constant Replacement             | replaces integer literals with `0`,       |
+    |         |                                  | `literal + 1`, and `literal - 1`        |
     +---------+----------------------------------+---------------------------------------------+
-    | RVR     | Return Value Replacement         | replaces ``return`` expressions with ``0``  |
+    | RVR     | Return Value Replacement         | replaces `return` expressions with `0`  |
     +---------+----------------------------------+---------------------------------------------+
 
     """
@@ -150,9 +150,9 @@ class CMutator:
     def __init__(self, c_function: CFunction) -> None:
         """Create a new CMutator.
 
-        This function's source code is taken from ``c_function.source_code`` when
-        it has been set (via ``CFunction.set_source_code``); otherwise it is read
-        from the original file via ``CFunction.get_original_source_code()``.
+        This function's source code is taken from `c_function.source_code` when
+        it has been set (via `CFunction.set_source_code`); otherwise it is read
+        from the original file via `CFunction.get_original_source_code()`.
 
         Args:
             c_function (CFunction): The C function to mutate.
@@ -196,7 +196,7 @@ class CMutator:
 
         Returns:
             dict[MutationOperator, list[Mutant]]: A mapping from each
-                ``MutationOperator`` to the list of mutants produced by that
+                `MutationOperator` to the list of mutants produced by that
                 operator.  Operators that produced no mutants are included with
                 an empty list.
         """
@@ -237,7 +237,7 @@ class CMutator:
     def _apply_lcr(self) -> list[Mutant]:
         """Apply Logical Connector Replacement (LCR) mutations.
 
-        Replaces ``&&`` with ``||`` and vice versa.
+        Replaces `&&` with `||` and vice versa.
 
         Returns:
             list[Mutant]: All LCR mutants.
@@ -250,11 +250,11 @@ class CMutator:
         """Apply Constant Replacement (CRP) mutations.
 
         For every integer literal in the source, produce mutants that replace
-        it with ``0``, ``literal + 1``, and ``literal - 1`` (skipping cases
+        it with `0`, `literal + 1`, and `literal - 1` (skipping cases
         where the replacement equals the original).
 
-        Floating-point and non-decimal literals (e.g. ``1.0f``, ``0x1A``) that
-        cannot be parsed as plain integers by ``int(text, 0)`` are treated as
+        Floating-point and non-decimal literals (e.g. `1.0f`, `0x1A`) that
+        cannot be parsed as plain integers by `int(text, 0)` are treated as
         integers where possible; pure floats are skipped.
 
         Returns:
@@ -300,8 +300,8 @@ class CMutator:
     def _apply_rvr(self) -> list[Mutant]:
         """Apply Return Value Replacement (RVR) mutations.
 
-        For every ``return`` statement that returns a non-zero expression,
-        produce a mutant that returns ``0`` instead.  ``void`` functions are
+        For every `return` statement that returns a non-zero expression,
+        produce a mutant that returns `0` instead.  `void` functions are
         skipped entirely because they cannot meaningfully return a value.
 
         Returns:
@@ -345,7 +345,7 @@ class CMutator:
         """Generate operator-replacement mutants for all matching binary expressions.
 
         Args:
-            operator (MutationOperator): The ``MutationOperator`` label to attach to each mutant.
+            operator (MutationOperator): The `MutationOperator` label to attach to each mutant.
             replacement_map (Mapping[str, list[str]]): Maps an operator symbol to a list of
                 replacement symbols to substitute in its place.
 
