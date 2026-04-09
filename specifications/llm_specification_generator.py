@@ -227,7 +227,7 @@ class LlmSpecificationGenerator:
                         function_graph=function_graph,
                     )
                     function.set_specifications(specifications=candidate_spec)
-                    function.set_source_code(function_code_with_specs)
+                    function.set_source_code_with_specs(function_code_with_specs)
                     result_spec_conversations.append(
                         SpecConversation.create(
                             function=function,
