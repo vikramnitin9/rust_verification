@@ -157,10 +157,38 @@ def load_stub_file(header_file_basename: str) -> ParsedSource | None:
     return ParsedSource(tree, file_content)
 
 
+def get_stub_implementation(original_identifier: str, header_file_basename: str) -> str | None:
+    """Return the the definition of the Avocado stub function for the given C function, or None.
+
+    Looks up the function whose identifier in the stub file is
+    ``_avocado_<original_identifier>`` and returns the full function definition as a string with
+    the `_avocado_` prefix removed.
+
+    This function returns ``None`` when the header file does not exist, and, consequently, a stub
+    implementation does not exist.
+
+    Args:
+        original_identifier (str): The original C function name (without the Avocado prefix).
+        header_file_basename (str): The name of the header file (e.g. "string.h") whose
+            corresponding stub file should be searched.
+
+    Returns:
+        str | None: The full function definition text, or ``None`` if the stub file does not exist.
+    """
+    parsed_source = load_stub_file(header_file_basename)
+    if parsed_source is None:
+        return None
+
+    if definition := get_stub_implementation_from_parsed_source(original_identifier, parsed_source):
+        return definition
+    msg = f"No definition found for '{original_identifier}' in '{header_file_basename}'"
+    raise ValueError(msg)
+
+
 def get_stub_implementation_from_parsed_source(
     original_identifier: str, parsed_source: ParsedSource
 ) -> str | None:
-    r"""Return the definition of the Avocado stub function for the given C function, or None.
+    """Return the definition of the Avocado stub function for the given C function, or None.
 
     Like `get_stub_implementation`, but avoids re-parsing via the `parsed_source` parameter.
 
@@ -191,60 +219,6 @@ def get_stub_implementation_from_parsed_source(
             ].decode(encoding="utf-8")
             return definition.replace(AVOCADO_FUNCTION_PREFIX, "")
     return None
-
-
-def get_stub_implementation(original_identifier: str, header_file_basename: str) -> str | None:
-    r"""Return the the definition of the Avocado stub function for the given C function, or None.
-
-    Looks up the function whose identifier in the stub file is
-    ``_avocado_<original_identifier>`` and returns the full function definition as a string with
-    the `_avocado_` prefix removed.
-
-    This function returns ``None`` when the header file does not exist, and, consequently, a stub
-    implementation does not exist.
-
-    Args:
-        original_identifier (str): The original C function name (without the Avocado prefix).
-        header_file_basename (str): The name of the header file (e.g. "string.h") whose
-            corresponding stub file should be searched.
-
-    Returns:
-        str | None: The full function definition text, or ``None`` if the stub file does not exist.
-    """
-    path_to_stub_file = _get_stub_file_path(header_file_basename)
-    if not path_to_stub_file.exists():
-        return None
-
-    file_content = path_to_stub_file.read_bytes()
-    tree = _PARSER.parse(file_content)
-
-    avocado_identifier = AVOCADO_FUNCTION_PREFIX + original_identifier
-    definition = None
-    for identifier_node, parent_type in get_function_identifiers(tree.root_node):
-        if (
-            parent_type == IdentifierNodeParentType.FUNCTION_DEFINITION
-            and identifier_node.text is not None
-            and identifier_node.text.decode() == avocado_identifier
-        ):
-            # Walk up to the function_definition node to get the full definition text.
-            definition_node = identifier_node.parent
-            while definition_node is not None and definition_node.type != "function_definition":
-                definition_node = definition_node.parent
-            if not definition_node:
-                msg = (
-                    f"Identifier '{original_identifier}' was found in {header_file_basename}, "
-                    "but was missing a definition"
-                )
-                raise ValueError(msg)
-            definition = file_content[definition_node.start_byte : definition_node.end_byte].decode(
-                encoding="utf-8"
-            )
-            break
-    if not definition:
-        msg = f"No definition found for '{original_identifier}' in '{header_file_basename}'"
-        raise ValueError(msg)
-
-    return definition.replace(AVOCADO_FUNCTION_PREFIX, "")
 
 
 def _get_stub_file_path(original_header_basename: str) -> Path:
