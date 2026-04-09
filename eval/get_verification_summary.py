@@ -185,6 +185,19 @@ def main() -> None:
         ],
     ]
 
+    # Collapse summaries for functions with the same name (e.g., from cache entries with distinct
+    # CFunction keys that share a name). This is fine, given we're running on files individually.
+    merged_summaries: dict[str, Any] = {}
+    for vsummary in verification_summary_for_file["functions"]:
+        function_name = vsummary["function_name"]
+        if function_name not in merged_summaries:
+            merged_summaries[function_name] = vsummary
+        else:
+            merged_summaries[function_name]["verifying_specs"].extend(vsummary["verifying_specs"])
+            merged_summaries[function_name]["failing_specs"].extend(vsummary["failing_specs"])
+            merged_summaries[function_name]["lookup_errors"].extend(vsummary["lookup_errors"])
+    verification_summary_for_file["functions"] = list(merged_summaries.values())
+
     num_verified_functions = _get_num_verified_functions(verification_summary_for_file)
 
     logger.info(
