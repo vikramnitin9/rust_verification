@@ -48,12 +48,6 @@ class PromptBuilder:
         "/app/verification/docs/ansi_c_library_documentation.json"
     )
 
-    def __init__(
-        self, external_function_documentation_manager: ExternalFunctionDocumentationManager
-    ) -> None:
-        """Create a new PromptBuilder."""
-        self._external_function_documentation_manager = external_function_documentation_manager
-
     def specification_generation_prompt(
         self,
         function: CFunction,
@@ -151,11 +145,8 @@ class PromptBuilder:
         # specifications are being generated).
         header_basename_to_external_callee_names: dict[str, list[str]] = defaultdict(list)
         for callee_name in external_callee_names:
-            if (
-                header_file_basename
-                := self._external_function_documentation_manager.get_header_declaring_function(
-                    callee_name
-                )
+            if header_file_basename := self.DOCUMENTATION_MANAGER.get_header_declaring_function(
+                callee_name
             ):
                 header_basename_to_external_callee_names[header_file_basename].append(callee_name)
 
