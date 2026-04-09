@@ -80,6 +80,14 @@ class PromptBuilder:
     def _get_callee_context(self, function_graph: CFunctionGraph, function: CFunction) -> str:
         """Return the callee context for the given function.
 
+        The callee context for each function comprises:
+
+            1. The CBMC function contracts for a callee in the project.
+            2. The entire implementation/stub for a callee that is not in the project.
+
+        (2) Is due to the fact that not all external callees have CBMC function contracts, but may
+        have CBMC annotations directly written in their implementation (see verification/cbmc_stub).
+
         Arguments:
             function_graph (CFunctionGraph): The function graph from which the function originates.
             function (CFunction): The function for which to obtain the callee context.
@@ -87,30 +95,40 @@ class PromptBuilder:
         Returns:
             str: The callee context for the given function.
         """
-        callee_context = ""
-        callees_from_project = function_graph.get_callees(function)
-        names_of_callees_in_project = [callee.name for callee in callees_from_project]
-        external_callee_names = [
+        project_callee_context = ""
+        callees_in_project = function_graph.get_callees(function)
+        project_callee_context = self._get_project_callee_context(
+            function.name,
+            [
+                project_callee
+                for project_callee in callees_in_project
+                if project_callee.has_specification()
+            ],
+        )
+
+        names_of_callees_in_project = [project_callee.name for project_callee in callees_in_project]
+        names_of_external_callees = [
             callee_name
             for callee_name in function.callee_names
             if callee_name not in names_of_callees_in_project
         ]
+        external_callee_context = self._get_external_callee_context(
+            function.name, names_of_external_callees
+        )
 
-        if external_callee_context := self._get_external_callee_context(
-            function.name, external_callee_names
-        ):
-            callee_context = (
-                f"{callee_context}\n\n{external_callee_context}"
-                if callee_context
-                else external_callee_context
-            )
-
-        return callee_context
+        return "\n\n\n".join(
+            context for context in (project_callee_context, external_callee_context) if context
+        )
 
     def _get_external_callee_context(
         self, caller_name: str, external_callee_names: list[str]
     ) -> str | None:
         """Return prompt context describing external callees and their stub implementations.
+
+        Not all external functions (see the CBMC stub functions for the ANSI-C library in
+        verification/cbmc_stubs for an example) have CBMC function contracts. However, their
+        implementations (i.e., their bodies) include CBMC annotations, which we include in the
+        context.
 
         If a header has no stub file or a specific callee has no matching stub implementation,
         a warning is logged and that callee is omitted from the context.
@@ -123,7 +141,11 @@ class PromptBuilder:
             str | None: Formatted context text for the prompt when at least one external callee
                 stub implementation is found; otherwise None.
         """
-        header_basename_to_external_callees: dict[str, list[str]] = defaultdict(list)
+        # This maps header base names (e.g., string.h)  to the callees of a given function.
+        # it is not a complete mapping (i.e., the mapped value for string.h does not include all
+        # the functions it declares, only the ones that are called by the function for which
+        # specifications are being generated).
+        header_basename_to_external_callee_names: dict[str, list[str]] = defaultdict(list)
         for callee_name in external_callee_names:
             if (
                 header_file_basename
@@ -131,13 +153,13 @@ class PromptBuilder:
                     callee_name
                 )
             ):
-                header_basename_to_external_callees[header_file_basename].append(callee_name)
+                header_basename_to_external_callee_names[header_file_basename].append(callee_name)
 
         external_callees_to_stubs: dict[str, str] = {}
         for (
             header_file_basename,
             callee_names_for_header,
-        ) in header_basename_to_external_callees.items():
+        ) in header_basename_to_external_callee_names.items():
             parsed_source = load_stub_file(header_file_basename)
             if parsed_source is None:
                 for callee_name in callee_names_for_header:
@@ -151,15 +173,16 @@ class PromptBuilder:
                 else:
                     logger.warning(f"Didn't find {callee_name} in file {header_file_basename}")
 
-        external_callee_context = None
-        if external_callees_to_stubs:
-            external_callee_context = f"{caller_name} calls the following functions:\n\n"
-            for external_callee, stub_impl in external_callees_to_stubs.items():
-                external_callee_context += (
-                    f"External callee: {external_callee}\n\n{stub_impl}\n\n\n"
-                )
+        if not external_callees_to_stubs:
+            return None
 
-        return external_callee_context
+        external_callee_context = f"{caller_name} calls the following functions:\n\n"
+        external_callee_stub_strs = [
+            f"External callee: {external_callee}\n\n{stub_impl}"
+            for external_callee, stub_impl in external_callees_to_stubs.items()
+        ]
+
+        return external_callee_context + "\n\n\n".join(external_callee_stub_strs)
 
     def next_step_prompt(self, verification_result: VerificationResult) -> str:
         """Return prompt text asking the LLM to decide on next steps for a failing specification.
@@ -275,7 +298,9 @@ class PromptBuilder:
             specification=specification.get_prompt_str(),
         )
 
-    def _get_callee_specs(self, caller: str, callees_with_specs: list[CFunction]) -> str:
+    def _get_project_callee_context(
+        self, caller: str, callees_with_specs: list[CFunction]
+    ) -> str | None:
         """Return the specifications of all the callees of `caller`.
 
         Args:
@@ -283,8 +308,10 @@ class PromptBuilder:
             callees_with_specs (list[CFunction]): The list of callees with specifications.
 
         Returns:
-            str: The callee specifications to add to a prompt.
+            str | None: The callee specifications to add to a prompt.
         """
+        if not callees_with_specs:
+            return None
         callee_context = "\n".join(callee.get_summary_for_prompt() for callee in callees_with_specs)
         return f"{caller} has the following callees:\n{callee_context}"
 

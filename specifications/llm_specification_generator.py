@@ -198,6 +198,7 @@ class LlmSpecificationGenerator:
         specification_generation_prompt = self._prompt_builder.specification_generation_prompt(
             function, function_graph, self._specgen_granularity
         )
+
         if hint:
             specification_generation_prompt += "\n\n" + hint
         specification_generation_message = UserMessage(content=specification_generation_prompt)

@@ -77,7 +77,12 @@ class ExternalFunctionDocumentationManager:
     """Class for managing and exposing documentation for external functions and constructs."""
 
     def __init__(self, path_to_documentation: str) -> None:
-        """Create a new ExternalFunctionDocumentationManager."""
+        """Create a new ExternalFunctionDocumentationManager.
+
+        This constructor reads the documentation JSON
+        './verification/docs/ansi_c_library_documentation.json' once, and loads it into memory for
+        querying.
+        """
         self.docs = json.loads(Path(path_to_documentation).read_text(encoding="utf-8"))
 
     def get_documentation(self, function_name: str) -> ParsedDocumentation | None:

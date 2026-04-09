@@ -183,7 +183,9 @@ def get_stub_implementation_from_parsed_source(
             while definition_node is not None and definition_node.type != "function_definition":
                 definition_node = definition_node.parent
             if not definition_node:
-                return None
+                msg = f"An Avocado identifier was found for '{original_identifier}', "
+                "but it was not a function definition"
+                raise ValueError(msg)
             definition = parsed_source.content[
                 definition_node.start_byte : definition_node.end_byte
             ].decode(encoding="utf-8")
