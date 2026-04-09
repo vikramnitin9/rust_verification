@@ -119,7 +119,7 @@ class PromptBuilder:
         """Return prompt context describing external callees and their stub implementations.
 
         If a header has no stub file or a specific callee has no matching stub implementation,
-        a warning is logged and that callee is skipped.
+        a warning is logged and that callee is omitted from the context.
 
         Args:
             caller_name (str): Name of the function whose external callees are being summarized.
@@ -147,10 +147,7 @@ class PromptBuilder:
             parsed_source = load_stub_file(header_file_basename)
             if parsed_source is None:
                 for callee_name in callee_names_for_header:
-                    logger.warning(
-                        f"Failed to find stub file for external callee "
-                        f"'{callee_name}' in header '{header_file_basename}'"
-                    )
+                    logger.warning(f"Didn't find {callee_name} in file {header_file_basename}")
                 continue
             for callee_name in callee_names_for_header:
                 if callee_stub_impl := get_stub_implementation_from_parsed_source(
@@ -158,14 +155,11 @@ class PromptBuilder:
                 ):
                     external_callees_to_stubs[callee_name] = callee_stub_impl
                 else:
-                    logger.warning(
-                        f"Failed to find a stub implementation for external callee "
-                        f"'{callee_name}' in header '{header_file_basename}'"
-                    )
+                    logger.warning(f"Didn't find {callee_name} in file {header_file_basename}")
 
         external_callee_context = None
         if external_callees_to_stubs:
-            external_callee_context = f"{caller_name} has the following external callees:\n\n"
+            external_callee_context = f"{caller_name} calls the following functions:\n\n"
             for external_callee, stub_impl in external_callees_to_stubs.items():
                 external_callee_context += (
                     f"External callee: {external_callee}\n\n{stub_impl}\n\n\n"

@@ -25,14 +25,14 @@ DEFAULT_STUB_MAPPINGS = f"{AVOCADO_STUB_DIR}/c_stub_rename_map.pkl"
 
 @dataclass(frozen=True)
 class ParsedSource:
-    """Represent a tree_sitter AST and the bytes content from which it was parsed.
+    """Represent a tree_sitter AST and the source code from which it was parsed.
 
     This is required because a tree_sitter AST does not include the full copy of the string from
     which it is parsed, apparently to save memory.
 
     Attributes:
         ast (Tree): A tree_sitter AST.
-        content (bytes): The bytes content corresponding to the AST.
+        content (bytes): The source code corresponding to the AST.
     """
 
     ast: Tree
@@ -105,7 +105,7 @@ def get_stub_mappings(
             DEFAULT_STUB_MAPPINGS.
 
     Returns:
-        dict[str, list[RenameData]]: A mapping from the original C function identifier to rename
+        dict[str, list[RenameData]]: A mapping from the original C function name to rename
             data.
     """
     with Path(path_to_stub_mappings).open(mode="rb") as f:
@@ -148,11 +148,11 @@ def load_stub_file(header_file_basename: str) -> ParsedSource | None:
             None otherwise.
 
     """
-    expected_path_to_stub_file = _get_stub_file_path(header_file_basename)
-    if not expected_path_to_stub_file.exists():
+    path_to_stub_file = _get_stub_file_path(header_file_basename)
+    if not path_to_stub_file.exists():
         return None
 
-    file_content = expected_path_to_stub_file.read_bytes()
+    file_content = path_to_stub_file.read_bytes()
     tree = _PARSER.parse(file_content)
     return ParsedSource(tree, file_content)
 
@@ -160,12 +160,12 @@ def load_stub_file(header_file_basename: str) -> ParsedSource | None:
 def get_stub_implementation_from_parsed_source(
     original_identifier: str, parsed_source: ParsedSource
 ) -> str | None:
-    r"""Return the implementation of the Avocado stub for the given function, or None.
+    r"""Return the definition of the Avocado stub function for the given C function, or None.
 
     Like `get_stub_implementation`, but avoids re-parsing via the `parsed_source` parameter.
 
     Args:
-        original_identifier (str): The original C function identifier (without the Avocado prefix).
+        original_identifier (str): The original C function name (without the Avocado prefix).
         parsed_source (ParsedSource): The parsed source for the stub file.
 
     Returns:
@@ -192,28 +192,28 @@ def get_stub_implementation_from_parsed_source(
 
 
 def get_stub_implementation(original_identifier: str, header_file_basename: str) -> str | None:
-    r"""Return the implementation of the Avocado stub for the given function.
+    r"""Return the the definition of the Avocado stub function for the given C function, or None.
 
     Looks up the function whose identifier in the stub file is
     ``_avocado_<original_identifier>`` and returns the full function definition as a string with
     the `_avocado_` prefix removed.
 
-    This function returns `None` when the header file does not exist, and, consequently, a stub
+    This function returns ``None`` when the header file does not exist, and, consequently, a stub
     implementation does not exist.
 
     Args:
-        original_identifier (str): The original C function identifier (without the Avocado prefix).
+        original_identifier (str): The original C function name (without the Avocado prefix).
         header_file_basename (str): The name of the header file (e.g. "string.h") whose
             corresponding stub file should be searched.
 
     Returns:
-        str | None: The full function definition text, or `None` if the stub file does not exist.
+        str | None: The full function definition text, or ``None`` if the stub file does not exist.
     """
-    expected_path_to_stub_file = _get_stub_file_path(header_file_basename)
-    if not expected_path_to_stub_file.exists():
+    path_to_stub_file = _get_stub_file_path(header_file_basename)
+    if not path_to_stub_file.exists():
         return None
 
-    file_content = expected_path_to_stub_file.read_bytes()
+    file_content = path_to_stub_file.read_bytes()
     tree = _PARSER.parse(file_content)
 
     avocado_identifier = AVOCADO_FUNCTION_PREFIX + original_identifier

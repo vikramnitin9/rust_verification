@@ -45,8 +45,8 @@ class ParsedDocumentation:
 
     Attributes:
         entity_type (EntityType): The type of the entity parsed from the HTML.
-        header_file_basename (str): The base name of the header file in which this entity is
-            declared.
+        header_file_basename (str): The base name (i.e., without directory part)
+            of the header file in which this entity is declared.
         description (str): The description parsed from the HTML.
         parameters (list[FunctionParameter]): The documentation for the function parameters,
             empty for all entities except for functions.
@@ -109,8 +109,8 @@ class ExternalFunctionDocumentationManager:
             function_name (str): The function for which to look up the header.
 
         Returns:
-            str | None: The base name of the header file that declares the function, if found.
-                Otherwise None.
+            str | None: The base name (i.e., without directory part) of the header file
+                that declares the function, if found. Otherwise None.
         """
         if (
             doc_for_function := self.docs.get(function_name)
