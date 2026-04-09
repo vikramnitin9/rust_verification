@@ -155,19 +155,22 @@ class CMutator:
         from the original file via ``CFunction.get_original_source_code()``.
 
         Args:
-            c_function: The C function to mutate.
+            c_function (CFunction): The C function to mutate.
         """
         self._c_function = c_function
-        self._parser: Parser = Parser(_C_LANGUAGE)
+        self._parser = Parser(_C_LANGUAGE)
 
         source = c_function.source_code or c_function.get_original_source_code()
         self._source_code = source
         self._source_bytes = source.encode("utf-8")
         self._tree = self._parser.parse(self._source_bytes)
 
-    @property
     def get_source_code(self) -> str:
-        """Return the (possibly pre-processed) source code being mutated."""
+        """Return the source code being mutated.
+
+        Returns:
+            str: The source code being mutated.
+        """
         return self._source_code
 
     def get_mutants(self) -> list[Mutant]:
@@ -204,10 +207,6 @@ class CMutator:
             MutationOperator.CRP: self._apply_crp(),
             MutationOperator.RVR: self._apply_rvr(),
         }
-
-    # ------------------------------------------------------------------ #
-    # Mutation operator implementations                                    #
-    # ------------------------------------------------------------------ #
 
     def _apply_aor(self) -> list[Mutant]:
         """Apply Arithmetic Operator Replacement (AOR) mutations.
@@ -338,10 +337,6 @@ class CMutator:
             )
         return mutants
 
-    # ------------------------------------------------------------------ #
-    # Shared helper for operator-replacement mutations                     #
-    # ------------------------------------------------------------------ #
-
     def _apply_binary_operator_replacements(
         self,
         operator: MutationOperator,
@@ -350,9 +345,9 @@ class CMutator:
         """Generate operator-replacement mutants for all matching binary expressions.
 
         Args:
-            operator: The ``MutationOperator`` label to attach to each mutant.
-            replacement_map: Maps an operator symbol to a list of replacement
-                symbols to substitute in its place.
+            operator (MutationOperator): The ``MutationOperator`` label to attach to each mutant.
+            replacement_map (Mapping[str, list[str]]): Maps an operator symbol to a list of
+                replacement symbols to substitute in its place.
 
         Returns:
             list[Mutant]: All mutants produced by the given replacement map.
