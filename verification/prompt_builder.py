@@ -163,7 +163,10 @@ class PromptBuilder:
             parsed_source = load_stub_file(header_file_basename)
             if parsed_source is None:
                 for callee_name in callee_names_for_header:
-                    logger.warning(f"Didn't find {callee_name} in file {header_file_basename}")
+                    logger.warning(
+                        f"Failed to load stub file '{header_file_basename}' "
+                        f"for callee '{callee_name}'"
+                    )
                 continue
             for callee_name in callee_names_for_header:
                 if callee_stub_impl := get_stub_implementation_from_parsed_source(

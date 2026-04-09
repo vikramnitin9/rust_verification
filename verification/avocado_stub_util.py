@@ -137,7 +137,7 @@ def load_stub_file(header_file_basename: str) -> ParsedSource | None:
     """Return the parsed source of the stub file for the given header, or None.
 
     This allows callers to parse the stub file once and reuse the result across multiple
-    calls to :func:`get_stub_implementation_from_tree`.
+    calls to `get_stub_implementation_from_parsed_source`.
 
     Args:
         header_file_basename (str): The name of the header file (e.g. ``"string.h"``) whose
@@ -155,34 +155,6 @@ def load_stub_file(header_file_basename: str) -> ParsedSource | None:
     file_content = path_to_stub_file.read_bytes()
     tree = _PARSER.parse(file_content)
     return ParsedSource(tree, file_content)
-
-
-def get_stub_implementation(original_identifier: str, header_file_basename: str) -> str | None:
-    """Return the the definition of the Avocado stub function for the given C function, or None.
-
-    Looks up the function whose identifier in the stub file is
-    ``_avocado_<original_identifier>`` and returns the full function definition as a string with
-    the `_avocado_` prefix removed.
-
-    This function returns ``None`` when the header file does not exist, and, consequently, a stub
-    implementation does not exist.
-
-    Args:
-        original_identifier (str): The original C function name (without the Avocado prefix).
-        header_file_basename (str): The name of the header file (e.g. "string.h") whose
-            corresponding stub file should be searched.
-
-    Returns:
-        str | None: The full function definition text, or ``None`` if the stub file does not exist.
-    """
-    parsed_source = load_stub_file(header_file_basename)
-    if parsed_source is None:
-        return None
-
-    if definition := get_stub_implementation_from_parsed_source(original_identifier, parsed_source):
-        return definition
-    msg = f"No definition found for '{original_identifier}' in '{header_file_basename}'"
-    raise ValueError(msg)
 
 
 def get_stub_implementation_from_parsed_source(
@@ -211,8 +183,10 @@ def get_stub_implementation_from_parsed_source(
             while definition_node is not None and definition_node.type != "function_definition":
                 definition_node = definition_node.parent
             if not definition_node:
-                msg = f"An Avocado identifier was found for '{original_identifier}', "
-                "but it was not a function definition"
+                msg = (
+                    f"An Avocado identifier was found for '{original_identifier}', "
+                    "but it was not a function definition"
+                )
                 raise ValueError(msg)
             definition = parsed_source.content[
                 definition_node.start_byte : definition_node.end_byte

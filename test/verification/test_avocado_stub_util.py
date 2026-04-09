@@ -49,18 +49,10 @@ def test_apply_stub_renaming_existing_avocado_name() -> None:
     assert avocado_stub_util.apply_stub_renaming(content_pre_renaming) == content_pre_renaming
 
 
-def test_get_stub_with_nonexistent_file() -> None:
-    assert avocado_stub_util.get_stub_implementation("strchr", "nonsense.h") is None, (
-        f"'nonsense.h' is not a valid C header file."
-    )
-
-
-def test_get_stub_with_nonexistent_function() -> None:
-    with pytest.raises(ValueError, match="No definition found for 'nonsense_function"):
-        avocado_stub_util.get_stub_implementation("nonsense_function", "string.h")
-
-
 def test_get_stub() -> None:
+    header_basename = "string.h"
+    parsed_header = avocado_stub_util.load_stub_file(header_basename)
+    assert parsed_header, f"{header_basename} should have parsed correctly"
     stub_implementation = """char *strchr(const char *src, int c)
 {
   __CPROVER_HIDE:;
@@ -80,4 +72,4 @@ def test_get_stub() -> None:
   return 0;
   #endif
 }"""
-    assert avocado_stub_util.get_stub_implementation("strchr", "string.h") == stub_implementation
+    assert avocado_stub_util.get_stub_implementation_from_parsed_source("strchr", parsed_header) == stub_implementation
