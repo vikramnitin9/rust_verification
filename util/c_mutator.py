@@ -160,7 +160,7 @@ class CMutator:
         self._c_function = c_function
         self._parser = Parser(_C_LANGUAGE)
 
-        source = c_function.source_code or c_function.get_original_source_code()
+        source = c_function.get_source_code()
         self._source_code = source
         self._source_bytes = source.encode("utf-8")
         self._tree = self._parser.parse(self._source_bytes)

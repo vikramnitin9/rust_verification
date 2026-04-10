@@ -189,6 +189,7 @@ def test_rvr_skips_existing_zero_return() -> None:
     fn.set_source_code(src_returns_zero)
     mutator = CMutator(fn)
     rvr_mutants = mutator.get_mutants_by_operator()[MutationOperator.RVR]
+    print(rvr_mutants)
     assert rvr_mutants == [], "Should not mutate a return that already returns 0"
 
 
