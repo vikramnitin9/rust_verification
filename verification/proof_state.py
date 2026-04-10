@@ -24,10 +24,14 @@ class WorkItem:
             * the LLM decides what to do next
         hint: The hint(s) to use in re-generating callee specifications during backtracking.
             Not used during specification repair.
+        assume_without_verification (bool): If True, the generated specification will be assumed
+            without running verification. Used for external callees that already have a
+            specification, where we want to re-generate but not verify.
     """
 
     function: CFunction
     hint: str
+    assume_without_verification: bool = False
 
 
 @dataclass(frozen=True)

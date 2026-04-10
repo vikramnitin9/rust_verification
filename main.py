@@ -17,6 +17,7 @@ from models import OPENAI_MODEL_TEMPERATURE_RANGE
 from specifications import LlmSpecificationGenerator
 from util import (
     AcceptVerifiedSpec,
+    AssumeSpecAsIs,
     CFunction,
     CFunctionGraph,
     SpecConversation,
@@ -382,6 +383,10 @@ def _step(
         hint=work_item.hint,
         proof_state=proof_state,
     )
+
+    if work_item.assume_without_verification:
+        for specc in speccs_for_function:
+            specc.next_step = AssumeSpecAsIs()
 
     speccs_with_next_steps = [
         _set_next_step(
