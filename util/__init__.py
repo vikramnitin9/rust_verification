@@ -36,5 +36,5 @@ __all__ = [
     "fix_syntax",
     "run_with_timeout",
     "get_identifier_nodes_from_call_expressions",
-    "get_function_identifiers"
+    "get_function_identifiers",
 ]
