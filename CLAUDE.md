@@ -15,11 +15,12 @@
   - Consult the user if there is ever a need to suppress a warning.
 - All business logic should be documented, even helper code. Test code (i.e., any code under
   `test/`) need not be documented.
+- Do not use double backticks in docstrings, use single backticks.
 
 ## Basic Organization
 
 - `util/`: Utilities related to representing functions (`c_function.py`, `function_util.py`),
-    C projects (`parsec_project.py`),
+    C projects (`c_function_graph.py`),
     files (`file_util.py`),
     text (`text_util.py`),
     ASTs (`tree_sitter_util.py`).
