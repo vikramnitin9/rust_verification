@@ -69,7 +69,7 @@ class PromptBuilder:
             str: The initial prompt used for specification generation.
 
         """
-        source_code = function.get_original_source_code(include_documentation_comments=True)
+        source_code = function.get_source_code(include_documentation_comments=True)
         callee_context = self._get_callee_context(function_graph, function)
 
         template = self._get_generation_prompt_template(specgen_granularity)

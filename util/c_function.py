@@ -25,7 +25,7 @@ class CFunction:
     end_col: int
     preconditions: list[str]
     postconditions: list[str]
-    source_code: str
+    source_code_with_specs: str
 
     arg_names: list[str] = field(default_factory=list)
     arg_types: list[str] = field(default_factory=list)
@@ -64,23 +64,26 @@ class CFunction:
         self.return_type = ""
         self.preconditions = []
         self.postconditions = []
-        self.source_code = ""
+        self.source_code_with_specs = ""
+        self._cached_source_code = ""
         self.arg_names = []
         self.arg_types = []
         self.enums = []
         self.global_vars = []
         self.structs = []
 
-    def get_original_source_code(
+    def get_source_code(
         self,
         include_documentation_comments: bool = False,
         include_line_numbers: bool = False,
         should_uncomment_cbmc_annotations: bool = False,
     ) -> str:
-        """Return the *original* source code for this function.
+        """Return the source code for this function read from the original file on disk.
 
-        Original in this context refers to the source code of the function from the initial source
-        code file passed to the verifier.
+        When called without any formatting options, the result is cached in `_cached_source_code`
+        so subsequent plain calls avoid a repeated disk read. Calls with formatting options always
+        read from disk, as the formatted result cannot be safely stored alongside the unformatted
+        cache.
 
         Args:
             include_documentation_comments (bool): True iff documentation comments appearing before
@@ -90,9 +93,17 @@ class CFunction:
                 code should be uncommented.
 
         Returns:
-            str: The source code for this function, optionally including documentation comments and
-                line numbers.
+            str: The source code for this function.
         """
+        no_formatting = not (
+            include_documentation_comments
+            or include_line_numbers
+            or should_uncomment_cbmc_annotations
+        )
+
+        if self._cached_source_code and no_formatting:
+            return self._cached_source_code
+
         with pathlib.Path(self.file_name).open(encoding="utf-8") as f:
             lines = f.readlines()
 
@@ -115,6 +126,10 @@ class CFunction:
             func_lines = uncomment_cbmc_annotations(func_lines)
 
         source_code = "".join(func_lines)
+
+        if no_formatting:
+            self._cached_source_code = source_code
+
         documentation = self.get_preceding_lines_starting_with_comment_delimiters()
 
         if include_documentation_comments and documentation:
@@ -132,21 +147,26 @@ class CFunction:
 
         return source_code
 
-    def set_source_code(self, source_code: str) -> None:
-        """Set the source code for this function.
+    def set_source_code_with_specs(self, source_code: str) -> None:
+        """Store the source code for this function with specifications inserted.
 
         Args:
-            source_code (str): The source code to set for this function.
+            source_code (str): The source code with specifications inserted.
         """
-        self.source_code = source_code
+        self.source_code_with_specs = source_code
 
-    def get_source_code(self) -> str:
-        """Return this function's source code.
+    def invalidate_source_code_fields(self) -> None:
+        """Clear this function's `_cached_source_code` and `source_code_with_specs` field."""
+        self._cached_source_code = ""
+        self.source_code_with_specs = ""
+
+    def get_source_code_with_specs(self) -> str:
+        """Return the source code of this function with CBMC specs inserted.
 
         Returns:
-            str: This function's source code.
+            str: The source code of this function with CBMC specs inserted.
         """
-        return self.source_code
+        return self.source_code_with_specs
 
     def _add_line_numbers(self, source_code: str, start_line_offset: int) -> str:
         """Return source code with line numbers prepended to each line.
