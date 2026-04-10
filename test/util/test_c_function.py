@@ -16,7 +16,7 @@ def test_get_source_code() -> None:
         }""")
     expected_function = function_graph.get_function_or_none("swap")
     assert expected_function, "Function 'swap' should be declared in data/qsort.c"
-    assert expected_function.get_original_source_code() == expected_source_code
+    assert expected_function.get_source_code() == expected_source_code
 
 
 def test_get_source_code_with_docs_double_slash() -> None:
@@ -27,7 +27,7 @@ def test_get_source_code_with_docs_double_slash() -> None:
         // This is a documentation
         // Comment
         void f1() { }""").rstrip()
-    assert expected_function.get_original_source_code(include_documentation_comments=True) == expected_source_code
+    assert expected_function.get_source_code(include_documentation_comments=True) == expected_source_code
 
 
 def test_get_source_code_with_docs_multi_line() -> None:
@@ -42,7 +42,7 @@ def test_get_source_code_with_docs_multi_line() -> None:
         void f2()
         {
         }""")
-    assert expected_function.get_original_source_code(include_documentation_comments=True) == expected_source_code
+    assert expected_function.get_source_code(include_documentation_comments=True) == expected_source_code
 
 
 def test_get_source_code_with_docs_multi_line_with_line_numbers() -> None:
@@ -57,7 +57,7 @@ def test_get_source_code_with_docs_multi_line_with_line_numbers() -> None:
         11: void f2()
         12: {
         13: }""").rstrip()
-    assert expected_function.get_original_source_code(include_documentation_comments=True, include_line_numbers=True) == expected_source_code
+    assert expected_function.get_source_code(include_documentation_comments=True, include_line_numbers=True) == expected_source_code
 
 
 def test_get_source_code_with_docs_inline_comment_above() -> None:
@@ -65,7 +65,7 @@ def test_get_source_code_with_docs_inline_comment_above() -> None:
     expected_function = function_graph.get_function_or_none("f3")
     assert expected_function, "Function 'f3' should be declared in test/data/get_source_code/test_with_doc_comments.c"
     expected_source_code = "void f3() {}"
-    assert expected_function.get_original_source_code(include_documentation_comments=True) == expected_source_code
+    assert expected_function.get_source_code(include_documentation_comments=True) == expected_source_code
 
 
 def test_get_source_code_on_one_line() -> None:
@@ -73,7 +73,7 @@ def test_get_source_code_on_one_line() -> None:
     expected_function = function_graph.get_function_or_none("single_line_main")
     assert expected_function, "Function 'single_line_main' should be declared in test/data/get_source_code/test.c"
     expected_source_code = 'void single_line_main() { printf("Hello, world!"); }'
-    assert expected_function.get_original_source_code() == expected_source_code
+    assert expected_function.get_source_code() == expected_source_code
 
 
 def test_get_source_code_at_end_of_file() -> None:
@@ -87,7 +87,7 @@ def test_get_source_code_at_end_of_file() -> None:
             printf("Function is at the end");
         }
         """).rstrip()
-    assert expected_function.get_original_source_code() == expected_source_code
+    assert expected_function.get_source_code() == expected_source_code
 
 
 def test_get_comment_no_comments() -> None:
