@@ -151,8 +151,9 @@ class CFunction:
         """
         self.source_code_with_specs = source_code
 
-    def invalidate_cached_source_code_with_specs(self) -> None:
-        """Clear this function's `source_code_with_specs` field."""
+    def invalidate_source_code_fields(self) -> None:
+        """Clear this function's `_cached_source_code` and `source_code_with_specs` field."""
+        self._cached_source_code = ""
         self.source_code_with_specs = ""
 
     def get_source_code_with_specs(self) -> str:
