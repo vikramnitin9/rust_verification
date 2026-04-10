@@ -176,37 +176,19 @@ class CMutator:
     def get_mutants(self) -> list[Mutant]:
         """Return all first-order mutants of this function.
 
-        Mutants are produced by applying each enabled mutation operator in
-        order: AOR → ROR → LCR → CRP → RVR.
+        Mutants are produced by applying each enabled mutation operator. Order does not matter.
 
         Returns:
             list[Mutant]: Every generated mutant, one per mutation site and
                 replacement candidate.
         """
-        mutants: list[Mutant] = []
-        mutants.extend(self._apply_aor())
-        mutants.extend(self._apply_ror())
-        mutants.extend(self._apply_lcr())
-        mutants.extend(self._apply_crp())
-        mutants.extend(self._apply_rvr())
-        return mutants
-
-    def get_mutants_by_operator(self) -> dict[MutationOperator, list[Mutant]]:
-        """Return mutants grouped by their mutation operator.
-
-        Returns:
-            dict[MutationOperator, list[Mutant]]: A mapping from each
-                `MutationOperator` to the list of mutants produced by that
-                operator.  Operators that produced no mutants are included with
-                an empty list.
-        """
-        return {
-            MutationOperator.AOR: self._apply_aor(),
-            MutationOperator.ROR: self._apply_ror(),
-            MutationOperator.LCR: self._apply_lcr(),
-            MutationOperator.CRP: self._apply_crp(),
-            MutationOperator.RVR: self._apply_rvr(),
-        }
+        return [
+            *self._apply_rvr(),
+            *self._apply_ror(),
+            *self._apply_aor(),
+            *self._apply_crp(),
+            *self._apply_lcr(),
+        ]
 
     def _apply_aor(self) -> list[Mutant]:
         """Apply Arithmetic Operator Replacement (AOR) mutations.
