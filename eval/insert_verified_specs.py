@@ -59,7 +59,11 @@ def main() -> None:
             )
             successfully_verified_functions[function] = specification
         else:
-            logger.warning(f"Function '{function_name}' missing from {args.c_file}")
+            logger.warning(f"Function '{function_name}' missing from {args.c_src}")
+
+    if not successfully_verified_functions:
+        logger.warning(f"No successfully-verified specifications for '{args.c_src}'")
+        sys.exit(1)
 
     result = get_source_content_with_specifications(successfully_verified_functions, function_graph)
 
