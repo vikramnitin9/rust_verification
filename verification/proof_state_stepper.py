@@ -77,12 +77,12 @@ class ProofStateStepper:
                 # There could be more than one valid specification generated (i.e., when we sample
                 # more than once from the LLM). For now, we take the last (valid) specification and
                 # write it to disk (see below).
+                self._write_spec_to_disk(spec_conversation=spec_conversation)
                 if isinstance(spec_conversation.next_step, AssumeSpecAsIs):
                     self._update_cache_for_assumed_spec(
                         specc=spec_conversation,
                         prev_proof_state=prev_proof_state,
                     )
-                self._write_spec_to_disk(spec_conversation=spec_conversation)
                 workstack_for_next_proof_state = prev_proof_state.get_workstack().pop()
                 return ProofState(
                     specs=specs_for_next_proof_state,
