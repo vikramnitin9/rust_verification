@@ -21,7 +21,7 @@ from dataclasses import asdict, dataclass
 
 from eval import ClauseComplexity, get_complexity
 from util import CFunction, CFunctionGraph, FunctionSpecification, get_destination_path
-from verification import VerificationResult
+from verification import VerificationResult, VerificationStatus
 
 
 class StaleCacheEntryError(Exception):
@@ -85,12 +85,14 @@ class VerificationSummary:
     Attributes:
         function_name (str): The name of the function.
         verifying_specs (list[SpecWithComplexity]): The list of verifying specs with complexity.
+        assumed_specs (list[SpecWithComplexity]): The list of assumed specs with complexity.
         failing_specs (list[SpecWithComplexity]): The list of failing specs with complexity.
         stale_cache_entries (list[StaleCacheEntryError]): The list of stale cache entry errors.
     """
 
     function_name: str
     verifying_specs: list[SpecWithComplexity]
+    assumed_specs: list[SpecWithComplexity]
     failing_specs: list[SpecWithComplexity]
     stale_cache_entries: list[StaleCacheEntryError]
 
@@ -105,7 +107,13 @@ class VerificationSummary:
         Returns:
             VerificationSummary: An empty verification summary.
         """
-        return cls(function_name, verifying_specs=[], failing_specs=[], stale_cache_entries=[])
+        return cls(
+            function_name,
+            verifying_specs=[],
+            assumed_specs=[],
+            failing_specs=[],
+            stale_cache_entries=[],
+        )
 
     def to_dict(self) -> dict[str, Any]:
         """Return the dictionary representation of this verification summary.
@@ -289,6 +297,7 @@ def _get_verification_summary(
         VerificationSummary: The verification summary for the function.
     """
     verifying_specs = []
+    assumed_specs = []
     failing_specs = []
     lookup_errors = []
     for result in lookup_result.results:
@@ -296,13 +305,18 @@ def _get_verification_summary(
             spec_with_complexity = SpecWithComplexity(
                 result.get_spec(), *_get_complexity_for_clauses(result.get_spec())
             )
-            if result.succeeded:
-                verifying_specs.append(spec_with_complexity)
-            else:
-                failing_specs.append(spec_with_complexity)
+            match result.status:
+                case VerificationStatus.SUCCEEDED:
+                    verifying_specs.append(spec_with_complexity)
+                case VerificationStatus.ASSUMED:
+                    assumed_specs.append(spec_with_complexity)
+                case VerificationStatus.FAILED:
+                    failing_specs.append(spec_with_complexity)
         else:
             lookup_errors.append(result)
-    return VerificationSummary(function.name, verifying_specs, failing_specs, lookup_errors)
+    return VerificationSummary(
+        function.name, verifying_specs, assumed_specs, failing_specs, lookup_errors
+    )
 
 
 def _get_result_json_name(c_file: str) -> Path:
