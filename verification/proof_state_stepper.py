@@ -134,7 +134,7 @@ class ProofStateStepper:
         vinput = VerificationInput(
             specc.function, specc.specification, vcontext, specc.contents_of_file_to_verify
         )
-        if (vresult := self._cache.get(vinput)) is not None:
+        if vresult := self._cache.get(vinput):
             self._cache[vinput] = VerificationResult(
                 verification_input=vresult.verification_input,
                 verification_command=vresult.verification_command,
