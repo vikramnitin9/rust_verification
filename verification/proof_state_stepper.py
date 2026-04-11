@@ -90,19 +90,7 @@ class ProofStateStepper:
                 )
             case BacktrackToCallee(callee_name, hint):
                 if callee := function_graph.get_function_or_none(function_name=callee_name):
-                    assume_without_verification = (
-                        callee.is_external_function and callee.has_specification()
-                    )
-                    if assume_without_verification:
-                        logger.info(
-                            f"External callee '{callee_name}' has an existing specification; "
-                            "a new spec will be generated and assumed without verification"
-                        )
-                    work_item_for_callee = WorkItem(
-                        function=callee,
-                        hint=hint,
-                        assume_without_verification=assume_without_verification,
-                    )
+                    work_item_for_callee = WorkItem(function=callee, hint=hint)
                     workstack_for_next_proof_state = prev_proof_state.get_workstack().push(
                         work_item_for_callee
                     )
