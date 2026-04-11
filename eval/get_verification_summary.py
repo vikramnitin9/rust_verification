@@ -203,6 +203,7 @@ def main() -> None:
         else:
             merged_summaries[function_name]["verifying_specs"].extend(vsummary["verifying_specs"])
             merged_summaries[function_name]["failing_specs"].extend(vsummary["failing_specs"])
+            merged_summaries[function_name]["assumed_specs"].extend(vsummary["assumed_specs"])
             merged_summaries[function_name]["lookup_errors"].extend(vsummary["lookup_errors"])
     verification_summary_for_file["functions"] = list(merged_summaries.values())
 

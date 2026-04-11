@@ -104,7 +104,10 @@ class ProofStateStepper:
                 )
                 # Since backtracking is not possible, assume the (failing) specs here, and move to
                 # the next function to verify.
+                spec_conversation.next_step = AssumeSpecAsIs()
                 self._write_spec_to_disk(spec_conversation=spec_conversation)
+                self._update_cache_for_assumed_spec(spec_conversation, prev_proof_state)
+
                 workstack_for_next_proof_state = prev_proof_state.get_workstack().pop()
                 return ProofState(
                     specs=specs_for_next_proof_state,
