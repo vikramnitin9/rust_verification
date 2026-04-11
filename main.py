@@ -298,7 +298,9 @@ def _verify_program(
     # This is the global worklist.
     GLOBAL_INCOMPLETE_PROOFSTATES.append(initial_proof_state)
 
-    proof_state_stepper = ProofStateStepper(result_dir=Path(DEFAULT_RESULT_DIR))
+    proof_state_stepper = ProofStateStepper(
+        result_dir=Path(DEFAULT_RESULT_DIR), cache=VERIFIER_CACHE
+    )
 
     while GLOBAL_INCOMPLETE_PROOFSTATES:
         # Use BFS to avoid getting stuck in an unproductive search over a proof state.

@@ -9,7 +9,7 @@ from diskcache import Cache
 from loguru import logger
 
 from util import file_util, text_util
-from verification.verification_result import VerificationResult
+from verification.verification_result import VerificationResult, VerificationStatus
 
 from .avocado_stub_util import AvocadoIdentifierRenamer, RenameResult
 from .verification_client import VerificationClient
@@ -66,10 +66,13 @@ class CbmcVerificationClient(VerificationClient):
             logger.debug(f"Caching vresult for: {vinput.function}")
             self._cache[vinput] = vresult
 
-        if vresult.succeeded:
-            logger.success(f"Verification succeeded for function '{vinput.function.name}'")
-        else:
-            logger.error(f"Verification failed for function '{vinput.function.name}'")
+        match vresult.status:
+            case VerificationStatus.SUCCEEDED:
+                logger.success(f"Verification succeeded for function '{vinput.function.name}'")
+            case VerificationStatus.ASSUMED:
+                logger.warning(f"Verification assumed for function '{vinput.function.name}'")
+            case VerificationStatus.FAILED:
+                logger.error(f"Verification failed for function '{vinput.function.name}'")
         return vresult
 
     def _run_verifier(self, vinput: VerificationInput) -> VerificationResult:
@@ -108,7 +111,9 @@ class CbmcVerificationClient(VerificationClient):
                 return VerificationResult(
                     vinput,
                     vcommand,
-                    succeeded=result.returncode == 0,
+                    status=VerificationStatus.SUCCEEDED
+                    if result.returncode == 0
+                    else VerificationStatus.FAILED,
                     stdout=normalized_stdout,
                     stderr=normalized_stderr,
                 )

@@ -7,7 +7,7 @@ from .proof_state import ProofState, WorkItem, WorkStack
 from .proof_state_stepper import ProofStateStepper
 from .verification_client import VerificationClient
 from .verification_input import VerificationContext, VerificationInput
-from .verification_result import VerificationResult
+from .verification_result import VerificationResult, VerificationStatus
 
 from .avocado_stub_util import RenameData, AvocadoIdentifierRenamer, AVOCADO_STUB_DIR, get_stub_mappings
 
@@ -26,6 +26,7 @@ __all__ = [
     "VerificationContext",
     "VerificationInput",
     "VerificationResult",
+    "VerificationStatus",
     "WorkItem",
     "WorkStack",
     "RenameData",
