@@ -33,6 +33,7 @@ from verification import (
     ProofStateStepper,
     VerificationClient,
     VerificationInput,
+    VerificationResult,
     VerificationStatus,
 )
 
@@ -444,10 +445,16 @@ def _set_next_step(
     raise RuntimeError(msg)
 
 
+# Lower index = higher priority when multiple cached results match.
+
+
 def _get_cached_specification_with_status(
     function: CFunction, statuses: set[VerificationStatus]
 ) -> FunctionSpecification | None:
     """Return a cached specification for a function whose status is in `statuses`.
+
+    When multiple cached results match, the one with the highest priority status is returned
+    (SUCCEEDED > ASSUMED > FAILED), regardless of cache iteration order.
 
     The lookup matches on function name, signature, and source filename only, so that a cached spec
     remains valid even if the file contents have changed (e.g., because other specs were written
@@ -461,14 +468,25 @@ def _get_cached_specification_with_status(
         FunctionSpecification | None: The cached specification for function if one with a matching
             status exists in the cache, otherwise None.
     """
+    # Lower index indicates a higher priority.
+    vresult_priority: list[VerificationStatus] = [
+        VerificationStatus.SUCCEEDED,
+        VerificationStatus.ASSUMED,
+    ]
+    highest_priority_vresult: VerificationResult | None = None
     if VERIFIER_CACHE is not None:
         for vinput in VERIFIER_CACHE.iterkeys():
             # This is very inefficient, but still faster than adding all the functions to workstacks
             # and reading from the cache repeatedly.
             vresult = VERIFIER_CACHE[vinput]
-            if vresult.status in statuses and function == vresult.get_function():
-                return vresult.get_spec()
-    return None
+            if vresult.status not in statuses or function != vresult.get_function():
+                continue
+            if highest_priority_vresult is None or (
+                vresult_priority.index(vresult.status)
+                < vresult_priority.index(highest_priority_vresult.status)
+            ):
+                highest_priority_vresult = vresult
+    return highest_priority_vresult.get_spec() if highest_priority_vresult else None
 
 
 if __name__ == "__main__":
