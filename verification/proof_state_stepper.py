@@ -4,6 +4,7 @@ import os
 import shutil
 from pathlib import Path
 
+from diskcache import Cache
 from loguru import logger
 
 from util import (
@@ -15,22 +16,28 @@ from util import (
     SpecConversation,
     function_util,
 )
+from verification.verification_input import VerificationInput
 
 from .proof_state import ProofState, WorkItem
+from .verification_result import VerificationResult, VerificationStatus
 
 
 class ProofStateStepper:
     """Class for creating new proof state(s) based on a SpecConversation and a previous proof state.
 
     Attributes:
-        result_dir (Path): The root directory under which verified/assumed specs are written.
+        _result_dir (Path): The root directory under which verified/assumed specs are written.
+        _cache (Cache | None): The verifier cache. When set, the status of assumed specs is updated
+            to `VerificationStatus.ASSUMED` in the cache.
     """
 
     _result_dir: Path
+    _cache: Cache | None
 
-    def __init__(self, result_dir: Path) -> None:
+    def __init__(self, result_dir: Path, cache: Cache | None = None) -> None:
         """Create a new ProofStateStepper."""
         self._result_dir = result_dir
+        self._cache = cache
 
     def get_next_proof_state(
         self,
@@ -71,6 +78,11 @@ class ProofStateStepper:
                 # more than once from the LLM). For now, we take the last (valid) specification and
                 # write it to disk (see below).
                 self._write_spec_to_disk(spec_conversation=spec_conversation)
+                if isinstance(spec_conversation.next_step, AssumeSpecAsIs):
+                    self._update_cache_for_assumed_spec(
+                        specc=spec_conversation,
+                        prev_proof_state=prev_proof_state,
+                    )
                 workstack_for_next_proof_state = prev_proof_state.get_workstack().pop()
                 return ProofState(
                     specs=specs_for_next_proof_state,
@@ -92,7 +104,10 @@ class ProofStateStepper:
                 )
                 # Since backtracking is not possible, assume the (failing) specs here, and move to
                 # the next function to verify.
+                spec_conversation.next_step = AssumeSpecAsIs()
                 self._write_spec_to_disk(spec_conversation=spec_conversation)
+                self._update_cache_for_assumed_spec(spec_conversation, prev_proof_state)
+
                 workstack_for_next_proof_state = prev_proof_state.get_workstack().pop()
                 return ProofState(
                     specs=specs_for_next_proof_state,
@@ -102,6 +117,34 @@ class ProofStateStepper:
             case _:
                 msg = f"Unexpected next step strategy: '{spec_conversation.next_step}'"
                 raise ValueError(msg)
+
+    def _update_cache_for_assumed_spec(
+        self, specc: SpecConversation, prev_proof_state: ProofState
+    ) -> None:
+        """Update the cache entry for the given spec to `VerificationStatus.ASSUMED`.
+
+        This is called when a spec is assumed (i.e., accepted without successful verification). The
+        existing cache entry for this spec is updated to reflect that outcome.
+
+        Args:
+            specc (SpecConversation): The spec conversation whose spec is being assumed.
+            prev_proof_state (ProofState): The proof state in which the spec was assumed, used to
+                reconstruct the `VerificationInput` key.
+        """
+        if self._cache is None:
+            return
+        vcontext = prev_proof_state.get_current_context(specc.function)
+        vinput = VerificationInput(
+            specc.function, specc.specification, vcontext, specc.contents_of_file_to_verify
+        )
+        if vresult := self._cache.get(vinput):
+            self._cache[vinput] = VerificationResult(
+                verification_input=vresult.verification_input,
+                verification_command=vresult.verification_command,
+                status=VerificationStatus.ASSUMED,
+                stdout=vresult.stdout,
+                stderr=vresult.stderr,
+            )
 
     def _write_spec_to_disk(self, spec_conversation: SpecConversation) -> None:
         """Write a single function specification to a file on disk.

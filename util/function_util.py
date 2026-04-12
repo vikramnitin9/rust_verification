@@ -124,7 +124,7 @@ def get_source_code_with_inserted_spec(
         str: The source code of a function with the specification inserted.
     """
     function = function_graph.get_function(function_name=function_name)
-    (signature, body) = get_signature_and_body(function.get_original_source_code(), lang="c")
+    (signature, body) = get_signature_and_body(function.get_source_code(), lang="c")
     all_specs = specification.preconditions + specification.postconditions
     if comment_out_spec:
         specs = "\n".join(
@@ -219,6 +219,7 @@ def update_function_graph(
     spec = extract_specification(updated_function_content.splitlines())
     if spec:
         original_function.set_specifications(specifications=spec)
+    original_function.invalidate_source_code_fields()
 
     # Update line/col info for other functions.
     line_offset = function_len - (prev_end_line - prev_start_line + 1)
@@ -278,6 +279,7 @@ def update_function_definition(
     spec = extract_specification(function_lines)
     if spec:
         function.set_specifications(spec)
+    function.invalidate_source_code_fields()
 
     # Update line/col info for other functions.
     line_offset = num_lines - (end_line - start_line + 1)

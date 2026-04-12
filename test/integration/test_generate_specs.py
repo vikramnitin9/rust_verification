@@ -76,7 +76,7 @@ def test_generate_specs_max_min() -> None:
             for ps in proof_states:
                 for fn in ps.get_specifications():
                     if fn.name == "get_min_max":
-                        get_min_max_src.add(fn.get_source_code())
+                        get_min_max_src.add(fn.get_source_code_with_specs())
 
 
             assert len(get_min_max_src) > 0, f"Expected at least one verified specification for 'get_min_max'"

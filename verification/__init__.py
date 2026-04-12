@@ -7,7 +7,7 @@ from .proof_state import ProofState, WorkItem, WorkStack
 from .proof_state_stepper import ProofStateStepper
 from .verification_client import VerificationClient
 from .verification_input import VerificationContext, VerificationInput
-from .verification_result import VerificationResult
+from .verification_result import VerificationResult, VerificationStatus
 
 __all__ = [
     "AVOCADO_STUB_DIR",
@@ -25,6 +25,7 @@ __all__ = [
     "VerificationContext",
     "VerificationInput",
     "VerificationResult",
+    "VerificationStatus",
     "WorkItem",
     "WorkStack",
     "get_stub_mappings",

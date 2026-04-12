@@ -21,7 +21,7 @@ from dataclasses import asdict, dataclass
 
 from eval import ClauseComplexity, get_complexity
 from util import CFunction, CFunctionGraph, FunctionSpecification, get_destination_path
-from verification import VerificationResult
+from verification import VerificationResult, VerificationStatus
 
 
 class StaleCacheEntryError(Exception):
@@ -85,12 +85,14 @@ class VerificationSummary:
     Attributes:
         function_name (str): The name of the function.
         verifying_specs (list[SpecWithComplexity]): The list of verifying specs with complexity.
+        assumed_specs (list[SpecWithComplexity]): The list of assumed specs with complexity.
         failing_specs (list[SpecWithComplexity]): The list of failing specs with complexity.
         stale_cache_entries (list[StaleCacheEntryError]): The list of stale cache entry errors.
     """
 
     function_name: str
     verifying_specs: list[SpecWithComplexity]
+    assumed_specs: list[SpecWithComplexity]
     failing_specs: list[SpecWithComplexity]
     stale_cache_entries: list[StaleCacheEntryError]
 
@@ -105,7 +107,13 @@ class VerificationSummary:
         Returns:
             VerificationSummary: An empty verification summary.
         """
-        return cls(function_name, verifying_specs=[], failing_specs=[], stale_cache_entries=[])
+        return cls(
+            function_name,
+            verifying_specs=[],
+            assumed_specs=[],
+            failing_specs=[],
+            stale_cache_entries=[],
+        )
 
     def to_dict(self) -> dict[str, Any]:
         """Return the dictionary representation of this verification summary.
@@ -195,14 +203,19 @@ def main() -> None:
         else:
             merged_summaries[function_name]["verifying_specs"].extend(vsummary["verifying_specs"])
             merged_summaries[function_name]["failing_specs"].extend(vsummary["failing_specs"])
+            merged_summaries[function_name]["assumed_specs"].extend(vsummary["assumed_specs"])
             merged_summaries[function_name]["lookup_errors"].extend(vsummary["lookup_errors"])
     verification_summary_for_file["functions"] = list(merged_summaries.values())
 
     num_verified_functions = _get_num_verified_functions(verification_summary_for_file)
+    num_assumed_functions = _get_num_functions_with_assumed_specs(verification_summary_for_file)
 
     logger.info(
-        f"{num_verified_functions}/{len(verification_summary_for_file['functions'])} "
-        f"function(s) verified in {args.file}"
+        "{} function(s) in {}\n\t{} verified\n\t{} assumed",
+        len(verification_summary_for_file["functions"]),
+        args.file,
+        num_verified_functions,
+        num_assumed_functions,
     )
 
     with _get_result_json_name(args.file).open(mode="w") as f:
@@ -289,6 +302,7 @@ def _get_verification_summary(
         VerificationSummary: The verification summary for the function.
     """
     verifying_specs = []
+    assumed_specs = []
     failing_specs = []
     lookup_errors = []
     for result in lookup_result.results:
@@ -296,13 +310,18 @@ def _get_verification_summary(
             spec_with_complexity = SpecWithComplexity(
                 result.get_spec(), *_get_complexity_for_clauses(result.get_spec())
             )
-            if result.succeeded:
-                verifying_specs.append(spec_with_complexity)
-            else:
-                failing_specs.append(spec_with_complexity)
+            match result.status:
+                case VerificationStatus.SUCCEEDED:
+                    verifying_specs.append(spec_with_complexity)
+                case VerificationStatus.ASSUMED:
+                    assumed_specs.append(spec_with_complexity)
+                case VerificationStatus.FAILED:
+                    failing_specs.append(spec_with_complexity)
         else:
             lookup_errors.append(result)
-    return VerificationSummary(function.name, verifying_specs, failing_specs, lookup_errors)
+    return VerificationSummary(
+        function.name, verifying_specs, assumed_specs, failing_specs, lookup_errors
+    )
 
 
 def _get_result_json_name(c_file: str) -> Path:
@@ -356,6 +375,24 @@ def _get_num_verified_functions(file_summary: dict[str, Any]) -> int:
         if len(function_summary["verifying_specs"]) > 0
     ]
     return len(verified_functions)
+
+
+def _get_num_functions_with_assumed_specs(file_summary: dict[str, Any]) -> int:
+    """Return the number of functions that only have assumed (or failing) specifications.
+
+    Args:
+        file_summary (dict[str, Any]): A verification summary for a file.
+
+    Returns:
+        int: The count of functions that only have assumed (or failing) specifications.
+    """
+    functions_with_assumed_specs_with_no_successfully_verifying_specs = [
+        function_summary
+        for function_summary in file_summary["functions"]
+        if len(function_summary["assumed_specs"]) > 0
+        and len(function_summary["verifying_specs"]) == 0
+    ]
+    return len(functions_with_assumed_specs_with_no_successfully_verifying_specs)
 
 
 if __name__ == "__main__":
