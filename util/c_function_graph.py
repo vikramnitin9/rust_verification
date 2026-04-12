@@ -153,10 +153,13 @@ class CFunctionGraph:
                 stub_paths.add(stub_path)
 
         if stub_paths:
-            self.load_external_functions(list(stub_paths))
+            self._load_external_functions(list(stub_paths))
 
-    def load_external_functions(self, paths: list[Path]) -> None:
+    def _load_external_functions(self, paths: list[Path]) -> None:
         """Parse functions from external files and add them to the graph.
+
+        Note: We could cache functions that have already been parsed. We can revisit this if it
+        turns out to be a performance bottleneck.
 
         Functions found in the project always take precedence over external functions — if a name
         collision occurs the project function is kept. Edges between project functions and external
