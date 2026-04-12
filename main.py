@@ -157,11 +157,11 @@ def main() -> None:
     parser.add_argument(
         "--skip-functions-with-status",
         nargs="+",
-        choices=[s.value for s in VerificationStatus],
+        choices=[VerificationStatus.SUCCEEDED.value, VerificationStatus.ASSUMED.value],
         default=[],
         help=(
-            "Do not add functions whose cached specifications have any of the given statuses to "
-            "the workstack of functions. (defaults to not skipping any functions)"
+            "Do not add functions whose cached specifications match the given statuses to the"
+            "workstack of functions. (defaults to not skipping any functions)"
         ),
     )
     parser.add_argument(
