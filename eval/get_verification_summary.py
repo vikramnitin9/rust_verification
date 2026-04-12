@@ -208,10 +208,14 @@ def main() -> None:
     verification_summary_for_file["functions"] = list(merged_summaries.values())
 
     num_verified_functions = _get_num_verified_functions(verification_summary_for_file)
+    num_assumed_functions = _get_num_functions_with_assumed_specs(verification_summary_for_file)
 
     logger.info(
-        f"{num_verified_functions}/{len(verification_summary_for_file['functions'])} "
-        f"function(s) verified in {args.file}"
+        "{} function(s) in {}\n\t{} verified\n\t{} assumed",
+        len(verification_summary_for_file["functions"]),
+        args.file,
+        num_verified_functions,
+        num_assumed_functions,
     )
 
     with _get_result_json_name(args.file).open(mode="w") as f:
@@ -371,6 +375,24 @@ def _get_num_verified_functions(file_summary: dict[str, Any]) -> int:
         if len(function_summary["verifying_specs"]) > 0
     ]
     return len(verified_functions)
+
+
+def _get_num_functions_with_assumed_specs(file_summary: dict[str, Any]) -> int:
+    """Return the number of functions that only have assumed (or failing) specifications.
+
+    Args:
+        file_summary (dict[str, Any]): A verification summary for a file.
+
+    Returns:
+        int: The count of functions that only have assumed (or failing) specifications.
+    """
+    functions_with_assumed_specs_with_no_successfully_verifying_specs = [
+        function_summary
+        for function_summary in file_summary["functions"]
+        if len(function_summary["assumed_specs"]) > 0
+        and len(function_summary["verifying_specs"]) == 0
+    ]
+    return len(functions_with_assumed_specs_with_no_successfully_verifying_specs)
 
 
 if __name__ == "__main__":
