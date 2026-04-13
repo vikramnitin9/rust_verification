@@ -26,13 +26,14 @@ from util import (
     ensure_lines_at_beginning,
     run_with_timeout,
 )
-from util.function_specification import FunctionSpecification
 from verification import (
     CbmcVerificationClient,
     ProofState,
     ProofStateStepper,
     VerificationClient,
     VerificationInput,
+    VerificationResult,
+    VerificationStatus,
 )
 
 MODEL = "gpt-4o"
@@ -154,11 +155,13 @@ def main() -> None:
         help=("The granularity at which specification generation occurs (defaults to clauses)."),
     )
     parser.add_argument(
-        "--skip-verified-cached-functions",
-        action="store_true",
+        "--skip-functions-with-status",
+        nargs="+",
+        choices=[VerificationStatus.SUCCEEDED.value, VerificationStatus.ASSUMED.value],
+        default=[],
         help=(
-            "Do not add functions for which there are verified and cached specifications to the "
-            "workstack of functions. (defaults to False)"
+            "Do not add functions whose cached specifications match the given statuses to the"
+            "workstack of functions. (defaults to not skipping any functions)"
         ),
     )
     parser.add_argument(
@@ -233,7 +236,7 @@ def main() -> None:
             _verify_program,
             function_graph,
             specification_generator,
-            args.skip_verified_cached_functions,
+            {VerificationStatus(s) for s in args.skip_functions_with_status},
             args.path_to_save_proofstates,
             timeout_sec=args.specification_generation_timeout_sec,
         )
@@ -248,7 +251,7 @@ def main() -> None:
 def _verify_program(
     function_graph: CFunctionGraph,
     specification_generator: LlmSpecificationGenerator,
-    skip_verified_cached_functions: bool,
+    skip_statuses: set[VerificationStatus],
     path_to_save_proofstates: str | None,
 ) -> tuple[ProofState, ...]:
     """Return a set of ProofStates, each of which has a specification for each function.
@@ -259,9 +262,8 @@ def _verify_program(
     Args:
         function_graph (CFunctionGraph): The graph representing the program to verify.
         specification_generator (LlmSpecificationGenerator): The LLM specification generator.
-        skip_verified_cached_functions (bool): True iff functions that have verified and cached
-            specifications should not be added to the workstack of functions for which to generate
-            specs.
+        skip_statuses (set[VerificationStatus]): Functions whose cached specifications have any of
+            these statuses are not added to the workstack.
         path_to_save_proofstates (str | None): Path to where complete ProofStates should be written.
 
     Returns:
@@ -277,23 +279,25 @@ def _verify_program(
         logger.error(msg)
         sys.exit(1)
 
-    if skip_verified_cached_functions:
-        functions_without_specs: list[CFunction] = []
+    if skip_statuses:
+        functions_for_workstack: list[CFunction] = []
         for function in functions:
-            if cached_spec := _get_verified_and_cached_specification(function):
-                function.set_specifications(cached_spec)
-                logger.debug(f"Setting verified cached specification for '{function.name}'")
+            if cached_vresult := _get_cached_vresult_with_status(function, skip_statuses):
+                function.set_specifications(cached_vresult.get_spec())
+                logger.debug(
+                    f"Setting {cached_vresult.status} cached specification for '{function.name}'"
+                )
             else:
-                functions_without_specs.append(function)
+                functions_for_workstack.append(function)
     else:
-        functions_without_specs = functions
+        functions_for_workstack = functions
 
-    if not functions_without_specs:
+    if not functions_for_workstack:
         # There are specs in the cache for all the functions.
         # How should we re-construct ProofStates from the cache?
         sys.exit(0)
 
-    initial_proof_state = ProofState.from_functions(functions=functions_without_specs)
+    initial_proof_state = ProofState.from_functions(functions=functions_for_workstack)
     GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)
     # This is the global worklist.
     GLOBAL_INCOMPLETE_PROOFSTATES.append(initial_proof_state)
@@ -442,28 +446,45 @@ def _set_next_step(
     raise RuntimeError(msg)
 
 
-def _get_verified_and_cached_specification(function: CFunction) -> FunctionSpecification | None:
-    """Return a verified specification for a function from the verifier cache, if present.
+def _get_cached_vresult_with_status(
+    function: CFunction, statuses: set[VerificationStatus]
+) -> VerificationResult | None:
+    """Return a cached VerificationResult for a function whose status is in `statuses`.
+
+    When multiple cached results match, the one with the highest priority status is returned
+    (SUCCEEDED > ASSUMED > FAILED), regardless of cache iteration order.
 
     The lookup matches on function name, signature, and source filename only, so that a cached spec
     remains valid even if the file contents have changed (e.g., because other specs were written
     into it).
 
     Args:
-        function (CFunction): The function whose cached verified specification is requested.
+        function (CFunction): The function whose cached specification is requested.
+        statuses (set[VerificationStatus]): The set of statuses to match against.
 
     Returns:
-        FunctionSpecification | None: The cached verified specification for function if one exists
-            in the cache, otherwise None.
+        VerificationResult | None: The cached verification result for function if one with a
+            matching status exists in the cache, otherwise None.
     """
+    # Lower index = higher priority when multiple cached results match.
+    vresult_priority: list[VerificationStatus] = [
+        VerificationStatus.SUCCEEDED,
+        VerificationStatus.ASSUMED,
+    ]
+    highest_priority_vresult: VerificationResult | None = None
     if VERIFIER_CACHE is not None:
         for vinput in VERIFIER_CACHE.iterkeys():
             # This is very inefficient, but still faster than adding all the functions to workstacks
             # and reading from the cache repeatedly.
             vresult = VERIFIER_CACHE[vinput]
-            if vresult.succeeded and function == vresult.get_function():
-                return vresult.get_spec()
-    return None
+            if vresult.status not in statuses or function != vresult.get_function():
+                continue
+            if highest_priority_vresult is None or (
+                vresult_priority.index(vresult.status)
+                < vresult_priority.index(highest_priority_vresult.status)
+            ):
+                highest_priority_vresult = vresult
+    return highest_priority_vresult
 
 
 if __name__ == "__main__":
