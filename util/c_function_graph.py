@@ -190,9 +190,10 @@ class CFunctionGraph:
         # Re-wire edges now that the full function set is known.
         for func in self.functions.values():
             for callee_name in func.callee_names:
-                if callee := self.functions.get(callee_name):
-                    if not self.call_graph.has_edge(func, callee):
-                        self.call_graph.add_edge(func, callee)
+                if (callee := self.functions.get(callee_name)) and not self.call_graph.has_edge(
+                    func, callee
+                ):
+                    self.call_graph.add_edge(func, callee)
 
     def get_function_or_none(self, function_name: str) -> CFunction | None:
         """Return the CFunction representation for the function with the given name, or None.
