@@ -26,7 +26,6 @@ from util import (
     ensure_lines_at_beginning,
     run_with_timeout,
 )
-from util.function_specification import FunctionSpecification
 from verification import (
     CbmcVerificationClient,
     ProofState,
@@ -283,9 +282,11 @@ def _verify_program(
     if skip_statuses:
         functions_for_workstack: list[CFunction] = []
         for function in functions:
-            if cached_spec := _get_cached_specification_with_status(function, skip_statuses):
-                function.set_specifications(cached_spec)
-                logger.debug(f"Setting cached specification for '{function.name}'")
+            if cached_vresult := _get_cached_vresult_with_status(function, skip_statuses):
+                function.set_specifications(cached_vresult.get_spec())
+                logger.debug(
+                    f"Setting {cached_vresult.status} cached specification for '{function.name}'"
+                )
             else:
                 functions_for_workstack.append(function)
     else:
@@ -445,13 +446,10 @@ def _set_next_step(
     raise RuntimeError(msg)
 
 
-# Lower index = higher priority when multiple cached results match.
-
-
-def _get_cached_specification_with_status(
+def _get_cached_vresult_with_status(
     function: CFunction, statuses: set[VerificationStatus]
-) -> FunctionSpecification | None:
-    """Return a cached specification for a function whose status is in `statuses`.
+) -> VerificationResult | None:
+    """Return a cached VerificationResult for a function whose status is in `statuses`.
 
     When multiple cached results match, the one with the highest priority status is returned
     (SUCCEEDED > ASSUMED > FAILED), regardless of cache iteration order.
@@ -465,10 +463,10 @@ def _get_cached_specification_with_status(
         statuses (set[VerificationStatus]): The set of statuses to match against.
 
     Returns:
-        FunctionSpecification | None: The cached specification for function if one with a matching
-            status exists in the cache, otherwise None.
+        VerificationResult | None: The cached verification result for function if one with a
+            matching status exists in the cache, otherwise None.
     """
-    # Lower index indicates a higher priority.
+    # Lower index = higher priority when multiple cached results match.
     vresult_priority: list[VerificationStatus] = [
         VerificationStatus.SUCCEEDED,
         VerificationStatus.ASSUMED,
@@ -486,7 +484,7 @@ def _get_cached_specification_with_status(
                 < vresult_priority.index(highest_priority_vresult.status)
             ):
                 highest_priority_vresult = vresult
-    return highest_priority_vresult.get_spec() if highest_priority_vresult else None
+    return highest_priority_vresult
 
 
 if __name__ == "__main__":
