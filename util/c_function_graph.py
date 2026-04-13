@@ -169,12 +169,23 @@ class CFunctionGraph:
         Args:
             paths (list[Path]): Paths to external C source files (e.g. library stubs).
         """
+        # Lazy import to avoid a circular dependency: util → verification → util.
+        from verification.avocado_stub_util import AVOCADO_FUNCTION_PREFIX  # noqa: PLC0415
+
         for path in paths:
             for fn in get_functions_from_file(path):
                 if fn.name not in self.functions:
                     fn.is_external_function = True
                     self.functions[fn.name] = fn
                     self.call_graph.add_node(fn)
+                    # External stubs are stored under their prefixed name (e.g.
+                    # `_avocado_memcpy`), but callers reference the original name
+                    # (e.g. `memcpy`). Register an alias so both names resolve to
+                    # the same function.
+                    if fn.name.startswith(AVOCADO_FUNCTION_PREFIX):
+                        original_name = fn.name[len(AVOCADO_FUNCTION_PREFIX) :]
+                        if original_name not in self.functions:
+                            self.functions[original_name] = fn
 
         # Re-wire edges now that the full function set is known.
         for func in self.functions.values():
