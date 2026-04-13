@@ -26,7 +26,8 @@ class WorkItem:
             Not used during specification repair.
         assume_without_verification (bool): If True, the generated specification will be assumed
             without running verification. Used for external callees that already have a
-            specification, where we want to re-generate but not verify.
+            specification. In this case, a new set of specifications will be generated, but will not
+            verified (i.e., they will be assumed).
     """
 
     function: CFunction

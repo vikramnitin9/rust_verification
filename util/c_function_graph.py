@@ -166,6 +166,9 @@ class CFunctionGraph:
         functions (and between external functions) are wired into the call graph after all external
         functions have been loaded.
 
+        Note: Edges between external functions only matter if we want to enable backtracking from
+        an external callee to another external callee.
+
         Args:
             paths (list[Path]): Paths to external C source files (e.g. library stubs).
         """
