@@ -171,8 +171,8 @@ class CFunctionGraph:
 
         Args:
             paths (list[Path]): Paths to external C source files (e.g. library stubs).
-        # Lazy import to avoid a circular dependency: util → verification → util.
         """
+        # Lazy import to avoid a circular dependency: util → verification → util.
         from verification.avocado_stub_util import AVOCADO_FUNCTION_PREFIX  # noqa: PLC0415
 
         for path in paths:

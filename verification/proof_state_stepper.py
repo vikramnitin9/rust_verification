@@ -234,7 +234,7 @@ class ProofStateStepper:
             else:
                 msg = (
                     f"Backtracking to an external callee '{callee_name}' from an external caller "
-                    f"'{caller}'is not permitted"
+                    f"'{caller.name}'is not permitted"
                 )
             logger.warning(msg)
             # Since backtracking is not possible, assume the (failing) specs here, and move to the
