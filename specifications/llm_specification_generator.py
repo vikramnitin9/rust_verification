@@ -32,14 +32,11 @@ from util import (
     function_util,
 )
 from verification import (
-    ExternalFunctionDocumentationManager,
     PromptBuilder,
     ProofState,
     VerificationClient,
     VerificationInput,
 )
-
-EXTERNAL_FUNCTION_DOCUMENTATION_JSON = "./verification/docs/ansi_c_library_documentation.json"
 
 
 class LlmSpecificationGenerator:
@@ -97,9 +94,7 @@ class LlmSpecificationGenerator:
         """Create a new LlmSpecificationGenerator."""
         self._system_prompt = system_prompt
         self._verifier = verifier
-        self._prompt_builder = PromptBuilder(
-            ExternalFunctionDocumentationManager(EXTERNAL_FUNCTION_DOCUMENTATION_JSON)
-        )
+        self._prompt_builder = PromptBuilder()
         self._num_specification_candidates = num_specification_candidates
         self._num_specification_repair_candidates = num_specification_repair_candidates
         self._num_specification_repair_iterations = num_specification_repair_iterations

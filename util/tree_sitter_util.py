@@ -268,7 +268,7 @@ def _find_identifier_in_declarator_or_definition(
     return None
 
 
-def parse_c_file(path: Path) -> list[CFunction]:
+def get_functions_from_file(path: Path) -> list[CFunction]:
     """Parse a C source file and return a list of CFunctions defined in it.
 
     Uses tree-sitter to extract function definitions, their source locations, signatures,
