@@ -44,11 +44,9 @@ class PromptBuilder:
 
     CBMC_OUTPUT_FAILURE_MARKER = "FAILURE"
 
-    def __init__(
-        self, external_function_documentation_manager: ExternalFunctionDocumentationManager
-    ) -> None:
-        """Create a new PromptBuilder."""
-        self._external_function_documentation_manager = external_function_documentation_manager
+    DOCUMENTATION_MANAGER = ExternalFunctionDocumentationManager(
+        "/app/verification/docs/ansi_c_library_documentation.json"
+    )
 
     def specification_generation_prompt(
         self,
@@ -147,11 +145,8 @@ class PromptBuilder:
         # specifications are being generated).
         header_basename_to_external_callee_names: dict[str, list[str]] = defaultdict(list)
         for callee_name in external_callee_names:
-            if (
-                header_file_basename
-                := self._external_function_documentation_manager.get_header_declaring_function(
-                    callee_name
-                )
+            if header_file_basename := self.DOCUMENTATION_MANAGER.get_header_declaring_function(
+                callee_name
             ):
                 header_basename_to_external_callee_names[header_file_basename].append(callee_name)
 
@@ -204,7 +199,9 @@ class PromptBuilder:
             )
             tmp_f.write(source_code_cbmc_commented_out)
             tmp_f.flush()
-            function_graph = CFunctionGraph(Path(tmp_f.name))
+            function_graph = CFunctionGraph(
+                Path(tmp_f.name),
+            )
             function = function_graph.get_function_or_none(
                 function_name=verification_result.get_function().name
             )
@@ -254,7 +251,9 @@ class PromptBuilder:
             )
             tmp_f.write(source_code_cbmc_commented_out)
             tmp_f.flush()
-            function_graph = CFunctionGraph(Path(tmp_f.name))
+            function_graph = CFunctionGraph(
+                Path(tmp_f.name),
+            )
             function = function_graph.get_function_or_none(
                 function_name=verification_result.get_function().name
             )
