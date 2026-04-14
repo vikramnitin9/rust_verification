@@ -306,7 +306,7 @@ def _verify_program(
         logger.info(
             f"No client functions for which to generate specs in {function_graph.input_path}"
         )
-        sys.exit(0)
+        sys.exit(1)
 
     initial_proof_state = ProofState.from_functions(functions=client_functions)
     GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)

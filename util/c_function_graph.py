@@ -153,32 +153,50 @@ class CFunctionGraph:
                 stub_paths.add(stub_path)
 
         if stub_paths:
-            self.load_external_functions(list(stub_paths))
+            self._load_external_functions(list(stub_paths))
 
-    def load_external_functions(self, paths: list[Path]) -> None:
+    def _load_external_functions(self, paths: list[Path]) -> None:
         """Parse functions from external files and add them to the graph.
+
+        Note: We could cache functions that have already been parsed. We can revisit this if it
+        turns out to be a performance bottleneck.
 
         Functions found in the project always take precedence over external functions — if a name
         collision occurs the project function is kept. Edges between project functions and external
         functions (and between external functions) are wired into the call graph after all external
         functions have been loaded.
 
+        Note: Edges between external functions only matter if we want to enable backtracking from
+        an external callee to another external callee.
+
         Args:
             paths (list[Path]): Paths to external C source files (e.g. library stubs).
+        # Lazy import to avoid a circular dependency: util → verification → util.
         """
+        from verification.avocado_stub_util import AVOCADO_FUNCTION_PREFIX  # noqa: PLC0415
+
         for path in paths:
             for fn in get_functions_from_file(path):
                 if fn.name not in self.functions:
                     fn.is_external_function = True
                     self.functions[fn.name] = fn
                     self.call_graph.add_node(fn)
+                    # External stubs are stored under their prefixed name (e.g.
+                    # `_avocado_memcpy`), but callers reference the original name
+                    # (e.g. `memcpy`). Register an alias so both names resolve to
+                    # the same function.
+                    if fn.name.startswith(AVOCADO_FUNCTION_PREFIX):
+                        original_name = fn.name[len(AVOCADO_FUNCTION_PREFIX) :]
+                        if original_name not in self.functions:
+                            self.functions[original_name] = fn
 
         # Re-wire edges now that the full function set is known.
         for func in self.functions.values():
             for callee_name in func.callee_names:
-                if callee := self.functions.get(callee_name):
-                    if not self.call_graph.has_edge(func, callee):
-                        self.call_graph.add_edge(func, callee)
+                if (callee := self.functions.get(callee_name)) and not self.call_graph.has_edge(
+                    func, callee
+                ):
+                    self.call_graph.add_edge(func, callee)
 
     def get_function_or_none(self, function_name: str) -> CFunction | None:
         """Return the CFunction representation for the function with the given name, or None.
