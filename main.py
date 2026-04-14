@@ -17,6 +17,7 @@ from models import OPENAI_MODEL_TEMPERATURE_RANGE
 from specifications import LlmSpecificationGenerator
 from util import (
     AcceptVerifiedSpec,
+    AssumeSpecAsIs,
     CFunction,
     CFunctionGraph,
     SpecConversation,
@@ -297,7 +298,17 @@ def _verify_program(
         # How should we re-construct ProofStates from the cache?
         sys.exit(0)
 
-    initial_proof_state = ProofState.from_functions(functions=functions_for_workstack)
+    # Construct the initial proof state from client code only; generate specs for external functions
+    # lazily.
+    client_functions = [f for f in functions_for_workstack if not f.is_external_function]
+    if not client_functions:
+        # This is extremely unlikely.
+        logger.info(
+            f"No client functions for which to generate specs in {function_graph.input_path}"
+        )
+        sys.exit(1)
+
+    initial_proof_state = ProofState.from_functions(functions=client_functions)
     GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)
     # This is the global worklist.
     GLOBAL_INCOMPLETE_PROOFSTATES.append(initial_proof_state)
@@ -378,6 +389,10 @@ def _step(
         hint=work_item.hint,
         proof_state=proof_state,
     )
+
+    if work_item.assume_without_verification:
+        for specc in speccs_for_function:
+            specc.next_step = AssumeSpecAsIs()
 
     speccs_with_next_steps = [
         _set_next_step(

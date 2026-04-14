@@ -4,17 +4,21 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import networkx as nx
 from loguru import logger
 
-from util.tree_sitter_util import parse_c_file
+from util.tree_sitter_util import get_functions_from_file
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from util.c_function import CFunction
+
+DEFAULT_EXTERNAL_FUNCTION_DIR: Path = Path("/app/verification/cbmc_stubs/")
+_DEFAULT_EXTERNAL_DOCUMENTATION_JSON: str = (
+    "/app/verification/docs/ansi_c_library_documentation.json"
+)
 
 
 @dataclass
@@ -38,16 +42,26 @@ class CFunctionGraph:
     structs: list[dict[str, Any]] = field(default_factory=list)
     global_vars: list[dict[str, Any]] = field(default_factory=list)
 
-    def __init__(self, input_path: Path) -> None:
+    def __init__(
+        self, input_path: Path, external_function_dir: Path = DEFAULT_EXTERNAL_FUNCTION_DIR
+    ) -> None:
         """Create a CFunctionGraph from the given C file or directory that contains C files.
 
         If the path is a single file, that file is parsed.
 
-        If the path is a directory, all ``*.c`` files found recursively under the
+        If the path is a directory, all `*.c` files found recursively under the
         directory are parsed.
+
+        Any callee that is not found in the project is looked up in the documentation manager to
+        determine which header declares it.
+
+        The corresponding `.c` file (same base name, `.c` extension) is resolved under
+        `external_function_dir` and, if present, parsed and added to the graph.
 
         Args:
             input_path (Path): The path to a file or directory to be analyzed.
+            external_function_dir (Path): The directory containing `.c` files for
+                external functions.
         """
         self.input_path = input_path
 
@@ -65,7 +79,7 @@ class CFunctionGraph:
 
         function_analyses: list[CFunction] = []
         for c_file in c_files:
-            function_analyses.extend(parse_c_file(c_file))
+            function_analyses.extend(get_functions_from_file(c_file))
 
         self.files = [str(f) for f in c_files]
         self.functions = {analysis.name: analysis for analysis in function_analyses}
@@ -82,6 +96,8 @@ class CFunctionGraph:
                 if callee := self.functions.get(callee_name):
                     self.call_graph.add_edge(func, callee)
 
+        self._load_external_callees(Path(external_function_dir))
+
     @staticmethod
     def get_functions_defined_in_file(file_path: Path) -> list[CFunction]:
         """Return the functions defined in the given file.
@@ -95,7 +111,92 @@ class CFunctionGraph:
         if file_path.is_dir():
             msg = f"Expected a file at {file_path}, but got a directory"
             raise ValueError(msg)
-        return parse_c_file(file_path)
+        return get_functions_from_file(file_path)
+
+    def _load_external_callees(
+        self,
+        external_function_dir: Path,
+    ) -> None:
+        """Parse and load files for callee functions not found in the project.
+
+        For each callee name absent from `self.functions`, the documentation manager is queried
+        for the header that declares it. The corresponding `.c` file (header basename with
+        `.c` extension) is resolved under `external_function_dir` and, if it exists, parsed via
+        `load_external_functions`.
+
+        Args:
+            external_function_dir (Path): Directory containing `.c` files for external functions.
+        """
+        # Lazy import to avoid a circular dependency: util → verification → util.
+        from verification.external_function_documentation_manager import (  # noqa: PLC0415
+            ExternalFunctionDocumentationManager,
+        )
+
+        documentation_manager = ExternalFunctionDocumentationManager(
+            _DEFAULT_EXTERNAL_DOCUMENTATION_JSON
+        )
+
+        unknown_callees = {
+            callee_name
+            for func in self.functions.values()
+            for callee_name in func.callee_names
+            if callee_name not in self.functions
+        }
+
+        stub_paths: set[Path] = set()
+        for callee_name in unknown_callees:
+            header = documentation_manager.get_header_declaring_function(callee_name)
+            if header is None:
+                continue
+            stub_path = external_function_dir / Path(header).with_suffix(".c").name
+            if stub_path.exists():
+                stub_paths.add(stub_path)
+
+        if stub_paths:
+            self._load_external_functions(list(stub_paths))
+
+    def _load_external_functions(self, paths: list[Path]) -> None:
+        """Parse functions from external files and add them to the graph.
+
+        Note: We could cache functions that have already been parsed. We can revisit this if it
+        turns out to be a performance bottleneck.
+
+        Functions found in the project always take precedence over external functions — if a name
+        collision occurs the project function is kept. Edges between project functions and external
+        functions (and between external functions) are wired into the call graph after all external
+        functions have been loaded.
+
+        Note: Edges between external functions only matter if we want to enable backtracking from
+        an external callee to another external callee.
+
+        Args:
+            paths (list[Path]): Paths to external C source files (e.g. library stubs).
+        """
+        # Lazy import to avoid a circular dependency: util → verification → util.
+        from verification.avocado_stub_util import AVOCADO_FUNCTION_PREFIX  # noqa: PLC0415
+
+        for path in paths:
+            for fn in get_functions_from_file(path):
+                if fn.name not in self.functions:
+                    fn.is_external_function = True
+                    self.functions[fn.name] = fn
+                    self.call_graph.add_node(fn)
+                    # External stubs are stored under their prefixed name (e.g.
+                    # `_avocado_memcpy`), but callers reference the original name
+                    # (e.g. `memcpy`). Register an alias so both names resolve to
+                    # the same function.
+                    if fn.name.startswith(AVOCADO_FUNCTION_PREFIX):
+                        original_name = fn.name[len(AVOCADO_FUNCTION_PREFIX) :]
+                        if original_name not in self.functions:
+                            self.functions[original_name] = fn
+
+        # Re-wire edges now that the full function set is known.
+        for func in self.functions.values():
+            for callee_name in func.callee_names:
+                if (callee := self.functions.get(callee_name)) and not self.call_graph.has_edge(
+                    func, callee
+                ):
+                    self.call_graph.add_edge(func, callee)
 
     def get_function_or_none(self, function_name: str) -> CFunction | None:
         """Return the CFunction representation for the function with the given name, or None.

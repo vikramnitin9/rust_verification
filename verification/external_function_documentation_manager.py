@@ -45,8 +45,9 @@ class ParsedDocumentation:
 
     Attributes:
         entity_type (EntityType): The type of the entity parsed from the HTML.
-        header_file_basename (str): The base name (i.e., without directory part)
-            of the header file in which this entity is declared.
+        header_file_basename (str): The base name (i.e., excludes everything but the last part of
+            the path to the header file in which this entity is declared. For example, for
+            "a/b/c/foo.c" -> "foo.c".
         description (str): The description parsed from the HTML.
         parameters (list[FunctionParameter]): The documentation for the function parameters,
             empty for all entities except for functions.
@@ -114,7 +115,7 @@ class ExternalFunctionDocumentationManager:
             function_name (str): The function for which to look up the header.
 
         Returns:
-            str | None: The base name (i.e., without directory part) of the header file
+            str | None: The base name (i.e., without the parent directory part) of the header file
                 that declares the function, if found. Otherwise None.
         """
         if (
