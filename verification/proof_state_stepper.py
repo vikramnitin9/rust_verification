@@ -16,6 +16,7 @@ from util import (
     SpecConversation,
     function_util,
 )
+from util.function_specification import FunctionSpecification
 from verification.verification_input import VerificationInput
 
 from .proof_state import ProofState, WorkItem
@@ -88,42 +89,12 @@ class ProofStateStepper:
                     specs=specs_for_next_proof_state,
                     workstack=workstack_for_next_proof_state,
                 )
-            case BacktrackToCallee(callee_name, hint):
-                if callee := function_graph.get_function_or_none(function_name=callee_name):
-                    assume_without_verification = (
-                        callee.is_external_function and callee.has_specification()
-                    )
-                    if assume_without_verification:
-                        logger.info(
-                            f"External callee '{callee_name}' has an existing specification; "
-                            "a new spec will be generated and assumed without verification"
-                        )
-                    work_item_for_callee = WorkItem(
-                        function=callee,
-                        hint=hint,
-                        assume_without_verification=assume_without_verification,
-                    )
-                    workstack_for_next_proof_state = prev_proof_state.get_workstack().push(
-                        work_item_for_callee
-                    )
-                    return ProofState(
-                        specs=specs_for_next_proof_state,
-                        workstack=workstack_for_next_proof_state,
-                    )
-                logger.warning(
-                    f"Backtracking is not possible for callee '{callee_name}', as the project does "
-                    "not provide an implementation; it may be a library function"
-                )
-                # Since backtracking is not possible, assume the (failing) specs here, and move to
-                # the next function to verify.
-                spec_conversation.next_step = AssumeSpecAsIs()
-                self._write_spec_to_disk(spec_conversation=spec_conversation)
-                self._update_cache_for_assumed_spec(spec_conversation, prev_proof_state)
-
-                workstack_for_next_proof_state = prev_proof_state.get_workstack().pop()
-                return ProofState(
-                    specs=specs_for_next_proof_state,
-                    workstack=workstack_for_next_proof_state,
+            case BacktrackToCallee(_, _):
+                return self._get_proofstate_for_backtracking(
+                    specs_for_next_proof_state,
+                    prev_proof_state,
+                    spec_conversation,
+                    function_graph,
                 )
 
             case _:
@@ -218,3 +189,77 @@ class ProofStateStepper:
         pid_dir = Path(str(os.getpid()))
         result_file_dir = self._result_dir / pid_dir / Path(original_file_dir)
         return result_file_dir / path_to_original_file.name
+
+    def _get_proofstate_for_backtracking(
+        self,
+        specs_for_next_proof_state: dict[CFunction, FunctionSpecification],
+        prev_proof_state: ProofState,
+        spec_conversation: SpecConversation,
+        function_graph: CFunctionGraph,
+    ) -> ProofState:
+        """Return a proof state given a backtracking step in a spec conversation.
+
+        When backtracking, the callee named in `spec_conversation.next_step` is pushed onto the
+        work stack so it will be specified before the caller is retried. If the callee is an
+        external function, its work item is marked `assume_without_verification` so that the
+        generated spec is assumed rather than verified.
+
+        Backtracking is skipped (and the failing spec is assumed instead) in two cases:
+            1. The callee does not appear in the function graph at all.
+            2. Both the callee and the caller are external functions, since re-specifying one
+               external stub in terms of another would not make progress.
+
+        Args:
+            specs_for_next_proof_state (dict[CFunction, FunctionSpecification]): The specs for the
+                next proof state that is being constructed.
+            prev_proof_state (ProofState): The previous proof state.
+            spec_conversation (SpecConversation): The spec conversation so far.
+            function_graph (CFunctionGraph): The function graph under specification generation.
+
+        Returns:
+            ProofState: The next proof state to continue to.
+        """
+        if not isinstance(spec_conversation.next_step, BacktrackToCallee):
+            msg = "A Proofstate cannot be generated for a non-backtracking next step"
+            raise TypeError(msg)
+        callee_name = spec_conversation.next_step.callee
+        caller = spec_conversation.function
+        callee = function_graph.get_function_or_none(callee_name)
+        if not callee or (callee.is_external_function and caller.is_external_function):
+            if not callee:
+                msg = (
+                    f"Backtracking is not possible for callee '{callee_name}'; "
+                    "its implementation was missing from the call graph"
+                )
+            else:
+                msg = (
+                    f"Backtracking to an external callee '{callee_name}' from an external caller "
+                    f"'{caller}'is not permitted"
+                )
+            logger.warning(msg)
+            # Since backtracking is not possible, assume the (failing) specs here, and move to the
+            # next function to verify.
+            spec_conversation.next_step = AssumeSpecAsIs()
+            self._write_spec_to_disk(spec_conversation=spec_conversation)
+            self._update_cache_for_assumed_spec(spec_conversation, prev_proof_state)
+
+            workstack_for_next_proof_state = prev_proof_state.get_workstack().pop()
+            return ProofState(
+                specs=specs_for_next_proof_state, workstack=workstack_for_next_proof_state
+            )
+
+        assume_callee_specs_after_generation = callee.is_external_function
+        if assume_callee_specs_after_generation:
+            logger.info(
+                f"Backtracking to an external callee '{callee_name}'; generating and assuming specs"
+            )
+        work_item_for_callee = WorkItem(
+            function=callee,
+            hint=spec_conversation.next_step.hint,
+            assume_without_verification=assume_callee_specs_after_generation,
+        )
+        workstack_for_next_proof_state = prev_proof_state.get_workstack().push(work_item_for_callee)
+        return ProofState(
+            specs=specs_for_next_proof_state,
+            workstack=workstack_for_next_proof_state,
+        )
