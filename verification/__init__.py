@@ -1,4 +1,4 @@
-from .avocado_stub_util import AVOCADO_STUB_DIR, RenameData, get_stub_mappings
+from .avocado_stub_util import AVOCADO_STUB_DIR, RenameData
 from .cbmc_verification_client import CbmcVerificationClient
 from .external_function_documentation_manager import ExternalFunctionDocumentationManager, ParsedDocumentation, FunctionParameter, EntityType
 from .kani_verification_context import KaniVerificationContext
@@ -9,8 +9,9 @@ from .verification_client import VerificationClient
 from .verification_input import VerificationContext, VerificationInput
 from .verification_result import VerificationResult, VerificationStatus
 
+from .avocado_stub_util import RenameData, AvocadoIdentifierRenamer, AVOCADO_STUB_DIR, get_stub_mappings
+
 __all__ = [
-    "AVOCADO_STUB_DIR",
     "CbmcVerificationClient",
     "EntityType",
     "ExternalFunctionDocumentationManager",
@@ -28,5 +29,9 @@ __all__ = [
     "VerificationStatus",
     "WorkItem",
     "WorkStack",
+    "RenameData",
+    "AvocadoIdentifierRenamer",
+    "AVOCADO_STUB_DIR",
     "get_stub_mappings",
+    "WorkStack",
 ]
