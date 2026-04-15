@@ -8,6 +8,8 @@ from pathlib import Path
 def _read_file_content(path: str) -> str:
     return Path(path).read_text(encoding="utf-8")
 
+avocado_renamer = avocado_stub_util.AvocadoIdentifierRenamer()
+
 
 def test_stub_mapping() -> None:
     identifier_to_rename_data = avocado_stub_util.get_stub_mappings()
@@ -29,6 +31,8 @@ def test_apply_stub_renaming() -> None:
     )
     expected_content_post_renaming = """#include <stdlib.h>
 #include <ctype.h>
+#include "string.h"
+#include <time.h> // `time` is renamed function name, but this header should not be renamed.
 
 int is_separator(int c)
 {
@@ -36,18 +40,38 @@ int is_separator(int c)
         _avocado_isspace(c) ||
         _avocado_strchr(",.()+-/*=~%[];",c) != NULL;
 }"""
-    assert (
-        avocado_stub_util.apply_stub_renaming(content_pre_renaming)
-        == expected_content_post_renaming
-    )
+    rename_result = avocado_renamer.rename_ansi_identifiers_to_avocado_identifiers(
+        content_pre_renaming)
+    assert rename_result.src_after_renaming == expected_content_post_renaming
+    assert rename_result.get_headers_for_renamed_functions() == {"ctype.h", "string.h"}
 
 
 def test_apply_stub_renaming_existing_avocado_name() -> None:
     content_pre_renaming = _read_file_content(
         "test/data/avocado_stub/test_renaming_existing_avocado_names.c"
     )
-    assert avocado_stub_util.apply_stub_renaming(content_pre_renaming) == content_pre_renaming
+    rename_result = avocado_renamer.rename_ansi_identifiers_to_avocado_identifiers(content_pre_renaming)
+    assert rename_result.src_after_renaming == content_pre_renaming
 
+def test_apply_stub_renaming_existing_cbmc_specs() -> None:
+    content_pre_renaming = _read_file_content(
+        "test/data/avocado_stub/test_renaming_with_cbmc_specs.c"
+    )
+    expected_content_post_renaming = """#include <stdlib.h>
+#include <ctype.h>
+#include "string.h"
+#include <time.h> // `time` is renamed function name, but this header should not be renamed.
+
+int is_separator(int c)
+__CPROVER_ensures(__CPROVER_return_value == (c == '\\0' || _avocado_isspace(c) || _avocado_strchr(",.()+-/*=~%[];",c) != NULL))
+__CPROVER_ensures((__CPROVER_return_value == 0) ==> (c == '\\0' || _avocado_isspace(c) || _avocado_strchr(",.()+-/*=~%[];",c) == NULL))
+{
+    return c == '\\0' ||
+        _avocado_isspace(c) ||
+        _avocado_strchr(",.()+-/*=~%[];",c) != NULL;
+}"""
+    rename_result = avocado_renamer.rename_ansi_identifiers_to_avocado_identifiers(content_pre_renaming)
+    assert rename_result.src_after_renaming == expected_content_post_renaming
 
 def test_get_stub() -> None:
     header_basename = "string.h"

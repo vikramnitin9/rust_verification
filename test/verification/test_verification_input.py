@@ -54,5 +54,6 @@ def test_get_headers() -> None:
     assert headers_parsed_from_file == [
         "stdlib.h",
         "ctype.h",
+        "string.h",
         "stdio.h",
     ]
