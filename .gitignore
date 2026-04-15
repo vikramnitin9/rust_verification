@@ -65,3 +65,6 @@ test/data/caching/
 
 # Local files for agents and LLMs
 .claude/settings.local*
+
+# Keys and configs
+**/*vertex_ai_*.json
