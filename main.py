@@ -20,6 +20,7 @@ from util import (
     AssumeSpecAsIs,
     CFunction,
     CFunctionGraph,
+    FunctionSpecification,
     SpecConversation,
     SpecGenGranularity,
     copy_file_to_folder,
@@ -282,9 +283,12 @@ def _verify_program(
 
     if skip_statuses:
         functions_for_workstack: list[CFunction] = []
+        existing_specs: dict[CFunction, FunctionSpecification] = {}
         for function in functions:
             if cached_vresult := _get_cached_vresult_with_status(function, skip_statuses):
-                function.set_specifications(cached_vresult.get_spec())
+                spec = cached_vresult.get_spec()
+                function.set_specifications(spec)
+                existing_specs[function] = spec
                 logger.debug(
                     f"Setting {cached_vresult.status} cached specification for '{function.name}'"
                 )
@@ -292,6 +296,7 @@ def _verify_program(
                 functions_for_workstack.append(function)
     else:
         functions_for_workstack = functions
+        existing_specs = {}
 
     if not functions_for_workstack:
         # There are specs in the cache for all the functions.
@@ -308,7 +313,9 @@ def _verify_program(
         )
         sys.exit(1)
 
-    initial_proof_state = ProofState.from_functions(functions=client_functions)
+    initial_proof_state = ProofState.from_functions(
+        functions=client_functions, existing_specs=existing_specs
+    )
     GLOBAL_OBSERVED_PROOFSTATES.add(initial_proof_state)
     # This is the global worklist.
     GLOBAL_INCOMPLETE_PROOFSTATES.append(initial_proof_state)
