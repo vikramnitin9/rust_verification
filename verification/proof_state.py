@@ -106,18 +106,25 @@ class ProofState:
         self._workstack = workstack
 
     @classmethod
-    def from_functions(cls, functions: list[CFunction]) -> Self:
+    def from_functions(
+        cls,
+        functions: list[CFunction],
+        existing_specs: dict[CFunction, FunctionSpecification] | None = None,
+    ) -> Self:
         """Create a new ProofState with a workstack constructed from the given functions.
 
         Args:
             functions (list[CFunction]): The functions from which to construct a new ProofState,
                 in reverse topological order.
+            existing_specs (dict[CFunction, FunctionSpecification] | None): Pre-existing
+                specifications to seed the proof state with (e.g., cached specs for functions
+                that are not on the workstack).
 
         Returns:
             Self: A new ProofState with a workstack constructed from the given functions.
         """
         initial_workstack = WorkStack(tuple(WorkItem(function, "") for function in functions))
-        return cls(specs={}, workstack=initial_workstack)
+        return cls(specs=existing_specs or {}, workstack=initial_workstack)
 
     def peek_workstack(self) -> WorkItem:
         """Return the top element of the workstack.
