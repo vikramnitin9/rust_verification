@@ -2,6 +2,7 @@
 
 import multiprocessing
 from collections.abc import Callable
+from datetime import timedelta
 from typing import Any
 
 from loguru import logger
@@ -25,7 +26,7 @@ def run_with_timeout(function: Callable[..., Any], *args: Any, timeout_sec: floa
         TimeoutError: If the function does not complete within the timeout.
     """
     func_name = getattr(function, "__name__", repr(function))
-    logger.debug(f"Calling '{func_name}' with timeout = {timeout_sec} (sec)")
+    logger.debug(f"Calling '{func_name}' with timeout = {timedelta(seconds=timeout_sec)}")
 
     process = multiprocessing.Process(target=function, args=args, kwargs=kwargs)
     process.start()
