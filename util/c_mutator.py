@@ -13,25 +13,6 @@ from .tree_sitter_util import collect_nodes_by_type, node_text, replace_node
 
 _C_LANGUAGE = Language(tsc.language())
 
-# All operators recognised by the operator-replacement mutations.
-_ALL_OPERATOR_REPLACEMENTS: frozenset[str] = frozenset(
-    {
-        "+",
-        "-",
-        "*",
-        "/",
-        "%",
-        "<",
-        "<=",
-        ">",
-        ">=",
-        "==",
-        "!=",
-        "&&",
-        "||",
-    }
-)
-
 
 class MutationOperator(StrEnum):
     """Mutation operator categories applied during mutation testing.
