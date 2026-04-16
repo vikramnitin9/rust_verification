@@ -9,7 +9,7 @@ import tree_sitter_c as tsc
 from tree_sitter import Language, Node, Parser, Tree
 
 from .c_function import CFunction
-from .tree_sitter_util import collect_nodes_by_type, get_operator_node, node_text, replace_node
+from .tree_sitter_util import collect_nodes_by_type, node_text, replace_node
 
 _C_LANGUAGE = Language(tsc.language())
 
@@ -92,6 +92,47 @@ class Mutant:
     line: int
     original: str
     replacement: str
+
+    @classmethod
+    def create(
+        cls,
+        source_code: str,
+        operator: MutationOperator,
+        line: int,
+        original: str,
+        replacement: str,
+    ) -> "Mutant":
+        """Construct a `Mutant`, auto-generating the `description` from the other fields.
+
+        The description verb varies by operator:
+
+        - `CRP`: "replaced constant"
+        - `RVR`: "replaced return value"
+        - all others: "replaced"
+
+        Args:
+            source_code (str): The complete, mutated function implementation.
+            operator (MutationOperator): The mutation operator that produced this mutant.
+            line (int): The 1-indexed line number where the mutation was applied.
+            original (str): The text of the expression that was replaced.
+            replacement (str): The text that replaced the original.
+
+        Returns:
+            Mutant: A fully populated `Mutant` instance.
+        """
+        verb = {
+            MutationOperator.CRP: "replaced constant",
+            MutationOperator.RVR: "replaced return value",
+        }.get(operator, "replaced")
+        description = f"{operator}: {verb} '{original}' with '{replacement}' at line {line}"
+        return cls(
+            source_code=source_code,
+            operator=operator,
+            description=description,
+            line=line,
+            original=original,
+            replacement=replacement,
+        )
 
 
 class CMutator:
@@ -235,9 +276,7 @@ class CMutator:
         it with `0`, `literal + 1`, and `literal - 1` (skipping cases
         where the replacement equals the original).
 
-        Floating-point and non-decimal literals (e.g. `1.0f`, `0x1A`) that
-        cannot be parsed as plain integers by `int(text, 0)` are treated as
-        integers where possible; pure floats are skipped.
+        It skips the 0 replacement when the literal is already 0.
 
         Returns:
             list[Mutant]: All CRP mutants.
@@ -258,6 +297,8 @@ class CMutator:
             if original_value != 0:
                 candidate_set.add(0)
                 candidate_set.add(original_value - 1)
+            # Sets have no built-in iteration order; sorting it ensures deterministic output,
+            # which is required for testing.
             replacements = sorted(candidate_set)
 
             for replacement_value in replacements:
@@ -265,13 +306,9 @@ class CMutator:
                 mutated_src = replace_node(self._source_bytes, node, replacement_text)
                 line = node.start_point[0] + 1
                 mutants.append(
-                    Mutant(
+                    Mutant.create(
                         source_code=mutated_src,
                         operator=MutationOperator.CRP,
-                        description=(
-                            f"CRP: replaced constant '{original_text}' with "
-                            f"'{replacement_text}' at line {line}"
-                        ),
                         line=line,
                         original=original_text,
                         replacement=replacement_text,
@@ -306,12 +343,9 @@ class CMutator:
             mutated_src = replace_node(self._source_bytes, expr_node, "0")
             line = expr_node.start_point[0] + 1
             mutants.append(
-                Mutant(
+                Mutant.create(
                     source_code=mutated_src,
                     operator=MutationOperator.RVR,
-                    description=(
-                        f"RVR: replaced return value '{original_text}' with '0' at line {line}"
-                    ),
                     line=line,
                     original=original_text,
                     replacement="0",
@@ -336,20 +370,18 @@ class CMutator:
         """
         mutants: list[Mutant] = []
         for node in collect_nodes_by_type(self._tree.root_node, "binary_expression"):
-            op_node = get_operator_node(node, self._source_bytes, _ALL_OPERATOR_REPLACEMENTS)
+            op_node = node.child_by_field_name("operator")
             if op_node is None:
-                continue
+                msg = f"Expected a binary expression '{node}' to have an 'operator' node"
+                raise ValueError(msg)
             op_text = node_text(self._source_bytes, op_node)
             for replacement in replacement_map.get(op_text, []):
                 mutated_src = replace_node(self._source_bytes, op_node, replacement)
                 line = op_node.start_point[0] + 1
                 mutants.append(
-                    Mutant(
+                    Mutant.create(
                         source_code=mutated_src,
                         operator=operator,
-                        description=(
-                            f"{operator}: replaced '{op_text}' with '{replacement}' at line {line}"
-                        ),
                         line=line,
                         original=op_text,
                         replacement=replacement,

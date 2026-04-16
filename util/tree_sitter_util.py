@@ -13,7 +13,6 @@ from tree_sitter import Language, Node, Parser, Tree
 from .c_function import CFunction
 
 if TYPE_CHECKING:
-    from collections.abc import Set as AbstractSet
     from pathlib import Path
 
 _TREE_SITTER_LANG = Language(tsc.language())
@@ -153,35 +152,15 @@ def collect_nodes_by_type(node: Node, node_type: str) -> list[Node]:
         list[Node]: All matching nodes in pre-order.
     """
     result: list[Node] = []
-    if node.type == node_type:
-        result.append(node)
-    for child in node.children:
-        result.extend(collect_nodes_by_type(child, node_type))
+
+    def traverse(current_node: Node) -> None:
+        if current_node.type == node_type:
+            result.append(current_node)
+        for child in current_node.children:
+            traverse(child)
+
+    traverse(node)
     return result
-
-
-def get_operator_node(
-    binary_expr: Node, source_bytes: bytes, valid_operators: AbstractSet[str]
-) -> Node | None:
-    """Return the anonymous operator child of a `binary_expression` node.
-
-    In the tree-sitter C grammar, the operator within a `binary_expression`
-    is an *anonymous* (unnamed) child node whose text is the operator symbol.
-
-    Args:
-        binary_expr (Node): A `binary_expression` node.
-        source_bytes (bytes): The source bytes used to decode node text.
-        valid_operators (AbstractSet[str]): The set of operator symbols to match against.
-
-    Returns:
-        Node | None: The operator node, or `None` if none is found.
-    """
-    for child in binary_expr.children:
-        if not child.is_named:
-            text = node_text(source_bytes, child)
-            if text in valid_operators:
-                return child
-    return None
 
 
 def node_text(source_bytes: bytes, node: Node) -> str:
@@ -392,7 +371,7 @@ def _collect_callee_names(body: Node) -> list[str]:
     Returns:
         list[str]: Deduplicated list of callee names in order of first appearance.
     """
-    callee_names: set[str] = set()
+    callee_names: list[str] = []
 
     def traverse(node: Node) -> None:
         """Traverse the given node and collect names of function call expressions.
@@ -408,10 +387,10 @@ def _collect_callee_names(body: Node) -> list[str]:
                 and func_node.type == "identifier"
                 and func_node.text
             ):
-                name = func_node.text.decode("utf-8")
-                callee_names.add(name)
+                if (name := func_node.text.decode("utf-8")) and name not in callee_names:
+                    callee_names.append(name)
         for child in node.children:
             traverse(child)
 
     traverse(body)
-    return list(callee_names)
+    return callee_names
