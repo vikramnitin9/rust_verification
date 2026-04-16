@@ -124,7 +124,9 @@ class ProofState:
             Self: A new ProofState with a workstack constructed from the given functions.
         """
         initial_workstack = WorkStack(tuple(WorkItem(function, "") for function in functions))
-        return cls(specs=existing_specs or {}, workstack=initial_workstack)
+        return cls(
+            specs=dict(existing_specs) if existing_specs else {}, workstack=initial_workstack
+        )
 
     def peek_workstack(self) -> WorkItem:
         """Return the top element of the workstack.
