@@ -12,7 +12,7 @@ from .json_util import parse_object
 from .backtracking_util import parse_backtracking_info
 from .execution.execution_util import run_with_timeout
 from .tree_sitter_util import get_identifier_nodes_from_call_expressions, get_function_identifiers
-from .c_mutator import CMutator, Mutant, MutationOperator
+from .mutant import Mutant, CMutator, MutationOperator
 
 __all__ = [
     "SpecificationGenerationNextStep",
