@@ -199,14 +199,15 @@ class ProofStateStepper:
     ) -> ProofState:
         """Return a proof state given a backtracking step in a spec conversation.
 
-        When backtracking, the callee named in `spec_conversation.next_step` is pushed onto the
-        work stack so it will be specified before the caller is retried. If the callee is an
+        Backtracking is one possibility when the specification of procedure p does not verify.
+        When backtracking from p, the callee named in `spec_conversation.next_step` is pushed onto
+        the work stack so it will be re-specified before p is retried. If the callee is an
         external function, its work item is marked `assume_without_verification` so that the
         generated spec is assumed rather than verified.
 
-        Backtracking is skipped (and the failing spec is assumed instead) in two cases:
-            1. The callee does not appear in the function graph at all.
-            2. Both the callee and the caller are external functions, since re-specifying one
+        Backtracking from p is skipped (and the failing spec for p is assumed instead) in two cases:
+            1. The callee does not appear in the function graph.
+            2. Both the callee and p are external functions, since re-specifying one
                external stub in terms of another would not make progress.
 
         Args:
@@ -220,7 +221,7 @@ class ProofStateStepper:
             ProofState: The next proof state to continue to.
         """
         if not isinstance(spec_conversation.next_step, BacktrackToCallee):
-            msg = "A Proofstate cannot be generated for a non-backtracking next step"
+            msg = f"Next step should be BacktrackToCallee, but is {spec_conversation.next_step}"
             raise TypeError(msg)
         callee_name = spec_conversation.next_step.callee
         caller = spec_conversation.function
@@ -229,12 +230,12 @@ class ProofStateStepper:
             if not callee:
                 msg = (
                     f"Backtracking is not possible for callee '{callee_name}'; "
-                    "its implementation was missing from the call graph"
+                    "its implementation is missing from the call graph"
                 )
             else:
                 msg = (
                     f"Backtracking to an external callee '{callee_name}' from an external caller "
-                    f"'{caller.name}'is not permitted"
+                    f"'{caller.name}' is not permitted"
                 )
             logger.warning(msg)
             # Since backtracking is not possible, assume the (failing) specs here, and move to the
