@@ -221,7 +221,7 @@ class ProofStateStepper:
             ProofState: The next proof state to continue to.
         """
         if not isinstance(spec_conversation.next_step, BacktrackToCallee):
-            msg = "Next step should be BacktrackToCallee, but is " + spec_conversation.next_step
+            msg = f"Next step should be BacktrackToCallee, but is {spec_conversation.next_step}"
             raise TypeError(msg)
         callee_name = spec_conversation.next_step.callee
         caller = spec_conversation.function
