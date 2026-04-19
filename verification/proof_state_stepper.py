@@ -221,7 +221,7 @@ class ProofStateStepper:
             ProofState: The next proof state to continue to.
         """
         if not isinstance(spec_conversation.next_step, BacktrackToCallee):
-            msg = "A Proofstate cannot be generated for a non-backtracking next step"
+            msg = "Next step should be BacktrackToCallee, but is " + spec_conversation.next_step
             raise TypeError(msg)
         callee_name = spec_conversation.next_step.callee
         caller = spec_conversation.function
@@ -230,12 +230,12 @@ class ProofStateStepper:
             if not callee:
                 msg = (
                     f"Backtracking is not possible for callee '{callee_name}'; "
-                    "its implementation was missing from the call graph"
+                    "its implementation is missing from the call graph"
                 )
             else:
                 msg = (
                     f"Backtracking to an external callee '{callee_name}' from an external caller "
-                    f"'{caller.name}'is not permitted"
+                    f"'{caller.name}' is not permitted"
                 )
             logger.warning(msg)
             # Since backtracking is not possible, assume the (failing) specs here, and move to the
