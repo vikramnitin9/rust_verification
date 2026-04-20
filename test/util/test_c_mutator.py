@@ -11,7 +11,7 @@ from util.c_function_graph import CFunctionGraph
 
 def _mutant_replacements(mutants: list[Mutant]) -> set[tuple[str, str]]:
     """Return the (original, replacement) pairs from a list of mutants."""
-    return {(m.original, m.replacement) for m in mutants}
+    return {(m.original_expr, m.replacement_expr) for m in mutants}
 
 
 def _get_function(file: str, name: str) -> CFunction:
@@ -30,7 +30,7 @@ def test_aor_finds_arithmetic_operator_in_partition() -> None:
     fn = _get_function("data/qsort.c", "partition")
     mutator = CMutator(fn)
     aor_mutants = _get_mutants_grouped_by_operator(mutator)[MutationOperator.AOR]
-    operators_replaced = {m.original for m in aor_mutants}
+    operators_replaced = {m.original_expr for m in aor_mutants}
     assert operators_replaced, "Expected at least one AOR mutation in partition"
 
 
@@ -60,7 +60,7 @@ def test_ror_finds_less_than_or_equal_in_factorial() -> None:
     fn = _get_function("data/factorial_iterative.c", "factorial_iter")
     mutator = CMutator(fn)
     ror_mutants = _get_mutants_grouped_by_operator(mutator)[MutationOperator.ROR]
-    operators_replaced = {m.original for m in ror_mutants}
+    operators_replaced = {m.original_expr for m in ror_mutants}
     assert "<=" in operators_replaced, "Expected a '<=' ROR mutation site in factorial_iter"
 
 
@@ -83,7 +83,7 @@ def test_ror_mutant_source_contains_replacement_operator() -> None:
     fn = _get_function("data/qsort.c", "partition")
     mutator = CMutator(fn)
     for mutant in _get_mutants_grouped_by_operator(mutator)[MutationOperator.ROR]:
-        assert mutant.replacement in mutant.source_code
+        assert mutant.replacement_expr in mutant.source_code
 
 
 def test_lcr_on_function_without_logical_operators() -> None:
@@ -108,8 +108,8 @@ def test_lcr_replaces_and_with_or() -> None:
     mutator = CMutator(fn)
     lcr_mutants = _get_mutants_grouped_by_operator(mutator)[MutationOperator.LCR]
     assert len(lcr_mutants) == 1
-    assert lcr_mutants[0].original == "&&"
-    assert lcr_mutants[0].replacement == "||"
+    assert lcr_mutants[0].original_expr == "&&"
+    assert lcr_mutants[0].replacement_expr == "||"
     assert "||" in lcr_mutants[0].source_code
 
 
@@ -160,7 +160,7 @@ def test_crp_zero_literal_only_generates_increment() -> None:
     fn.set_source_code(src_with_zero)
     mutator = CMutator(fn)
     crp_mutants = _get_mutants_grouped_by_operator(mutator)[MutationOperator.CRP]
-    replacements_for_zero = [m.replacement for m in crp_mutants if m.original == "0"]
+    replacements_for_zero = [m.replacement_expr for m in crp_mutants if m.original_expr == "0"]
     assert "1" in replacements_for_zero
     assert "0" not in replacements_for_zero
 
@@ -184,7 +184,7 @@ def test_rvr_replaces_return_with_zero() -> None:
     mutator = CMutator(fn)
     rvr_mutants = _get_mutants_grouped_by_operator(mutator)[MutationOperator.RVR]
     for mutant in rvr_mutants:
-        assert mutant.replacement == "0"
+        assert mutant.replacement_expr == "0"
 
 
 def test_rvr_skips_existing_zero_return() -> None:
