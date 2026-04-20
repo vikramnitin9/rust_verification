@@ -372,7 +372,7 @@ def _collect_callee_names(body: Node) -> list[str]:
     Returns:
         list[str]: Deduplicated list of callee names in order of first appearance.
     """
-    # A list, rather than a set, in order to preserve order.
+    # A list is used to preserve the order in which calls appear in a function body.
     callee_names: list[str] = []
 
     def traverse(node: Node) -> None:
