@@ -347,7 +347,7 @@ def load_stub_file(header_file_basename: str) -> ParsedSource | None:
     calls to `get_stub_implementation_from_parsed_source`.
 
     Args:
-        header_file_basename (str): The name of the header file (e.g. ``"string.h"``) whose
+        header_file_basename (str): The name of the header file (e.g. "string.h") whose
             corresponding stub file should be loaded.
 
     Returns:
@@ -376,8 +376,8 @@ def get_stub_implementation_from_parsed_source(
         parsed_source (ParsedSource): The parsed source for the stub file.
 
     Returns:
-        str | None: The full function definition text with the ``_avocado_`` prefix removed,
-            or ``None`` if no matching definition is found.
+        str | None: The full function definition text with the `_avocado_` prefix removed,
+            or `None` if no matching definition is found.
     """
     avocado_identifier = AVOCADO_FUNCTION_PREFIX + original_identifier
     for identifier_node, parent_type in get_function_identifiers(parsed_source.ast.root_node):
