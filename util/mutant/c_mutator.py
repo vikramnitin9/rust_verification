@@ -38,15 +38,7 @@ class CMutator:
     _tree: Tree
 
     def __init__(self, c_function: CFunction) -> None:
-        """Create a new CMutator.
-
-        This function's source code is taken from `c_function.source_code` when
-        it has been set (via `CFunction.set_source_code`); otherwise it is read
-        from the original file via `CFunction.get_original_source_code()`.
-
-        Args:
-            c_function (CFunction): The C function to mutate.
-        """
+        """Create a new CMutator."""
         self._c_function = c_function
         self._parser = Parser(_C_LANGUAGE)
 

@@ -142,7 +142,13 @@ class ArithmeticOperatorReplacement(BinaryMutationOperator):
 
 
 class RelationalOperatorReplacement(BinaryMutationOperator):
-    """ROR: replaces each relational operator with every other relational operator."""
+    """ROR: replaces relational operators with semantically meaningful alternatives.
+
+    Ordering operators (`<`, `<=`, `>`, `>=`) are replaced with all other relational operators.
+    Equality operators use a reduced set: `==` maps to `!=`, `<`, and `>` only; `!=` maps to
+    `==` only. Replacements to supersets (e.g. `==` to `<=`) are omitted to avoid equivalent
+    mutants.
+    """
 
     _REPLACEMENTS = MappingProxyType(
         {
@@ -269,7 +275,8 @@ class ReturnValueReplacement(MutationOperator):
         """Return all RVR mutants by replacing return expressions with `0`.
 
         `void` functions produce no mutants. `return` statements that already
-        return `0`, or bare `return;` statements, are also skipped.
+        return zero (including `0x0`, `00`, `0b0`, etc.), or bare `return;`
+        statements, are also skipped.
 
         Args:
             tree (Tree): The parsed tree-sitter tree of the C source.
@@ -287,7 +294,13 @@ class ReturnValueReplacement(MutationOperator):
             if expr_node is None:
                 continue  # bare `return;` — nothing to replace
             original_text = node_text(source_bytes, expr_node)
-            if original_text == "0":
+            if expr_node.type == "number_literal":
+                try:
+                    if int(original_text, 0) == 0:
+                        continue  # already returns 0; no interesting mutation
+                except ValueError:
+                    pass  # non-integer literal (e.g. 0.0f) — don't skip
+            elif original_text == "0":
                 continue  # already returns 0; no interesting mutation
             mutated_src = replace_node(source_bytes, expr_node, "0")
             line = expr_node.start_point[0] + 1

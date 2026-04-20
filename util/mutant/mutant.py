@@ -46,7 +46,8 @@ class Mutant:
 
         Args:
             source_code (str): The complete, mutated function implementation.
-            operator (MutationOperator): The mutation operator that produced this mutant.
+            operator (str): The label corresponding to the mutation operator that produced this
+                mutant.
             line (int): The 1-indexed line number where the mutation was applied.
             original (str): The text of the expression that was replaced.
             replacement (str): The text that replaced the original.
