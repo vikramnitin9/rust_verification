@@ -133,6 +133,10 @@ class LlmSpecificationGenerator:
             list[SpecConversation]: A list of potential specifications for the function.
                 Each may or may not verify.
         """
+        logger.info(
+            f"Generating specs for '{function.name}' "
+            f"({self._num_specification_candidates} candidates)"
+        )
         candidate_speccs = self._generate_unrepaired_speccs(
             function=function, function_graph=function_graph, hint=hint, proof_state=proof_state
         )
@@ -283,6 +287,8 @@ class LlmSpecificationGenerator:
             specc.next_step = AssumeSpecAsIs()
             return [specc]
 
+        logger.info(f"Entering repair loop for '{specc.function.name}' [{specc.spec_id}]")
+
         # These two variables are the two possible return values of this method.
         verified_speccs: list[SpecConversation] = []
         speccs_that_failed_repair: list[SpecConversation] = []
@@ -315,12 +321,28 @@ class LlmSpecificationGenerator:
                 # No need to iterate further, there is nothing to repair.
                 specc_under_repair.next_step = AcceptVerifiedSpec()
                 verified_speccs.append(specc_under_repair)
+                if num_repair_attempts > 0:
+                    logger.info(
+                        f"Repair succeeded for '{specc_under_repair.function.name}' "
+                        f"after {num_repair_attempts} attempt(s) "
+                        f"[{specc_under_repair.parent_spec_id} → {specc_under_repair.spec_id}]"
+                    )
                 continue
 
             speccs_that_failed_repair.append(specc_under_repair)
             if num_repair_attempts >= self._num_specification_repair_iterations:
                 # We've iteratively repaired this spec as much as we could, but failed.
+                logger.warning(
+                    f"Repair exhausted for '{specc_under_repair.function.name}' "
+                    f"after {num_repair_attempts} attempt(s) [{specc_under_repair.spec_id}]"
+                )
                 continue
+
+            max_repairs = self._num_specification_repair_iterations
+            logger.info(
+                f"Repair attempt {num_repair_attempts + 1}/{max_repairs}"
+                f" for '{specc_under_repair.function.name}' [{specc_under_repair.spec_id}]"
+            )
 
             # Attempt repair.
             repair_prompt = self._prompt_builder.repair_prompt(
@@ -355,6 +377,7 @@ class LlmSpecificationGenerator:
                     ),
                     function_graph=function_graph,
                     existing_specs=proof_state.get_specifications(),
+                    parent_spec_id=specc_under_repair.spec_id,
                 )
                 speccs_to_repair.append((next_specc, num_repair_attempts + 1))
 
