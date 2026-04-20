@@ -341,7 +341,7 @@ def _verify_program(
                 continue
             GLOBAL_OBSERVED_PROOFSTATES.add(next_proofstate)
 
-            if len(next_proofstate.get_workstack()) == 0:
+            if next_proofstate.is_workstack_empty() == 0:
                 GLOBAL_COMPLETE_PROOFSTATES.append(next_proofstate)
             else:
                 GLOBAL_INCOMPLETE_PROOFSTATES.append(next_proofstate)
