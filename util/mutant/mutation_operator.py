@@ -235,7 +235,7 @@ class ConstantReplacement(MutationOperator):
             # Example: for literal '1', both "replace with 0" and
             # "replace with original_value - 1" would otherwise add 0 twice.
             candidate_set: set[int] = {original_value + 1, 0, original_value - 1}
-            candidate_set.remove(original_value)
+            candidate_set.discard(original_value)
             # Sets have no built-in iteration order; sorting ensures deterministic output.
             for replacement_value in sorted(candidate_set):
                 replacement_text = str(replacement_value)
