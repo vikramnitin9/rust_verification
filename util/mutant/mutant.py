@@ -12,20 +12,21 @@ class Mutant:
 
     Attributes:
         source_code (str): The complete, mutated function implementation.
-        operator (str): The mutation operator label that produced this mutant.
-        description (str): A description of the applied mutation.
+        operator (str): The label of the mutation operator that produced this mutant.
         line (int): The 1-indexed line number (within the function implementation) where the
             mutation was applied.
-        original (str): The text of the expression that was replaced.
-        replacement (str): The text that replaced the original.
+        original_expr (str): The text of the expression that was replaced.
+        replacement_expr (str): The text that replaced the original.
+        description (str): An English description of the applied mutation,
+            including line and original and replacement_expr expressions.
     """
 
     source_code: str
     operator: str
-    description: str
     line: int
-    original: str
-    replacement: str
+    original_expr: str
+    replacement_expr: str
+    description: str
 
     @classmethod
     def create(
@@ -33,8 +34,8 @@ class Mutant:
         source_code: str,
         operator: str,
         line: int,
-        original: str,
-        replacement: str,
+        original_expr: str,
+        replacement_expr: str,
     ) -> "Mutant":
         """Construct a `Mutant`, auto-generating the `description` from the other fields.
 
@@ -49,8 +50,8 @@ class Mutant:
             operator (str): The label corresponding to the mutation operator that produced this
                 mutant.
             line (int): The 1-indexed line number where the mutation was applied.
-            original (str): The text of the expression that was replaced.
-            replacement (str): The text that replaced the original.
+            original_expr (str): The text of the expression that was replaced.
+            replacement_expr (str): The text that replaced the original.
 
         Returns:
             Mutant: A fully populated `Mutant` instance.
@@ -59,12 +60,14 @@ class Mutant:
             "CRP": "replaced constant",
             "RVR": "replaced return value",
         }.get(operator, "replaced")
-        description = f"{operator}: {verb} '{original}' with '{replacement}' at line {line}"
+        description = (
+            f"{operator}: {verb} '{original_expr}' with '{replacement_expr}' at line {line}"
+        )
         return cls(
             source_code=source_code,
             operator=operator,
             description=description,
             line=line,
-            original=original,
-            replacement=replacement,
+            original_expr=original_expr,
+            replacement_expr=replacement_expr,
         )

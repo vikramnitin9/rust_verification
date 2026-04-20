@@ -141,7 +141,7 @@ def get_identifier_nodes_from_call_expressions(
 
 
 def collect_nodes_by_type(node: Node, node_type: str) -> list[Node]:
-    """Recursively collect all descendant nodes (including `node` itself) of a given type.
+    """Return all descendant nodes (including `node` itself) of a given tree-sitter node type.
 
     Args:
         node (Node): The root of the sub-tree to search.
@@ -167,7 +167,8 @@ def node_text(source_bytes: bytes, node: Node) -> str:
     """Return the original source text covered by `node`.
 
     Args:
-        source_bytes (bytes): The source bytes to slice.
+        source_bytes (bytes): The source bytes for the entire file; a subsequence of this is
+            returned.
         node (Node): The tree-sitter node whose text to retrieve.
 
     Returns:
@@ -371,6 +372,7 @@ def _collect_callee_names(body: Node) -> list[str]:
     Returns:
         list[str]: Deduplicated list of callee names in order of first appearance.
     """
+    # A list, rather than a set, in order to preserve order.
     callee_names: list[str] = []
 
     def traverse(node: Node) -> None:

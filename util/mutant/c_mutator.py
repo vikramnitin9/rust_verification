@@ -18,7 +18,7 @@ _C_LANGUAGE = Language(tsc.language())
 
 
 class CMutator:
-    """Generates first-order mutants of a C function for mutation testing.
+    """Method `get_mutants()` Generates first-order mutants of a C function for mutation testing.
 
     Uses tree-sitter to parse C source and applies mutation operators to produce first-order
     mutants.

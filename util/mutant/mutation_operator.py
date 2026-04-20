@@ -13,7 +13,7 @@ from .mutant import Mutant
 
 
 class MutationOperator(ABC):
-    """Mutation operator categories applied during mutation testing.
+    """Abstract class representing a mutation operator to apply during mutation testing.
 
     Each subtype corresponds to a classical first-order mutation operator:
 
@@ -25,19 +25,19 @@ class MutationOperator(ABC):
 
     Supported mutation operators:
 
-    +----------------------------------+---------------------------------------------+
-    | Arithmetic Operator Replacement  | replaces `+`, `-`, `*`, `/`, `%`  |
-    +----------------------------------+---------------------------------------------+
-    | Relational Operator Replacement  | replaces `<`, `<=`, `>`, `>=`,      |
-    |                                  | `==`, `!=`                              |
-    +----------------------------------+---------------------------------------------+
-    | Logical Connector Replacement    | replaces `&&` and `||`                  |
-    +----------------------------------+---------------------------------------------+
-    | Constant Replacement             | replaces integer literals with `0`,       |
-    |                                  | `literal + 1`, and `literal - 1`        |
-    +----------------------------------+---------------------------------------------+
-    | Return Value Replacement         | replaces `return` expressions with `0`  |
-    +----------------------------------+---------------------------------------------+
+    +---------------------------------------+----------------------------------------+
+    | Arithmetic Operator Replacement (AOR) | replaces `+`, `-`, `*`, `/`, `%`       |
+    +---------------------------------------+----------------------------------------+
+    | Relational Operator Replacement (ROR) | replaces `<`, `<=`, `>`, `>=`,         |
+    |                                       | `==`, `!=`                             |
+    +---------------------------------------+----------------------------------------+
+    | Logical Connector Replacement (LCR)   | replaces `&&` and `||`                 |
+    +---------------------------------------+----------------------------------------+
+    | Constant Replacement (CRP)            | replaces integer literals with `0`,    |
+    |                                       | `literal + 1`, and `literal - 1`       |
+    +---------------------------------------+----------------------------------------+
+    | Return Value Replacement (RVR)        | replaces `return` expressions with `0` |
+    +---------------------------------------+----------------------------------------+
 
     """
 
@@ -49,12 +49,12 @@ class MutationOperator(ABC):
 
     @abstractmethod
     def apply(self, tree: Tree, source_bytes: bytes) -> list[Mutant]:
-        """Return the mutants resulting from applying this mutation operator to the tree.
+        """Return the mutants resulting from applying this mutation operator anywhere in the tree.
 
         Args:
-            tree (Tree): The tree to which to apply this mutation operator.
-            source_bytes (bytes): The source code as bytes, used for text extraction and
-                replacement.
+            tree (Tree): The tree-sitter tree to which to apply this mutation operator.
+            source_bytes (bytes): The source code of the tree as bytes,
+                used for text extraction and replacement.
 
         Returns:
             list[Mutant]: The mutants resulting from applying this mutation operator to the tree.
@@ -73,11 +73,11 @@ class MutationOperator(ABC):
 
 
 class BinaryMutationOperator(MutationOperator):
-    """Represent a binary mutation operator.
+    """Abstract class representing a binary mutation operator.
 
     Attributes:
-        _REPLACEMENTS (Mapping[str, list[str]]): A map from a binary operator (e.g., '+' or '-', to
-            its replacement operators).
+        _REPLACEMENTS (Mapping[str, list[str]]): A map from a binary operator (e.g., '+' or '-'), to
+            its replacement operators.
 
     """
 
@@ -100,7 +100,7 @@ class BinaryMutationOperator(MutationOperator):
         for node in collect_nodes_by_type(tree.root_node, "binary_expression"):
             op_node = node.child_by_field_name("operator")
             if op_node is None:
-                msg = f"Expected a binary expression '{node}' to have an 'operator' node"
+                msg = f"Binary expression '{node}' has no 'operator' node"
                 raise ValueError(msg)
             op_text = node_text(source_bytes, op_node)
             for replacement in self._REPLACEMENTS.get(op_text, []):
@@ -111,8 +111,8 @@ class BinaryMutationOperator(MutationOperator):
                         source_code=mutated_src,
                         operator=self.name,
                         line=line,
-                        original=op_text,
-                        replacement=replacement,
+                        original_expr=op_text,
+                        replacement_expr=replacement,
                     )
                 )
         return mutants
@@ -127,7 +127,7 @@ class ArithmeticOperatorReplacement(BinaryMutationOperator):
             "-": ["+", "*"],
             "*": ["/", "+"],
             "/": ["*", "+"],
-            "%": ["+", "*"],
+            "%": ["*", "+"],
         }
     )
 
@@ -225,18 +225,17 @@ class ConstantReplacement(MutationOperator):
             # Normalize C octal (010) to Python octal (0o10); int() with base=0 requires 0o prefix.
             if len(stripped) > 1 and stripped[0] == "0" and stripped[1:].isdigit():
                 stripped = "0o" + stripped[1:]
+
             try:
                 original_value = int(stripped, 0)
             except ValueError:
                 continue  # Skip floating-point literals (e.g. 1.0, 2.5f).
 
             # Use a set to avoid emitting duplicate replacement values.
-            # Example: for literal '1', both the "replace with 0" guard and
-            # "original_value - 1" would otherwise add 0 twice.
-            candidate_set: set[int] = {original_value + 1}
-            if original_value != 0:
-                candidate_set.add(0)
-                candidate_set.add(original_value - 1)
+            # Example: for literal '1', both "replace with 0" and
+            # "replace with original_value - 1" would otherwise add 0 twice.
+            candidate_set: set[int] = {original_value + 1, 0, original_value - 1}
+            candidate_set.remove(original_value)
             # Sets have no built-in iteration order; sorting ensures deterministic output.
             for replacement_value in sorted(candidate_set):
                 replacement_text = str(replacement_value)
@@ -247,8 +246,8 @@ class ConstantReplacement(MutationOperator):
                         source_code=mutated_src,
                         operator=self.name,
                         line=line,
-                        original=original_text,
-                        replacement=replacement_text,
+                        original_expr=original_text,
+                        replacement_expr=replacement_text,
                     )
                 )
         return mutants
@@ -313,8 +312,8 @@ class ReturnValueReplacement(MutationOperator):
                     source_code=mutated_src,
                     operator=self.name,
                     line=line,
-                    original=original_text,
-                    replacement="0",
+                    original_expr=original_text,
+                    replacement_expr="0",
                 )
             )
         return mutants
