@@ -136,6 +136,14 @@ class ProofState:
         """
         return self._workstack.peek()
 
+    def is_workstack_empty(self) -> bool:
+        """Return True iff this proof state's workstack is empty.
+
+        Returns:
+            bool: True iff this proof state's workstack is empty.
+        """
+        return len(self._workstack) == 0
+
     def get_workstack(self) -> WorkStack:
         """Return this proof state's work stack.
 
