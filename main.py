@@ -412,7 +412,7 @@ def _step(
 
     result: list[ProofState] = [
         proof_state_stepper.get_next_proof_state(
-            curr_proof_state=proof_state,
+            current_proof_state=proof_state,
             spec_conversation=specc,
             function_graph=function_graph,
         )

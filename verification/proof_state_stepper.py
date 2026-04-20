@@ -42,11 +42,11 @@ class ProofStateStepper:
 
     def get_next_proof_state(
         self,
-        curr_proof_state: ProofState,
+        current_proof_state: ProofState,
         spec_conversation: SpecConversation,
         function_graph: CFunctionGraph,
     ) -> ProofState:
-        """Return the next ProofState after curr_proof_state, based on spec_conversation.
+        """Return the next ProofState after current_proof_state, based on spec_conversation.
 
         The new proof state is a copy of the given proof state with two differences:
 
@@ -59,15 +59,15 @@ class ProofStateStepper:
         (i.e., revisiting the specification of the failing function's callee specifications.)
 
         Args:
-            curr_proof_state (ProofState): The current proof state.
+            current_proof_state (ProofState): The current proof state.
             spec_conversation (SpecConversation): The spec conversation in which an LLM generated a
-                specification for the function on the top of the workstack of curr_proof_state.
+                specification for the function on the top of the workstack of current_proof_state.
             function_graph (CFunctionGraph): The project being verified.
 
         Returns:
             ProofState: The next proof state for the program, given the conversation.
         """
-        specs_for_next_proof_state = curr_proof_state.get_specifications() | {
+        specs_for_next_proof_state = current_proof_state.get_specifications() | {
             spec_conversation.function: spec_conversation.specification
         }
         match spec_conversation.next_step:
@@ -82,9 +82,9 @@ class ProofStateStepper:
                 if isinstance(spec_conversation.next_step, AssumeSpecAsIs):
                     self._update_cache_for_assumed_spec(
                         specc=spec_conversation,
-                        proof_state=curr_proof_state,
+                        current_proof_state=current_proof_state,
                     )
-                workstack_for_next_proof_state = curr_proof_state.get_workstack().pop()
+                workstack_for_next_proof_state = current_proof_state.get_workstack().pop()
                 return ProofState(
                     specs=specs_for_next_proof_state,
                     workstack=workstack_for_next_proof_state,
@@ -92,7 +92,7 @@ class ProofStateStepper:
             case BacktrackToCallee(_, _):
                 return self._get_proofstate_for_backtracking(
                     specs_for_next_proof_state,
-                    curr_proof_state,
+                    current_proof_state,
                     spec_conversation,
                     function_graph,
                 )
@@ -102,7 +102,7 @@ class ProofStateStepper:
                 raise ValueError(msg)
 
     def _update_cache_for_assumed_spec(
-        self, specc: SpecConversation, proof_state: ProofState
+        self, specc: SpecConversation, current_proof_state: ProofState
     ) -> None:
         """Update the cache entry for the given spec to `VerificationStatus.ASSUMED`.
 
@@ -111,12 +111,12 @@ class ProofStateStepper:
 
         Args:
             specc (SpecConversation): The spec conversation whose spec is being assumed.
-            proof_state (ProofState): The proof state in which the spec was assumed, used to
+            current_proof_state (ProofState): The proof state in which the spec was assumed, used to
                 reconstruct the `VerificationInput` key.
         """
         if self._cache is None:
             return
-        vcontext = proof_state.get_current_context(specc.function)
+        vcontext = current_proof_state.get_current_context(specc.function)
         vinput = VerificationInput(
             specc.function, specc.specification, vcontext, specc.contents_of_file_to_verify
         )
@@ -193,7 +193,7 @@ class ProofStateStepper:
     def _get_proofstate_for_backtracking(
         self,
         specs_for_next_proof_state: dict[CFunction, FunctionSpecification],
-        curr_proof_state: ProofState,
+        current_proof_state: ProofState,
         spec_conversation: SpecConversation,
         function_graph: CFunctionGraph,
     ) -> ProofState:
@@ -214,7 +214,7 @@ class ProofStateStepper:
                 next proof state that is being constructed. If backtracking occurs, then this map
                 contains the work item for the callee to backtrack to, along with a hint to the LLM
                 of how to generate its new spec.
-            curr_proof_state (ProofState): The current proof state.
+            current_proof_state (ProofState): The current proof state.
             spec_conversation (SpecConversation): The spec conversation so far.
             function_graph (CFunctionGraph): The program for which specifications are being
                 generated.
@@ -242,9 +242,9 @@ class ProofStateStepper:
             # Then, move to the next function to verify.
             spec_conversation.next_step = AssumeSpecAsIs()
             self._write_spec_to_disk(spec_conversation=spec_conversation)
-            self._update_cache_for_assumed_spec(spec_conversation, curr_proof_state)
+            self._update_cache_for_assumed_spec(spec_conversation, current_proof_state)
 
-            workstack_for_next_proof_state = curr_proof_state.get_workstack().pop()
+            workstack_for_next_proof_state = current_proof_state.get_workstack().pop()
             return ProofState(
                 specs=specs_for_next_proof_state, workstack=workstack_for_next_proof_state
             )
@@ -263,7 +263,7 @@ class ProofStateStepper:
             hint=spec_conversation.next_step.hint,
             assume_without_verification=assume_callee_specs_after_generation,
         )
-        workstack_for_next_proof_state = curr_proof_state.get_workstack().push(work_item_for_callee)
+        workstack_for_next_proof_state = current_proof_state.get_workstack().push(work_item_for_callee)
         return ProofState(
             specs=specs_for_next_proof_state,
             workstack=workstack_for_next_proof_state,
