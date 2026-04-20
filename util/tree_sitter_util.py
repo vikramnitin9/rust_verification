@@ -317,7 +317,8 @@ def _collect_callee_names(body: Node) -> list[str]:
     Returns:
         list[str]: Deduplicated list of callee names in order of first appearance.
     """
-    callee_names: set[str] = set()
+    # A list is used to preserve the order in which calls appear in a function body.
+    callee_names: list[str] = []
 
     def traverse(node: Node) -> None:
         """Traverse the given node and collect names of function call expressions.
@@ -333,8 +334,8 @@ def _collect_callee_names(body: Node) -> list[str]:
                 and func_node.type == "identifier"
                 and func_node.text
             ):
-                name = func_node.text.decode("utf-8")
-                callee_names.add(name)
+                if (name := func_node.text.decode("utf-8")) and name not in callee_names:
+                    callee_names.append(name)
         for child in node.children:
             traverse(child)
 
