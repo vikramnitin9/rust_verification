@@ -263,7 +263,9 @@ class ProofStateStepper:
             hint=spec_conversation.next_step.hint,
             assume_without_verification=assume_callee_specs_after_generation,
         )
-        workstack_for_next_proof_state = current_proof_state.get_workstack().push(work_item_for_callee)
+        workstack_for_next_proof_state = current_proof_state.get_workstack().push(
+            work_item_for_callee
+        )
         return ProofState(
             specs=specs_for_next_proof_state,
             workstack=workstack_for_next_proof_state,
