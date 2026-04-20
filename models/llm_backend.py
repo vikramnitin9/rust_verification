@@ -13,6 +13,10 @@ class GenerationError(Exception):
     """Represent errors related to LLM-based text generation."""
 
 
+class ContextWindowExceededError(GenerationError):
+    """Represent when a conversation's token count exceeds a model's maximum token context."""
+
+
 class LlmBackend(Protocol):
     """Protocol for an LLM backend API.
 
