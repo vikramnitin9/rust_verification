@@ -1,5 +1,6 @@
 """Class to represent an LLM-generated specification and the conversation that led to it."""
 
+import uuid
 from types import MappingProxyType
 from typing import Self
 
@@ -31,6 +32,8 @@ class SpecConversation:
     conversation: tuple[ConversationMessage, ...]
     contents_of_file_to_verify: str
     next_step: SpecificationGenerationNextStep | None
+    spec_id: str
+    parent_spec_id: str | None
 
     def __init__(
         self,
@@ -39,6 +42,7 @@ class SpecConversation:
         conversation: tuple[ConversationMessage, ...],
         contents_of_file_to_verify: str,
         next_step: SpecificationGenerationNextStep | None = None,
+        parent_spec_id: str | None = None,
     ) -> None:
         """Create a new SpecConversation."""
         self.function = function
@@ -46,6 +50,8 @@ class SpecConversation:
         self.conversation = conversation
         self.next_step = next_step
         self.contents_of_file_to_verify = contents_of_file_to_verify
+        self.spec_id = uuid.uuid4().hex[:8]
+        self.parent_spec_id = parent_spec_id
 
     @classmethod
     def create(
@@ -55,6 +61,7 @@ class SpecConversation:
         conversation: tuple[ConversationMessage, ...],
         function_graph: CFunctionGraph,
         existing_specs: MappingProxyType[CFunction, FunctionSpecification],
+        parent_spec_id: str | None = None,
     ) -> Self:
         """Alternative constructor for SpecConversation.
 
@@ -66,6 +73,8 @@ class SpecConversation:
             function_graph (CFunctionGraph): The function graph that contains `function`.
             existing_specs (MappingProxyType[CFunction, FunctionSpecification]): The existing
                 specs.
+            parent_spec_id (str | None): The `spec_id` of the spec from which this one was
+                repaired. `None` for initial (non-repaired) candidates.
 
         Returns:
             Self: A SpecConversation.
@@ -86,6 +95,7 @@ class SpecConversation:
             specification=specification,
             conversation=tuple(conversation),
             contents_of_file_to_verify=source_contents_to_verify,
+            parent_spec_id=parent_spec_id,
         )
 
     def get_conversation_with_message_appended(
