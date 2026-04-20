@@ -287,7 +287,7 @@ class LlmSpecificationGenerator:
             specc.next_step = AssumeSpecAsIs()
             return [specc]
 
-        logger.info(f"Entering repair loop for '{specc.function.name}'")
+        logger.info(f"Entering repair loop for '{specc.function.name}' [{specc.spec_id}]")
 
         # These two variables are the two possible return values of this method.
         verified_speccs: list[SpecConversation] = []
@@ -324,7 +324,8 @@ class LlmSpecificationGenerator:
                 if num_repair_attempts > 0:
                     logger.info(
                         f"Repair succeeded for '{specc_under_repair.function.name}' "
-                        f"after {num_repair_attempts} attempt(s)"
+                        f"after {num_repair_attempts} attempt(s) "
+                        f"[{specc_under_repair.parent_spec_id} → {specc_under_repair.spec_id}]"
                     )
                 continue
 
@@ -333,14 +334,14 @@ class LlmSpecificationGenerator:
                 # We've iteratively repaired this spec as much as we could, but failed.
                 logger.warning(
                     f"Repair exhausted for '{specc_under_repair.function.name}' "
-                    f"after {num_repair_attempts} attempt(s)"
+                    f"after {num_repair_attempts} attempt(s) [{specc_under_repair.spec_id}]"
                 )
                 continue
 
             max_repairs = self._num_specification_repair_iterations
             logger.info(
                 f"Repair attempt {num_repair_attempts + 1}/{max_repairs}"
-                f" for '{specc_under_repair.function.name}'"
+                f" for '{specc_under_repair.function.name}' [{specc_under_repair.spec_id}]"
             )
 
             # Attempt repair.
@@ -376,6 +377,7 @@ class LlmSpecificationGenerator:
                     ),
                     function_graph=function_graph,
                     existing_specs=proof_state.get_specifications(),
+                    parent_spec_id=specc_under_repair.spec_id,
                 )
                 speccs_to_repair.append((next_specc, num_repair_attempts + 1))
 
