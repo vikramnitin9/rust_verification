@@ -80,6 +80,14 @@ class WorkStack:
         """
         return not self.work_items
 
+    def len(self) -> int:
+        """Return the number of elements in this workstack.
+
+        Returns:
+            int: The number of elements in this workstack.
+        """
+        return len(self.work_items)
+
 
 class ProofState:
     """Class representing an immutable proof state.

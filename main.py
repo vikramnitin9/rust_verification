@@ -340,7 +340,7 @@ def _verify_program(
         # Use BFS to avoid getting stuck in an unproductive search over a proof state.
         proof_state = GLOBAL_INCOMPLETE_PROOFSTATES.popleft()
         top_fn = proof_state.peek_workstack().function.name
-        workstack_depth = len(proof_state.get_workstack().work_items)
+        workstack_depth = proof_state.get_workstack().len()
         logger.info(f"Processing '{top_fn}' (workstack depth: {workstack_depth})")
         next_proofstates = _step(
             proof_state=proof_state,
