@@ -38,6 +38,8 @@ from verification import (
     VerificationStatus,
 )
 
+VALID_LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+
 MODEL = "gpt-4o"
 DEFAULT_HEADERS_FOR_VERIFICATION: Sequence[str] = (
     "#include <stdlib.h>",
@@ -187,7 +189,17 @@ def main() -> None:
             "looks for an environment variable (LLM_API_KEY) that is not available on a CI runner."
         ),
     )
+    parser.add_argument(
+        "--log-level",
+        required=False,
+        default="INFO",
+        choices=VALID_LOG_LEVELS,
+        help="Set the logging verbosity level (defaults to INFO).",
+    )
     args = parser.parse_args()
+
+    logger.remove()
+    logger.add(sys.stderr, level=args.log_level)
 
     input_path = Path(args.input_path).resolve()
     # Verify that it exists
@@ -327,6 +339,9 @@ def _verify_program(
     while GLOBAL_INCOMPLETE_PROOFSTATES:
         # Use BFS to avoid getting stuck in an unproductive search over a proof state.
         proof_state = GLOBAL_INCOMPLETE_PROOFSTATES.popleft()
+        top_fn = proof_state.peek_workstack().function.name
+        workstack_depth = len(proof_state.get_workstack().work_items)
+        logger.info(f"Processing '{top_fn}' (workstack depth: {workstack_depth})")
         next_proofstates = _step(
             proof_state=proof_state,
             specification_generator=specification_generator,

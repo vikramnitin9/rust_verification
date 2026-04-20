@@ -90,6 +90,10 @@ class ProofStateStepper:
                 )
             case BacktrackToCallee(callee_name, hint):
                 if callee := function_graph.get_function_or_none(function_name=callee_name):
+                    logger.info(
+                        f"Backtracking from '{spec_conversation.function.name}' "
+                        f"to callee '{callee_name}'"
+                    )
                     work_item_for_callee = WorkItem(function=callee, hint=hint)
                     workstack_for_next_proof_state = prev_proof_state.get_workstack().push(
                         work_item_for_callee

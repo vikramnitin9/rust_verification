@@ -61,9 +61,8 @@ class CbmcVerificationClient(VerificationClient):
         elif vinput in self._cache:
             vresult = self._cache[vinput]
         else:
-            logger.debug(f"vresult cache miss for: {vinput.function}")
+            logger.debug(f"Cache miss for '{vinput.function.name}', running verifier")
             vresult = self._run_verifier(vinput)
-            logger.debug(f"Caching vresult for: {vinput.function}")
             self._cache[vinput] = vresult
 
         match vresult.status:
@@ -96,7 +95,7 @@ class CbmcVerificationClient(VerificationClient):
                 vcommand = self._get_cbmc_verification_command(
                     vinput, rename_result, path_to_file_to_verify=file
                 )
-                logger.debug(f"Running command: {vcommand}")
+                logger.debug(f"Running CBMC for '{vinput.function.name}'")
                 result = subprocess.run(
                     vcommand, capture_output=True, text=True, shell=True, check=False
                 )
