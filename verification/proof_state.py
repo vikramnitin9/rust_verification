@@ -72,13 +72,13 @@ class WorkStack:
         """
         return WorkStack(work_items=self.work_items[:-1])
 
-    def is_empty(self) -> bool:
-        """Return True iff there are no elements in this workstack.
+    def __len__(self) -> int:
+        """Return the number of elements in this workstack.
 
         Returns:
-            bool: True iff there are no elements in this workstack.
+            int: The number of elements in this workstack.
         """
-        return not self.work_items
+        return len(self.work_items)
 
 
 class ProofState:
@@ -142,7 +142,7 @@ class ProofState:
         Returns:
             bool: True iff this proof state's workstack is empty.
         """
-        return self._workstack.is_empty()
+        return len(self._workstack) == 0
 
     def get_workstack(self) -> WorkStack:
         """Return this proof state's work stack.
