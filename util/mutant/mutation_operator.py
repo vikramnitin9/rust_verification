@@ -220,9 +220,13 @@ class ConstantReplacement(MutationOperator):
         mutants: list[Mutant] = []
         for node in collect_nodes_by_type(tree.root_node, "number_literal"):
             original_text = node_text(source_bytes, node)
+            # Strip C integer suffixes (u, U, l, L, ul, ULL, etc.) before parsing.
+            stripped = original_text.rstrip("uUlL")
+            # Normalize C octal (010) to Python octal (0o10); int() with base=0 requires 0o prefix.
+            if len(stripped) > 1 and stripped[0] == "0" and stripped[1:].isdigit():
+                stripped = "0o" + stripped[1:]
             try:
-                # base=0 handles hex (0x...), octal (0...), and binary (0b...) literals.
-                original_value = int(original_text, 0)
+                original_value = int(stripped, 0)
             except ValueError:
                 continue  # Skip floating-point literals (e.g. 1.0, 2.5f).
 
