@@ -211,7 +211,7 @@ def get_functions_from_file(path: Path) -> list[CFunction]:
     """Parse a C source file and return a list of CFunctions defined in it.
 
     Uses tree-sitter to extract function definitions, their source locations, signatures,
-    and direct callee names. Only ``function_definition`` nodes are included; forward
+    and direct callee names. Only `function_definition` nodes are included; forward
     declarations (without a body) are skipped.
 
     Args:
@@ -257,10 +257,10 @@ def get_functions_from_file(path: Path) -> list[CFunction]:
 
 
 def _extract_c_function(node: Node, source: bytes, file_name: str) -> CFunction | None:
-    """Build a CFunction from a tree-sitter ``function_definition`` node.
+    """Build a CFunction from a tree-sitter `function_definition` node.
 
     Args:
-        node (Node): A ``function_definition`` node.
+        node (Node): A `function_definition` node.
         source (bytes): The raw bytes of the source file.
         file_name (str): Absolute path to the source file.
 
@@ -308,11 +308,11 @@ def _extract_c_function(node: Node, source: bytes, file_name: str) -> CFunction 
 def _collect_callee_names(body: Node) -> list[str]:
     """Return the names of all directly called functions within a function body.
 
-    Only direct calls (``identifier`` as the function node of a ``call_expression``) are
+    Only direct calls (`identifier` as the function node of a `call_expression`) are
     collected. Indirect calls via function pointers are not included.
 
     Args:
-        body (Node): The ``compound_statement`` body node of a function definition.
+        body (Node): The `compound_statement` body node of a function definition.
 
     Returns:
         list[str]: Deduplicated list of callee names in order of first appearance.
