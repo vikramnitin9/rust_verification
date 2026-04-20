@@ -166,6 +166,8 @@ class DefaultLlmBackend(LlmBackend):
             None,
         )
         last_user = messages[-1]
-        if latest_llm is None:
+        if latest_llm is None or (
+            system.role != "system" or initial_user.role != "user" or last_user != "user"
+        ):
             return None
         return (system, initial_user, latest_llm, last_user)
