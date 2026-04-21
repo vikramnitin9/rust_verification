@@ -243,12 +243,13 @@ class ProofStateStepper:
                 msg = f"Backtracking from an external caller '{caller.name}' is not permitted"
             logger.warning(msg)
             # Since backtracking is not possible, assume the (failing) spec here.
-            # Then, move to the next function to verify.
             spec_conversation.next_step = AssumeSpecAsIs()
+            # Write the (assumed) specification to disk and update the cache.
             self._write_spec_to_disk(spec_conversation=spec_conversation)
             self._update_cache_for_assumed_spec(spec_conversation, current_proof_state)
 
             workstack_for_next_proof_state = current_proof_state.get_workstack().pop()
+            # Move on to the next function to generate specs for.
             return ProofState(
                 specs=specs_for_next_proof_state, workstack=workstack_for_next_proof_state
             )
@@ -262,6 +263,8 @@ class ProofStateStepper:
             )
         # Create a work item for the callee that will have its spec regenerated (i.e., the callee to
         # backtrack to).
+        # Note: A disk/cache update does not occur when there is a callee to backtrack to, since
+        # The currently-failing spec is re-visited after backtracking.
         work_item_for_callee = WorkItem(
             function=callee,
             hint=spec_conversation.next_step.hint,
