@@ -5,7 +5,7 @@
 # Vikram would be best suited to document this class.
 
 from .conversation_message import ConversationMessage
-from .llm_backend import LlmBackend, ModelError, GenerationError
+from .llm_backend import LlmBackend, ModelError, GenerationError, ContextWindowExceededError
 from dotenv import load_dotenv
 
 import json
@@ -74,6 +74,13 @@ class DefaultLlmBackend(LlmBackend):
                     max_tokens=self.max_tokens,
                 )
                 break
+            except litellm.ContextWindowExceededError as e:
+                compacted = self._compact_conversation(messages)
+                if compacted is None:
+                    msg = "Context window exceeded and conversation is too short to compact"
+                    raise ContextWindowExceededError(msg) from e
+                logger.warning("Context window exceeded; compacting conversation and retrying")
+                messages = compacted
             except (
                 litellm.BadRequestError,
                 litellm.AuthenticationError,
@@ -117,3 +124,50 @@ class DefaultLlmBackend(LlmBackend):
             case _:
                 msg = f"Unsupported model: {model_name}"
                 raise ModelError(msg)
+
+    def _compact_conversation(
+        self,
+        messages: tuple[ConversationMessage, ...],
+    ) -> tuple[ConversationMessage, ...] | None:
+        """Return a compacted conversation, or `None` if it is already too short to compact.
+
+        For example, given the following conversation:
+
+        [
+            SystemMessage,
+            UserMessage_1,
+            LlmResponse_1,
+            UserMessage_2,
+            LlmResponse_2,
+            ...,
+            LlmResponse_{n-1},
+            UserMessage_n,
+        ]
+
+        Compaction retains the system message, the first user message, the most recent assistant
+        message, and the final user message, resulting in:
+
+        [
+            SystemMessage,
+            UserMessage_1,
+            LlmResponse_{n-1},
+            UserMessage_n,
+        ]
+
+        This preserves the framing, the best available
+        response, and the current prompt while dropping intermediate turns.
+        """
+        if len(messages) <= 4:
+            return None
+        system = messages[0]
+        initial_user = messages[1]
+        latest_llm = next(
+            (m for m in reversed(messages[:-1]) if m.role == "assistant"),
+            None,
+        )
+        last_user = messages[-1]
+        if latest_llm is None or (
+            system.role != "system" or initial_user.role != "user" or last_user != "user"
+        ):
+            return None
+        return (system, initial_user, latest_llm, last_user)
