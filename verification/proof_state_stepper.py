@@ -201,13 +201,17 @@ class ProofStateStepper:
 
         Backtracking is one possibility when the specification of procedure p does not verify.
         When backtracking from p, the callee named in `spec_conversation.next_step` is pushed onto
-        the work stack so it will be re-specified before p is retried. If the callee is an
-        external function, this function marks the callee's work item to be assumed without
-        verification.
+        the work stack so it will be re-specified before p is retried.
 
+        If the callee is an external function (which is determined from
+        `CFunction.is_external_function`, see its documentation), and its source code is available,
+        the spec for the callee is generated again with the hint, but assumed.
 
-        Backtracking from p is skipped (and the failing spec for p is assumed instead) when p is
-        an external function.
+        If the callee is not an external function, the spec is also generated again with the hint,
+        and the verifier is run on the spec.
+
+        Backtracking from p is skipped entirely (and the failing spec for p is assumed instead) when
+        p itself is an external function.
 
         Args:
             specs_for_next_proof_state (dict[CFunction, FunctionSpecification]): The specs for the
