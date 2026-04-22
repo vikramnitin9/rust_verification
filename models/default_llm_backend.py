@@ -159,15 +159,17 @@ class DefaultLlmBackend(LlmBackend):
         """
         if len(messages) <= 4:
             return None
-        system = messages[0]
-        initial_user = messages[1]
-        latest_llm = next(
+        system_message = messages[0]
+        initial_user_message = messages[1]
+        latest_llm_response = next(
             (m for m in reversed(messages[:-1]) if m.role == "assistant"),
             None,
         )
-        last_user = messages[-1]
-        if latest_llm is None or (
-            system.role != "system" or initial_user.role != "user" or last_user != "user"
+        last_user_message = messages[-1]
+        if latest_llm_response is None or (
+            system_message.role != "system"
+            or initial_user_message.role != "user"
+            or last_user_message.role != "user"
         ):
             return None
-        return (system, initial_user, latest_llm, last_user)
+        return (system_message, initial_user_message, latest_llm_response, last_user_message)
