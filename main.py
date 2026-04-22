@@ -301,7 +301,7 @@ def _verify_program(
                 spec = cached_vresult.get_spec()
                 function.set_specifications(spec)
                 existing_specs[function] = spec
-                logger.debug(
+                logger.info(
                     f"Setting {cached_vresult.status} cached specification for '{function.name}'"
                 )
             else:
