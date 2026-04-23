@@ -35,6 +35,11 @@ class CFunction:
         default_factory=list
     )  # Cannot call this `globals` as it is a Python keyword.
     structs: list[Any] = field(default_factory=list)
+    # An external function is a function that is not in the immediate call graph parsed from the
+    # system under verification. For example, it might be a library function or a stub function
+    # (e.g., `verification/cbmc_stubs`).
+    # If an implementation (not just the signature) is available for the external function, it is
+    # added to the call graph.
     is_external_function: bool = False
 
     def __init__(
