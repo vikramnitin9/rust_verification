@@ -89,7 +89,7 @@ class ProofStateStepper:
                     specs=specs_for_next_proof_state,
                     workstack=workstack_for_next_proof_state,
                 )
-            case BacktrackToCallee(_, _):
+            case BacktrackToCallee():
                 return self._get_proofstate_for_backtracking(
                     specs_for_next_proof_state,
                     current_proof_state,
@@ -227,9 +227,10 @@ class ProofStateStepper:
             ProofState: The next proof state to continue to. The top of its workstack is the callee
                 to backtrack to.
         """
-        if not isinstance(spec_conversation.next_step, BacktrackToCallee):
-            msg = f"Next step should be BacktrackToCallee, but is {spec_conversation.next_step}"
-            raise TypeError(msg)
+        assert isinstance(spec_conversation.next_step, BacktrackToCallee), (
+            "This method should "
+            "only be invoked on SpecConversation instances where the next step is to backtrack"
+        )
         callee_name = spec_conversation.next_step.callee
         caller = spec_conversation.function
         callee = function_graph.get_function_or_none(callee_name)
@@ -242,8 +243,6 @@ class ProofStateStepper:
             else:
                 msg = f"Backtracking from an external caller '{caller.name}' is not permitted"
             logger.warning(msg)
-            # Since backtracking is not possible, assume the (failing) spec here.
-            spec_conversation.next_step = AssumeSpecAsIs()
             # Write the (assumed) specification to disk and update the cache.
             self._write_spec_to_disk(spec_conversation=spec_conversation)
             self._update_cache_for_assumed_spec(spec_conversation, current_proof_state)
