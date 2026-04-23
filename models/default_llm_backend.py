@@ -12,6 +12,7 @@ import json
 import os
 import pathlib
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import litellm
 from litellm import completion
@@ -47,20 +48,24 @@ class DefaultLlmBackend(LlmBackend):
     def send_messages(
         self, messages: tuple[ConversationMessage, ...], temperature: float = 0, top_k: int = 1
     ) -> list[str]:
-        """messages: [{'role': 'system', 'content': 'You are an intelligent code assistant'},
-                   {'role': 'user', 'content': 'Translate this program...'},
-                   {'role': 'assistant', 'content': 'Here is the translation...'},
-                   {'role': 'user', 'content': 'Do something else...'}]
+        """Return `top_k` sampled responses from the LLM for the given messages.
 
-        <returned>: ['Sure, here is...',
-                     'Okay, let me see...',
-                     ...]
-        len(<returned>) == top_k
+        Args:
+            messages (tuple[ConversationMessage, ...]): The conversation to send to the LLM.
+            temperature (float): The sampling temperature. Must be non-zero when `top_k > 1`.
+            top_k (int): The number of responses to sample.
+
+        Returns:
+            list[str]: The sampled responses. `len(returned) == top_k`.
         """
         if top_k < 1:
             raise GenerationError("top_k must be >= 1")
         if top_k != 1 and temperature == 0:
             raise GenerationError("Top k sampling requires a non-zero temperature")
+
+        # Claude models do not support the `n` parameter; issue parallel requests instead.
+        if "claude" in self.model:
+            return self._send_parallel(messages, temperature, top_k)
 
         count = 0
         while True:
@@ -103,6 +108,81 @@ class DefaultLlmBackend(LlmBackend):
                 raise GenerationError(f"LLM Error: {e}")
 
         return [choice["message"]["content"] for choice in response["choices"]]
+
+    def _send_parallel(
+        self, messages: tuple[ConversationMessage, ...], temperature: float, top_k: int
+    ) -> list[str]:
+        """Return `top_k` responses by issuing parallel single requests.
+
+        Used for models that do not support the `n` parameter (e.g. Claude). Each request runs
+        its own retry loop independently.
+
+        Args:
+            messages (tuple[ConversationMessage, ...]): The conversation to send.
+            temperature (float): The sampling temperature.
+            top_k (int): The number of parallel requests to make.
+
+        Returns:
+            list[str]: The `top_k` sampled responses.
+        """
+        with ThreadPoolExecutor(max_workers=top_k) as executor:
+            futures = [
+                executor.submit(self._send_one_message, messages, temperature) for _ in range(top_k)
+            ]
+            return [f.result() for f in futures]
+
+    def _send_one_message(
+        self, messages: tuple[ConversationMessage, ...], temperature: float
+    ) -> str:
+        """Return a single response from the LLM with retry and compaction logic.
+
+        Args:
+            messages (tuple[ConversationMessage, ...]): The conversation to send.
+            temperature (float): The sampling temperature.
+
+        Returns:
+            str: The model's response text.
+        """
+        count = 0
+        while True:
+            try:
+                response = completion(
+                    model=self.model,
+                    messages=[message.to_dict() for message in messages],
+                    temperature=temperature,
+                    api_key=self.api_key,
+                    vertex_credentials=self.vertex_credentials,
+                    max_tokens=self.max_tokens,
+                )
+                break
+            except litellm.ContextWindowExceededError as e:
+                compacted = self._compact_conversation(messages)
+                if compacted is None:
+                    msg = "Context window exceeded and conversation is too short to compact"
+                    raise ContextWindowExceededError(msg) from e
+                logger.warning("Context window exceeded; compacting conversation and retrying")
+                messages = compacted
+            except (
+                litellm.BadRequestError,
+                litellm.AuthenticationError,
+                litellm.NotFoundError,
+                litellm.UnprocessableEntityError,
+            ) as e:
+                raise GenerationError(f"Encountered an error with LLM call {e}")
+            except (
+                litellm.RateLimitError,
+                litellm.InternalServerError,
+                litellm.APIConnectionError,
+            ) as e:
+                count += 1
+                if count >= 5:
+                    raise ModelError("Vertex AI API: Too many retries")
+                logger.warning(f"LLM Error {e}. Waiting 10 seconds and retrying")
+                time.sleep(10)
+            except Exception as e:
+                raise GenerationError(f"LLM Error: {e}")
+
+        return response["choices"][0]["message"]["content"]
 
     @staticmethod
     def get_instance(model_name: str) -> LlmBackend:
