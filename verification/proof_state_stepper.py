@@ -215,9 +215,9 @@ class ProofStateStepper:
 
         Args:
             specs_for_next_proof_state (dict[CFunction, FunctionSpecification]): The specs for the
-                next proof state that is being constructed. If backtracking occurs, then this map
-                contains the work item for the callee to backtrack to, along with a hint to the LLM
-                of how to generate its new spec.
+                next proof state that is being constructed (the accumulated function-to-spec
+                mapping). The callee work item and the hint (if any) are pushed onto the workstack
+                in the new proof state.
             current_proof_state (ProofState): The current proof state.
             spec_conversation (SpecConversation): The spec conversation so far.
             function_graph (CFunctionGraph): The program for which specifications are being
