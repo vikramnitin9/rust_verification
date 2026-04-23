@@ -17,11 +17,15 @@ make docker-build
 
 ## Step 1: Generating C Specifications
 
-To generate specs with an LLM, you first need to put your API key in a `.env` file.
+To generate specs with an LLM, you first need to put your API key(s) in a `.env` file.
 
 ```sh
 echo "LLM_API_KEY=<your key here>" > models/.env
+echo "ANTHROPIC_API_KEY=<your key here>" >> models/.env
 ```
+
+The `ANTHROPIC_API_KEY` is required for specification generation and repair via Anthropic's
+  Claude models.
 
 Then run the Python script
 

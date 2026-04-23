@@ -33,7 +33,8 @@ class DefaultLlmBackend(LlmBackend):
         else:
             self.vertex_credentials = None
             self.model = model
-            self.api_key = os.environ["LLM_API_KEY"]
+            api_key_for_model = "ANTHROPIC_API_KEY" if model.startswith("claude") else "LLM_API_KEY"
+            self.api_key = os.environ[api_key_for_model]
 
         if "claude" in model:
             self.max_tokens = 64000
