@@ -57,6 +57,7 @@ def test_generate_specs_max_min() -> None:
             f" --num-specification-repair-iterations 1"
             f" --path-to-llm-response-cache-dir {tmp_cache_dir}"
             f" --path-to-save-proofstates {PATH_TO_INTEGRATION_TEST_DIR}"
+            f" --model gpt-4o"
             f" --stub-out-llm"
         )
         result = subprocess.run(
