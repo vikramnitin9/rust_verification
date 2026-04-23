@@ -114,12 +114,7 @@ class DefaultLlmBackend(LlmBackend):
             LlmBackend: The LlmBackend instance used to run code generation with the given model.
         """
         match model_name:
-            case "claude37":
-                claude_model_name = "claude-3-7-sonnet@20250219"
-                if not "VERTEX_AI_JSON" in os.environ:
-                    claude_model_name = claude_model_name.replace("@", "-")
-                return DefaultLlmBackend(model=claude_model_name)
-            case "gpt-4o":
+            case "claude-sonnet-4-6" | "gpt-4o":
                 return DefaultLlmBackend(model=model_name)
             case _:
                 msg = f"Unsupported model: {model_name}"
