@@ -40,7 +40,7 @@ from verification import (
 
 VALID_LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 
-MODEL = "gpt-4o"
+DEFAULT_MODEL = "gpt-4o"
 DEFAULT_HEADERS_FOR_VERIFICATION: Sequence[str] = (
     "#include <stdlib.h>",
     "#include <limits.h>",
@@ -122,6 +122,15 @@ def main() -> None:
         ),
         default=DEFAULT_MODEL_TEMPERATURE,
         type=OPENAI_MODEL_TEMPERATURE_RANGE.validate_temperature,
+    )
+    parser.add_argument(
+        "--model",
+        required=False,
+        help=(
+            "The model to use for specification generation and repair. "
+            f"Defaults to {DEFAULT_MODEL}."
+        ),
+        default=DEFAULT_MODEL,
     )
     parser.add_argument(
         "--disable-llm-cache",
@@ -230,7 +239,7 @@ def main() -> None:
 
     verifier: VerificationClient = CbmcVerificationClient(cache=VERIFIER_CACHE)
     specification_generator = LlmSpecificationGenerator(
-        MODEL,
+        model=args.model,
         temperature=args.model_temperature,
         system_prompt=DEFAULT_SYSTEM_PROMPT,
         verifier=verifier,
