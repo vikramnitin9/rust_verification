@@ -6,7 +6,7 @@ import argparse
 import pickle as pkl
 import sys
 import tempfile
-from collections import defaultdict, deque
+from collections import deque
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -510,7 +510,7 @@ def _set_next_step(
 def _get_cached_vresult_with_status(
     function: CFunction,
     statuses: set[VerificationStatus],
-    cached_vresults: defaultdict[CFunction, list[VerificationResult]],
+    cached_vresults: dict[CFunction, list[VerificationResult]],
 ) -> VerificationResult | None:
     """Return a cached VerificationResult for a function whose status is in `statuses`.
 
@@ -537,8 +537,8 @@ def _get_cached_vresult_with_status(
         VerificationStatus.ASSUMED,
     ]
     highest_priority_vresult: VerificationResult | None = None
-    for vresult in cached_vresults[function]:
-        if vresult.status not in statuses or function != vresult.get_function():
+    for vresult in cached_vresults.get(function, []):
+        if vresult.status not in statuses:
             continue
         if highest_priority_vresult is None or (
             vresult_priority.index(vresult.status)
