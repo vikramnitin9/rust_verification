@@ -13,6 +13,7 @@ from .backtracking_util import parse_backtracking_info
 from .execution.execution_util import run_with_timeout
 from .tree_sitter_util import get_identifier_nodes_from_call_expressions, get_function_identifiers
 from .mutant import Mutant, CMutator, MutationOperator
+from .cache_util import get_vresult_index
 
 __all__ = [
     "SpecificationGenerationNextStep",
@@ -31,6 +32,7 @@ __all__ = [
     "extract_specification",
     "get_source_content_with_specifications",
     "ensure_lines_at_beginning",
+    "get_destination_path",
     "parse_object",
     "parse_backtracking_info",
     "SpecGenGranularity",
@@ -41,4 +43,5 @@ __all__ = [
     "CMutator",
     "Mutant",
     "MutationOperator",
+    "get_vresult_index",
 ]
