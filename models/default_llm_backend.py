@@ -13,6 +13,7 @@ import os
 import pathlib
 import time
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any
 
 import litellm
 from litellm import completion
@@ -34,7 +35,9 @@ class DefaultLlmBackend(LlmBackend):
         else:
             self.vertex_credentials = None
             self.model = model
-            api_key_for_model = "ANTHROPIC_API_KEY" if model.startswith("claude") else "LLM_API_KEY"
+            api_key_for_model = (
+                "ANTHROPIC_API_KEY" if self._is_claude_model(model) else "LLM_API_KEY"
+            )
             self.api_key = os.environ[api_key_for_model]
 
         if "claude" in model:
@@ -67,46 +70,7 @@ class DefaultLlmBackend(LlmBackend):
         if "claude" in self.model:
             return self._send_parallel(messages, temperature, top_k)
 
-        count = 0
-        while True:
-            try:
-                response = completion(
-                    model=self.model,
-                    messages=[message.to_dict() for message in messages],
-                    temperature=temperature,
-                    n=top_k,
-                    api_key=self.api_key,
-                    vertex_credentials=self.vertex_credentials,
-                    max_tokens=self.max_tokens,
-                )
-                break
-            except litellm.ContextWindowExceededError as e:
-                compacted = self._compact_conversation(messages)
-                if compacted is None:
-                    msg = "Context window exceeded and conversation is too short to compact"
-                    raise ContextWindowExceededError(msg) from e
-                logger.warning("Context window exceeded; compacting conversation and retrying")
-                messages = compacted
-            except (
-                litellm.BadRequestError,
-                litellm.AuthenticationError,
-                litellm.NotFoundError,
-                litellm.UnprocessableEntityError,
-            ) as e:
-                raise GenerationError(f"Encountered an error with LLM call {e}")
-            except (
-                litellm.RateLimitError,
-                litellm.InternalServerError,
-                litellm.APIConnectionError,
-            ) as e:
-                count += 1
-                if count >= 5:
-                    raise ModelError("Vertex AI API: Too many retries")
-                logger.warning(f"LLM Error {e}. Waiting 10 seconds and retrying")
-                time.sleep(10)
-            except Exception as e:
-                raise GenerationError(f"LLM Error: {e}")
-
+        response = self._send_with_retry(messages, temperature, n=top_k)
         return [choice["message"]["content"] for choice in response["choices"]]
 
     def _send_parallel(
@@ -143,6 +107,25 @@ class DefaultLlmBackend(LlmBackend):
         Returns:
             str: The model's response text.
         """
+        response = self._send_with_retry(messages, temperature)
+        return response["choices"][0]["message"]["content"]
+
+    def _send_with_retry(
+        self,
+        messages: tuple[ConversationMessage, ...],
+        temperature: float,
+        **kwargs: Any,
+    ) -> Any:
+        """Return the raw LLM response, retrying on transient errors and compacting on overflow.
+
+        Args:
+            messages (tuple[ConversationMessage, ...]): The conversation to send.
+            temperature (float): The sampling temperature.
+            **kwargs: Extra keyword arguments forwarded to `completion` (e.g. `n=top_k`).
+
+        Returns:
+            Any: The raw litellm response object.
+        """
         count = 0
         while True:
             try:
@@ -153,8 +136,9 @@ class DefaultLlmBackend(LlmBackend):
                     api_key=self.api_key,
                     vertex_credentials=self.vertex_credentials,
                     max_tokens=self.max_tokens,
+                    **kwargs,
                 )
-                break
+                return response
             except litellm.ContextWindowExceededError as e:
                 compacted = self._compact_conversation(messages)
                 if compacted is None:
@@ -176,13 +160,12 @@ class DefaultLlmBackend(LlmBackend):
             ) as e:
                 count += 1
                 if count >= 5:
-                    raise ModelError("Vertex AI API: Too many retries")
+                    msg = f"LLM API retries exceeded with model {self.model}"
+                    raise ModelError(msg)
                 logger.warning(f"LLM Error {e}. Waiting 10 seconds and retrying")
                 time.sleep(10)
             except Exception as e:
                 raise GenerationError(f"LLM Error: {e}")
-
-        return response["choices"][0]["message"]["content"]
 
     @staticmethod
     def get_instance(model_name: str, use_vertex_api: bool) -> LlmBackend:
@@ -255,3 +238,14 @@ class DefaultLlmBackend(LlmBackend):
         ):
             return None
         return (system_message, initial_user_message, latest_llm_response, last_user_message)
+
+    def _is_claude_model(self, model_name: str) -> bool:
+        """Return True iff the model name corresponds to an Anthropic Claude model.
+
+        Args:
+            model_name (str): The model name to check.
+
+        Returns:
+            bool: True iff the model name corresponds to an Anthropic Claude model.
+        """
+        return model_name.strip().startswith("claude")
