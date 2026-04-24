@@ -1,12 +1,16 @@
 """Utility functions for working with the verification result cache."""
 
+from __future__ import annotations
+
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
-from diskcache import Cache
+if TYPE_CHECKING:
+    from diskcache import Cache
 
-from verification import VerificationResult
+    from verification import VerificationResult
 
-from .c_function import CFunction
+    from .c_function import CFunction
 
 
 def get_vresult_index(
