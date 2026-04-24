@@ -90,6 +90,7 @@ class LlmSpecificationGenerator:
         *,
         is_running_as_stub: bool,
         disable_llm_cache: bool = False,
+        use_vertex_api: bool = False,
     ) -> None:
         """Create a new LlmSpecificationGenerator."""
         self._system_prompt = system_prompt
@@ -102,7 +103,9 @@ class LlmSpecificationGenerator:
         self._normalize_specs = normalize_specs
         self._specgen_granularity = specgen_granularity
         llm_backend = (
-            StubLlmBackend(model) if is_running_as_stub else DefaultLlmBackend.get_instance(model)
+            StubLlmBackend(model)
+            if is_running_as_stub
+            else DefaultLlmBackend.get_instance(model, use_vertex_api=use_vertex_api)
         )
         self._llm_client = LlmClient(
             llm=llm_backend,
