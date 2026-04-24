@@ -205,6 +205,15 @@ def main() -> None:
         choices=VALID_LOG_LEVELS,
         help="Set the logging verbosity level (defaults to INFO).",
     )
+    parser.add_argument(
+        "--use-vertex-api",
+        action="store_true",
+        help=(
+            "Use the Google Cloud Platform Vertex AI API "
+            "(https://docs.cloud.google.com/vertex-ai/docs/reference/rest) "
+            "to make LLM calls (defaults to False)."
+        ),
+    )
     args = parser.parse_args()
 
     logger.remove()
@@ -251,6 +260,7 @@ def main() -> None:
         path_to_llm_response_cache_dir=args.path_to_llm_response_cache_dir,
         is_running_as_stub=args.stub_out_llm,
         disable_llm_cache=args.disable_llm_cache,
+        use_vertex_api=args.use_vertex_api,
         specgen_granularity=specgen_granularity,
     )
 

@@ -24,8 +24,8 @@ load_dotenv()
 class DefaultLlmBackend(LlmBackend):
     """Encapsulate LLM-based generation logic."""
 
-    def __init__(self, model: str):
-        if "VERTEX_AI_JSON" in os.environ:
+    def __init__(self, model: str, use_vertex_api: bool):
+        if use_vertex_api and "VERTEX_AI_JSON" in os.environ:
             litellm.vertex_location = "us-east5"
             with pathlib.Path(os.environ["VERTEX_AI_JSON"]).open(encoding="utf-8") as file:
                 self.vertex_credentials: str | None = json.dumps(json.load(file))
@@ -185,8 +185,14 @@ class DefaultLlmBackend(LlmBackend):
         return response["choices"][0]["message"]["content"]
 
     @staticmethod
-    def get_instance(model_name: str) -> LlmBackend:
+    def get_instance(model_name: str, use_vertex_api: bool) -> LlmBackend:
         """Return an instance of LlmBackend for the given model.
+
+        Args:
+            model_name (str): The name of the model to use.
+            use_vertex_api (bool): True iff the Google Cloud Platform Vertex AI API should be used
+                to access a model. See Google Cloud Platform Vertex AI API
+                (https://docs.cloud.google.com/vertex-ai/docs/reference/rest).
 
         Raises:
             ModelError: Raised when an unsupported model is passed to this function.
@@ -196,7 +202,7 @@ class DefaultLlmBackend(LlmBackend):
         """
         match model_name:
             case "claude-sonnet-4-6" | "gpt-4o":
-                return DefaultLlmBackend(model=model_name)
+                return DefaultLlmBackend(model=model_name, use_vertex_api=use_vertex_api)
             case _:
                 msg = f"Unsupported model: {model_name}"
                 raise ModelError(msg)
