@@ -26,6 +26,7 @@ from util import (
     copy_file_to_folder,
     copy_folder_to_folder,
     ensure_lines_at_beginning,
+    get_vresult_index,
     run_with_timeout,
 )
 from verification import (
@@ -314,9 +315,13 @@ def _verify_program(
 
     if skip_statuses:
         functions_for_workstack: list[CFunction] = []
+        cached_vresults = get_vresult_index(VERIFIER_CACHE)
         existing_specs: dict[CFunction, FunctionSpecification] = {}
+
         for function in functions:
-            if cached_vresult := _get_cached_vresult_with_status(function, skip_statuses):
+            if cached_vresult := _get_cached_vresult_with_status(
+                function, skip_statuses, cached_vresults
+            ):
                 spec = cached_vresult.get_spec()
                 function.set_specifications(spec)
                 existing_specs[function] = spec
@@ -503,7 +508,9 @@ def _set_next_step(
 
 
 def _get_cached_vresult_with_status(
-    function: CFunction, statuses: set[VerificationStatus]
+    function: CFunction,
+    statuses: set[VerificationStatus],
+    cached_vresults: dict[CFunction, list[VerificationResult]],
 ) -> VerificationResult | None:
     """Return a cached VerificationResult for a function whose status is in `statuses`.
 
@@ -517,6 +524,8 @@ def _get_cached_vresult_with_status(
     Args:
         function (CFunction): The function whose cached specification is requested.
         statuses (set[VerificationStatus]): The set of statuses to match against.
+        cached_vresults (dict[CFunction, list[VerificationResult]]): The dictionary of cached
+            VerificationResults per function.
 
     Returns:
         VerificationResult | None: The cached verification result for function if one with a
@@ -528,18 +537,14 @@ def _get_cached_vresult_with_status(
         VerificationStatus.ASSUMED,
     ]
     highest_priority_vresult: VerificationResult | None = None
-    if VERIFIER_CACHE is not None:
-        for vinput in VERIFIER_CACHE.iterkeys():
-            # This is very inefficient, but still faster than adding all the functions to workstacks
-            # and reading from the cache repeatedly.
-            vresult = VERIFIER_CACHE[vinput]
-            if vresult.status not in statuses or function != vresult.get_function():
-                continue
-            if highest_priority_vresult is None or (
-                vresult_priority.index(vresult.status)
-                < vresult_priority.index(highest_priority_vresult.status)
-            ):
-                highest_priority_vresult = vresult
+    for vresult in cached_vresults.get(function, []):
+        if vresult.status not in statuses:
+            continue
+        if highest_priority_vresult is None or (
+            vresult_priority.index(vresult.status)
+            < vresult_priority.index(highest_priority_vresult.status)
+        ):
+            highest_priority_vresult = vresult
     return highest_priority_vresult
 
 

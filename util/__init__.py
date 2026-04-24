@@ -12,6 +12,7 @@ from .json_util import parse_object
 from .backtracking_util import parse_backtracking_info
 from .execution.execution_util import run_with_timeout
 from .tree_sitter_util import get_identifier_nodes_from_call_expressions, get_function_identifiers
+from .cache_util import get_vresult_index
 
 __all__ = [
     "SpecificationGenerationNextStep",
@@ -37,4 +38,5 @@ __all__ = [
     "run_with_timeout",
     "get_identifier_nodes_from_call_expressions",
     "get_function_identifiers",
+    "get_vresult_index",
 ]
