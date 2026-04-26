@@ -136,7 +136,7 @@ class CFunction:
         # "-1" handles 1-based lines; end_line is exclusive.
         func_lines = lines[self.start_line - 1 : self.end_line - 1]
         # "-1" handles 1-based columns; end_col is exclusive.
-        # Handle "end" before "beginning", in case they are on the same line.
+        # These two statements handle "end" before "beginning", in case they are on the same line.
         func_lines[-1] = func_lines[-1][: self.end_col - 1]
         func_lines[0] = func_lines[0][self.start_col - 1 :]
 
