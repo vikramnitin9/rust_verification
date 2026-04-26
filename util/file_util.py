@@ -79,7 +79,7 @@ def strip_lines(text_lines: list[str]) -> list[str]:
     """Return the input list, with each line stripped.
 
     Args:
-        text_lines (str): a multi-line string.
+        text_lines (list[str]): Lines to strip.
 
     Returns:
         list[str]: The stripped lines of the text.

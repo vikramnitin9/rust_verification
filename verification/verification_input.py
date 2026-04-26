@@ -17,7 +17,7 @@ class VerificationContext:
     The context for a function is the specs of all the function's callees.
 
     Attributes:
-        callee_specs (dict[str, FunctionSpecification]): The specs for a function's callees.
+        callee_specs (dict[CFunction, FunctionSpecification]): The specs for a function's callees.
         global_variable_specs (dict[str, str]): The specs for global program variables.
     """
 
@@ -64,7 +64,7 @@ class VerificationInput:
         """Return a dictionary of callees to their specifications.
 
         Returns:
-            dict[str, FunctionSpecification]: A dictionary of callees to their specifications.
+            dict[CFunction, FunctionSpecification]: A dictionary of callees to their specifications.
         """
         return self.context.callee_specs
 
