@@ -16,5 +16,10 @@ class StubLlmBackend(LlmBackend):
         self, messages: tuple[ConversationMessage, ...], temperature: float = 0, top_k: int = 1
     ) -> list[str]:
         """Stub method."""
-        msg = "This method should not be invoked when testing with a cache."
+        msg = (
+            "Unexpected conversation while testing with a cache:\n\n"
+            f"{messages}\n"
+            "End of unexpected conversation while testing with a cache.\n"
+        )
+        # TODO: When this error is raised, no traceback should be shown by callers.
         raise NotImplementedError(msg)
