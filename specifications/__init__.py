@@ -1,4 +1,4 @@
-"""Modules for generating and extracting function specifications."""
+"""Modules for generating, simplifying, and extracting function specifications."""
 
 from .llm_specification_generator import LlmSpecificationGenerator
 from .simplify_spec import simplify

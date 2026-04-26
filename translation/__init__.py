@@ -1,4 +1,4 @@
-"""Modules for translating between CBMC and Kani specifications."""
+"""Modules for translating CBMC specifications to Kani specifications."""
 
 from .ast import cbmc_ast
 from .ast.cbmc_ast import CbmcAst, ToAst
