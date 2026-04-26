@@ -13,7 +13,7 @@ ILLEGAL_ARRAY_RANGE_EXPRESSIONS = [
 CLAUSES_WITH_ILLEGAL_ARRAY_RANGES_TO_FIXED_CLAUSES = {
     "__CPROVER_assigns(arr[lo...hi], a, arr2[i])": "__CPROVER_assigns(*arr, a, arr2[i])",
     "__CPROVER_assigns(a, arr[1..2], arr2[i])": "__CPROVER_assigns(a, *arr, arr2[i])",
-    "__CPROVER_assigns(a, arr2[i], arr[lo+2:3])": "__CPROVER_assigns(a, arr2[i], *arr)"
+    "__CPROVER_assigns(a, arr2[i], arr[lo+2:3])": "__CPROVER_assigns(a, arr2[i], *arr)",
 }
 
 # These are some examples of specifications that contain ellipses (...), which are illegal.
@@ -52,16 +52,19 @@ def test_fix_illegal_ellipses() -> None:
         # We only care about the postconditions.
         assert fixed_spec.postconditions == ["__CPROVER_assigns(a, b, c)"]
 
+
 def test_fix_illegal_array_ranges_with_unrelated_assigns_targets() -> None:
     for illegal_clause, fixed_clause in CLAUSES_WITH_ILLEGAL_ARRAY_RANGES_TO_FIXED_CLAUSES.items():
-        spec_with_illegal_clause = FunctionSpecification(preconditions=[], postconditions=[illegal_clause])
+        spec_with_illegal_clause = FunctionSpecification(
+            preconditions=[], postconditions=[illegal_clause]
+        )
         fixed_spec = fix_syntax(spec_with_illegal_clause)
         assert fixed_spec.postconditions == [fixed_clause]
 
 
 def test_fix_multiple_illegal_ellipses() -> None:
-    spec_with_multiple_illegal_ellipses = FunctionSpecification(preconditions=[], postconditions=["__CPROVER_assigns(a, b, ..., c, ..., d)"])
+    spec_with_multiple_illegal_ellipses = FunctionSpecification(
+        preconditions=[], postconditions=["__CPROVER_assigns(a, b, ..., c, ..., d)"]
+    )
     fixed_spec = fix_syntax(spec_with_multiple_illegal_ellipses)
     assert fixed_spec.postconditions == ["__CPROVER_assigns(a, b, c, d)"]
-
-
