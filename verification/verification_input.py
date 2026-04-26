@@ -64,7 +64,7 @@ class VerificationInput:
         """Return a dictionary of callees to their specifications.
 
         Returns:
-            dict[str, FunctionSpecification]: A dictionary of callees to their specifications.
+            dict[CFunction, FunctionSpecification]: A dictionary of callees to their specifications.
         """
         return self.context.callee_specs
 

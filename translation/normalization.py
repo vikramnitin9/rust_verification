@@ -7,9 +7,9 @@
 
 from pathlib import Path
 
-from translation import Parser
 from translation.ast import cbmc_ast
 from translation.ast.cbmc_ast import ToAst
+from translation.parser import Parser
 from util.function_specification import FunctionSpecification
 
 

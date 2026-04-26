@@ -1,3 +1,5 @@
+"""Utilities for executing subprocesses."""
+
 from .execution_util import run_with_timeout
 
 __all__ = [

@@ -383,8 +383,8 @@ class CFunction:
           1. re.sub(r"\s+", " ", signature).strip() collapses runs of whitespace
               (spaces, tabs, newlines) into a single space and trims leading/trailing spaces.
           2. re.sub(r"\s*([(),])\s*", r"\1", normalized) removes surrounding
-              whitespace around ``(``, ``)``, and ``,`` while preserving the punctuation via the
-              capture group ``([(),])`` and replacement backreference ``\1``.
+              whitespace around `(`, `)`, and `,` while preserving the punctuation via the
+              capture group `([(),])` and replacement backreference `\1`.
 
           Together these steps make equivalent signatures compare equal even when ParseC or source
           formatting differs only by whitespace.
