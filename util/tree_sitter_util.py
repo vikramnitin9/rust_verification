@@ -281,14 +281,12 @@ def _extract_c_function(node: Node, source: bytes, file_name: str) -> CFunction 
     # including) the opening brace of the body, with surrounding whitespace stripped.
     signature = source[node.start_byte : body.start_byte].decode("utf-8").strip()
 
-    # tree-sitter uses 0-indexed rows and columns.
-    # CFunction uses 1-indexed lines (start_line, end_line) and 1-indexed start_col.
-    # end_col is the 0-indexed exclusive byte offset within the last line, matching the
-    # convention used by get_source_code and _replace_function_definitions.
+    # tree-sitter uses 0-indexed rows and columns; CFunction uses 1-indexed, with
+    # start_* inclusive and end_* exclusive.
     start_line = node.start_point.row + 1
     start_col = node.start_point.column + 1
-    end_line = node.end_point.row + 1
-    end_col = node.end_point.column
+    end_line = node.end_point.row + 2
+    end_col = node.end_point.column + 1
 
     callee_names = _collect_callee_names(body)
 

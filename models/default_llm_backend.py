@@ -1,6 +1,5 @@
 """Default module for LLM-based generation."""
 
-# ruff: noqa
 # TODO: Vikram, please document.
 # Vikram would be best suited to document this class.
 
@@ -21,9 +20,31 @@ load_dotenv()
 
 
 class DefaultLlmBackend(LlmBackend):
-    """Encapsulate LLM-based generation logic."""
+    """Encapsulate LLM-based generation logic.
+
+    Wraps `litellm` to support both direct API access (via `LLM_API_KEY`) and
+    Google Cloud Vertex AI (via `VERTEX_AI_JSON`).  Automatically retries on
+    transient errors and compacts the conversation when the context window is
+    exceeded.
+
+    Attributes:
+        model (str): The litellm model string (e.g. `vertex_ai/claude-sonnet-4-6`).
+        max_tokens (int): Maximum tokens allowed in a single response.
+        api_key (str | None): API key for direct access; `None` when using Vertex AI.
+        vertex_credentials (str | None): JSON credentials for Vertex AI; `None` otherwise.
+    """
 
     def __init__(self, model: str, use_vertex_api: bool):
+        """Create a new DefaultLlmBackend.
+
+        Args:
+            model (str): The model name to use (e.g. `claude-sonnet-4-6`, `gpt-4o`).
+            use_vertex_api (bool): If True and `VERTEX_AI_JSON` is set, route requests
+                through Google Cloud Vertex AI using the credentials in that file.
+
+        Raises:
+            ModelError: Raised when `model` is not a supported model name.
+        """
         if use_vertex_api and "VERTEX_AI_JSON" in os.environ:
             litellm.vertex_location = "us-east5"
             with pathlib.Path(os.environ["VERTEX_AI_JSON"]).open(encoding="utf-8") as file:
@@ -46,15 +67,25 @@ class DefaultLlmBackend(LlmBackend):
     def send_messages(
         self, messages: tuple[ConversationMessage, ...], temperature: float = 0, top_k: int = 1
     ) -> list[str]:
-        """messages: [{'role': 'system', 'content': 'You are an intelligent code assistant'},
-                   {'role': 'user', 'content': 'Translate this program...'},
-                   {'role': 'assistant', 'content': 'Here is the translation...'},
-                   {'role': 'user', 'content': 'Do something else...'}]
+        """Return `top_k` model responses for the given conversation.
 
-        <returned>: ['Sure, here is...',
-                     'Okay, let me see...',
-                     ...]
-        len(<returned>) == top_k
+        Retries up to 5 times on transient errors (rate limits, server errors, connection issues)
+        with a 10-second delay between attempts.  On a context-window overflow, the conversation
+        is compacted and retried once.
+
+        Args:
+            messages (tuple[ConversationMessage, ...]): The conversation history to send.
+            temperature (float): Sampling temperature. Must be non-zero when `top_k > 1`.
+            top_k (int): Number of independent completions to request.
+
+        Returns:
+            list[str]: The text content of each completion, with `len(result) == top_k`.
+
+        Raises:
+            GenerationError: Raised for unrecoverable API errors or invalid arguments.
+            ContextWindowExceededError: Raised when the context window is exceeded and the
+                conversation is already too short to compact further.
+            ModelError: Raised after 5 consecutive transient failures.
         """
         if top_k < 1:
             raise GenerationError("top_k must be >= 1")
@@ -99,9 +130,9 @@ class DefaultLlmBackend(LlmBackend):
                     raise ModelError("Vertex AI API: Too many retries") from e
                 logger.warning(f"LLM Error {e}. Waiting 10 seconds and retrying")
                 time.sleep(10)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 msg = f"LLM Error: {e}"
-                raise GenerationError(msg)
+                raise GenerationError(msg)  # noqa: B904
 
         return [choice["message"]["content"] for choice in response["choices"]]
 

@@ -6,16 +6,19 @@ used to parse CBMC specifications into the representation we work with in this c
 
 # Ideally we'd like to type check this file, but Lark does not yet support type annotations.
 # mypy: ignore-errors
-# ruff: noqa
+# ruff: noqa: D101, D102, N802, DOC502
 
 from __future__ import annotations
+
 import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from lark import Transformer, ast_utils, v_args
-from lark.tree import Meta
+
+if TYPE_CHECKING:
+    from lark.tree import Meta
 
 
 class Mutable(Protocol):
