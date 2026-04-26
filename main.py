@@ -41,7 +41,7 @@ from verification import (
 
 VALID_LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 
-DEFAULT_MODEL = "gpt-4o"
+DEFAULT_MODEL = "claude-sonnet-4-6"
 DEFAULT_HEADERS_FOR_VERIFICATION: Sequence[str] = (
     "#include <stdlib.h>",
     "#include <limits.h>",
