@@ -537,7 +537,7 @@ class _ToAst(Transformer):
             expr (Any): The expression to validate.
 
         Raises:
-            ValueError: Raised when a function call appears in the expression.
+            TypeError: Raised when a function call appears in the expression.
         """
         if isinstance(expr, CallOp):
             msg = f"Function calls not allowed in assigns targets: {expr}"
