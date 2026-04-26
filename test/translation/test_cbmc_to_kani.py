@@ -94,7 +94,7 @@ def test_assigns_to_side_effectful_operation() -> None:
     cbmc_specs = [
         "__CPROVER_assigns(*side_effect())",
     ]
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         translator.translate(cbmc_specs)
 
 
