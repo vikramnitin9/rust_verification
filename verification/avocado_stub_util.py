@@ -104,7 +104,7 @@ class RenameData:
 
     Attributes:
         renamed_identifier (str): The function's name as an Avocado stub.
-        parent_node_type (IdentifierNodeParentTYpe): The type of the nearest parent declaration node
+        parent_node_type (IdentifierNodeParentType): The type of the nearest parent declaration node
             of the renamed identifier.
         file_path (Path): The path to the CBMC stub file in which the function is defined.
     """
@@ -165,8 +165,8 @@ class AvocadoIdentifierRenamer:
         """Return the mapping from ANSI-C identifiers to Avocado identifiers.
 
         Returns:
-            MappingProxyType[str, list[RenameData]]: The mapping from ANSI-C identifiers to Avocado
-                rename data.
+            MappingProxyType[str, str]: The mapping from ANSI-C identifiers to their Avocado
+                renamed identifiers.
         """
         return MappingProxyType(
             {

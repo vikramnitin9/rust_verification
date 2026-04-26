@@ -401,8 +401,8 @@ class LlmSpecificationGenerator:
 
         Args:
             function (CFunction): The function with the failing spec.
-            conversation (tuple[ConversationMessage]): The conversation for specification repair,
-                which ends with a user message telling the LLM to fix a failing spec.
+            conversation (tuple[ConversationMessage, ...]): The conversation for specification
+                repair, which ends with a user message telling the LLM to fix a failing spec.
 
         Returns:
             tuple[tuple[FunctionSpecification, str], ...]: A tuple of function specifications paired
