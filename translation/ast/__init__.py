@@ -1,1 +1,1 @@
-"""CBMC AST classes and specification mutant generation."""
+"""Classes for CBMC ASTs and specification mutant generation."""

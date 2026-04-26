@@ -401,7 +401,9 @@ class TypeNode(CbmcAst):
 class BuiltinType(TypeNode):
     name: str
     # e.g., "int", "unsigned", "signed", "bool", "char", "float", "double"
-    BUILT_IN_TYPES = {"int", "unsigned", "signed", "char", "long", "float", "double"}
+    BUILT_IN_TYPES: frozenset[str] = frozenset(
+        ["int", "unsigned", "signed", "char", "long", "float", "double"]
+    )
 
 
 @dataclass(frozen=True)
