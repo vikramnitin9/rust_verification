@@ -536,7 +536,7 @@ class _ToAst(Transformer):
         """
         if isinstance(expr, CallOp):
             msg = f"Function calls not allowed in assigns targets: {expr}"
-            raise TypeError(msg)
+            raise ValueError(msg)
         if isinstance(expr, (ObjectWhole, ObjectFrom, TypedTarget)):
             self._validate_side_effect_free(expr.expr)
         if isinstance(expr, ObjectUpto):
