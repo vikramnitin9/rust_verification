@@ -4,18 +4,18 @@
 # TODO: Vikram, please document.
 # Vikram would be best suited to document this class.
 
-from .conversation_message import ConversationMessage
-from .llm_backend import LlmBackend, ModelError, GenerationError, ContextWindowExceededError
-from dotenv import load_dotenv
-
 import json
 import os
 import pathlib
 import time
 
 import litellm
+from dotenv import load_dotenv
 from litellm import completion
 from loguru import logger
+
+from .conversation_message import ConversationMessage
+from .llm_backend import ContextWindowExceededError, GenerationError, LlmBackend, ModelError
 
 load_dotenv()
 
@@ -87,7 +87,8 @@ class DefaultLlmBackend(LlmBackend):
                 litellm.NotFoundError,
                 litellm.UnprocessableEntityError,
             ) as e:
-                raise GenerationError(f"Encountered an error with LLM call {e}")
+                msg = f"Encountered an error with LLM call: {e}"
+                raise GenerationError(msg) from e
             except (
                 litellm.RateLimitError,
                 litellm.InternalServerError,
@@ -95,11 +96,12 @@ class DefaultLlmBackend(LlmBackend):
             ) as e:
                 count += 1
                 if count >= 5:
-                    raise ModelError("Vertex AI API: Too many retries")
+                    raise ModelError("Vertex AI API: Too many retries") from e
                 logger.warning(f"LLM Error {e}. Waiting 10 seconds and retrying")
                 time.sleep(10)
             except Exception as e:
-                raise GenerationError(f"LLM Error: {e}")
+                msg = f"LLM Error: {e}"
+                raise GenerationError(msg)
 
         return [choice["message"]["content"] for choice in response["choices"]]
 
@@ -113,11 +115,11 @@ class DefaultLlmBackend(LlmBackend):
                 to access a model. See Google Cloud Platform Vertex AI API
                 (https://docs.cloud.google.com/vertex-ai/docs/reference/rest).
 
-        Raises:
-            ModelError: Raised when an unsupported model is passed to this function.
-
         Returns:
             LlmBackend: The LlmBackend instance used to run code generation with the given model.
+
+        Raises:
+            ModelError: Raised when an unsupported model is passed to this function.
         """
         match model_name:
             case "claude-sonnet-4-6" | "gpt-4o":
@@ -157,6 +159,10 @@ class DefaultLlmBackend(LlmBackend):
 
         This preserves the framing, the best available
         response, and the current prompt while dropping intermediate turns.
+
+        Returns:
+            tuple[ConversationMessage, ...]: A compacted conversation,
+                or None if too short to compact.
         """
         if len(messages) <= 4:
             return None

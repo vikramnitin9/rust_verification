@@ -1,3 +1,5 @@
+"""Utilities for parsing Rust source code."""
+
 from .rust_parser import RustFunction, RustParser, RustTypeWrapper
 from .ts_rust_parser import TsRustParser
 

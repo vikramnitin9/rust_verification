@@ -107,8 +107,8 @@ class SpecConversation:
             message (ConversationMessage): The message to append to the end of the conversation.
 
         Returns:
-            tuple[ConversationMessage]: A copy of this SpecConversation's conversation field with
-                the message appended.
+            tuple[ConversationMessage, ...]: A copy of this SpecConversation's conversation field
+                with the message appended.
         """
         return (*self.conversation, message)
 
