@@ -1,3 +1,5 @@
+"""Modules for translating CBMC specifications to Kani specifications."""
+
 from .ast import cbmc_ast
 from .ast.cbmc_ast import CbmcAst, ToAst
 from .ast.cbmc_specification_mutant_generator import CbmcSpecificationMutantGenerator
