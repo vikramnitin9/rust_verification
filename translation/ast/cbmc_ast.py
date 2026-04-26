@@ -649,7 +649,7 @@ class _ToAst(Transformer):
 
 
 def ToAst() -> Transformer:
-    """Return a Lark Transformer from parse trees to instances of the AST dataclasses defined above.
+    """Return a Lark Transformer from a parse tree to an instance of an AST dataclass.
 
     Callers use `ToAst()` (no args) so this function returns the configured
     transformer instance.

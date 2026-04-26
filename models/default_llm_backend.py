@@ -34,7 +34,7 @@ class DefaultLlmBackend(LlmBackend):
         vertex_credentials (str | None): JSON credentials for Vertex AI; `None` otherwise.
     """
 
-    def __init__(self, model: str, use_vertex_api: bool) -> None:
+    def __init__(self, model: str, use_vertex_api: bool):
         """Create a new DefaultLlmBackend.
 
         Args:
@@ -127,13 +127,12 @@ class DefaultLlmBackend(LlmBackend):
             ) as e:
                 count += 1
                 if count >= 5:
-                    msg = "Too many retries on transient LLM errors"
-                    raise ModelError(msg) from e
+                    raise ModelError("Vertex AI API: Too many retries") from e
                 logger.warning(f"LLM Error {e}. Waiting 10 seconds and retrying")
                 time.sleep(10)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 msg = f"LLM Error: {e}"
-                raise GenerationError(msg) from e
+                raise GenerationError(msg)  # noqa: B904
 
         return [choice["message"]["content"] for choice in response["choices"]]
 
