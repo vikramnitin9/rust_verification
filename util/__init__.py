@@ -29,7 +29,7 @@ from .specification_generation_next_step import (
 from .tree_sitter_util import get_function_identifiers, get_identifier_nodes_from_call_expressions
 
 __all__ = [
-    "ACCEPTVERIFIEDSPEC",
+    "AcceptVerifiedSpec",
     "AssumeSpecAsIs",
     "BacktrackToCallee",
     "CFunction",
