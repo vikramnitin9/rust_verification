@@ -21,8 +21,6 @@ echo "ANTHROPIC_API_KEY=<your key here>" >> models/.env
 The `ANTHROPIC_API_KEY` is required for specification generation and repair via Anthropic's
   Claude models.
 
-Then run the Python script
-
 ```sh
 make run
 # Inside the container:

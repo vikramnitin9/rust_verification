@@ -31,8 +31,6 @@ class Mutable(Protocol):
 
 
 class CbmcAst(ast_utils.Ast, Mutable):
-    pass
-
     def is_boolean_expression(self) -> bool:
         return False
 
@@ -401,9 +399,11 @@ class TypeNode(CbmcAst):
 
 @dataclass(frozen=True)
 class BuiltinType(TypeNode):
-    # e.g., "int", "unsigned", "signed", "bool", "char", "float", "double"
-    BUILT_IN_TYPES = {"int", "unsigned", "signed", "char", "long", "float", "double"}
     name: str
+    # e.g., "int", "unsigned", "signed", "bool", "char", "float", "double"
+    BUILT_IN_TYPES: frozenset[str] = frozenset(
+        ["int", "unsigned", "signed", "char", "long", "float", "double"]
+    )
 
 
 @dataclass(frozen=True)
@@ -497,11 +497,13 @@ class _ToAst(Transformer):
             return QuantifierDecl(typenode=a, name=b)
         if isinstance(a, Name) and isinstance(b, TypeNode):  # tolerate reversed order
             return QuantifierDecl(typenode=b, name=a)
-        raise ValueError(f"Unexpected quantifier_decl children: {type(a)} {type(b)}")
+        msg = f"Unexpected quantifier_decl children: {type(a)} {type(b)}"
+        raise ValueError(msg)
 
     @v_args(inline=True)
     def assigns_clause(self, content):  # type: ignore[no-untyped-def]
-        # The content is already an Assigns from assigns_empty/assigns_unconditional/assigns_conditional
+        # The content is already an Assigns from
+        # assigns_empty/assigns_unconditional/assigns_conditional
         return content
 
     @v_args(inline=True)
@@ -522,7 +524,7 @@ class _ToAst(Transformer):
         return Assigns(condition=condition, targets=AssignsTargetList(items=expr_list))
 
     def _validate_side_effect_free(self, expr: Any) -> None:
-        """Raise ValueError if an expression contains a function call.
+        """Raise TypeError if an expression contains a function call.
 
         This is a best-effort attempt to validate that an expression is side-effect free by checking
         for the presence of function calls in an expression. Some functions are obviously
@@ -532,15 +534,12 @@ class _ToAst(Transformer):
             expr (Any): The expression to validate.
 
         Raises:
-            ValueError: Raised when a function call appears in the expression.
+            TypeError: Raised when a function call appears in the expression.
         """
         if isinstance(expr, CallOp):
-            raise ValueError(f"Function calls not allowed in assigns targets: {expr}")
-        if (
-            isinstance(expr, ObjectWhole)
-            or isinstance(expr, ObjectFrom)
-            or isinstance(expr, TypedTarget)
-        ):
+            msg = f"Function calls not allowed in assigns targets: {expr}"
+            raise TypeError(msg)
+        if isinstance(expr, (ObjectWhole, ObjectFrom, TypedTarget)):
             self._validate_side_effect_free(expr.expr)
         if isinstance(expr, ObjectUpto):
             self._validate_side_effect_free(expr.ptr)
@@ -564,7 +563,7 @@ class _ToAst(Transformer):
             self._validate_side_effect_free(expr.operand)
 
     def _validate_frees_target(self, expr: Any) -> None:
-        """Raise ValueError if a frees target expression contains nested side effects.
+        """Raise TypeError if a frees target expression contains nested side effects.
 
         Unlike assigns targets, frees targets may be top-level calls to user-defined void
         functions that are themselves side effect free and deterministic (per the CBMC docs).
@@ -576,7 +575,7 @@ class _ToAst(Transformer):
             expr (Any): A single frees target expression.
 
         Raises:
-            ValueError: Raised when a nested side effect (function call) is found.
+            TypeError: Raised when a nested side effect (function call) is found.
         """
         if isinstance(expr, ExprList):
             for e in expr.items:
@@ -647,10 +646,12 @@ class _ToAst(Transformer):
 
 
 def ToAst() -> Transformer:
-    """Return a Lark Transformer instance which converts parse trees
-    into instances of the AST dataclasses defined above.
+    """Return a Lark Transformer from a parse tree to an instance of an AST dataclass.
 
     Callers use `ToAst()` (no args) so this function returns the configured
     transformer instance.
+
+    Returns:
+            Transformer: A Lark Transformer.
     """
     return ast_utils.create_transformer(sys.modules[__name__], _ToAst())

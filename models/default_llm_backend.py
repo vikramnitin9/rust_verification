@@ -152,7 +152,8 @@ class DefaultLlmBackend(LlmBackend):
                 litellm.NotFoundError,
                 litellm.UnprocessableEntityError,
             ) as e:
-                raise GenerationError(f"Encountered an error with LLM call {e}")
+                msg = f"Encountered an error with LLM call: {e}"
+                raise GenerationError(msg) from e
             except (
                 litellm.RateLimitError,
                 litellm.InternalServerError,
@@ -161,11 +162,12 @@ class DefaultLlmBackend(LlmBackend):
                 count += 1
                 if count >= 5:
                     msg = f"LLM API retries exceeded with model {self.model}"
-                    raise ModelError(msg)
+                    raise ModelError(msg) from e
                 logger.warning(f"LLM Error {e}. Waiting 10 seconds and retrying")
                 time.sleep(10)
             except Exception as e:
-                raise GenerationError(f"LLM Error: {e}")
+                msg = f"LLM Error: {e}"
+                raise GenerationError(msg)
 
     @staticmethod
     def get_instance(model_name: str, use_vertex_api: bool) -> LlmBackend:
@@ -177,11 +179,11 @@ class DefaultLlmBackend(LlmBackend):
                 to access a model. See Google Cloud Platform Vertex AI API
                 (https://docs.cloud.google.com/vertex-ai/docs/reference/rest).
 
-        Raises:
-            ModelError: Raised when an unsupported model is passed to this function.
-
         Returns:
             LlmBackend: The LlmBackend instance used to run code generation with the given model.
+
+        Raises:
+            ModelError: Raised when an unsupported model is passed to this function.
         """
         match model_name:
             case "claude-sonnet-4-6" | "gpt-4o":
@@ -221,6 +223,10 @@ class DefaultLlmBackend(LlmBackend):
 
         This preserves the framing, the best available
         response, and the current prompt while dropping intermediate turns.
+
+        Returns:
+            tuple[ConversationMessage, ...]: A compacted conversation,
+                or None if too short to compact.
         """
         if len(messages) <= 4:
             return None
