@@ -209,7 +209,7 @@ def update_function_graph(
     # Update the line/col info for this function.
     split_lines = updated_function_content.splitlines()
     function_len = len(split_lines)
-    new_end_line = prev_start_line + function_len + 1
+    new_end_line = prev_start_line + function_len
     new_end_col = (
         len(split_lines[-1]) + 1
         if function_len > 1

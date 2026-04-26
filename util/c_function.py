@@ -118,8 +118,11 @@ class CFunction:
                 f"range of the file, which has {len(lines)} lines."
             )
             raise ValueError(msg)
-        if self.start_line > self.end_line:
-            msg = f"Function start line is after end line: ({self.start_line}..{self.end_line})."
+        if self.start_line >= self.end_line:
+            msg = (
+                "Function end line (exclusive) should be after start line (inclusive): "
+                f"{self.start_line}..{self.end_line}."
+            )
             raise ValueError(msg)
         if self.start_col < 1 or self.end_col < 1:
             msg = (
