@@ -1,3 +1,5 @@
+"""Modules for translating between CBMC and Kani specifications."""
+
 from .ast import cbmc_ast
 from .ast.cbmc_ast import CbmcAst, ToAst
 from .ast.cbmc_specification_mutant_generator import CbmcSpecificationMutantGenerator
@@ -15,5 +17,5 @@ __all__ = [
     "ToAst",
     "TranslationError",
     "cbmc_ast",
-    "normalize_function_specification"
+    "normalize_function_specification",
 ]
