@@ -527,7 +527,7 @@ class _ToAst(Transformer):
         return Assigns(condition=condition, targets=AssignsTargetList(items=expr_list))
 
     def _validate_side_effect_free(self, expr: Any) -> None:
-        """Raise ValueError if an expression contains a function call.
+        """Raise TypeError if an expression contains a function call.
 
         This is a best-effort attempt to validate that an expression is side-effect free by checking
         for the presence of function calls in an expression. Some functions are obviously
@@ -566,7 +566,7 @@ class _ToAst(Transformer):
             self._validate_side_effect_free(expr.operand)
 
     def _validate_frees_target(self, expr: Any) -> None:
-        """Raise ValueError if a frees target expression contains nested side effects.
+        """Raise TypeError if a frees target expression contains nested side effects.
 
         Unlike assigns targets, frees targets may be top-level calls to user-defined void
         functions that are themselves side effect free and deterministic (per the CBMC docs).
@@ -578,7 +578,7 @@ class _ToAst(Transformer):
             expr (Any): A single frees target expression.
 
         Raises:
-            ValueError: Raised when a nested side effect (function call) is found.
+            TypeError: Raised when a nested side effect (function call) is found.
         """
         if isinstance(expr, ExprList):
             for e in expr.items:

@@ -193,7 +193,8 @@ class DefaultLlmBackend(LlmBackend):
         response, and the current prompt while dropping intermediate turns.
 
         Returns:
-            tuple[ConversationMessage, ...]: A compacted conversation.
+            tuple[ConversationMessage, ...]: A compacted conversation,
+                or None if too short to compact.
         """
         if len(messages) <= 4:
             return None

@@ -276,7 +276,8 @@ def main() -> None:
         )
     except TimeoutError as te:
         logger.error(
-            f"'_verify_program' timed out after {args.specification_generation_timeout_sec}",
+            "'_verify_program' timed out "
+            f"after {args.specification_generation_timeout_sec} seconds",
             te,
         )
         sys.exit(0)
