@@ -1,3 +1,5 @@
+"""Modules for verifying C and Rust programs with CBMC and Kani."""
+
 from .avocado_stub_util import (
     AVOCADO_STUB_DIR,
     AvocadoIdentifierRenamer,
