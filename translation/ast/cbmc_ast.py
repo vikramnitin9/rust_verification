@@ -1,11 +1,12 @@
-# mypy: ignore-errors
-# Ideally we'd like to type check this file, but Lark does not yet support type annotations.
-# ruff: noqa
+"""AST for CBMC specifications.
 
-#
-# This is a manually-written mapping of cbmc.txt to the AST representation used to
-# parse CBMC specifications into the representation we work with in this codebase.
-#
+This is a manually-written mapping of translation/grammar/cbmc.txt to the AST representation
+used to parse CBMC specifications into the representation we work with in this codebase.
+"""
+
+# Ideally we'd like to type check this file, but Lark does not yet support type annotations.
+# mypy: ignore-errors
+# ruff: noqa
 
 from __future__ import annotations
 import sys
@@ -30,8 +31,6 @@ class Mutable(Protocol):
 
 
 class CbmcAst(ast_utils.Ast, Mutable):
-    pass
-
     def is_boolean_expression(self) -> bool:
         return False
 
@@ -400,9 +399,9 @@ class TypeNode(CbmcAst):
 
 @dataclass(frozen=True)
 class BuiltinType(TypeNode):
+    name: str
     # e.g., "int", "unsigned", "signed", "bool", "char", "float", "double"
     BUILT_IN_TYPES = {"int", "unsigned", "signed", "char", "long", "float", "double"}
-    name: str
 
 
 @dataclass(frozen=True)
@@ -496,11 +495,13 @@ class _ToAst(Transformer):
             return QuantifierDecl(typenode=a, name=b)
         if isinstance(a, Name) and isinstance(b, TypeNode):  # tolerate reversed order
             return QuantifierDecl(typenode=b, name=a)
-        raise ValueError(f"Unexpected quantifier_decl children: {type(a)} {type(b)}")
+        msg = f"Unexpected quantifier_decl children: {type(a)} {type(b)}"
+        raise ValueError(msg)
 
     @v_args(inline=True)
     def assigns_clause(self, content):  # type: ignore[no-untyped-def]
-        # The content is already an Assigns from assigns_empty/assigns_unconditional/assigns_conditional
+        # The content is already an Assigns from
+        # assigns_empty/assigns_unconditional/assigns_conditional
         return content
 
     @v_args(inline=True)
@@ -534,12 +535,9 @@ class _ToAst(Transformer):
             ValueError: Raised when a function call appears in the expression.
         """
         if isinstance(expr, CallOp):
-            raise ValueError(f"Function calls not allowed in assigns targets: {expr}")
-        if (
-            isinstance(expr, ObjectWhole)
-            or isinstance(expr, ObjectFrom)
-            or isinstance(expr, TypedTarget)
-        ):
+            msg = f"Function calls not allowed in assigns targets: {expr}"
+            raise TypeError(msg)
+        if isinstance(expr, (ObjectWhole, ObjectFrom, TypedTarget)):
             self._validate_side_effect_free(expr.expr)
         if isinstance(expr, ObjectUpto):
             self._validate_side_effect_free(expr.ptr)
@@ -646,10 +644,12 @@ class _ToAst(Transformer):
 
 
 def ToAst() -> Transformer:
-    """Return a Lark Transformer instance which converts parse trees
-    into instances of the AST dataclasses defined above.
+    """Return a Lark Transformer from a parse tree to an instance of an AST dataclass.
 
     Callers use `ToAst()` (no args) so this function returns the configured
     transformer instance.
+
+    Returns:
+            Transformer: A Lark Transformer.
     """
     return ast_utils.create_transformer(sys.modules[__name__], _ToAst())
