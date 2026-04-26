@@ -446,5 +446,5 @@ def test_frees_function_call_target() -> None:
 
 
 def test_frees_function_call_with_side_effectful_arg_rejected() -> None:
-    with pytest.raises((ValueError, VisitError)):  # noqa: assert-raises-exception
+    with pytest.raises((ValueError, VisitError)):  # noqa: B017
         parser.parse("__CPROVER_frees(my_freeable_set(side_effect(), size))")
