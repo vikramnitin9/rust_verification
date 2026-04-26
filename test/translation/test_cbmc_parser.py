@@ -289,16 +289,12 @@ def test_assigns_object_whole_multiple() -> None:
         case Assigns(
             condition=None,
             targets=AssignsTargetList(
-                items=ExprList(
-                    items=[ObjectWhole(expr=Name("p")), ObjectWhole(expr=Name("q"))]
-                )
+                items=ExprList(items=[ObjectWhole(expr=Name("p")), ObjectWhole(expr=Name("q"))])
             ),
         ):
             pass
         case _:
-            pytest.fail(
-                f"Expected two ObjectWhole targets, but got: {parsed_spec}"
-            )
+            pytest.fail(f"Expected two ObjectWhole targets, but got: {parsed_spec}")
 
 
 def test_assigns_object_from() -> None:
@@ -326,16 +322,12 @@ def test_assigns_object_from_multiple() -> None:
         case Assigns(
             condition=None,
             targets=AssignsTargetList(
-                items=ExprList(
-                    items=[ObjectFrom(expr=Name("p")), ObjectFrom(expr=Name("q"))]
-                )
+                items=ExprList(items=[ObjectFrom(expr=Name("p")), ObjectFrom(expr=Name("q"))])
             ),
         ):
             pass
         case _:
-            pytest.fail(
-                f"Expected two ObjectFrom targets, but got: {parsed_spec}"
-            )
+            pytest.fail(f"Expected two ObjectFrom targets, but got: {parsed_spec}")
 
 
 def test_assigns_object_upto() -> None:
@@ -405,9 +397,7 @@ def test_frees_multiple() -> None:
     match parsed_spec:
         case Frees(
             condition=None,
-            targets=FreesTargetList(
-                items=ExprList(items=[Name("arr1"), Name("arr2")])
-            ),
+            targets=FreesTargetList(items=ExprList(items=[Name("arr1"), Name("arr2")])),
         ):
             pass
         case _:
@@ -435,15 +425,11 @@ def test_frees_freeable() -> None:
     match parsed_spec:
         case Frees(
             condition=None,
-            targets=FreesTargetList(
-                items=ExprList(items=[Freeable(expr=Name("p"))])
-            ),
+            targets=FreesTargetList(items=ExprList(items=[Freeable(expr=Name("p"))])),
         ):
             pass
         case _:
-            pytest.fail(
-                f"Expected Frees with Freeable target, but got: {parsed_spec}"
-            )
+            pytest.fail(f"Expected Frees with Freeable target, but got: {parsed_spec}")
 
 
 def test_frees_function_call_target() -> None:
@@ -456,11 +442,9 @@ def test_frees_function_call_target() -> None:
         ):
             pass
         case _:
-            pytest.fail(
-                f"Expected Frees with CallOp target, but got: {parsed_spec}"
-            )
+            pytest.fail(f"Expected Frees with CallOp target, but got: {parsed_spec}")
 
 
 def test_frees_function_call_with_side_effectful_arg_rejected() -> None:
-    with pytest.raises((ValueError, VisitError)):  # noqa: B017
+    with pytest.raises((TypeError, VisitError)):  # noqa: B017
         parser.parse("__CPROVER_frees(my_freeable_set(side_effect(), size))")
