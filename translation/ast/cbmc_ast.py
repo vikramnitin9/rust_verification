@@ -1,11 +1,12 @@
-# mypy: ignore-errors
-# Ideally we'd like to type check this file, but Lark does not yet support type annotations.
-# ruff: noqa
+"""AST for CBMC specifications.
 
-#
-# This is a manually-written mapping of cbmc.txt to the AST representation used to
-# parse CBMC specifications into the representation we work with in this codebase.
-#
+This is a manually-written mapping of translation/grammar/cbmc.txt to the AST representation
+used to parse CBMC specifications into the representation we work with in this codebase.
+"""
+
+# Ideally we'd like to type check this file, but Lark does not yet support type annotations.
+# mypy: ignore-errors
+# ruff: noqa
 
 from __future__ import annotations
 import sys
