@@ -264,7 +264,7 @@ class PromptBuilder:
                 )
                 raise ValueError(msg)
             source_code_with_line_numbers = text_util.prepend_line_numbers(
-                lines=source_code_lines, start=1, end=len(source_code_lines)
+                lines=source_code_lines, start=1, end=len(source_code_lines) + 1
             )
             template = self._get_repair_prompt_template(specgen_granularity)
             return template.substitute(

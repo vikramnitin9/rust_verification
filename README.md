@@ -3,7 +3,7 @@
 Ensure your system has [all requirements](./REQUIREMENTS.md) installed before
   proceeding with the steps below.
 
-To build the Docker container:
+To build the Docker image:
 
 ```sh
 make docker-build
@@ -15,6 +15,7 @@ To generate specs with an LLM, you first need to put your API key in a `.env` fi
 
 ```sh
 echo "LLM_API_KEY=<your key here>" > models/.env
+chmod og-rwx models/.env
 ```
 
 Then run the Python script
