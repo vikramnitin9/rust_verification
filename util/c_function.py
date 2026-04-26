@@ -19,10 +19,10 @@ class CFunction:
     return_type: str
     signature: str
     file_name: str
-    start_line: int  # 1-indexed
-    start_col: int
-    end_line: int  # 1-indexed
-    end_col: int
+    start_line: int  # 1-indexed, inclusive
+    start_col: int  # 1-indexed, inclusive, refers to a column on line `start_line`
+    end_line: int  # 1-indexed, exclusive
+    end_col: int  # 1-indexed, exclusive; refers to a column on line `end_line - 1`
     preconditions: list[str]
     postconditions: list[str]
     source_code_with_specs: str
@@ -112,19 +112,32 @@ class CFunction:
         with pathlib.Path(self.file_name).open(encoding="utf-8") as f:
             lines = f.readlines()
 
-        if self.start_line < 1 or self.end_line > len(lines):
-            raise ValueError("Function line numbers are out of range of the file.")
+        if self.start_line < 1 or self.end_line > len(lines) + 1:
+            msg = (
+                f"Function line numbers ({self.start_line}..{self.end_line}) are out of "
+                f"range of the file, which has {len(lines)} lines."
+            )
+            raise ValueError(msg)
         if self.start_line > self.end_line:
-            raise ValueError("Function start line is after end line.")
+            msg = f"Function start line is after end line: ({self.start_line}..{self.end_line})."
+            raise ValueError(msg)
         if self.start_col < 1 or self.end_col < 1:
-            raise ValueError("Function column numbers must be 1 or greater.")
-        if self.start_line == self.end_line and self.start_col > self.end_col:
-            raise ValueError("Function start column is after end column on the same line.")
+            msg = (
+                f"Function column numbers must be 1 or greater: ({self.start_col}, {self.end_col})."
+            )
+            raise ValueError(msg)
+        if self.start_line + 1 == self.end_line and self.start_col > self.end_col:
+            msg = (
+                "Function start column is after end column on the same line: "
+                f"({self.start_col}, {self.end_col})."
+            )
+            raise ValueError(msg)
 
-        # Handle 1-based columns; end_col is inclusive
-        func_lines = lines[self.start_line - 1 : self.end_line]
+        # "-1" handles 1-based lines; end_line is exclusive.
+        func_lines = lines[self.start_line - 1 : self.end_line - 1]
+        # "-1" handles 1-based columns; end_col is exclusive.
         # Handle "end" before "beginning", in case they are on the same line.
-        func_lines[-1] = func_lines[-1][: self.end_col]
+        func_lines[-1] = func_lines[-1][: self.end_col - 1]
         func_lines[0] = func_lines[0][self.start_col - 1 :]
 
         if should_uncomment_cbmc_annotations:
@@ -177,11 +190,11 @@ class CFunction:
         """Return source code with line numbers prepended to each line.
 
         The start_line_offset parameter is non-zero when there is preceding documentation that
-        should be included with the function.
+        is already included in `source_code` and should be included with the function.
 
         Args:
             source_code (str): The source code to which to prepend line numbers.
-            start_line_offset (int): The start line offset.
+            start_line_offset (int): The number of preceding lines of documentation to include.
 
         Returns:
             str: The source code of the function with line numbers prepended.
@@ -189,7 +202,7 @@ class CFunction:
         return "\n".join(
             f"{line}: {content}"
             for line, content in prepend_line_numbers(
-                source_code.splitlines(), self.start_line - start_line_offset, self.end_line + 1
+                source_code.splitlines(), self.start_line - start_line_offset, self.end_line
             )
         )
 
