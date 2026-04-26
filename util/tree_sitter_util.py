@@ -139,6 +139,61 @@ def get_identifier_nodes_from_call_expressions(
     return result
 
 
+def collect_nodes_by_type(node: Node, node_type: str) -> list[Node]:
+    """Return all descendant nodes (including `node` itself) of a given tree-sitter node type.
+
+    Args:
+        node (Node): The root of the sub-tree to search.
+        node_type (str): The tree-sitter node type string to match (e.g.
+            `"binary_expression"` or `"number_literal"`).
+
+    Returns:
+        list[Node]: All matching nodes in pre-order.
+    """
+    result: list[Node] = []
+
+    def traverse(current_node: Node) -> None:
+        if current_node.type == node_type:
+            result.append(current_node)
+        for child in current_node.children:
+            traverse(child)
+
+    traverse(node)
+    return result
+
+
+def node_text(source_bytes: bytes, node: Node) -> str:
+    """Return the original source text covered by `node`.
+
+    Args:
+        source_bytes (bytes): The source bytes for the entire file; a subsequence of this is
+            returned.
+        node (Node): The tree-sitter node whose text to retrieve.
+
+    Returns:
+        str: The source text for the node.
+    """
+    return source_bytes[node.start_byte : node.end_byte].decode("utf-8")
+
+
+def replace_node(source_bytes: bytes, node: Node, replacement: str) -> str:
+    """Return a new source string with `node`'s text replaced by `replacement`.
+
+    Args:
+        source_bytes (bytes): The source bytes to modify.
+        node (Node): The tree-sitter node to replace.
+        replacement (str): The replacement text.
+
+    Returns:
+        str: The full source string with the substitution applied.
+    """
+    return (
+        source_bytes[: node.start_byte]
+        + replacement.encode("utf-8")
+        + source_bytes[node.end_byte :]
+    ).decode("utf-8")
+
+
 def _is_function_declarator(declarator: Node | None) -> bool:
     """Return true if a declarator is or contains a function_declarator.
 
@@ -339,4 +394,4 @@ def _collect_callee_names(body: Node) -> list[str]:
             traverse(child)
 
     traverse(body)
-    return list(callee_names)
+    return callee_names

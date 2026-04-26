@@ -152,13 +152,21 @@ class CFunction:
 
         return source_code
 
-    def set_source_code_with_specs(self, source_code: str) -> None:
-        """Store the source code for this function with specifications inserted.
+    def set_source_code(self, source_code: str) -> None:
+        """Set the `source_code` field.
 
         Args:
-            source_code (str): The source code with specifications inserted.
+            source_code (str): The source code.
         """
-        self.source_code_with_specs = source_code
+        self._cached_source_code = source_code
+
+    def set_source_code_with_specs(self, source_code_with_specs: str) -> None:
+        """Set the `source_code_with_specs` field.
+
+        Args:
+            source_code_with_specs (str): The source code with specifications inserted.
+        """
+        self.source_code_with_specs = source_code_with_specs
 
     def invalidate_source_code_fields(self) -> None:
         """Clear this function's `_cached_source_code` and `source_code_with_specs` field."""
