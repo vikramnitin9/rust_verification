@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import tree_sitter_c as tsc
