@@ -17,5 +17,5 @@ __all__ = [
     "ModelError",
     "StubLlmBackend",
     "SystemMessage",
-    "UserMessage"
+    "UserMessage",
 ]

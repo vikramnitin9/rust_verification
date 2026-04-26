@@ -17,5 +17,5 @@ __all__ = [
     "ToAst",
     "TranslationError",
     "cbmc_ast",
-    "normalize_function_specification"
+    "normalize_function_specification",
 ]
