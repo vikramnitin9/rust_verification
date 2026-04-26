@@ -211,7 +211,7 @@ class PromptBuilder:
                     "was missing from the file that failed to verify."
                 )
                 raise ValueError(msg)
-            function_lines = source_code_lines[function.start_line - 1 : function.end_line]
+            function_lines = source_code_lines[function.start_line - 1 : function.end_line - 1]
             number_with_function_lines = text_util.prepend_line_numbers(
                 function_lines, start=function.start_line, end=function.end_line
             )

@@ -207,10 +207,11 @@ def update_function_graph(
     prev_end_col = original_function.end_col
 
     # Update the line/col info for this function.
-    function_len = len(updated_function_content.splitlines())
-    new_end_line = prev_start_line + function_len - 1
+    split_lines = updated_function_content.splitlines()
+    function_len = len(split_lines)
+    new_end_line = prev_start_line + function_len + 1
     new_end_col = (
-        len(updated_function_content.splitlines()[-1])
+        len(split_lines[-1]) + 1
         if function_len > 1
         else prev_start_col + len(updated_function_content)
     )
@@ -222,15 +223,15 @@ def update_function_graph(
     original_function.invalidate_source_code_fields()
 
     # Update line/col info for other functions.
-    line_offset = function_len - (prev_end_line - prev_start_line + 1)
+    line_offset = function_len - (prev_end_line - prev_start_line)
     for other_func in function_graph.functions.values():
         if other_func.name == original_function.name:
             # We've already updated the original function.
             continue
-        if other_func.start_line > prev_end_line:
+        if other_func.start_line >= prev_end_line:
             other_func.start_line += line_offset
             other_func.end_line += line_offset
-        elif other_func.start_line == prev_end_line and other_func.start_col >= prev_end_col:
+        elif other_func.start_line == prev_end_line - 1 and other_func.start_col >= prev_end_col:
             other_func.start_col += new_end_col - prev_end_col
             other_func.end_col += new_end_col - prev_end_col
         elif other_func.end_line > prev_end_line:
@@ -270,9 +271,9 @@ def update_function_definition(
     # Update the line/col info for this function in the function graph.
     function_lines = updated_function_content.splitlines()
     num_lines = len(function_lines)
-    new_end_line = start_line + num_lines - 1
+    new_end_line = start_line + num_lines
     new_end_col = (
-        len(function_lines[-1]) if num_lines > 1 else start_col + len(updated_function_content)
+        len(function_lines[-1]) + 1 if num_lines > 1 else start_col + len(updated_function_content)
     )
     function.end_line = new_end_line
     function.end_col = new_end_col
@@ -282,14 +283,14 @@ def update_function_definition(
     function.invalidate_source_code_fields()
 
     # Update line/col info for other functions.
-    line_offset = num_lines - (end_line - start_line + 1)
+    line_offset = num_lines - (end_line - start_line)
     for other_func in function_graph.functions.values():
         if other_func.name == function.name:
             continue
-        if other_func.start_line > end_line:
+        if other_func.start_line >= end_line:
             other_func.start_line += line_offset
             other_func.end_line += line_offset
-        elif other_func.start_line == end_line and other_func.start_col >= end_col:
+        elif other_func.start_line == end_line - 1 and other_func.start_col >= end_col:
             other_func.start_col += new_end_col - end_col
             other_func.end_col += new_end_col - end_col
         elif other_func.end_line > end_line:
@@ -355,7 +356,7 @@ def _replace_function_definitions(
         end_col = function.end_col
 
         before = [*lines[: start_line - 1], lines[start_line - 1][: start_col - 1]]
-        after = [lines[end_line - 1][end_col:], *lines[end_line:]]
+        after = [lines[end_line - 2][end_col - 1 :], *lines[end_line - 1 :]]
         # Each element of `lines` is an arbitrary code fragment.  They do not necessarily all end
         # with "\n".
         lines = [*before, updated_function_definition, *after]

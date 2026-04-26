@@ -20,9 +20,9 @@ class CFunction:
     signature: str
     file_name: str
     start_line: int  # 1-indexed, inclusive
-    start_col: int  # inclusive, refers to a column on the first line, which is `start_line`
+    start_col: int  # 1-indexed, inclusive, refers to a column on line `start_line`
     end_line: int  # 1-indexed, exclusive
-    end_col: int  # exclusive, refers to a column on the last line, immediately before `end_line`
+    end_col: int  # 1-indexed, exclusive; refers to a column on line `end_line - 1`
     preconditions: list[str]
     postconditions: list[str]
     source_code_with_specs: str
@@ -112,9 +112,9 @@ class CFunction:
         with pathlib.Path(self.file_name).open(encoding="utf-8") as f:
             lines = f.readlines()
 
-        if self.start_line < 1 or self.end_line > len(lines):
+        if self.start_line < 1 or self.end_line > len(lines) + 1:
             msg = (
-                "Function line numbers ({self.start_line}..{self.end_line}) are out of "
+                f"Function line numbers ({self.start_line}..{self.end_line}) are out of "
                 f"range of the file, which has {len(lines)} lines."
             )
             raise ValueError(msg)
@@ -126,7 +126,7 @@ class CFunction:
                 f"Function column numbers must be 1 or greater: ({self.start_col}, {self.end_col})."
             )
             raise ValueError(msg)
-        if self.start_line == self.end_line and self.start_col > self.end_col:
+        if self.start_line + 1 == self.end_line and self.start_col > self.end_col:
             msg = (
                 "Function start column is after end column on the same line: "
                 f"({self.start_col}, {self.end_col})."
@@ -202,7 +202,7 @@ class CFunction:
         return "\n".join(
             f"{line}: {content}"
             for line, content in prepend_line_numbers(
-                source_code.splitlines(), self.start_line - start_line_offset, self.end_line + 1
+                source_code.splitlines(), self.start_line - start_line_offset, self.end_line
             )
         )
 
