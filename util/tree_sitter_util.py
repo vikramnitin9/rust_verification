@@ -286,6 +286,7 @@ def _extract_c_function(node: Node, source: bytes, file_name: str) -> CFunction 
     # CFunction uses 1-indexed lines (start_line, end_line) and 1-indexed start_col.
     # end_col is the 0-indexed exclusive byte offset within the last line, matching the
     # convention used by get_source_code and _replace_function_definitions.
+    ## TODO: The above documentation of `end_col` seems inconsistent with use in other files.
     start_line = node.start_point.row + 1
     start_col = node.start_point.column + 1
     end_line = node.end_point.row + 1

@@ -356,6 +356,8 @@ def _replace_function_definitions(
 
         before = [*lines[: start_line - 1], lines[start_line - 1][: start_col - 1]]
         after = [lines[end_line - 1][end_col:], *lines[end_line:]]
+        # Each element of `lines` is an arbitrary code fragment.  They do not necessarily all end
+        # with "\n".
         lines = [*before, updated_function_definition, *after]
 
     return "".join(lines)
