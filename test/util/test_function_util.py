@@ -66,10 +66,10 @@ def test_extract_single_multi_line_spec() -> None:
     lines = _get_file_lines("test/data/function_util/single_multi_line_spec.c")
     spec = function_util.extract_specification(lines)
     assert spec, f"Missing specifications from {lines}"
-    assert spec.preconditions == ["__CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))"], (
+    assert spec.preconditions == ("__CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))",), (
         f"Unexpected preconditions: {spec.preconditions}"
     )
-    assert spec.postconditions == [], (
+    assert spec.postconditions == (), (
         f"Expected an empty set of postconditions, got {spec.postconditions}"
     )
 
@@ -78,44 +78,44 @@ def test_extract_spec_multiple_single_line_specs() -> None:
     lines = _get_file_lines("test/data/function_util/multiple_single_line_specs.c")
     spec = function_util.extract_specification(lines)
     assert spec, f"Missing specifications from {lines}"
-    assert spec.preconditions == [
+    assert spec.preconditions == (
         "__CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))",
         "__CPROVER_requires(__CPROVER_is_fresh(b, sizeof(int)))",
-    ], f"Unexpected preconditions: {spec.preconditions}"
-    assert spec.postconditions == [
+    ), f"Unexpected preconditions: {spec.preconditions}"
+    assert spec.postconditions == (
         "__CPROVER_ensures(*a == __CPROVER_old(*b))",
         "__CPROVER_ensures(*b == __CPROVER_old(*a))",
-    ], f"Unexpected postconditions: {spec.postconditions}"
+    ), f"Unexpected postconditions: {spec.postconditions}"
 
 
 def test_extract_spec_multiple_multi_line_specs() -> None:
     lines = _get_file_lines("test/data/function_util/multiple_multi_line_spec.c")
     spec = function_util.extract_specification(lines)
     assert spec, f"Missing specifications from {lines}"
-    assert spec.preconditions == [
+    assert spec.preconditions == (
         "__CPROVER_requires(__CPROVER_is_fresh(a, sizeof(int)))",
         "__CPROVER_requires(__CPROVER_is_fresh(b, sizeof(int)))",
-    ], f"Unexpected preconditions: {spec.preconditions}"
-    assert spec.postconditions == [
+    ), f"Unexpected preconditions: {spec.preconditions}"
+    assert spec.postconditions == (
+        "__CPROVER_assigns(a)",
         "__CPROVER_ensures(*a == __CPROVER_old(*b))",
         "__CPROVER_ensures(*b ==__CPROVER_old(*a))",
-        "__CPROVER_assigns(a)",
-    ], f"Unexpected postconditions: {spec.postconditions}"
+    ), f"Unexpected postconditions: {spec.postconditions}"
 
 
 def test_extract_multi_line_quantifiers() -> None:
     lines = _get_file_lines("test/data/function_util/quantifiers.c")
     spec = function_util.extract_specification(lines)
     assert spec, f"Missing specifications from {lines}"
-    assert spec.preconditions == [
-        "__CPROVER_requires(low >= 0 && high >= low)",
+    assert spec.preconditions == (
         "__CPROVER_requires(__CPROVER_is_fresh(arr, (high + 1) * sizeof(int)))",
-    ], f"Unexpected preconditions: {spec.preconditions}"
-    assert spec.postconditions == [
-        "__CPROVER_ensures(__CPROVER_return_value >= low && __CPROVER_return_value <= high)",
+        "__CPROVER_requires(low >= 0 && high >= low)",
+    ), f"Unexpected preconditions: {spec.preconditions}"
+    assert spec.postconditions == (
         "__CPROVER_ensures(__CPROVER_forall {int k;(low <= k && k < __CPROVER_return_value) ==> (arr[k] <= arr[__CPROVER_return_value])})",
         "__CPROVER_ensures(__CPROVER_forall {int m;(__CPROVER_return_value < m && m <= high) ==> (arr[m] > arr[__CPROVER_return_value])})",
-    ], f"Unexpected postconditions: {spec.postconditions}"
+        "__CPROVER_ensures(__CPROVER_return_value >= low && __CPROVER_return_value <= high)",
+    ), f"Unexpected postconditions: {spec.postconditions}"
 
 
 def test_update_function_definition_at_top(setup_for_update_function) -> None:
@@ -256,13 +256,13 @@ def test_get_source_code_with_inserted_specs_comments_out_multiline_ensures() ->
     assert (
         swap_with_specs
         == """void swap(int* a, int* b)
-// __CPROVER_ensures((E.syntax == NULL) ==> 
-//   (__CPROVER_forall { int j; (0 <= j && j < row->rsize) ==> row->hl[j] == HL_NORMAL }))
 // __CPROVER_ensures((E.syntax != NULL) ==> 
 //   (__CPROVER_forall { int j; (0 <= j && j < row->rsize) ==> 
 //     (row->hl[j] == HL_NORMAL || row->hl[j] == HL_COMMENT || row->hl[j] == HL_MLCOMMENT || 
 //      row->hl[j] == HL_STRING || row->hl[j] == HL_NONPRINT || row->hl[j] == HL_NUMBER || 
 //      row->hl[j] == HL_KEYWORD1 || row->hl[j] == HL_KEYWORD2) }))
+// __CPROVER_ensures((E.syntax == NULL) ==> 
+//   (__CPROVER_forall { int j; (0 <= j && j < row->rsize) ==> row->hl[j] == HL_NORMAL }))
 {
     int t = *a;
     *a = *b;
@@ -492,11 +492,4 @@ def test_normalize_function_specification_for_partition() -> None:
         normalized_spec = normalize_function_specification(spec)
         if normalized_spec != expected_spec:
             msg = f"Actual:\n{normalized_spec}\nExpected:\n{expected_spec}"
-            if normalized_spec.eq_setwise(expected_spec):
-                msg = f"Same clauses, but different order.\n{msg}"
-                warnings.warn(msg)
-                continue
-            pytest.fail(
-                f"Normalized spec '{normalized_spec}' was not eq setwise to expected spec "
-                f"'{expected_spec}'"
-            )
+            pytest.fail("expected '{expected_spec}', got '{normalized_spec}'")
