@@ -1,3 +1,5 @@
+"""Utility modules for functions, files, text, ASTs, and specifications."""
+
 from .backtracking_util import parse_backtracking_info
 from .c_function import CFunction
 from .c_function_graph import CFunctionGraph
