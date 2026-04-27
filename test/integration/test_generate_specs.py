@@ -83,8 +83,5 @@ def test_generate_specs_max_min() -> None:
             assert next(iter(get_min_max_src)) == VERIFIED_FUNCTION_SRC_CODE
     finally:
         # Clean up the temporary proof states.
-        cmd = f"rm {PATH_TO_INTEGRATION_TEST_DIR}/*.pkl"
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-        assert result.returncode == 0, (
-            f"Failed to delete temporary proof state files in {PATH_TO_INTEGRATION_TEST_DIR}"
-        )
+        for pkl_file in Path(PATH_TO_INTEGRATION_TEST_DIR).glob("*.pkl"):
+            pkl_file.unlink()
