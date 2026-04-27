@@ -78,7 +78,7 @@ def test_generate_specs_max_min() -> None:
                         get_min_max_src.add(fn.get_source_code_with_specs())
 
             assert len(get_min_max_src) > 0, (
-                f"Expected at least one verified specification for 'get_min_max'"
+                "Expected at least one verified specification for 'get_min_max'"
             )
             assert next(iter(get_min_max_src)) == VERIFIED_FUNCTION_SRC_CODE
     finally:
