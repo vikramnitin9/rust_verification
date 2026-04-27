@@ -87,11 +87,15 @@ Keys for this cache are composed of the input prompt
   assertions in the test.
 
 1. [Run the test command and do not stub out the LLM](https://github.com/vikramnitin9/rust_verification/blob/2474f1aba028fe9b6b165cf7708194e4516c2b5f/test/integration/test_generate_specs.py#L53) (i.e., remove `--stub-out-llm`).
+
 2. The integration test asserts on:
-  - The number of successfully-verifying specs (log lines).
-  - The first successfully-verified spec.
-  Update the assertions if either of these change.
-3. Update the repository history with the new cache (e.g., `git add -f test/data/integration/llm/caching/cache.db`).
+
+- The number of successfully-verifying specs (log lines).
+- The first successfully-verified spec.
+Update the assertions if either of these change.
+
+<!-- markdownlint-disable-next-line MD029 -->
+3. Update the repository history with the new cache (i.e., `git add -f test/data/integration/llm/caching/cache.db`).
 
 Validate that the integration test on CI pass after your changes.
 
