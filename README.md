@@ -81,7 +81,7 @@ make integration-test
 
 Avocado's [integration test](./test/integration/test_generate_specs.py) relies on a pre-populated
   cache of LLM responses that stubs out actual calls to LLM APIs.
-The cache is located at [`test/data/caching/integration/llm/cache.db`](https://github.com/vikramnitin9/rust_verification/tree/main/test/data/caching/llm/integration).
+The cache is located at [`test/data/caching/llm/integration/cache.db`](https://github.com/vikramnitin9/rust_verification/tree/main/test/data/caching/llm/integration).
 Keys for this cache are composed of the input prompt;
   any changes to the prompt will require you to refresh the cache and (if required) update the
   assertions in the test.
@@ -95,7 +95,7 @@ Keys for this cache are composed of the input prompt;
 Update the assertions if either of these change.
 
 <!-- markdownlint-disable-next-line MD029 -->
-3. Update the repository history with the new cache (i.e., `git add -f test/data/integration/llm/caching/cache.db`).
+3. Update the repository history with the new cache (i.e., `git add -f test/data/caching/llm/integration/cache.db`).
 
 Validate that the integration test on CI pass after your changes.
 
