@@ -16,22 +16,22 @@ class FunctionSpecification:
     postconditions array might be: ["__CPROVER_ensures(*b == old(a))"].
 
     Attributes:
-        preconditions (tuple[str]): The preconditions of the function.
-        postconditions (tuple[str]): The postconditions of the function.
+        preconditions (tuple[str, ...]): The preconditions of the function.
+        postconditions (tuple[str, ...]): The postconditions of the function.
     """
 
-    preconditions: tuple[str]
-    postconditions: tuple[str]
+    preconditions: tuple[str, ...]
+    postconditions: tuple[str, ...]
 
     def __init__(self, preconditions: list[str], postconditions: list[str]) -> None:
         """Create a new FunctionSpecification."""
         if not preconditions and not postconditions:
             msg = "Both the pre and postconditions of a function specification cannot be empty"
             raise ValueError(msg)
-        self.preconditions = tuple(sorted(preconditions))  # ty: ignore # bug in ty?
-        self.postconditions = tuple(sorted(postconditions))  # ty: ignore # bug in ty?
+        self.preconditions = tuple(sorted(preconditions))
+        self.postconditions = tuple(sorted(postconditions))
 
-    def __iter__(self) -> Iterator[tuple[str]]:
+    def __iter__(self) -> Iterator[tuple[str, ...]]:
         """Return a iterator that yields specification's clauses.
 
         The iterator has length two.  The first element is preconditions, the second is
@@ -43,7 +43,7 @@ class FunctionSpecification:
             pre, post = function_spec
 
         Returns:
-            Iterator[tuple[str]]: A length-2 iterator: preconditions then postconditions.
+            Iterator[tuple[str,...]]: A length-2 iterator: preconditions then postconditions.
         """
         return iter((self.preconditions, self.postconditions))
 

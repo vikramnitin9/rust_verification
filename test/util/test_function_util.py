@@ -491,5 +491,4 @@ def test_normalize_function_specification_for_partition() -> None:
     for spec in specs:
         normalized_spec = normalize_function_specification(spec)
         if normalized_spec != expected_spec:
-            msg = f"Actual:\n{normalized_spec}\nExpected:\n{expected_spec}"
-            pytest.fail("expected '{expected_spec}', got '{normalized_spec}'")
+            pytest.fail(f"Expected '{expected_spec}', got '{normalized_spec}'")
