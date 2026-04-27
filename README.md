@@ -97,7 +97,7 @@ Update the assertions if either of these change.
 <!-- markdownlint-disable-next-line MD029 -->
 3. Update the repository history with the new cache (i.e., `git add -f test/data/integration/llm/caching/cache.db`).
 
-Validate that the integration test on CI pass after your changes.
+Validate that the integration test on CI passes after your changes.
 
 ## Debugging
 
