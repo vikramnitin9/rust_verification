@@ -82,11 +82,11 @@ make integration-test
 Avocado's [integration test](./test/integration/test_generate_specs.py) relies on a pre-populated
   cache of LLM responses that stubs out actual calls to LLM APIs.
 The cache is located at [`test/data/caching/integration/llm/cache.db`](https://github.com/vikramnitin9/rust_verification/tree/main/test/data/caching/llm/integration).
-Keys for this cache are composed of the input prompt
+Keys for this cache are composed of the input prompt;
   any changes to the prompt will require you to refresh the cache and (if required) update the
   assertions in the test.
 
-1. [Run the test command and do not stub out the LLM](https://github.com/vikramnitin9/rust_verification/blob/2474f1aba028fe9b6b165cf7708194e4516c2b5f/test/integration/test_generate_specs.py#L53) (i.e., remove `--stub-out-llm`).
+1. [Run the test command and do not stub out the LLM](https://github.com/vikramnitin9/rust_verification/blob/main/test/integration/test_generate_specs.py#L53) (i.e., remove `--stub-out-llm`).
 
 2. The integration test asserts on:
 
