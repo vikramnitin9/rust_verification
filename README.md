@@ -77,6 +77,24 @@ Run integration tests (i.e., test the system end-to-end with stubbed-out LLM cal
 make integration-test
 ```
 
+### Updating the Integration Test Cache
+
+Avocado's [integration test](./test/integration/test_generate_specs.py) relies on a pre-populated
+  cache of LLM responses that stubs out actual calls to LLM APIs.
+The cache is located at [`test/data/caching/integration/llm/cache.db`](https://github.com/vikramnitin9/rust_verification/tree/main/test/data/caching/llm/integration).
+Keys for this cache are composed of the input prompt
+  any changes to the prompt will require you to refresh the cache and (if required) update the
+  assertions in the test.
+
+1. [Run the test command and do not stub out the LLM](https://github.com/vikramnitin9/rust_verification/blob/2474f1aba028fe9b6b165cf7708194e4516c2b5f/test/integration/test_generate_specs.py#L53) (i.e., remove `--stub-out-llm`).
+2. The integration test asserts on:
+  - The number of successfully-verifying specs (log lines).
+  - The first successfully-verified spec.
+  Update the assertions if either of these change.
+3. Update the repository history with the new cache (e.g., `git add -f test/data/integration/llm/caching/cache.db`).
+
+Validate that the integration test on CI pass after your changes.
+
 ## Debugging
 
 Add the following to your `.vscode/launch.json` configuration,
