@@ -491,12 +491,8 @@ def test_normalize_function_specification_for_partition() -> None:
     for spec in specs:
         normalized_spec = normalize_function_specification(spec)
         if normalized_spec != expected_spec:
-            msg = f"Actual:\n{normalized_spec}\nExpected:\n{expected_spec}"
-            if normalized_spec.eq_setwise(expected_spec):
-                msg = f"Same clauses, but different order.\n{msg}"
-                warnings.warn(msg)
-                continue
-            pytest.fail(
-                f"Normalized spec '{normalized_spec}' was not eq setwise to expected spec "
-                f"'{expected_spec}'"
-            )
+            if not normalized_spec.eq_setwise(expected_spec):
+                pytest.fail(
+                    f"Normalized spec '{normalized_spec}' was not eq setwise to expected spec "
+                    f"'{expected_spec}'"
+                )
