@@ -22,6 +22,8 @@ integration-test:
 	bash run.sh pytest test/integration
 
 # Run all tests
+.PHONY: test
+test: tests
 tests: unit-test integration-test
 
 # Run all code style checks.

@@ -31,6 +31,7 @@ def prepend_line_numbers(lines: list[str], start: int, end: int) -> list[tuple[s
             f"Mismatch between length of lines ({len(lines)}) and "
             f"range of lines (start = {start}, end = {end})"
         )
+        raise RuntimeError(msg)
     line_number_width = len(str(end))
     return [(f"{str(n).ljust(line_number_width)}", lines[n - start]) for n in range(start, end)]
 
