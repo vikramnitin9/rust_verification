@@ -3,7 +3,7 @@
 Ensure your system has [all requirements](./REQUIREMENTS.md) installed before
   proceeding with the steps below.
 
-To build the Docker container:
+To build the Docker image:
 
 ```sh
 make docker-build
@@ -16,6 +16,7 @@ To generate specs with an LLM, you first need to put your API key(s) in a `.env`
 ```sh
 echo "LLM_API_KEY=<your key here>" > models/.env
 echo "ANTHROPIC_API_KEY=<your key here>" >> models/.env
+chmod og-rwx models/.env
 ```
 
 The `ANTHROPIC_API_KEY` is required for specification generation and repair via Anthropic's
