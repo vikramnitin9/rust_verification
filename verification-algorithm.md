@@ -108,7 +108,7 @@ immutable class ProofState:
     It could be a tuple of all the elements, or it could be implemented as a manual linked list, as
     a pair of one element and a pointer to the remainder of the list.
   Invariant:  all the WorkItems with a non-empty `backtrack_hint` are above all the pairs with None.
-  This is because every push onto the workstack has a non-None `backtrack_hint`.
+  This is because every push onto the workstack when backtracking has a non-None `backtrack_hint`.
 
 Possible fields for ProofState:
 
@@ -121,6 +121,10 @@ immutable class WorkItem:
 * `hint`: str
   Each hint is text provided to the LLM to guide it in the backtracking process; its value is
   populated by the `hint` field in the `BacktrackToCallee` class.
+* `assume_without_verification`: bool (default: False)
+  When True, the spec generated for this function is assumed without running the verifier.
+  Set when backtracking to an external callee — its spec is regenerated with the hint but
+  assumed rather than verified.
 
 immutable class SpecConversation:
 
@@ -173,26 +177,52 @@ def step(proofstate: ProofState) -> List[ProofState]:
     Let `top_fn` be the function on the top of the input's workstack.
     The output ProofState has a smaller workstack if top_fn was successfully verified or if top_fn's
     spec will be assumed.
-    The output ProofState has a larger workstack (representing backtracking) if `top_fn` was not 
+    The output ProofState has a larger workstack (representing backtracking) if `top_fn` was not
     verified or assumed.
   """
-  (fn, backtrack_hint): WorkItem = proofstate.workstack.top();
+  work_item: WorkItem = proofstate.workstack.top()
+  fn, backtrack_hint, assume_without_verification = work_item
   new_speccs: List[SpecConversation] = generate_and_repair_spec(fn, backtrack_hint)
-  pruned_speccs = prune_heuristically(fn, candidate_speccs, proofstate)
+  pruned_speccs = prune_heuristically(fn, new_speccs, proofstate)
+
+  # If flagged to assume without verification (e.g., an external callee pushed during
+  # backtracking), skip the verifier and set next_step directly.
+  if assume_without_verification:
+    for specc in pruned_speccs:
+      specc.next_step = ASSUME_SPEC_AS_IS
+  else:
+    # next_step may already be set by generate_and_repair_spec (e.g., for specs that verified
+    # during repair, or for recursive functions). If not yet set, verify and query the LLM.
+    for specc in pruned_speccs:
+      if not specc.next_step:
+        vresult = call_verifier(fn, specc, proofstate)
+        if is_success(vresult):
+          specc.next_step = ACCEPT_VERIFIED_SPEC
+        else:
+          specc = call_llm_for_next_step(spec_conversation=specc, proof_state=proofstate)
 
   result = []
   for specc in pruned_speccs:
-    # Produce a new ProofState from `specc.spec` and `specc.conversation`.
+    # Produce a new ProofState from `specc.spec` and `specc.next_step`.
 
     # Updating the specs is important even if backtracking will occur.
     next_proofstate_specs = proofstate.specs | {fn: specc.spec}
 
-    last_llm_response = specc.conversation.last()
-    if last_llm_response contains "backtrack":
-      next_proofstate_workstack =
-          proofstate.workstack + [WorkItem(last_llm_response.get_function(), last_llm_response)]
-    else:
-      next_proofstate_workstack = proofstate.workstack[:-1] # pop off fn
+    match specc.next_step:
+      case ACCEPT_VERIFIED_SPEC | ASSUME_SPEC_AS_IS:
+        next_proofstate_workstack = proofstate.workstack[:-1]  # pop fn
+      case BACKTRACK_TO_CALLEE(callee_name, hint):
+        callee = function_graph.get_function_or_none(callee_name)
+        if not callee or fn.is_external_function:
+          # Backtracking is not possible (callee missing, or caller is external).
+          # Assume the failing spec and pop fn.
+          next_proofstate_workstack = proofstate.workstack[:-1]
+        else:
+          # Push callee; if it's external its spec will be assumed rather than verified.
+          next_proofstate_workstack = proofstate.workstack + [
+            WorkItem(callee, hint, assume_without_verification=callee.is_external_function)
+          ]
+
     next_proofstate = ProofState(next_proofstate_specs, next_proofstate_workstack)
     result.append(next_proofstate)
   return result
