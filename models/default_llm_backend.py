@@ -8,6 +8,8 @@ import json
 import os
 import pathlib
 import time
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any
 
 import litellm
 from dotenv import load_dotenv
@@ -33,7 +35,10 @@ class DefaultLlmBackend(LlmBackend):
         else:
             self.vertex_credentials = None
             self.model = model
-            self.api_key = os.environ["LLM_API_KEY"]
+            api_key_for_model = (
+                "ANTHROPIC_API_KEY" if self._is_claude_model(model) else "LLM_API_KEY"
+            )
+            self.api_key = os.environ[api_key_for_model]
 
         if "claude" in model:
             self.max_tokens = 64000
@@ -46,21 +51,81 @@ class DefaultLlmBackend(LlmBackend):
     def send_messages(
         self, messages: tuple[ConversationMessage, ...], temperature: float = 0, top_k: int = 1
     ) -> list[str]:
-        """messages: [{'role': 'system', 'content': 'You are an intelligent code assistant'},
-                   {'role': 'user', 'content': 'Translate this program...'},
-                   {'role': 'assistant', 'content': 'Here is the translation...'},
-                   {'role': 'user', 'content': 'Do something else...'}]
+        """Return `top_k` sampled responses from the LLM for the given messages.
 
-        <returned>: ['Sure, here is...',
-                     'Okay, let me see...',
-                     ...]
-        len(<returned>) == top_k
+        Args:
+            messages (tuple[ConversationMessage, ...]): The conversation to send to the LLM.
+            temperature (float): The sampling temperature. Must be non-zero when `top_k > 1`.
+            top_k (int): The number of responses to sample.
+
+        Returns:
+            list[str]: The sampled responses. `len(returned) == top_k`.
         """
         if top_k < 1:
             raise GenerationError("top_k must be >= 1")
         if top_k != 1 and temperature == 0:
             raise GenerationError("Top k sampling requires a non-zero temperature")
 
+        # Claude models do not support the `n` parameter; issue parallel requests instead.
+        if "claude" in self.model:
+            return self._send_parallel(messages, temperature, top_k)
+
+        response = self._send_with_retry(messages, temperature, n=top_k)
+        return [choice["message"]["content"] for choice in response["choices"]]
+
+    def _send_parallel(
+        self, messages: tuple[ConversationMessage, ...], temperature: float, top_k: int
+    ) -> list[str]:
+        """Return `top_k` responses by issuing parallel single requests.
+
+        Used for models that do not support the `n` parameter (e.g. Claude). Each request runs
+        its own retry loop independently.
+
+        Args:
+            messages (tuple[ConversationMessage, ...]): The conversation to send.
+            temperature (float): The sampling temperature.
+            top_k (int): The number of parallel requests to make.
+
+        Returns:
+            list[str]: The `top_k` sampled responses.
+        """
+        with ThreadPoolExecutor(max_workers=top_k) as executor:
+            futures = [
+                executor.submit(self._send_one_message, messages, temperature) for _ in range(top_k)
+            ]
+            return [f.result() for f in futures]
+
+    def _send_one_message(
+        self, messages: tuple[ConversationMessage, ...], temperature: float
+    ) -> str:
+        """Return a single response from the LLM with retry and compaction logic.
+
+        Args:
+            messages (tuple[ConversationMessage, ...]): The conversation to send.
+            temperature (float): The sampling temperature.
+
+        Returns:
+            str: The model's response text.
+        """
+        response = self._send_with_retry(messages, temperature)
+        return response["choices"][0]["message"]["content"]
+
+    def _send_with_retry(
+        self,
+        messages: tuple[ConversationMessage, ...],
+        temperature: float,
+        **kwargs: Any,
+    ) -> Any:
+        """Return the raw LLM response, retrying on transient errors and compacting on overflow.
+
+        Args:
+            messages (tuple[ConversationMessage, ...]): The conversation to send.
+            temperature (float): The sampling temperature.
+            **kwargs: Extra keyword arguments forwarded to `completion` (e.g. `n=top_k`).
+
+        Returns:
+            Any: The raw litellm response object.
+        """
         count = 0
         while True:
             try:
@@ -68,12 +133,12 @@ class DefaultLlmBackend(LlmBackend):
                     model=self.model,
                     messages=[message.to_dict() for message in messages],
                     temperature=temperature,
-                    n=top_k,
                     api_key=self.api_key,
                     vertex_credentials=self.vertex_credentials,
                     max_tokens=self.max_tokens,
+                    **kwargs,
                 )
-                break
+                return response
             except litellm.ContextWindowExceededError as e:
                 compacted = self._compact_conversation(messages)
                 if compacted is None:
@@ -96,14 +161,13 @@ class DefaultLlmBackend(LlmBackend):
             ) as e:
                 count += 1
                 if count >= 5:
-                    raise ModelError("Vertex AI API: Too many retries") from e
+                    msg = f"LLM API retries exceeded with model {self.model}"
+                    raise ModelError(msg) from e
                 logger.warning(f"LLM Error {e}. Waiting 10 seconds and retrying")
                 time.sleep(10)
             except Exception as e:
                 msg = f"LLM Error: {e}"
                 raise GenerationError(msg)
-
-        return [choice["message"]["content"] for choice in response["choices"]]
 
     @staticmethod
     def get_instance(model_name: str, use_vertex_api: bool) -> LlmBackend:
@@ -180,3 +244,14 @@ class DefaultLlmBackend(LlmBackend):
         ):
             return None
         return (system_message, initial_user_message, latest_llm_response, last_user_message)
+
+    def _is_claude_model(self, model_name: str) -> bool:
+        """Return True iff the model name corresponds to an Anthropic Claude model.
+
+        Args:
+            model_name (str): The model name to check.
+
+        Returns:
+            bool: True iff the model name corresponds to an Anthropic Claude model.
+        """
+        return model_name.strip().startswith("claude")
