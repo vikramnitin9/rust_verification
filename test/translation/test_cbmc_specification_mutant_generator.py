@@ -136,6 +136,5 @@ def test_get_mutants_forall() -> None:
         ExistsExpr(decl=QuantifierDecl(typenode=BuiltinType(name='int'), name=Name(name='i')), range_expr=range_expr, expr=EqOp(left=Name(name='i'), right=Number(value=0)), kind='exists'),
         ForallExpr(decl=QuantifierDecl(typenode=BuiltinType(name='int'), name=Name(name='i')), range_expr=range_expr, expr=NeqOp(left=Name(name='i'), right=Number(value=0)), kind='forall'),
         ForallExpr(decl=QuantifierDecl(typenode=BuiltinType(name='int'), name=Name(name='i')), range_expr=range_expr, expr=NotOp(operand=EqOp(left=Name(name='i'), right=Number(value=0))), kind='forall'),
-    } 
+    }
     assert mutant_generator.get_mutants(forall_expr) == expected_mutants
-

@@ -267,11 +267,11 @@ def repair_spec(fn, specc, proofstate) -> List[SpecConversation]:
   vresult = call_verifier(fn, specc, proofstate)
   if is_success(vresult):
     return [specc]
-  
+
   # specs_to_repair comprises a pair, the first element is a spec, and the second element is a
   # number denoting the number of times a repair was attempted.
-  specs_to_repair = queue((specc, 0)) # Note: the same pair can never be added to the queue more 
-      # than once.  (Or, more likely, the same specc can never be added to the queue more than once, 
+  specs_to_repair = queue((specc, 0)) # Note: the same pair can never be added to the queue more
+      # than once.  (Or, more likely, the same specc can never be added to the queue more than once,
     # regardless of the iteration number.)
   verified_speccs = []
   specs_that_failed_repair = []
@@ -292,7 +292,7 @@ def repair_spec(fn, specc, proofstate) -> List[SpecConversation]:
       # Dead end, repair failed.
       specs_that_failed_repair.append(spec_under_repair)
       continue
-  
+
     # Try repair.
     repair_prompt = get_repair_prompt(spec_under_repair, vresult)
     conversation_with_repair_prompt = spec_under_repair.conversation + repair_prompt
@@ -307,7 +307,7 @@ def repair_spec(fn, specc, proofstate) -> List[SpecConversation]:
         conversation_with_repair_prompt + response
       )
       specs_to_repair.append((next_specc, num_repair_attempts + 1))
-    
+
     if verified_speccs:
       return verified_speccs
 

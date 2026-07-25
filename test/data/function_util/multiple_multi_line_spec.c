@@ -10,7 +10,7 @@ __CPROVER_requires(__CPROVER_is_fresh(b, sizeof(int)))
 __CPROVER_ensures(
     *a == __CPROVER_old(*b))
 __CPROVER_ensures(
-    *b == 
+    *b ==
     __CPROVER_old(*a))
 __CPROVER_assigns(a)
 {

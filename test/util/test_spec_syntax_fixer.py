@@ -63,5 +63,3 @@ def test_fix_multiple_illegal_ellipses() -> None:
     spec_with_multiple_illegal_ellipses = FunctionSpecification(preconditions=[], postconditions=["__CPROVER_assigns(a, b, ..., c, ..., d)"])
     fixed_spec = fix_syntax(spec_with_multiple_illegal_ellipses)
     assert fixed_spec.postconditions == ["__CPROVER_assigns(a, b, c, d)"]
-
-

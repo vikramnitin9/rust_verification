@@ -8,4 +8,4 @@ main.c
 ^SIGNAL=0$
 --
 --
-Checks whether verification succeeds for array elements at a symbolic index. 
+Checks whether verification succeeds for array elements at a symbolic index.

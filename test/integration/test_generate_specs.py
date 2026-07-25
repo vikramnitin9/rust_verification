@@ -87,4 +87,3 @@ def test_generate_specs_max_min() -> None:
         cmd = f"rm {PATH_TO_INTEGRATION_TEST_DIR}/*.pkl"
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
         assert result.returncode == 0, f"Failed to delete temporary proof state files in {PATH_TO_INTEGRATION_TEST_DIR}"
-

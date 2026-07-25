@@ -25,9 +25,9 @@ def test_extract_function_source_code_json_inside_code_fences() -> None:
 
 def test_extract_function_source_code_json_inside_code_fences_with_whitespace() -> None:
     text = """
-    
-    
-    
+
+
+
     ```json
     {
         "function_with_specs": "#include <stdio.h> int main() { printf(\\"Hello, world\\"); }"

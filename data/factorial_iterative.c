@@ -9,4 +9,3 @@ int factorial_iter(int n)
     }
     return result;
 }
-
