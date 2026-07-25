@@ -256,12 +256,12 @@ def test_get_source_code_with_inserted_specs_comments_out_multiline_ensures() ->
     assert (
         swap_with_specs
         == """void swap(int* a, int* b)
-// __CPROVER_ensures((E.syntax == NULL) ==> 
+// __CPROVER_ensures((E.syntax == NULL) ==>
 //   (__CPROVER_forall { int j; (0 <= j && j < row->rsize) ==> row->hl[j] == HL_NORMAL }))
-// __CPROVER_ensures((E.syntax != NULL) ==> 
-//   (__CPROVER_forall { int j; (0 <= j && j < row->rsize) ==> 
-//     (row->hl[j] == HL_NORMAL || row->hl[j] == HL_COMMENT || row->hl[j] == HL_MLCOMMENT || 
-//      row->hl[j] == HL_STRING || row->hl[j] == HL_NONPRINT || row->hl[j] == HL_NUMBER || 
+// __CPROVER_ensures((E.syntax != NULL) ==>
+//   (__CPROVER_forall { int j; (0 <= j && j < row->rsize) ==>
+//     (row->hl[j] == HL_NORMAL || row->hl[j] == HL_COMMENT || row->hl[j] == HL_MLCOMMENT ||
+//      row->hl[j] == HL_STRING || row->hl[j] == HL_NONPRINT || row->hl[j] == HL_NUMBER ||
 //      row->hl[j] == HL_KEYWORD1 || row->hl[j] == HL_KEYWORD2) }))
 {
     int t = *a;

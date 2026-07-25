@@ -132,8 +132,8 @@ def test_get_comment_multi_line_pathological() -> None:
     expected_comment = dedent("""\
         /*
         Test
-        
-        
+
+
         Detailed description */
         """).rstrip()
     assert expected_function.get_preceding_lines_starting_with_comment_delimiters() == expected_comment

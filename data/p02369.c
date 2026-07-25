@@ -17,7 +17,7 @@ struct edge_list_node {
     struct edge e;
     struct edge_list_node *nxt;
 };
-    
+
 struct edge_list {
     struct edge_list_node* front;
     struct edge_list_node* back;
@@ -56,11 +56,11 @@ void push_edge(struct adjcency_list* graph,
 struct adjcency_list* make_adjcency_list(int V) {
 
     int i;
-    
+
     // ??£??\???????????¬??? ?????¢????¢????
     struct adjcency_list* graph;
     graph = (struct adjcency_list* )malloc(sizeof(struct adjcency_list));
-    
+
     // ????????°????????????????????????
     graph->src = (struct edge_list*) malloc(sizeof(struct edge_list) * V);
     for( i=0; i<V; i++ ) {
@@ -70,7 +70,7 @@ struct adjcency_list* make_adjcency_list(int V) {
     }
     // ??£??\??????????????§??????
     graph->num_vertex = V;
-    
+
     return graph;
 }
 
@@ -85,18 +85,18 @@ void push_edge(struct adjcency_list* graph,
 	       struct edge _edge) {
 
     struct edge_list_node *n,*p;
-    
+
     n = (struct edge_list_node*)malloc(sizeof(struct edge_list_node));
     n->e = _edge;
     n->nxt = NULL;
-    
+
     if( graph->src[source].front == NULL )  // there is no nodes in the list.
 	graph->src[source].front = n;
-    else 
+    else
 	graph->src[source].back->nxt = n;
     graph->src[source].back = n;
     graph->src[source].num_edge ++;
-    
+
 }
 
 void dump_adjcency_list(const struct adjcency_list* g) {
@@ -105,7 +105,7 @@ void dump_adjcency_list(const struct adjcency_list* g) {
     int i;
 
     struct edge_list_node* n;
-	
+
     for( i=0; i<V; i++ ) {
 	n = g->src[i].front;
 	printf("%d --> ",i);
@@ -139,14 +139,14 @@ int is_cyclic(struct adjcency_list* g) {
 	    n = n->nxt;
 	}
     }
-	
+
     for( j=0; j<V; j++ ) {
 	flag = 1;
 	// ??\?¬???° == 0 ???????????¢???
 	for( i=0; i<V; i++ ) {
 	    if( in[i] == 0 ) {
 		in[i] = -1;
-		flag = 0; // 0???????????????	      
+		flag = 0; // 0???????????????
 		n = g->src[i].front;
 		while( n != NULL ) {
 		    in[n->e.tgt]--;
@@ -184,7 +184,7 @@ int main(void) {
 	push_edge(graph,s,e);
     }
 //    dump_adjcency_list(graph);
-    
+
     // ?¨????
     res = is_cyclic(graph);
 

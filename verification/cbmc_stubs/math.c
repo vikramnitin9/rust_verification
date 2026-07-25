@@ -814,7 +814,7 @@ __CPROVER_hide:;
     --m.bv;
     return m.f;
   }
-  
+
 }
 
 
@@ -1149,7 +1149,7 @@ long double _avocado_fmaxl(long double f, long double g) { return ((f >= g) || _
 #include <math.h>
 #define __CPROVER_MATH_H_INCLUDED
 #endif
- 
+
 // TODO : Should call a __CPROVER_function so that it can be converted to SMT-LIB
 double _avocado_fmin(double f, double g) { return ((f <= g) || _avocado_isnan(g)) ? f : g; }
 
@@ -1160,7 +1160,7 @@ double _avocado_fmin(double f, double g) { return ((f <= g) || _avocado_isnan(g)
 #define __CPROVER_MATH_H_INCLUDED
 #endif
 
-// TODO : Should call a __CPROVER_function so that it can be converted to SMT-LIB 
+// TODO : Should call a __CPROVER_function so that it can be converted to SMT-LIB
 float _avocado_fminf(float f, float g) { return ((f <= g) || _avocado_isnan(g)) ? f : g; }
 
 /* FUNCTION: fminl */
@@ -1170,7 +1170,7 @@ float _avocado_fminf(float f, float g) { return ((f <= g) || _avocado_isnan(g)) 
 #define __CPROVER_MATH_H_INCLUDED
 #endif
 
-// TODO : Should call a __CPROVER_function so that it can be converted to SMT-LIB 
+// TODO : Should call a __CPROVER_function so that it can be converted to SMT-LIB
 long double _avocado_fminl(long double f, long double g) { return ((f <= g) || _avocado_isnan(g)) ? f : g; }
 
 
