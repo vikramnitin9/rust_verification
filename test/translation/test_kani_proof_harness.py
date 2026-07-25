@@ -51,7 +51,13 @@ def test_kani_proof_harness_swap():
             },
         ),
         # [ensures(|result| *a == old(*b) && *b == old(*a))] [modifies(a, b)]
-        spec=FunctionSpecification(preconditions=[], postconditions=["kani::ensures(|result| *a == old(*b) && *b == old(*all))","kani::modifies(a, b)"]),
+        spec=FunctionSpecification(
+            preconditions=[],
+            postconditions=[
+                "kani::ensures(|result| *a == old(*b) && *b == old(*all))",
+                "kani::modifies(a, b)",
+            ],
+        ),
     )
     assert (
         str(harness)

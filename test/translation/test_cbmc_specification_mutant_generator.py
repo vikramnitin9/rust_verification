@@ -121,20 +121,36 @@ def test_get_mutants_requires() -> None:
         RequiresClause(meta=None, expr=AndOp(Bool(False), Bool(True))),
         RequiresClause(meta=None, expr=AndOp(Bool(True), Bool(False))),
         RequiresClause(meta=None, expr=NotOp(AndOp(Bool(True), Bool(True)))),
-        RequiresClause(meta=None, expr=Bool(True))
+        RequiresClause(meta=None, expr=Bool(True)),
     }
     assert mutants == expected_mutants
 
+
 def test_get_mutants_forall() -> None:
-    range_expr=AndOp(LeOp(Number(0), Name("i")), LtOp(Name("i"), Number(10))),
+    range_expr = (AndOp(LeOp(Number(0), Name("i")), LtOp(Name("i"), Number(10))),)
     forall_expr = ForallExpr(
         QuantifierDecl(typenode=BuiltinType("int"), name=Name("i")),
         range_expr=range_expr,
         expr=EqOp(Name("i"), Number(0)),
     )
-    expected_mutants ={
-        ExistsExpr(decl=QuantifierDecl(typenode=BuiltinType(name='int'), name=Name(name='i')), range_expr=range_expr, expr=EqOp(left=Name(name='i'), right=Number(value=0)), kind='exists'),
-        ForallExpr(decl=QuantifierDecl(typenode=BuiltinType(name='int'), name=Name(name='i')), range_expr=range_expr, expr=NeqOp(left=Name(name='i'), right=Number(value=0)), kind='forall'),
-        ForallExpr(decl=QuantifierDecl(typenode=BuiltinType(name='int'), name=Name(name='i')), range_expr=range_expr, expr=NotOp(operand=EqOp(left=Name(name='i'), right=Number(value=0))), kind='forall'),
+    expected_mutants = {
+        ExistsExpr(
+            decl=QuantifierDecl(typenode=BuiltinType(name="int"), name=Name(name="i")),
+            range_expr=range_expr,
+            expr=EqOp(left=Name(name="i"), right=Number(value=0)),
+            kind="exists",
+        ),
+        ForallExpr(
+            decl=QuantifierDecl(typenode=BuiltinType(name="int"), name=Name(name="i")),
+            range_expr=range_expr,
+            expr=NeqOp(left=Name(name="i"), right=Number(value=0)),
+            kind="forall",
+        ),
+        ForallExpr(
+            decl=QuantifierDecl(typenode=BuiltinType(name="int"), name=Name(name="i")),
+            range_expr=range_expr,
+            expr=NotOp(operand=EqOp(left=Name(name="i"), right=Number(value=0))),
+            kind="forall",
+        ),
     }
     assert mutant_generator.get_mutants(forall_expr) == expected_mutants

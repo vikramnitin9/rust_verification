@@ -48,7 +48,7 @@ def test_get_headers() -> None:
         function=is_separator,
         spec=FunctionSpecification(preconditions=["__CPROVER_requires(1)"], postconditions=[]),
         context=VerificationContext(callee_specs={}, global_variable_specs={}),
-        contents_of_file_to_verify=Path(test_file).read_text()
+        contents_of_file_to_verify=Path(test_file).read_text(),
     )
     headers_parsed_from_file = input_for_is_separator.get_headers()
     assert headers_parsed_from_file == [

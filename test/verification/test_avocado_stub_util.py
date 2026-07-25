@@ -8,6 +8,7 @@ from pathlib import Path
 def _read_file_content(path: str) -> str:
     return Path(path).read_text(encoding="utf-8")
 
+
 avocado_renamer = avocado_stub_util.AvocadoIdentifierRenamer()
 
 
@@ -41,7 +42,8 @@ int is_separator(int c)
         _avocado_strchr(",.()+-/*=~%[];",c) != NULL;
 }"""
     rename_result = avocado_renamer.rename_ansi_identifiers_to_avocado_identifiers(
-        content_pre_renaming)
+        content_pre_renaming
+    )
     assert rename_result.src_after_renaming == expected_content_post_renaming
     assert rename_result.get_headers_for_renamed_functions() == {"ctype.h", "string.h"}
 
@@ -50,8 +52,11 @@ def test_apply_stub_renaming_existing_avocado_name() -> None:
     content_pre_renaming = _read_file_content(
         "test/data/avocado_stub/test_renaming_existing_avocado_names.c"
     )
-    rename_result = avocado_renamer.rename_ansi_identifiers_to_avocado_identifiers(content_pre_renaming)
+    rename_result = avocado_renamer.rename_ansi_identifiers_to_avocado_identifiers(
+        content_pre_renaming
+    )
     assert rename_result.src_after_renaming == content_pre_renaming
+
 
 def test_apply_stub_renaming_existing_cbmc_specs() -> None:
     content_pre_renaming = _read_file_content(
@@ -70,8 +75,11 @@ __CPROVER_ensures((__CPROVER_return_value == 0) ==> (c == '\\0' || _avocado_issp
         _avocado_isspace(c) ||
         _avocado_strchr(",.()+-/*=~%[];",c) != NULL;
 }"""
-    rename_result = avocado_renamer.rename_ansi_identifiers_to_avocado_identifiers(content_pre_renaming)
+    rename_result = avocado_renamer.rename_ansi_identifiers_to_avocado_identifiers(
+        content_pre_renaming
+    )
     assert rename_result.src_after_renaming == expected_content_post_renaming
+
 
 def test_get_stub() -> None:
     header_basename = "string.h"
@@ -96,4 +104,7 @@ def test_get_stub() -> None:
   return 0;
   #endif
 }"""
-    assert avocado_stub_util.get_stub_implementation_from_parsed_source("strchr", parsed_header) == stub_implementation
+    assert (
+        avocado_stub_util.get_stub_implementation_from_parsed_source("strchr", parsed_header)
+        == stub_implementation
+    )

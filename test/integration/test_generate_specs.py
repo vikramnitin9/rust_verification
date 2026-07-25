@@ -60,9 +60,7 @@ def test_generate_specs_max_min() -> None:
             f" --model gpt-4o"
             f" --stub-out-llm"
         )
-        result = subprocess.run(
-            cmd, shell=True, capture_output=True, text=True, cwd=str(REPO_ROOT)
-        )
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=str(REPO_ROOT))
 
     assert result.returncode == 0, f"Process failed.\nstderr:\n{result.stderr}"
     assert result.stderr.count("Verification succeeded for function 'get_min_max") == 1
@@ -79,11 +77,14 @@ def test_generate_specs_max_min() -> None:
                     if fn.name == "get_min_max":
                         get_min_max_src.add(fn.get_source_code_with_specs())
 
-
-            assert len(get_min_max_src) > 0, f"Expected at least one verified specification for 'get_min_max'"
+            assert len(get_min_max_src) > 0, (
+                f"Expected at least one verified specification for 'get_min_max'"
+            )
             assert next(iter(get_min_max_src)) == VERIFIED_FUNCTION_SRC_CODE
     finally:
         # Clean up the temporary proof states.
         cmd = f"rm {PATH_TO_INTEGRATION_TEST_DIR}/*.pkl"
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-        assert result.returncode == 0, f"Failed to delete temporary proof state files in {PATH_TO_INTEGRATION_TEST_DIR}"
+        assert result.returncode == 0, (
+            f"Failed to delete temporary proof state files in {PATH_TO_INTEGRATION_TEST_DIR}"
+        )
