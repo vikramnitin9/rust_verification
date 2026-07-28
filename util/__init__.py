@@ -1,6 +1,7 @@
 """Utility modules for functions, files, text, ASTs, and specifications."""
 
 from .backtracking_util import parse_backtracking_info
+from .cache_util import get_vresult_index
 from .c_function import CFunction
 from .c_function_graph import CFunctionGraph
 from .cache_util import get_vresult_index
@@ -19,8 +20,10 @@ from .file_util import (
 from .function_specification import FunctionSpecification
 from .function_util import extract_specification, get_source_content_with_specifications
 from .json_util import parse_object
+from .mutant import Mutant, CMutator, MutationOperator
 from .spec_conversation import SpecConversation
 from .spec_syntax_fixer import fix_syntax
+from .tree_sitter_util import get_identifier_nodes_from_call_expressions, get_function_identifiers
 from .specification.specgen_granularity import SpecGenGranularity
 from .specification_generation_next_step import (
     AcceptVerifiedSpec,
@@ -28,7 +31,6 @@ from .specification_generation_next_step import (
     BacktrackToCallee,
     SpecificationGenerationNextStep,
 )
-from .tree_sitter_util import get_function_identifiers, get_identifier_nodes_from_call_expressions
 
 __all__ = [
     "AcceptVerifiedSpec",
@@ -36,6 +38,7 @@ __all__ = [
     "BacktrackToCallee",
     "CFunction",
     "CFunctionGraph",
+    "CMutator",
     "FunctionSpecification",
     "SpecConversation",
     "SpecGenGranularity",
@@ -51,6 +54,8 @@ __all__ = [
     "get_identifier_nodes_from_call_expressions",
     "get_source_content_with_specifications",
     "get_vresult_index",
+    "Mutant",
+    "MutationOperator",
     "parse_backtracking_info",
     "parse_clauses_for_spec",
     "parse_expressions_for_spec",

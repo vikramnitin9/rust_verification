@@ -296,5 +296,6 @@ def normalize_function_specification(spec: FunctionSpecification) -> FunctionSpe
     normalized_preconditions = [normalize_cbmc_spec(p) for p in spec.preconditions]
     normalized_postconditions = [normalize_cbmc_spec(p) for p in spec.postconditions]
     return FunctionSpecification(
-        preconditions=normalized_preconditions, postconditions=normalized_postconditions
+        preconditions=sorted(normalized_preconditions),
+        postconditions=sorted(normalized_postconditions),
     )
